@@ -1,13 +1,17 @@
 import time
 
+import numpy as np
 import pytest
 from PySide6.QtCore import QSettings, Qt
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication
 
+from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas
 from cns_desktop.app import disclaimer_due, main, mark_disclaimer_shown
 from cns_desktop.main_window import MainWindow, about_text
 from cns_desktop.state import AppState
+from cns_desktop.views.slice_panel import NO_TEMPLATE, SlicePanel
 
 
 @pytest.fixture(scope="session")
@@ -242,3 +246,74 @@ def test_cutting_plane_follows_the_slice(window):
     window.state.set_slice("axial", -20.0)
     zmin, zmax = window.view.plane.GetBounds()[4:6]
     assert abs(zmin + 20.0) < 1e-6 and abs(zmax + 20.0) < 1e-6
+
+
+def test_slice_panel_shapes_per_axis(window):
+    panel = window.slices
+    assert panel.image.shape == (48, 40, 4)
+    panel.set_axis("coronal")
+    assert window.state.slice_axis == "coronal" and panel.image.shape == (36, 40, 4)
+    panel.set_axis("sagittal")
+    assert panel.image.shape == (36, 48, 4)
+
+
+def test_slider_moves_the_slice_and_the_3d_plane(window):
+    window.slices.slider.setValue(20)
+    assert window.state.slice_mm == -60.0 + 4 * 20
+    zmin, zmax = window.view.plane.GetBounds()[4:6]
+    assert abs(zmin - 20.0) < 1e-6 and abs(zmax - 20.0) < 1e-6
+    assert window.slices.position.text() == "z = +20 mm"
+
+
+def test_hover_and_click_select_the_structure_under_the_cursor(window):
+    window.state.set_slice("axial", 20.0)
+    assert window.slices.name_at_pixel(19, 12) == "Alpha gyrus (left)"
+    window.slices.click_pixel(19, 12)
+    assert window.state.selected == 101
+
+
+def test_click_on_unlabelled_tissue_keeps_the_selection(window):
+    window.state.select(111)
+    window.slices.click_pixel(0, 0)
+    assert window.state.selected == 111
+    assert window.slices.name_at_pixel(0, 0) == ""
+    assert window.slices.name_at_pixel(500, 500) == ""
+
+
+def test_selecting_a_hidden_structure_draws_nothing_new(window):
+    window.state.set_slice("axial", 20.0)
+    window.state.set_hidden([101], True)
+    before = window.slices.image.copy()
+    window.state.select(101)
+    assert (window.slices.image == before).all()
+    pixel = window.slices.image[19, 12]
+    assert pixel[0] == pixel[1] == pixel[2]
+
+
+def test_out_of_range_slice_is_clamped(window):
+    window.state.set_slice("axial", 500.0)
+    assert window.slices.slider.value() == 35
+    assert window.state.slice_mm == -60.0 + 4 * 35
+
+
+def test_centre_on_selection(window):
+    window.state.select(120)
+    window.slices.centre_on_selection()
+    assert window.state.slice_mm == -60.0 + 4 * 8
+
+
+def test_centre_shortcut_and_hover_status(window):
+    shortcuts = {a.shortcut().toString() for a in window.findChildren(QAction)}
+    assert "C" in shortcuts
+    window.slices.hovered.emit("Alpha gyrus (left)")
+    assert window.statusBar().currentMessage() == "Alpha gyrus (left)"
+
+
+def test_slice_panel_without_template(qapp, tmp_path):
+    volume = np.zeros((10, 10, 10), dtype=np.uint16)
+    volume[2:4, 2:4, 2:4] = 101
+    root = write_package(tmp_path / "pkg", tiny_structures(),
+                         meshes={101: tetra(0), 102: tetra(5), 110: tetra(9)}, volume=volume)
+    panel = SlicePanel(AppState(Atlas.open(root)))
+    assert panel.note.text() == NO_TEMPLATE
+    assert tuple(panel.image[0, 0]) == (0, 0, 0, 255)
