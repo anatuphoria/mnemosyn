@@ -8,6 +8,8 @@ from cns_atlas.model import Structure
 from .recipe import BuildError, read_toml
 
 DEFAULT_COLOR = (170, 170, 180)
+SHADE_SPAN = 0.15
+SIDED = ("left", "right")
 GROUP_KEYS = {"id", "parent", "acronym", "name", "color", "synonyms", "xrefs"}
 CONCEPT_KEYS = GROUP_KEYS | {"kind", "left", "right", "midline", "source"}
 
@@ -102,6 +104,20 @@ def load_structures(path: Path) -> list[RawStructure]:
     return raws
 
 
+def shade(rgb: tuple[int, int, int], factor: float) -> tuple[int, int, int]:
+    if factor >= 0:
+        return tuple(int(round(c + (255 - c) * factor)) for c in rgb)
+    return tuple(int(round(c * (1 + factor))) for c in rgb)
+
+
+def sibling_factors(ids: list[int]) -> dict[int, float]:
+    ordered = sorted(ids)
+    if len(ordered) == 1:
+        return {ordered[0]: 0.0}
+    step = 2 * SHADE_SPAN / (len(ordered) - 1)
+    return {sid: -SHADE_SPAN + step * k for k, sid in enumerate(ordered)}
+
+
 def build_tree(raws: list[RawStructure]) -> list[PlannedStructure]:
     by_id = {r.id: r for r in raws}
     children: dict[int | None, list[int]] = {}
@@ -118,8 +134,12 @@ def build_tree(raws: list[RawStructure]) -> list[PlannedStructure]:
                               rgb_triplet=color, kind=r.kind, side=r.side, concept=r.concept,
                               synonyms=r.synonyms, xrefs=r.xrefs, sources=r.sources)
         out.append(PlannedStructure(structure, r.labels))
-        for child in sorted(children.get(structure_id, []), reverse=True):
-            stack.append((child, path, color))
+        kids = children.get(structure_id, [])
+        shaded = [c for c in kids if by_id[c].color is None and by_id[c].side not in SIDED]
+        factors = sibling_factors(shaded) if shaded else {}
+        for child in sorted(kids, reverse=True):
+            tone = shade(color, factors[child]) if child in factors else color
+            stack.append((child, path, tone))
     return out
 
 

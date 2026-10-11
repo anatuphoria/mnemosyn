@@ -4,7 +4,7 @@ import pytest
 from atlas_fixtures import TOY_STRUCTURES, write_source_tree
 from cns_atlas.knowledge import load_references
 from tools.build_atlas.hierarchy import (LabelRef, PlannedStructure, RawStructure, build_tree,
-                                         load_structures, with_xrefs)
+                                         load_structures, shade, sibling_factors, with_xrefs)
 from tools.build_atlas.idlock import IdLock, load_lock, write_lock
 from tools.build_atlas.recipe import BuildError, load_recipe
 from tools.build_atlas.validate import (check_hierarchy, check_ids, check_knowledge,
@@ -53,8 +53,10 @@ def test_build_tree_is_depth_first_with_paths_and_inherited_colors(src):
     by_id = {p.structure.id: p.structure for p in planned}
     assert by_id[101].structure_id_path == (1, 2, 100, 101)
     assert by_id[1].rgb_triplet == (170, 170, 180)
-    assert by_id[101].rgb_triplet == (120, 140, 200)
-    assert by_id[111].rgb_triplet == (230, 120, 120)
+    assert by_id[100].rgb_triplet == (102, 119, 170)
+    assert by_id[101].rgb_triplet == by_id[102].rgb_triplet == (102, 119, 170)
+    assert by_id[110].rgb_triplet == by_id[111].rgb_triplet == (230, 120, 120)
+    assert by_id[120].rgb_triplet == (140, 157, 208)
 
 
 def test_with_xrefs_adds_source_label_names(src):
@@ -173,3 +175,16 @@ def test_structure_without_voxels():
     assert check_voxels(planned, [volume]) == ["structure 7 (S7) has no voxels"]
     volume[0, 0, 0] = 7
     assert check_voxels(planned, [volume]) == []
+
+
+def test_shade_mixes_toward_white_or_black():
+    assert shade((100, 200, 50), 0.0) == (100, 200, 50)
+    assert shade((100, 200, 50), 0.5) == (178, 228, 152)
+    assert shade((100, 200, 50), -0.5) == (50, 100, 25)
+
+
+def test_sibling_factors_span_evenly_by_id():
+    assert sibling_factors([7]) == {7: 0.0}
+    factors = sibling_factors([30, 10, 20])
+    assert list(factors) == [10, 20, 30]
+    assert [round(f, 6) for f in factors.values()] == [-0.15, 0.0, 0.15]

@@ -6,7 +6,7 @@ import pytest
 
 from cns_atlas import Atlas
 from cns_atlas.knowledge import load_references, parse_entry
-from tools.build_atlas.hierarchy import load_structures
+from tools.build_atlas.hierarchy import build_tree, load_structures
 from tools.build_atlas.recipe import load_recipe
 from tools.build_atlas.validate import check_hierarchy, check_knowledge, check_sources
 
@@ -60,3 +60,11 @@ def test_real_build(tmp_path):
             assert x < 0, s.name
         if s.side == "right":
             assert x > 0, s.name
+
+
+def test_frontal_concepts_have_distinct_shades_and_sides_match():
+    planned = {p.structure.id: p.structure for p in build_tree(load_structures(SRC / "structures.toml"))}
+    frontal = [s for s in planned.values() if s.parent == 13]
+    assert len({s.rgb_triplet for s in frontal}) == len(frontal) == 16
+    for s in frontal:
+        assert planned[s.id + 1].rgb_triplet == planned[s.id + 2].rgb_triplet == s.rgb_triplet
