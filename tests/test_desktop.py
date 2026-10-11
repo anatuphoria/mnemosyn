@@ -1,6 +1,7 @@
 import random
 import shutil
 import time
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pytest
@@ -17,6 +18,7 @@ from cns_desktop.main_window import MainWindow, about_text
 from cns_desktop.state import AppState
 from cns_desktop.views.quiz_setup import NO_ITEMS, NO_REVIEWED, NOTHING_DUE
 from cns_desktop.views.slice_panel import NO_TEMPLATE, NOT_RAS, SlicePanel
+from cns_study.progress import day_start
 from cns_study.session import QuizChoice
 
 
@@ -587,7 +589,10 @@ def test_progress_window_counts_reviews(window):
     quiz.stop()
     dialog = window.show_progress()
     cells = [dialog.table.item(0, column).text() for column in range(7)]
-    assert cells == ["Name it (typed)", "Structures", "2", "0", "1", "0", "0"]
+    due = window.progress_store().card(100, "name-typed").due
+    week_end = day_start(datetime.now(timezone.utc)) + timedelta(days=7)
+    in_week = "1" if due < week_end else "0"
+    assert cells == ["Name it (typed)", "Structures", "2", "0", "1", "0", in_week]
     assert dialog.weakest.count() == 1 and "Alpha gyrus" in dialog.weakest.item(0).text()
     dialog.reject()
 
