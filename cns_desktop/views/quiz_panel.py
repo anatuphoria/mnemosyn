@@ -5,9 +5,9 @@ import time
 from html import escape
 
 from fsrs import Rating
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QLabel, QLineEdit, QPushButton, QTextBrowser, QVBoxLayout,
-                               QWidget)
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton, QTextBrowser,
+                               QVBoxLayout, QWidget)
 
 from cns_study.answers import AnswerIndex
 from cns_study.choices import choices
@@ -22,6 +22,7 @@ CHOICE_KEYS = {Qt.Key.Key_1: 0, Qt.Key.Key_2: 1, Qt.Key.Key_3: 2, Qt.Key.Key_4: 
 RATING_KEYS = {Qt.Key.Key_1: 1, Qt.Key.Key_2: 2, Qt.Key.Key_3: 3, Qt.Key.Key_4: 4}
 RIGHT = "<span style='color:#5c5'><b>Correct</b></span>"
 WRONG = "<span style='color:#e66'><b>Wrong</b></span>"
+RATINGS = ("1 Again", "2 Hard", "3 Good", "4 Easy")
 
 
 class AnswerBox(QLineEdit):
@@ -69,19 +70,32 @@ class QuizPanel(QWidget):
         self.choice_buttons = [QPushButton() for _ in range(4)]
         self.feedback = _rich_label()
         self.back = QTextBrowser()
+        self.reveal_button = QPushButton("Show the description (Space)")
+        self.rate_buttons = [QPushButton(label) for label in RATINGS]
+        self.next_button = QPushButton("Next")
         self.hint = QLabel()
         self.end_button = QPushButton("End quiz (Esc)")
         layout = QVBoxLayout(self)
         for widget in (self.counter, self.prompt, self.answer_box, *self.choice_buttons,
-                       self.feedback, self.back):
+                       self.feedback, self.back, self.reveal_button):
             layout.addWidget(widget)
+        ratings = QHBoxLayout()
+        for button in self.rate_buttons:
+            ratings.addWidget(button)
+        layout.addLayout(ratings)
+        layout.addWidget(self.next_button)
         layout.addStretch(1)
         layout.addWidget(self.hint)
         layout.addWidget(self.end_button)
         for index, button in enumerate(self.choice_buttons):
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             button.clicked.connect(lambda _checked=False, i=index: self.choose(i))
-        self.end_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        for value, button in enumerate(self.rate_buttons, 1):
+            button.clicked.connect(lambda _checked=False, v=value: self.rate(v))
+        self.reveal_button.clicked.connect(self.reveal)
+        self.next_button.clicked.connect(self._advance)
+        for button in (*self.rate_buttons, self.reveal_button, self.next_button, self.end_button):
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.end_button.clicked.connect(self.stop)
         self.answer_box.submitted.connect(self.submit_text)
         state.selection_changed.connect(self._on_selection)
@@ -99,6 +113,24 @@ class QuizPanel(QWidget):
             button.setVisible(asking and self.mode == "name-choice" and n < len(self.options))
         self.feedback.setVisible(self.phase == "feedback")
         self.back.setVisible(self.phase == "revealed")
+        self.reveal_button.setVisible(asking and self.mode == "flashcard")
+        for button in self.rate_buttons:
+            button.setVisible(self.phase == "revealed")
+        self.next_button.setVisible(self.phase in ("feedback", "summary"))
+        self.next_button.setText("Close" if self.phase == "summary" else "Next")
+
+    def _advance(self) -> None:
+        if self.phase == "summary":
+            self.stop()
+        else:
+            self.go_on()
+
+    def _hold(self, item_id: int) -> None:
+        QTimer.singleShot(0, lambda: self._restore(item_id))
+
+    def _restore(self, item_id: int) -> None:
+        if self.item is not None and self.item.id == item_id and self.state.selected != item_id:
+            self._select(item_id)
 
     def _focus(self) -> None:
         if self.phase == "asking" and self.mode == "name-typed":
@@ -233,17 +265,17 @@ class QuizPanel(QWidget):
         self.finished.emit()
 
     def _on_selection(self, structure_id: int | None) -> None:
-        if self._selecting or self.phase != "asking" or self.item is None:
+        if self._selecting or self.item is None:
             return
-        if self.mode != "find":
-            self._select(self.item.id)
+        if self.mode != "find" or self.phase != "asking":
+            self._hold(self.item.id)
             return
         if structure_id is None:
             return
         clicked = item_for(self.pool, structure_id)
         name = clicked.name if clicked else self.state.atlas.get(structure_id).name
         correct = structure_id in self.item.geometry
-        self._select(self.item.id)
+        self._hold(self.item.id)
         self.centre_requested.emit()
         self._judge(correct, "" if correct else f"You clicked: {name}.")
 

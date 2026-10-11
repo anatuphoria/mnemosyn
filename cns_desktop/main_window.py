@@ -190,6 +190,11 @@ class MainWindow(QMainWindow):
         self.enter_quiz()
         self.quiz.start(session, choice.mode, self.answer_index(), pool, rng)
 
+    def _quiz_locked(self) -> list[QAction]:
+        docks = (self.tree_dock, self.info_dock, self.chart_dock)
+        return [*(self.shortcuts[name] for name in QUIZ_LOCKED),
+                *(dock.toggleViewAction() for dock in docks)]
+
     def enter_quiz(self) -> None:
         if self.quiz_active:
             return
@@ -198,8 +203,8 @@ class MainWindow(QMainWindow):
         self._saved = (self.saveState(), hidden, state.selected, state.slice_axis, state.slice_mm,
                        [(w, w.focusPolicy()) for w in (self.view, self.slices.view)])
         self.quiz_active = True
-        for name in QUIZ_LOCKED:
-            self.shortcuts[name].setEnabled(False)
+        for action in self._quiz_locked():
+            action.setEnabled(False)
         state.show_all()
         for widget, _ in self._saved[5]:
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -215,8 +220,8 @@ class MainWindow(QMainWindow):
             return
         layout, hidden, selected, axis, mm, focus = self._saved
         self.quiz_active = False
-        for name in QUIZ_LOCKED:
-            self.shortcuts[name].setEnabled(True)
+        for action in self._quiz_locked():
+            action.setEnabled(True)
         for widget, policy in focus:
             widget.setFocusPolicy(policy)
         self.restoreState(layout)

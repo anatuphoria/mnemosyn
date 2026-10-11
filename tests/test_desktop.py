@@ -439,9 +439,10 @@ def test_multiple_choice_with_number_keys(window):
     assert "Correct" in quiz.feedback.text()
 
 
-def test_clicking_during_name_it_keeps_the_question_highlighted(window):
+def test_clicking_during_name_it_keeps_the_question_highlighted(window, qapp):
     start_quiz(window, "name-typed")
     window.state.select(111)
+    qapp.processEvents()
     assert window.state.selected == 100
 
 
@@ -507,21 +508,23 @@ def reviewed_window(qapp, toy_atlas, tmp_path):
     w.close()
 
 
-def test_find_it_by_clicking_in_3d(window):
+def test_find_it_by_clicking_in_3d(window, qapp):
     quiz = start_quiz(window, "find")
     assert quiz.item.id == 100 and window.state.selected is None
     assert "Alpha gyrus" in quiz.prompt.text()
     x, y, _ = find_pixel(window.view, lambda sid: sid in (101, 102))
     window.view.pick_at(x, y)
+    qapp.processEvents()
     assert quiz.phase == "feedback" and "Correct" in quiz.feedback.text()
     assert window.state.selected == 100
 
 
-def test_find_it_wrong_click_in_the_slice_names_what_was_clicked(window):
+def test_find_it_wrong_click_in_the_slice_names_what_was_clicked(window, qapp):
     quiz = start_quiz(window, "find")
     window.state.set_slice("axial", -12.0)
     row, col = find_slice_pixel(window.slices, {111, 112})
     window.slices.click_pixel(row, col)
+    qapp.processEvents()
     assert "Wrong" in quiz.feedback.text() and "You clicked: Beta nucleus." in quiz.feedback.text()
     assert window.state.selected == 100
 
@@ -662,3 +665,49 @@ def test_no_cutting_plane_without_a_labelled_volume(qapp, tmp_path):
     window.state.set_slice("coronal", 3.0)
     assert not window.view.plane.GetVisibility()
     window.close()
+
+
+def test_the_dock_menu_cannot_reveal_answers_during_a_quiz(window):
+    docks = (window.tree_dock, window.info_dock, window.chart_dock)
+    start_quiz(window, "name-typed")
+    assert not any(dock.toggleViewAction().isEnabled() for dock in docks)
+    window.quiz.stop()
+    assert all(dock.toggleViewAction().isEnabled() for dock in docks)
+
+
+def test_the_highlight_stays_on_the_answer_during_feedback(window, qapp):
+    quiz = start_quiz(window, "name-typed")
+    quiz.submit_text("Alpha gyrus")
+    window.state.select(111)
+    qapp.processEvents()
+    assert window.state.selected == 100
+
+
+def test_the_question_highlight_reaches_late_listeners_last(window, qapp):
+    start_quiz(window, "name-typed")
+    seen = []
+    window.state.selection_changed.connect(seen.append)
+    window.state.select(111)
+    qapp.processEvents()
+    assert seen[-1] == 100 and window.state.selected == 100
+
+
+def test_every_step_works_with_the_mouse(reviewed_window):
+    window = reviewed_window
+    quiz = start_quiz(window, "flashcard")
+    assert quiz.reveal_button.isVisible()
+    quiz.reveal_button.click()
+    assert quiz.phase == "revealed" and all(b.isVisible() for b in quiz.rate_buttons)
+    quiz.rate_buttons[3].click()
+    assert quiz.phase == "summary" and quiz.next_button.text() == "Close"
+    quiz.next_button.click()
+    assert not window.quiz_active
+
+
+def test_next_button_moves_on_after_feedback(window):
+    quiz = start_quiz(window, "name-choice")
+    assert not quiz.next_button.isVisible()
+    quiz.choice_buttons[0].click()
+    assert quiz.phase == "feedback" and quiz.next_button.isVisible()
+    quiz.next_button.click()
+    assert quiz.phase == "asking" and quiz.item.id == 110
