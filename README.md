@@ -1,123 +1,113 @@
-# 3D TUI Brain Model 🧠
+# CNS Atlas
 
-Rotate, slice, isolate and study 100+ brain regions **in the terminal** - GUI parity, no GUI needed.
+A 3D atlas of the human central nervous system for studying: a desktop app, a terminal
+viewer, and the tool that builds the atlas data from open, cited sources.
+
+> **Disclaimer.** This atlas is a personal study project. It was not built or reviewed by a
+> neuroanatomy specialist and may contain errors. It is not for diagnosis or treatment.
+> Corrections and feedback are welcome.
 
 ## Quickstart
 
 ```bash
-pip install -e .
-brain-tui
-# or without install:
-python -m brain_tui.app
+python -m venv .venv
+.venv/bin/pip install -e ".[desktop,atlas-build,dev]"
+.venv/bin/python -m tools.build_atlas    # downloads AAL3 (1.5 MB) and builds atlases/cns (about 15 s)
+.venv/bin/cns-desktop                    # desktop app
+.venv/bin/brain-tui                      # terminal viewer
 ```
 
-Force a graphics mode:
+On hybrid-GPU laptops, `prime-run .venv/bin/cns-desktop` uses the discrete GPU.
 
-```bash
-PAR_TERM_GRAPHICS=halfblock brain-tui   # pure Unicode, works everywhere
-PAR_TERM_GRAPHICS=kitty brain-tui       # hi-fi shaded PNG (Kitty/WezTerm/Ghostty)
-```
+## Desktop app
 
-## Controls
+Drag rotates, right-drag or the wheel zooms, middle- or shift-drag pans, a click selects.
 
-Letters are lowercase unless written with `Shift+`.
+| Key | Action |
+|---|---|
+| `H` | Hide the selection (a group hides everything inside it) |
+| `I` | Isolate the selection |
+| `U` | Show all |
+| `R` | Reset the view |
+| `F1` | About, data sources and licences |
+| `Ctrl+F` | Filter the structure tree (names, abbreviations, synonyms, atlas labels) |
+
+Tree checkboxes show and hide structures; unticking a group hides its whole subtree. The info
+panel shows the description with numbered references, the geometry source and its licence.
+Entries marked **Draft** have not been reviewed yet. The Activity chart shows placeholder
+data until a real model exists.
+
+## Terminal viewer
+
+`brain-tui [--atlas PATH]` reads the same atlas package and falls back to a 36-region
+procedural brain when no atlas is built. Letters are lowercase unless written with `Shift+`.
 
 | Action | Keys |
 |---|---|
-| Rotate (inertial - eases to stop) | arrows / `hjkl` or mouse-drag |
+| Rotate | arrows / `hjkl` or mouse-drag |
 | Zoom / Pan | `+`/`-`, `wasd` or wheel / shift+drag |
-| Spin showcase (default OFF) | `r` |
-| Select | click, `Tab` / `Shift+Tab` cycle, `/` search-bar (hidden until `/`; `Enter` commits, `Esc` cancels) |
-| Move selected | `m` move-mode: arrows or `wasd` move, `PgUp`/`PgDn` depth, `Esc` exits |
+| Spin | `r` |
+| Select | click, `Tab` / `Shift+Tab`, `/` search (`Enter` commits, `Esc` cancels) |
+| Move selected | `m` move-mode: arrows or `wasd`, `PgUp`/`PgDn` depth, `Esc` exits |
 | Isolate / Hide / Unhide | `i` / `Shift+H` / `u` |
 | Explode | `x` / `Shift+X` |
 | Slice axial/coronal/sagittal | `1` / `2` / `3`, `,`/`.` move plane |
 | Labels | `Shift+L` |
-| Bookmark save/restore | `b` / `Shift+B` (views.json; restore eases to the newest view) |
+| Bookmark save/restore | `b` / `Shift+B` |
 | HiFi stills / Quiz | `o` / `z` (`z` again reveals the answer) |
 | Help | `?` |
 
+## Atlas data
+
+| Data | Source | Licence |
+|---|---|---|
+| Brain geometry, 166 structures | AAL3: Rolls ET, Huang CC, Lin CP, Feng J, Joliot M (2020), NeuroImage 206: 116189, doi:10.1016/j.neuroimage.2019.116189 | GNU General Public License (text in `atlases/cns/LICENSES/`) |
+| Descriptions | Written for this project; every claim cites a reference | CC BY 4.0 |
+| Code | This repository | Not chosen yet |
+
+The atlas package (`atlases/cns/`, built locally, not committed) contains `metadata.json`,
+`structures.json`, `sources.json`, `collections.json`, `pathways.json`, a labelled volume in
+`volumes/`, packed meshes at three levels of detail in `meshes/`, and descriptions in
+`knowledge/`. The format is described in `docs/specs/2026-10-11-atlas-foundation-design.md`.
+
+To change the atlas, edit `atlas_src/` and rebuild:
+
+- `structures.toml`: the hierarchy, ids, names, synonyms and source labels. Ids never change
+  and are never reused; `ids.lock` records every published id.
+- `knowledge/en/<id>.md`: one description per concept, with `status = "draft"` or
+  `"reviewed"`, citing keys from `knowledge/references.toml`.
+- `recipe.toml`: sources with pinned checksums and licences.
+
+The build refuses to package a source without a redistribution licence, a description that
+cites a missing reference, a reference without a DOI, URL or ISBN, a changed or reused id,
+or a labelled structure without voxels.
+
 ## Performance
 
-The UI thread only handles input and shows finished frames. Rendering runs on a
-background thread (`pipeline.py`): at most one frame is in flight, and input
-that arrives meanwhile is folded into the next one, so stale frames are never
-drawn. Frames become terminal lines directly (`present.py`): runs of equal cells
-are merged and only rows that changed are repainted.
+| Measure | Result |
+|---|---|
+| Desktop, 166 structures, integrated GPU | display refresh rate (144 Hz), about 1.4 ms GPU time per frame |
+| Terminal viewer, simulated drag at 200x60 | about 28 to 30 frames per second |
 
-Measured headless at 200×60 cells, all 116 regions, during a continuous drag:
+Budgets enforced by `pytest -m perf`: opening a 5,000-structure atlas under 200 ms, search
+under 10 ms per keystroke, selection to all panels under 7 ms. With the real atlas built,
+`pytest -m slow` also checks start to first frame under 2 s and memory under 500 MB.
 
-| | before | now |
-|---|---|---|
-| frames shown per second | ~6 | ~28-30 |
-| input stall, median / p95 | ~56 / ~170 ms | ~2 / ~11 ms |
-| worst input stall | ~185 ms | ~15-25 ms |
-
-The idle app renders nothing. While dragging it uses a lighter point budget,
-then snaps crisp 300ms after you stop. The splat kernel is numba-compiled with a
-pure-numpy fallback. After the first frame the app freezes long-lived objects
-and tunes the garbage collector; without that, Textual's per-frame line objects
-cause ~70ms hitches (details in `BrainApp.on_frame_ready`).
-
-## Desktop app (prototype)
-
-A GPU desktop viewer for the same atlas: PySide6 (Qt) + VTK/PyVista + pyqtgraph.
-It is the start of the full-CNS atlas; the terminal app above stays as a
-lightweight companion.
+## Tests
 
 ```bash
-pip install -e ".[desktop]"
-cns-desktop                 # or: python -m cns_desktop
-cns-desktop --bench         # full-screen spin; prints fps
-prime-run cns-desktop       # use the NVIDIA GPU on hybrid laptops
+.venv/bin/python -m pytest            # fast suite
+.venv/bin/python -m pytest -m slow    # downloads AAL3, builds the real atlas, checks budgets
 ```
-
-Drag rotates, right-drag/wheel zooms, middle- or shift-drag pans, click selects.
-`H` hide, `I` isolate, `U` show all, `R` reset view, `Ctrl+F` filter.
-
-Every panel talks only to the shared `AppState` (`cns_desktop/state.py`), never
-to each other. New panels (simulations, neuron scenes) plug in by connecting
-to its signals. The Activity chart shows **placeholder data**: no model exists yet.
-
-Measured on a Radeon 680M (integrated): the 116-region scene renders at the
-144 Hz display cap (~1.4 ms GPU time per frame). Stress test at ~3,500
-structures / 10M triangles: separate actors per structure drop to ~11 fps, the
-VTK composite mapper (one actor, a block per structure) holds ~48 fps, so the
-composite mapper is the path for the full CNS. A PyInstaller build works:
-~960 MB installed (VTK is 554 MB of it), ~217 MB compressed.
-
-## Full 116-region atlas
-
-Ships with real **AAL116 anatomy** by default (`data/manifest_aal.json`, ~3MB of
-decimated meshes in `assets/meshes/` - no download needed at runtime).
-Rebuild/refresh it with:
-
-```bash
-python tools/fetch_atlas.py --atlas AAL116 --out data/manifest_aal.json
-# needs: nilearn nibabel scikit-image trimesh (all in default deps)
-```
-
-Falls back to a 36-region procedural brain if the atlas files are missing
-(`data/manifest.json`, built via `--atlas procedural`).
-
-Rendering: FAST point-splat (default, smooth-shaded) and `o` HiFi supersampled
-stills. `PAR_TERM_GRAPHICS=halfblock` forces the `suckless-st`-compatible
-Unicode path.
 
 ## Layout
 
 ```
-brain_tui/  app.py (Textual UI)        pipeline.py (render thread, Frame)
-            renderer.py (point splat)  present.py (frame -> terminal lines)
-            scene.py (camera/regions)  atlas.py (procedural + AAL116 names)
-            knowledge.py (study DB)    widgets/
-cns_desktop/  app.py (entry, --bench)  main_window.py  state.py (shared AppState)
-              atlas_data.py (meshes -> GPU)  views/ (3D, tree, info, chart)
-tools/fetch_atlas.py   data/manifest.json + knowledge.json
+cns_atlas/          atlas package loader (no Qt): model, meshes, knowledge, volume, atlas
+cns_desktop/        desktop app: app, main_window, state, views/
+brain_tui/          terminal viewer
+tools/build_atlas/  atlas build tool: recipe, hierarchy, validate, fetch, labels, meshing, writer
+atlas_src/          committed atlas sources: recipe, structures, ids.lock, knowledge, LICENSES
+docs/               specs and plans
 tests/
 ```
-
-## Disclaimer
-
-Educational visualization only - decimated meshes + summaries. **Not for diagnosis.**
-Atlas ontology: Allen Brain Atlas / AAL (Tzourio-Mazoyer 2002).

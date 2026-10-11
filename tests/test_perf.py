@@ -67,7 +67,6 @@ def real_atlas_or_skip() -> Path:
 def test_real_atlas_memory_under_500mb():
     atlas_path = real_atlas_or_skip()
     code = (
-        "import resource\n"
         "import numpy as np\n"
         "from cns_atlas import Atlas\n"
         f"atlas = Atlas.open({str(atlas_path)!r})\n"
@@ -78,7 +77,8 @@ def test_real_atlas_memory_under_500mb():
         "            np.asarray(m.vertices).sum()\n"
         "            np.asarray(m.faces).sum()\n"
         "atlas.volumes[0].data.sum()\n"
-        "print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)\n"
+        "peak = [l for l in open('/proc/self/status') if l.startswith('VmHWM')][0]\n"
+        "print(peak.split()[1])\n"
     )
     result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                             check=True)

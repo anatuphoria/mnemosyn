@@ -20,7 +20,8 @@ def apply_dark_theme(app) -> None:
         roles.Window: "#16161d", roles.WindowText: "#d8d8e0", roles.Base: "#0f0f15",
         roles.AlternateBase: "#1c1c25", roles.Text: "#d8d8e0", roles.Button: "#22222c",
         roles.ButtonText: "#d8d8e0", roles.Highlight: "#3d6fd6", roles.HighlightedText: "#ffffff",
-        roles.ToolTipBase: "#22222c", roles.ToolTipText: "#d8d8e0", roles.PlaceholderText: "#7a7a88",
+        roles.ToolTipBase: "#22222c", roles.ToolTipText: "#d8d8e0",
+        roles.PlaceholderText: "#7a7a88",
     }.items():
         p.setColor(role, QColor(color))
     app.setPalette(p)
