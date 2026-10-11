@@ -33,11 +33,12 @@ def window(qapp, atlas):
 
 def find_pixel(view, want=lambda sid: sid is not None, step=6):
     width, height = view.ren_win.GetSize()
-    for y in range(step, height, step):
-        for x in range(step, width, step):
-            sid = view.structure_at(x, y)
-            if want(sid):
-                return x, y, sid
+    points = [(x, y) for y in range(step, height, step) for x in range(step, width, step)]
+    points.sort(key=lambda p: (p[0] - width / 2) ** 2 + (p[1] - height / 2) ** 2)
+    for x, y in points:
+        sid = view.structure_at(x, y)
+        if want(sid):
+            return x, y, sid
     raise AssertionError("no matching pixel")
 
 
@@ -72,7 +73,7 @@ def test_tree_selection_updates_every_view(window):
     assert window.state.selected == 111
     assert "Beta nucleus (left)" in window.info.toPlainText()
     assert "Beta nucleus (left)" in window.chart.plotItem.titleLabel.text
-    assert window.view._actors[111].GetProperty().GetAmbient() > 0
+    assert window.view.highlighted == [111]
 
 
 def test_click_in_3d_selects_structure_under_cursor(window):
@@ -92,11 +93,11 @@ def test_click_on_background_keeps_selection(window):
 def test_unchecking_a_group_hides_its_whole_subtree(window):
     window.tree.items[100].setCheckState(0, Qt.CheckState.Unchecked)
     assert window.state.is_hidden(101) and window.state.is_hidden(102)
-    assert not window.view._actors[101].GetVisibility()
+    assert not window.view.is_drawn(101)
     assert not window.state.is_hidden(111)
     window.state.show_all()
     assert window.tree.items[100].checkState(0) == Qt.CheckState.Checked
-    assert window.view._actors[101].GetVisibility()
+    assert window.view.is_drawn(101)
 
 
 def test_filter_matches_acronym_and_keeps_ancestors(window):
@@ -156,19 +157,17 @@ def test_selection_updates_all_panels_under_7ms(window):
 
 
 def test_view_uses_the_packages_stored_normals(window, atlas):
-    actor = window.view._actors[101]
-    normals = actor.GetMapper().GetInput().GetPointData().GetNormals()
+    normals = window.view.blocks[101].GetPointData().GetNormals()
     assert normals is not None
     assert normals.GetNumberOfTuples() == len(atlas.mesh(101).normals)
-    assert actor.GetProperty().GetInterpolationAsString() == "Gouraud"
+    assert window.view.actor.GetProperty().GetInterpolationAsString() == "Gouraud"
 
 
 def test_selecting_a_concept_highlights_all_of_its_geometry(window):
-    ambient = lambda sid: window.view._actors[sid].GetProperty().GetAmbient()
     window.state.select(100)
-    assert ambient(101) > 0 and ambient(102) > 0
+    assert window.view.highlighted == [101, 102]
     window.state.select(111)
-    assert ambient(101) == 0 and ambient(102) == 0 and ambient(111) > 0
+    assert window.view.highlighted == [111]
 
 
 def test_group_toggle_sends_one_visibility_change(window):
@@ -200,3 +199,46 @@ def test_slice_state_emits_once_and_validates(atlas):
     assert seen == [("coronal", 12.0)]
     with pytest.raises(ValueError, match="oblique"):
         state.set_slice("oblique", 0.0)
+
+
+def test_one_composite_block_per_structure_with_geometry(window):
+    data = window.view.composite_mapper.GetInputDataObject(0, 0)
+    assert data.GetNumberOfBlocks() == len(window.state.geometry_ids) == 5
+    assert window.view.lod == 0
+
+
+def test_hidden_structure_cannot_be_picked(window):
+    x, y, sid = find_pixel(window.view)
+    window.state.set_hidden([sid], True)
+    assert window.view.structure_at(x, y) != sid
+
+
+def test_nothing_is_picked_when_everything_is_hidden(window):
+    x, y, _ = find_pixel(window.view)
+    window.state.set_hidden(window.state.geometry_ids, True)
+    assert window.view.structure_at(x, y) is None
+
+
+def test_visibility_change_renders_once(window):
+    before = window.view.render_count
+    window.tree.items[100].setCheckState(0, Qt.CheckState.Unchecked)
+    assert window.view.render_count == before + 1
+
+
+def test_highlight_overlay_skips_hidden_structures(window):
+    window.state.set_hidden([101], True)
+    window.state.select(100)
+    assert window.view.highlighted == [101, 102]
+    assert window.view.overlay_ids == [102]
+    assert not window.view.overlay.GetPickable()
+    window.state.set_hidden([101], False)
+    assert window.view.overlay_ids == [101, 102]
+
+
+def test_cutting_plane_follows_the_slice(window):
+    window.state.set_slice("coronal", 12.0)
+    ymin, ymax = window.view.plane.GetBounds()[2:4]
+    assert abs(ymin - 12.0) < 1e-6 and abs(ymax - 12.0) < 1e-6
+    window.state.set_slice("axial", -20.0)
+    zmin, zmax = window.view.plane.GetBounds()[4:6]
+    assert abs(zmin + 20.0) < 1e-6 and abs(zmax + 20.0) < 1e-6
