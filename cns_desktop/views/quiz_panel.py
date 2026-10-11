@@ -51,6 +51,7 @@ class QuizPanel(QWidget):
     finished = Signal()
     centre_requested = Signal()
     find_target = Signal(object)
+    dim_grey = Signal(bool)
 
     def __init__(self, state: AppState, parent=None) -> None:
         super().__init__(parent)
@@ -168,6 +169,7 @@ class QuizPanel(QWidget):
 
     def _present(self, item: Item) -> None:
         self.options = []
+        self.dim_grey.emit(item.level == "tracts" and self.mode != "find")
         if item.level == "tracts" and self.mode != "find":
             self.state.set_hidden([i for i in self.state.tract_ids if i not in item.geometry],
                                   True)
@@ -281,6 +283,7 @@ class QuizPanel(QWidget):
             return
         self.phase, self.item, self.session, self.options = "idle", None, None, []
         self.find_target.emit(frozenset())
+        self.dim_grey.emit(False)
         self._layout()
         self.finished.emit()
 

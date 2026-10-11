@@ -197,3 +197,29 @@ def test_centring_on_a_tract_moves_the_slice_to_it(window):
     window.state.set_slice("axial", -56.0)
     window.slices.centre_on_selection()
     assert -4.0 <= window.state.slice_mm <= 4.0
+
+
+def test_leaving_a_quiz_keeps_a_hidden_selected_tract_hidden(window):
+    window.state.select(160)
+    window.state.set_hidden([160], True)
+    start_quiz(window, "name-typed", "structures").stop()
+    assert window.state.selected == 160 and window.state.is_hidden(160)
+
+
+def test_show_all_restores_grey_matter_but_leaves_tracts_to_t(window):
+    window.state.set_hidden([101], True)
+    window.state.show_all()
+    assert not window.state.is_hidden(101)
+    assert all(window.state.is_hidden(i) for i in TRACT_LEAVES)
+    assert window.view.tract_builds == 0
+
+
+def test_grey_matter_is_dimmed_only_while_a_tract_is_named(window):
+    opacity = window.view.actor.GetProperty().GetOpacity
+    quiz = start_quiz(window, "name-typed", "tracts")
+    assert opacity() == pytest.approx(0.15)
+    quiz.stop()
+    assert opacity() == pytest.approx(1.0)
+    start_quiz(window, "find", "tracts").stop()
+    start_quiz(window, "name-typed", "structures")
+    assert opacity() == pytest.approx(1.0)

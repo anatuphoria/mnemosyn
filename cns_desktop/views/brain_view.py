@@ -111,6 +111,10 @@ class BrainView(QtInteractor):
         return (block is not None and attributes is not None
                 and bool(attributes.GetBlockVisibility(block)))
 
+    def set_grey_opacity(self, opacity: float) -> None:
+        self.actor.GetProperty().SetOpacity(opacity)
+        self.render()
+
     def _attributes_for(self, structure_id: int):
         return self.tract_attributes if structure_id in self._tract_set else self.attributes
 

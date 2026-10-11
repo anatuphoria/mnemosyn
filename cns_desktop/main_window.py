@@ -31,6 +31,7 @@ APP_NAME = "Mnemosyn"
 APP_FOLDER = "mnemosyn"
 OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
+GREY_DIMMED = 0.15
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
 RECOVERED = {
     "damaged": ("Progress file damaged", "Your progress file could not be read. It was kept as "
@@ -125,6 +126,8 @@ class MainWindow(QMainWindow):
         self.quiz.finished.connect(self.leave_quiz)
         self.quiz.centre_requested.connect(self.slices.centre_on_selection)
         self.quiz.find_target.connect(self._prefer_in_slices)
+        self.quiz.dim_grey.connect(
+            lambda dim: self.view.set_grey_opacity(GREY_DIMMED if dim else 1.0))
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())
         self._status_timer = QTimer(self, interval=250, timeout=self._update_status)
@@ -261,10 +264,10 @@ class MainWindow(QMainWindow):
         for widget, policy in focus:
             widget.setFocusPolicy(policy)
         self.restoreState(layout)
+        self.state.select(selected)
         kept = set(hidden)
         self.state.set_hidden([i for i in self.state.geometry_ids if i not in kept], False)
         self.state.set_hidden(hidden, True)
-        self.state.select(selected)
         self.state.set_slice(axis, mm)
         self._update_status()
 

@@ -70,7 +70,7 @@ class AppState(QObject):
         return True
 
     def show_all(self) -> None:
-        self.set_hidden(list(self._hidden), False)
+        self.set_hidden([i for i in self._hidden if i not in self._tracts], False)
 
     def isolate(self, structure_id: int) -> None:
         keep = set(self.geometry_in(structure_id))
