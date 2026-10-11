@@ -29,6 +29,7 @@ Drag rotates, right-drag or the wheel zooms, middle- or shift-drag pans, a click
 | `I` | Isolate the selection |
 | `U` | Show all |
 | `R` | Reset the view |
+| `C` | Centre the slice on the selection |
 | `F1` | About, data sources and licences |
 | `Ctrl+F` | Filter the structure tree (names, abbreviations, synonyms, atlas labels) |
 
@@ -36,6 +37,13 @@ Tree checkboxes show and hide structures; unticking a group hides its whole subt
 panel shows the description with numbered references, the geometry source and its licence.
 Entries marked **Draft** have not been reviewed yet. The Activity chart shows placeholder
 data until a real model exists.
+
+The **Slices** panel shows axial, coronal or sagittal cross-sections: coloured labels over the
+Colin27 MRI template, in neurological convention (the patient's left on the screen's left,
+with L/R, A/P and S/I letters on the edges). The slider moves the plane, which also appears
+as a translucent sheet in the 3D view; the second slider sets label opacity. Hovering shows
+the structure under the cursor, clicking selects it, and `C` (Centre slice) moves the plane
+through the selected structure.
 
 ## Terminal viewer
 
@@ -62,6 +70,7 @@ procedural brain when no atlas is built. Letters are lowercase unless written wi
 | Data | Source | Licence |
 |---|---|---|
 | Brain geometry, 166 structures | AAL3: Rolls ET, Huang CC, Lin CP, Feng J, Joliot M (2020), NeuroImage 206: 116189, doi:10.1016/j.neuroimage.2019.116189 | GNU General Public License (text in `atlases/cns/LICENSES/`) |
+| MRI template for slices | Colin 27 Average Brain (1998): Holmes CJ, Hoge R, Collins L, Woods R, Toga AW, Evans AC (1998), J Comput Assist Tomogr 22(2): 324-333, doi:10.1097/00004728-199803000-00032 | Permissive notice (text in `atlas_src/LICENSES/Colin27.txt`) |
 | Descriptions | Written for this project; every claim cites a reference | CC BY 4.0 |
 | Code | This repository | Not chosen yet |
 
@@ -86,12 +95,15 @@ or a labelled structure without voxels.
 
 | Measure | Result |
 |---|---|
-| Desktop, 166 structures, integrated GPU | display refresh rate (144 Hz), about 1.4 ms GPU time per frame |
+| Desktop, 166 structures, integrated GPU | display refresh rate (144 Hz) |
 | Terminal viewer, simulated drag at 200x60 | about 28 to 30 frames per second |
 
-Budgets enforced by `pytest -m perf`: opening a 5,000-structure atlas under 200 ms, search
-under 10 ms per keystroke, selection to all panels under 7 ms. With the real atlas built,
-`pytest -m slow` also checks start to first frame under 2 s and memory under 500 MB.
+The 3D view draws every structure with one composite object and picks with the GPU, so it
+scales to thousands of structures; it switches to a lighter level of detail when the scene
+exceeds 3 million triangles. Budgets enforced by `pytest -m perf`: opening a 5,000-structure
+atlas under 200 ms, search under 10 ms per keystroke, a slice under 5 ms. With the real atlas
+built, `pytest -m slow` checks start to first frame under 2 s, app memory under 600 MB,
+selection under 7 ms, and a generated 3,500-structure scene at 60 fps or more.
 
 ## Tests
 
