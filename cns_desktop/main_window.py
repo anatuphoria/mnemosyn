@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QDockWidget, QLabel, QMainWindow, QMessageBox
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_study.answers import AnswerIndex
-from cns_study.items import group_items, items, structure_items
+from cns_study.items import group_items, items, structure_items, with_reviewed_entries
 from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, Session, utc_now
 
@@ -161,6 +161,8 @@ class MainWindow(QMainWindow):
         atlas = self.state.atlas
         pool = items(atlas, choice.level)
         chosen = items(atlas, choice.level, choice.scope)
+        if choice.mode == "flashcard":
+            chosen = with_reviewed_entries(atlas, chosen)
         rng = rng or random.Random()
         session = Session(chosen, choice.mode, self.progress_store(), choice.practice, now=now,
                           rng=rng)

@@ -6,17 +6,20 @@ from html import escape
 
 from fsrs import Rating
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QLabel, QLineEdit, QPushButton, QTextBrowser, QVBoxLayout,
+                               QWidget)
 
 from cns_study.answers import AnswerIndex
 from cns_study.choices import choices
-from cns_study.items import Item
+from cns_study.items import Item, item_for
 from cns_study.session import Session
 
 from ..state import AppState
+from .info_panel import entry_html
 
 ENTER = (Qt.Key.Key_Return, Qt.Key.Key_Enter)
 CHOICE_KEYS = {Qt.Key.Key_1: 0, Qt.Key.Key_2: 1, Qt.Key.Key_3: 2, Qt.Key.Key_4: 3}
+RATING_KEYS = {Qt.Key.Key_1: 1, Qt.Key.Key_2: 2, Qt.Key.Key_3: 3, Qt.Key.Key_4: 4}
 RIGHT = "<span style='color:#5c5'><b>Correct</b></span>"
 WRONG = "<span style='color:#e66'><b>Wrong</b></span>"
 
@@ -65,11 +68,12 @@ class QuizPanel(QWidget):
         self.answer_box = AnswerBox(placeholderText="Type the name, then press Enter")
         self.choice_buttons = [QPushButton() for _ in range(4)]
         self.feedback = _rich_label()
+        self.back = QTextBrowser()
         self.hint = QLabel()
         self.end_button = QPushButton("End quiz (Esc)")
         layout = QVBoxLayout(self)
         for widget in (self.counter, self.prompt, self.answer_box, *self.choice_buttons,
-                       self.feedback):
+                       self.feedback, self.back):
             layout.addWidget(widget)
         layout.addStretch(1)
         layout.addWidget(self.hint)
@@ -94,6 +98,7 @@ class QuizPanel(QWidget):
         for n, button in enumerate(self.choice_buttons):
             button.setVisible(asking and self.mode == "name-choice" and n < len(self.options))
         self.feedback.setVisible(self.phase == "feedback")
+        self.back.setVisible(self.phase == "revealed")
 
     def _focus(self) -> None:
         if self.phase == "asking" and self.mode == "name-typed":
@@ -122,8 +127,18 @@ class QuizPanel(QWidget):
 
     def _present(self, item: Item) -> None:
         self.options = []
+        if self.mode == "find":
+            self._select(None)
+            self.prompt.setText(f"<b>Find:</b> {escape(item.name)}<br>"
+                                "<small>Click it in the 3D view or in the slice.</small>")
+            self.hint.setText("Click a structure")
+            return
         self._select(item.id)
         self.centre_requested.emit()
+        if self.mode == "flashcard":
+            self.prompt.setText(f"<b>{escape(item.name)}</b> ({escape(item.acronym)})")
+            self.hint.setText("Space shows the description")
+            return
         what = "structure" if item.level == "structures" else "group"
         self.prompt.setText(f"<b>Which {what} is highlighted?</b>")
         if self.mode == "name-choice":
@@ -176,6 +191,23 @@ class QuizPanel(QWidget):
         self._record(rating)
         self._ask()
 
+    def reveal(self) -> None:
+        if self.phase != "asking" or self.mode != "flashcard":
+            return
+        self.answer_ms = round((time.perf_counter() - self._shown_at) * 1000)
+        self.phase = "revealed"
+        self.back.setHtml("".join(entry_html(self.state.atlas.knowledge(self.item.id))))
+        self.hint.setText("Rate: 1 again   2 hard   3 good   4 easy")
+        self._layout()
+        self.setFocus()
+
+    def rate(self, value: int) -> None:
+        if self.phase != "revealed" or value not in (1, 2, 3, 4):
+            return
+        self.correct = value > 1
+        self.session.answer(Rating(value), self.correct, self.answer_ms)
+        self._ask()
+
     def _show_summary(self) -> None:
         summary = self.session.summary()
         self.item, self.phase, self.options = None, "summary", []
@@ -203,7 +235,17 @@ class QuizPanel(QWidget):
     def _on_selection(self, structure_id: int | None) -> None:
         if self._selecting or self.phase != "asking" or self.item is None:
             return
+        if self.mode != "find":
+            self._select(self.item.id)
+            return
+        if structure_id is None:
+            return
+        clicked = item_for(self.pool, structure_id)
+        name = clicked.name if clicked else self.state.atlas.get(structure_id).name
+        correct = structure_id in self.item.geometry
         self._select(self.item.id)
+        self.centre_requested.emit()
+        self._judge(correct, "" if correct else f"You clicked: {name}.")
 
     def keyPressEvent(self, event) -> None:
         key = event.key()
@@ -219,5 +261,9 @@ class QuizPanel(QWidget):
             self.stop()
         elif self.phase == "asking" and self.mode == "name-choice" and key in CHOICE_KEYS:
             self.choose(CHOICE_KEYS[key])
+        elif self.phase == "asking" and self.mode == "flashcard" and key == Qt.Key.Key_Space:
+            self.reveal()
+        elif self.phase == "revealed" and key in RATING_KEYS:
+            self.rate(RATING_KEYS[key])
         else:
             super().keyPressEvent(event)

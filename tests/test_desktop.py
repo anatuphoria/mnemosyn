@@ -1,4 +1,5 @@
 import random
+import shutil
 import time
 
 import numpy as np
@@ -479,3 +480,56 @@ def test_a_damaged_progress_file_is_reported(window):
     window.progress_path.write_bytes(b"garbage" * 200)
     window.progress_store()
     assert ".broken-" in window.recovery_box.text()
+
+
+def find_slice_pixel(panel, wanted):
+    rows, cols = panel.image.shape[:2]
+    for row in range(rows):
+        for col in range(cols):
+            if panel.structure_at_pixel(row, col) in wanted:
+                return row, col
+    raise AssertionError("no matching slice pixel")
+
+
+@pytest.fixture
+def reviewed_window(qapp, toy_atlas, tmp_path):
+    root = shutil.copytree(toy_atlas, tmp_path / "atlas")
+    path = root / "knowledge" / "en" / "100.md"
+    path.write_text(path.read_text().replace('status = "draft"', 'status = "reviewed"'))
+    w = MainWindow(Atlas.open(root), progress_path=tmp_path / "progress.sqlite")
+    w.resize(1400, 900)
+    w.show()
+    qapp.processEvents()
+    yield w
+    w.close()
+
+
+def test_find_it_by_clicking_in_3d(window):
+    quiz = start_quiz(window, "find")
+    assert quiz.item.id == 100 and window.state.selected is None
+    assert "Alpha gyrus" in quiz.prompt.text()
+    x, y, _ = find_pixel(window.view, lambda sid: sid in (101, 102))
+    window.view.pick_at(x, y)
+    assert quiz.phase == "feedback" and "Correct" in quiz.feedback.text()
+    assert window.state.selected == 100
+
+
+def test_find_it_wrong_click_in_the_slice_names_what_was_clicked(window):
+    quiz = start_quiz(window, "find")
+    window.state.set_slice("axial", -12.0)
+    row, col = find_slice_pixel(window.slices, {111, 112})
+    window.slices.click_pixel(row, col)
+    assert "Wrong" in quiz.feedback.text() and "You clicked: Beta nucleus." in quiz.feedback.text()
+    assert window.state.selected == 100
+
+
+def test_flashcards_use_reviewed_descriptions(reviewed_window):
+    window = reviewed_window
+    quiz = start_quiz(window, "flashcard")
+    assert quiz.item.id == 100 and quiz.session.remaining() == 0
+    assert "Alpha gyrus" in quiz.prompt.text() and not quiz.back.isVisible()
+    QTest.keyClick(quiz, Qt.Key.Key_Space)
+    assert quiz.phase == "revealed" and "Does alpha things" in quiz.back.toPlainText()
+    QTest.keyClick(quiz, Qt.Key.Key_4)
+    assert quiz.phase == "summary"
+    assert window.progress_store().card(100, "flashcard").state == State.Review

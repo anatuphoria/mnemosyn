@@ -1,7 +1,8 @@
 import pytest
 
-from cns_study.items import Item, group_items, item_for, items, structure_items
-from study_atlas import study_atlas
+from cns_study.items import (Item, group_items, item_for, items, structure_items,
+                             with_reviewed_entries)
+from study_atlas import entry, study_atlas
 
 
 @pytest.fixture(scope="module")
@@ -45,3 +46,8 @@ def test_item_for_returns_the_most_specific_item():
     assert item_for([outer, inner], 5) is inner
     assert item_for([outer, inner], 6) is outer
     assert item_for([outer, inner], 7) is None
+
+
+def test_with_reviewed_entries_keeps_items_with_a_reviewed_description(tmp_path):
+    atlas = study_atlas(tmp_path, entries={300: entry(300, "reviewed"), 310: entry(310, "draft")})
+    assert [i.id for i in with_reviewed_entries(atlas, structure_items(atlas))] == [300]

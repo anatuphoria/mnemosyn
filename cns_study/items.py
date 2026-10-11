@@ -63,3 +63,12 @@ def items(atlas: Atlas, level: str, scope: int | None = None) -> list[Item]:
 def item_for(pool: list[Item], structure_id: int) -> Item | None:
     matches = [item for item in pool if structure_id in item.geometry]
     return max(matches, key=lambda item: len(item.path), default=None)
+
+
+def with_reviewed_entries(atlas: Atlas, pool: list[Item]) -> list[Item]:
+    reviewed = []
+    for item in pool:
+        entry = atlas.knowledge(item.id)
+        if entry is not None and entry.status == "reviewed":
+            reviewed.append(item)
+    return reviewed
