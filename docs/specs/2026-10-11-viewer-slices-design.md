@@ -202,4 +202,5 @@ the editor and model importers, terminal app changes.
    pyqtgraph import baseline before any atlas data; the full-detail 166-structure scene adds
    about 240 MB. Holding 500 MB would need the 25 percent detail level for the current atlas
    (measured 488 MB), which contradicts section 3.4. Full detail was kept; the 500 MB loader
-   budget of spec A (atlas data without the GUI) still applies and is still tested.
+   budget of spec A (atlas data without the GUI) still applies and is still tested. Accepted by
+   the owner on 2026-10-11.
