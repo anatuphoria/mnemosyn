@@ -1,5 +1,6 @@
 import random
 
+import numpy as np
 import pytest
 from fsrs import Rating
 from PySide6.QtCore import Qt
@@ -223,3 +224,19 @@ def test_grey_matter_is_dimmed_only_while_a_tract_is_named(window):
     start_quiz(window, "find", "tracts").stop()
     start_quiz(window, "name-typed", "structures")
     assert opacity() == pytest.approx(1.0)
+
+
+def test_a_hidden_tract_over_a_label_gives_the_label(window):
+    window.state.set_slice("axial", -32.0)
+    assert window.slices.structure_at_pixel(35, 22) == 120
+    window.shortcuts["Tracts"].trigger()
+    assert window.slices.structure_at_pixel(35, 22) == 152
+
+
+def test_slices_ignore_a_tract_layer_on_another_grid(window):
+    window.shortcuts["Tracts"].trigger()
+    window.state.set_slice("axial", -4.0)
+    layer = window.slices.tracts
+    layer.affine = np.asarray(layer.affine, dtype=float).copy()
+    layer.affine[0, 3] += 4.0
+    assert window.slices.structure_at_pixel(34, 8) not in TRACT_LEAVES

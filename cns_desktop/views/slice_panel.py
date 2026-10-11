@@ -156,7 +156,8 @@ class SlicePanel(QWidget):
 
     def _tracts_ready(self) -> bool:
         return (self.tracts is not None and self.labels is not None
-                and self.tracts.shape == tuple(self.labels.shape))
+                and self.tracts.shape == tuple(self.labels.shape)
+                and np.allclose(self.tracts.affine, self.labels.affine))
 
     def _coords(self, structure_id: int) -> tuple[np.ndarray, ...]:
         if structure_id not in self._tract_coords:

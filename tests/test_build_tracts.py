@@ -240,8 +240,10 @@ def test_builds_with_tracts_are_identical(tmp_path):
     src = write_extended_source_tree(tmp_path / "a", tracts=True)
     first = build(src, tmp_path / "one", cache=tmp_path / "cache", log=lambda *_: None)
     second = build(src, tmp_path / "two", cache=tmp_path / "cache", log=lambda *_: None)
-    for name in ("tracts/ids.npy", "tracts/offsets.npy", "tracts/voxels.npy",
-                 "meshes/lod0/vertices.npy", "volumes/brain.nii.gz", "build-report.md"):
+    meshes = [f"meshes/{lod}/{part}.npy" for lod in ("lod0", "lod1", "lod2")
+              for part in ("index", "vertices", "normals", "faces")]
+    for name in ("tracts/ids.npy", "tracts/offsets.npy", "tracts/voxels.npy", *meshes,
+                 "volumes/brain.nii.gz", "build-report.md"):
         assert (first / name).read_bytes() == (second / name).read_bytes(), name
 
 
