@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 from cns_atlas.model import Structure
-from cns_desktop.slices import (centre_mm, color_table, compose, extract, index_for_mm,
-                                mask_table, mm_for_index, slice_count, voxel_for_pixel,
-                                world_for_voxel)
+from cns_desktop.slices import (centre_from_table, centre_mm, color_table, compose, extract,
+                                index_for_mm, label_centres, mask_table, mm_for_index,
+                                slice_count, voxel_for_pixel, world_for_voxel)
 
 AAL = np.array([[1.0, 0, 0, -90.0], [0, 1.0, 0, -126.0], [0, 0, 1.0, -72.0], [0, 0, 0, 1.0]])
 COLORS = np.array([[0, 0, 0], [200, 0, 0], [0, 200, 0]], dtype=np.uint8)
@@ -127,3 +127,16 @@ def _time(fn) -> float:
     start = time.perf_counter()
     fn()
     return time.perf_counter() - start
+
+
+def test_label_centre_table_matches_the_volume_scan():
+    rng = np.random.default_rng(4)
+    volume = rng.integers(0, 6, size=(23, 17, 11)).astype(np.uint16)
+    volume[volume == 5] = 0
+    affine = np.array([[2.0, 0, 0, -20.0], [0, 3.0, 0, -9.0], [0, 0, 1.5, 4.0], [0, 0, 0, 1.0]])
+    table = label_centres(volume, step=4)
+    for ids in ([1], [2, 3], [1, 2, 3, 4]):
+        assert np.allclose(centre_from_table(table, affine, ids), centre_mm(volume, affine, ids))
+    assert centre_from_table(table, affine, [5]) is None
+    assert centre_from_table(table, affine, [99]) is None
+    assert centre_from_table(table, affine, []) is None

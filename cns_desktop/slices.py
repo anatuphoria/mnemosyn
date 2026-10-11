@@ -94,3 +94,29 @@ def centre_mm(volume, affine, ids) -> tuple[float, float, float] | None:
     if not mask.any():
         return None
     return world_for_voxel(affine, np.argwhere(mask).mean(axis=0))
+
+
+def label_centres(volume, step: int = 16) -> tuple[np.ndarray, np.ndarray]:
+    data = np.asarray(volume)
+    size = int(data.max()) + 1 if data.size else 1
+    counts = np.zeros(size)
+    sums = np.zeros((size, 3))
+    for start in range(0, data.shape[0], step):
+        slab = np.ascontiguousarray(data[start:start + step])
+        flat = slab.ravel()
+        voxels = np.flatnonzero(flat)
+        labels = flat[voxels]
+        counts += np.bincount(labels, minlength=size)
+        for axis, coordinate in enumerate(np.unravel_index(voxels, slab.shape)):
+            offset = start if axis == 0 else 0
+            sums[:, axis] += np.bincount(labels, weights=coordinate + offset, minlength=size)
+    return counts, sums
+
+
+def centre_from_table(table, affine, ids) -> tuple[float, float, float] | None:
+    counts, sums = table
+    known = [i for i in ids if 0 < i < len(counts)]
+    total = counts[known].sum() if known else 0.0
+    if total == 0:
+        return None
+    return world_for_voxel(affine, sums[known].sum(axis=0) / total)

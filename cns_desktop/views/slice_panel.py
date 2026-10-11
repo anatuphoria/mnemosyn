@@ -33,6 +33,7 @@ class SlicePanel(QWidget):
         self.opacity = slices.DEFAULT_OPACITY
         self.image: np.ndarray | None = None
         self.index = 0
+        self._centres = None
 
         bar = QHBoxLayout()
         group = QButtonGroup(self)
@@ -169,11 +170,16 @@ class SlicePanel(QWidget):
         if structure_id is not None:
             self.state.select(structure_id)
 
+    def label_centres(self):
+        if self._centres is None and self.labels is not None:
+            self._centres = slices.label_centres(self.labels.data)
+        return self._centres
+
     def centre_on_selection(self) -> None:
         if self.labels is None or self.state.selected is None:
             return
         ids = self.state.geometry_in(self.state.selected)
-        centre = slices.centre_mm(self.labels.data, self.labels.affine, ids)
+        centre = slices.centre_from_table(self.label_centres(), self.labels.affine, ids)
         if centre is not None:
             axis = self.state.slice_axis
             self.state.set_slice(axis, centre[slices.AXIS_INDEX[axis]])
