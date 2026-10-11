@@ -213,3 +213,14 @@ def test_toy_templates_are_valid(src):
 def test_template_problems(src, old, new, message):
     edit_template(src, old, new)
     assert message in check_templates(load_recipe(src / "recipe.toml"), src)
+
+
+def test_groups_pass_their_colour_on_without_shading():
+    from dataclasses import replace
+
+    color = (100, 150, 200)
+    raws = [replace(raw(1, None, kind="group"), color=color), raw(2, 1, kind="group"),
+            raw(3, 1), raw(4, 2), raw(5, 2)]
+    colors = {p.structure.id: p.structure.rgb_triplet for p in build_tree(raws)}
+    assert colors[2] == color and colors[3] == color
+    assert {colors[4], colors[5]} == {shade(color, -0.15), shade(color, 0.15)}

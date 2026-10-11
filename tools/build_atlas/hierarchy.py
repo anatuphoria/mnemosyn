@@ -135,7 +135,8 @@ def build_tree(raws: list[RawStructure]) -> list[PlannedStructure]:
                               synonyms=r.synonyms, xrefs=r.xrefs, sources=r.sources)
         out.append(PlannedStructure(structure, r.labels))
         kids = children.get(structure_id, [])
-        shaded = [c for c in kids if by_id[c].color is None and by_id[c].side not in SIDED]
+        shaded = [c for c in kids if by_id[c].color is None and by_id[c].side not in SIDED
+                  and by_id[c].kind != "group"]
         factors = sibling_factors(shaded) if shaded else {}
         for child in sorted(kids, reverse=True):
             tone = shade(color, factors[child]) if child in factors else color
