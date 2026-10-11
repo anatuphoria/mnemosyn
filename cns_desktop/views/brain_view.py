@@ -5,7 +5,8 @@ import time
 import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
-from vtkmodules.vtkRenderingCore import vtkActor, vtkPropPicker
+from vtkmodules.util.numpy_support import numpy_to_vtk
+from vtkmodules.vtkRenderingCore import vtkActor, vtkPolyDataMapper, vtkPropPicker
 
 from ..state import AppState
 
@@ -26,12 +27,8 @@ class BrainView(QtInteractor):
         self._id_by_actor: dict[str, int] = {}
         self._highlighted: int | None = None
         for structure_id in state.geometry_ids:
-            data = state.atlas.mesh(structure_id, lod=0)
-            mesh = pv.PolyData.from_regular_faces(np.asarray(data.vertices, dtype=np.float32),
-                                                  np.asarray(data.faces, dtype=np.int64))
-            actor = self.add_mesh(mesh, color=state.atlas.get(structure_id).rgb_triplet,
-                                  smooth_shading=True, specular=0.15, name=str(structure_id),
-                                  reset_camera=False)
+            actor = self._make_actor(structure_id)
+            self.renderer.AddActor(actor)
             self._actors[structure_id] = actor
             self._id_by_actor[actor.GetAddressAsString("vtkActor")] = structure_id
         self.reset_view()
@@ -48,6 +45,23 @@ class BrainView(QtInteractor):
 
         state.selection_changed.connect(self._on_selection_changed)
         state.visibility_changed.connect(self._on_visibility_changed)
+
+    def _make_actor(self, structure_id: int) -> vtkActor:
+        data = self.state.atlas.mesh(structure_id, lod=0)
+        mesh = pv.PolyData.from_regular_faces(np.asarray(data.vertices, dtype=np.float32),
+                                              np.asarray(data.faces, dtype=np.int64))
+        normals = numpy_to_vtk(np.asarray(data.normals, dtype=np.float32), deep=True)
+        mesh.GetPointData().SetNormals(normals)
+        mapper = vtkPolyDataMapper()
+        mapper.SetInputData(mesh)
+        mapper.ScalarVisibilityOff()
+        actor = vtkActor()
+        actor.SetMapper(mapper)
+        prop = actor.GetProperty()
+        prop.SetInterpolationToGouraud()
+        prop.SetSpecular(0.15)
+        prop.SetColor(tuple(c / 255 for c in self.state.atlas.get(structure_id).rgb_triplet))
+        return actor
 
     def reset_view(self) -> None:
         """World frame is MNI millimetres: x right, y anterior, z superior."""
