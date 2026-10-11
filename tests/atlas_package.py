@@ -34,15 +34,21 @@ def tiny_structures() -> list[Structure]:
 
 def write_package(root: Path, structures: list[Structure], *, meshes=None, lods=("lod0",),
                   volume=None, affine=None, sources=(), entries=None, references="",
-                  format_version=FORMAT_VERSION) -> Path:
+                  format_version=FORMAT_VERSION, template=None) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     volumes = []
     if volume is not None:
         (root / "volumes").mkdir(exist_ok=True)
-        image = nib.Nifti1Image(volume.astype(np.uint16), np.eye(4) if affine is None else affine)
-        nib.save(image, root / "volumes" / "brain.nii.gz")
+        grid = np.eye(4) if affine is None else affine
+        nib.save(nib.Nifti1Image(volume.astype(np.uint16), grid), root / "volumes" / "brain.nii.gz")
         volumes.append({"file": "volumes/brain.nii.gz", "space": "MNI152",
                         "affine_to_world": np.eye(4).tolist()})
+        if template is not None:
+            nib.save(nib.Nifti1Image(template.astype(np.uint8), grid),
+                     root / "volumes" / "brain-template.nii.gz")
+            volumes.append({"file": "volumes/brain-template.nii.gz", "space": "MNI152",
+                            "role": "template", "labels": "brain",
+                            "affine_to_world": np.eye(4).tolist()})
     metadata = {"name": "test-atlas", "version": "0", "format_version": format_version,
                 "volumes": volumes}
     (root / "metadata.json").write_text(json.dumps(metadata))

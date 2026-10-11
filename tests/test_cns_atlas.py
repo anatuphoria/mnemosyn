@@ -130,3 +130,24 @@ def test_label_at_inside_outside_and_unknown(package):
 
 def test_disclaimer_text():
     assert DISCLAIMER.startswith("This atlas is a personal study project.")
+
+
+def test_template_absent_by_default(package):
+    atlas = Atlas.open(package)
+    assert atlas.template is None
+    assert len(atlas.volumes) == 1
+    assert atlas.volumes[0].shape == (10, 10, 10)
+    assert np.allclose(atlas.volumes[0].affine, np.eye(4))
+
+
+def test_template_is_loaded_and_not_used_for_labels(tmp_path):
+    volume = np.zeros((10, 10, 10), dtype=np.uint16)
+    volume[2:4, 2:4, 2:4] = 101
+    template = np.full((10, 10, 10), 77, dtype=np.uint8)
+    root = write_package(tmp_path / "pkg", tiny_structures(), volume=volume, template=template)
+    atlas = Atlas.open(root)
+    assert len(atlas.volumes) == 1
+    assert atlas.template is not None and atlas.template.labels == "brain"
+    assert atlas.template.data.dtype == np.uint8 and int(atlas.template.data[0, 0, 0]) == 77
+    assert atlas.template.shape == (10, 10, 10)
+    assert atlas.label_at((3.0, 3.0, 3.0)) == 101

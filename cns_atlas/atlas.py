@@ -8,7 +8,7 @@ import numpy as np
 from .knowledge import Entry, KnowledgeError, Reference, load_references, parse_entry, resolve
 from .meshes import LODS, MeshData, MeshLod
 from .model import FORMAT_VERSION, Collection, Pathway, Source, Structure
-from .volume import LabelVolume
+from .volume import LabelVolume, TemplateVolume
 
 DISCLAIMER = (
     "This atlas is a personal study project. It was not built or reviewed by a neuroanatomy "
@@ -59,9 +59,15 @@ class Atlas:
         meshes = root / "meshes"
         self._lods = {level: MeshLod(meshes / name) for level, name in enumerate(LODS)
                       if (meshes / name / "index.npy").exists()}
+        records = metadata.get("volumes", [])
         self.volumes = tuple(
             LabelVolume(root / v["file"], v["space"], np.array(v["affine_to_world"]))
-            for v in metadata.get("volumes", []))
+            for v in records if v.get("role", "labels") == "labels")
+        templates = [
+            TemplateVolume(root / v["file"], v["space"], np.array(v["affine_to_world"]),
+                           str(v.get("labels", "")))
+            for v in records if v.get("role") == "template"]
+        self.template = templates[0] if templates else None
         self._references: dict[str, Reference] | None = None
         self._entries: dict[tuple[str, int | str], Entry | None] = {}
         self._search_rows = []
