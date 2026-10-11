@@ -1,6 +1,7 @@
 import hashlib
 import io
 import tarfile
+import zipfile
 
 import nibabel as nib
 import numpy as np
@@ -66,7 +67,7 @@ def test_member_path_extracts_once(tmp_path):
     assert member_path(spec, cached, "DIR/table.txt") == member
     with pytest.raises(BuildError, match="not found"):
         member_path(spec, cached, "DIR/other.txt")
-    with pytest.raises(BuildError, match="is not a tar archive"):
+    with pytest.raises(BuildError, match="is not a tar or zip archive"):
         member_path(spec, tmp_path / "a.tar.gz.nottar", "x")
 
 
@@ -119,3 +120,19 @@ def test_interrupted_extraction_is_not_reused(tmp_path, monkeypatch):
         member_path(spec, cached, "DIR/volume.nii")
     monkeypatch.undo()
     assert member_path(spec, cached, "DIR/volume.nii").read_bytes() == payload
+
+
+def make_zip(path, members: dict[str, bytes]):
+    with zipfile.ZipFile(path, "w") as archive:
+        for name, payload in members.items():
+            archive.writestr(name, payload)
+    return path
+
+
+def test_member_path_extracts_from_zip(tmp_path):
+    archive = make_zip(tmp_path / "t.zip", {"colin.nii": b"template bytes"})
+    spec = spec_for(archive, sha(archive.read_bytes()))
+    cached = fetch(spec, tmp_path / "cache")
+    assert member_path(spec, cached, "colin.nii").read_bytes() == b"template bytes"
+    with pytest.raises(BuildError, match="not found"):
+        member_path(spec, cached, "other.nii")

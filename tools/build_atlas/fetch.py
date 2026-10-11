@@ -5,6 +5,7 @@ import shutil
 import ssl
 import tarfile
 import urllib.request
+import zipfile
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -62,17 +63,25 @@ def member_path(spec: SourceSpec, archive: Path, member: str) -> Path:
     target = archive.parent / "extracted" / member
     if target.exists():
         return target
-    if not archive.exists() or not tarfile.is_tarfile(archive):
-        raise BuildError([f"source {spec.source.id}: {archive.name} is not a tar archive"])
-    with tarfile.open(archive) as tar:
-        try:
-            info = tar.getmember(member)
-        except KeyError as exc:
-            raise BuildError([f"source {spec.source.id}: {member} not found in "
-                              f"{archive.name}"]) from exc
-        target.parent.mkdir(parents=True, exist_ok=True)
-        partial = target.with_name(target.name + ".part")
-        with tar.extractfile(info) as src, partial.open("wb") as out:
-            shutil.copyfileobj(src, out)
+    name = spec.source.id
+    missing = BuildError([f"source {name}: {member} not found in {archive.name}"])
+    target.parent.mkdir(parents=True, exist_ok=True)
+    partial = target.with_name(target.name + ".part")
+    if archive.exists() and tarfile.is_tarfile(archive):
+        with tarfile.open(archive) as tar:
+            try:
+                info = tar.getmember(member)
+            except KeyError as exc:
+                raise missing from exc
+            with tar.extractfile(info) as src, partial.open("wb") as out:
+                shutil.copyfileobj(src, out)
+    elif archive.exists() and zipfile.is_zipfile(archive):
+        with zipfile.ZipFile(archive) as zipped:
+            if member not in zipped.namelist():
+                raise missing
+            with zipped.open(member) as src, partial.open("wb") as out:
+                shutil.copyfileobj(src, out)
+    else:
+        raise BuildError([f"source {name}: {archive.name} is not a tar or zip archive"])
     partial.replace(target)
     return target

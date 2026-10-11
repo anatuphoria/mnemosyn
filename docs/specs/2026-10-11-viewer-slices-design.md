@@ -185,3 +185,15 @@ In scope: sections 3 and 4, the Colin27 template source and its licence notice.
 
 Out of scope: self-testing (B3), pathways (B4, after C), surface smoothing, tilted slices,
 the editor and model importers, terminal app changes.
+
+## 8. Amendments made during planning (2026-10-11)
+
+1. The selection highlight is a separate overlay composite of the selected, visible
+   structures (lightened own colours, polygon offset, not pickable). Measured: changing any
+   block attribute of the main composite makes the next render take about 22 ms, while
+   swapping the overlay input costs about 0.5 ms. Block attributes of the main composite are
+   set for colours at startup and for visibility only.
+2. Colin27 is a zip archive; the fetcher extracts members from zip as well as tar.
+3. VTK 9.7 names the mapper `vtkCompositePolyDataMapper` (module `vtkRenderingCore`).
+4. The structure tree computes its own tri-state check marks, so one click results in one
+   visibility change.
