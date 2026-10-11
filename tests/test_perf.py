@@ -209,6 +209,65 @@ def test_quiz_on_the_real_atlas_starts_under_100ms_and_moves_on_under_50ms(tmp_p
     assert moved_on < 0.050
 
 
+TRACT_TIMING = """
+import sys
+import time
+from pathlib import Path
+
+from PySide6.QtWidgets import QApplication
+
+from cns_atlas import Atlas
+from cns_desktop.main_window import MainWindow
+
+app = QApplication([])
+window = MainWindow(Atlas.open(sys.argv[1]), progress_path=Path(sys.argv[2]))
+window.resize(1500, 900)
+window.show()
+app.processEvents()
+window.view.render()
+toggle = window.shortcuts["Tracts"]
+start = time.perf_counter()
+toggle.trigger()
+app.processEvents()
+first = time.perf_counter() - start
+toggles = []
+for _ in range(6):
+    start = time.perf_counter()
+    toggle.trigger()
+    app.processEvents()
+    toggles.append(time.perf_counter() - start)
+window.state.set_slice("axial", 0.0)
+redraws = []
+for _ in range(10):
+    start = time.perf_counter()
+    window.slices.redraw()
+    redraws.append(time.perf_counter() - start)
+lookups = []
+for row in range(40, 180, 10):
+    start = time.perf_counter()
+    window.slices.structure_at_pixel(row, 90)
+    lookups.append(time.perf_counter() - start)
+window.close()
+median = lambda values: sorted(values)[len(values) // 2]
+print(first, median(toggles), median(redraws), median(lookups))
+"""
+
+
+@pytest.mark.slow
+def test_tracts_on_the_real_atlas_meet_their_budgets(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    atlas_path = real_atlas_or_skip()
+    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
+    result = subprocess.run([sys.executable, "-c", TRACT_TIMING, str(atlas_path),
+                             str(tmp_path / "progress.sqlite")], env=env, check=True,
+                            capture_output=True, text=True, timeout=180)
+    first, toggle, redraw, lookup = map(float, result.stdout.split()[-4:])
+    assert first < 0.500
+    assert toggle < 0.050
+    assert redraw < 0.010
+    assert lookup < 0.001
+
+
 def sphere_scene(count: int):
     import pyvista as pv
 
