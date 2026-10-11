@@ -50,6 +50,7 @@ def _rich_label() -> QLabel:
 class QuizPanel(QWidget):
     finished = Signal()
     centre_requested = Signal()
+    find_target = Signal(object)
 
     def __init__(self, state: AppState, parent=None) -> None:
         super().__init__(parent)
@@ -172,6 +173,7 @@ class QuizPanel(QWidget):
                                   True)
         if self.mode == "find":
             self._select(None)
+            self.find_target.emit(frozenset(item.geometry))
             self.prompt.setText(f"<b>Find:</b> {escape(item.name)}<br>"
                                 "<small>Click it in the 3D view or in the slice.</small>")
             self.hint.setText("Click a structure")
@@ -278,6 +280,7 @@ class QuizPanel(QWidget):
         if self.phase == "feedback" and not self._record(None):
             return
         self.phase, self.item, self.session, self.options = "idle", None, None, []
+        self.find_target.emit(frozenset())
         self._layout()
         self.finished.emit()
 

@@ -124,6 +124,7 @@ class MainWindow(QMainWindow):
         self.slices.hovered.connect(self._show_hover)
         self.quiz.finished.connect(self.leave_quiz)
         self.quiz.centre_requested.connect(self.slices.centre_on_selection)
+        self.quiz.find_target.connect(self._prefer_in_slices)
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())
         self._status_timer = QTimer(self, interval=250, timeout=self._update_status)
@@ -175,6 +176,9 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(name, HOVER_MS)
         else:
             self.statusBar().clearMessage()
+
+    def _prefer_in_slices(self, ids) -> None:
+        self.slices.preferred = frozenset(ids)
 
     def progress_store(self) -> ProgressStore:
         if self._store is None:

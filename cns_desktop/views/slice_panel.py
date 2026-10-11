@@ -35,6 +35,7 @@ class SlicePanel(QWidget):
         self.index = 0
         self._centres = None
         self.tracts = atlas.tracts
+        self.preferred: frozenset[int] = frozenset()
         self._tract_coords: dict[int, tuple[np.ndarray, ...]] = {}
 
         bar = QHBoxLayout()
@@ -187,9 +188,10 @@ class SlicePanel(QWidget):
                                        row, col)
         point = slices.world_for_voxel(self.labels.affine, voxel)
         if self._tracts_ready():
-            for structure_id in self.tracts.tracts_at(point):
-                if not self.state.is_hidden(structure_id):
-                    return structure_id
+            visible = [i for i in self.tracts.tracts_at(point) if not self.state.is_hidden(i)]
+            preferred = [i for i in visible if i in self.preferred]
+            if preferred or visible:
+                return (preferred or visible)[0]
         structure_id = self.state.atlas.label_at(point)
         if structure_id is None or self.state.is_hidden(structure_id):
             return None
@@ -214,6 +216,11 @@ class SlicePanel(QWidget):
             return
         ids = self.state.geometry_in(self.state.selected)
         centre = slices.centre_from_table(self.label_centres(), self.labels.affine, ids)
+        if centre is None and self._tracts_ready():
+            coords = [self._coords(i) for i in ids if self.tracts.size(i)]
+            if coords:
+                voxel = [float(np.concatenate([c[a] for c in coords]).mean()) for a in range(3)]
+                centre = slices.world_for_voxel(self.labels.affine, voxel)
         if centre is not None:
             axis = self.state.slice_axis
             shape, affine = self.labels.shape, self.labels.affine

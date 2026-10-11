@@ -177,3 +177,23 @@ def test_a_grey_matter_quiz_never_builds_the_tracts(window):
     quiz.stop()
     assert window.view.tract_builds == 0
     assert all(window.state.is_hidden(i) for i in TRACT_LEAVES)
+
+
+def test_find_it_accepts_a_click_inside_the_asked_tract_under_a_smaller_one(window, qapp):
+    quiz = start_quiz(window, "find", "tracts")
+    assert quiz.item.id == 150
+    window.state.set_slice("axial", -4.0)
+    window.slices.click_pixel(34, 8)
+    qapp.processEvents()
+    assert "Correct" in quiz.feedback.text()
+    quiz.stop()
+    window.shortcuts["Tracts"].trigger()
+    window.state.set_slice("axial", -4.0)
+    assert window.slices.structure_at_pixel(34, 8) == 160
+
+
+def test_centring_on_a_tract_moves_the_slice_to_it(window):
+    window.state.select(160)
+    window.state.set_slice("axial", -56.0)
+    window.slices.centre_on_selection()
+    assert -4.0 <= window.state.slice_mm <= 4.0
