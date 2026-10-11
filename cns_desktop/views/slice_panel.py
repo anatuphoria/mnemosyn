@@ -34,6 +34,8 @@ class SlicePanel(QWidget):
         self.image: np.ndarray | None = None
         self.index = 0
         self._centres = None
+        self.tracts = atlas.tracts
+        self._tract_coords: dict[int, tuple[np.ndarray, ...]] = {}
 
         bar = QHBoxLayout()
         group = QButtonGroup(self)
@@ -143,6 +145,7 @@ class SlicePanel(QWidget):
         selected = slices.mask_table(size, chosen)
         self.image = slices.compose(labels_2d, template_2d, self.colors, hidden, selected,
                                     self.opacity)
+        self._draw_tracts(axis, set(chosen))
         self.item.setImage(self.image, autoLevels=False, levels=(0, 255))
         height, width = self.image.shape[:2]
         places = ((width / 2, 0), (width / 2, height), (0, height / 2), (width, height / 2))
@@ -150,13 +153,44 @@ class SlicePanel(QWidget):
             letter.setText(text)
             letter.setPos(*place)
 
+    def _tracts_ready(self) -> bool:
+        return (self.tracts is not None and self.labels is not None
+                and self.tracts.shape == tuple(self.labels.shape))
+
+    def _coords(self, structure_id: int) -> tuple[np.ndarray, ...]:
+        if structure_id not in self._tract_coords:
+            flat = np.asarray(self.tracts.voxels(structure_id), dtype=np.int64)
+            self._tract_coords[structure_id] = tuple(
+                c.astype(np.int16) for c in np.unravel_index(flat, self.tracts.shape))
+        return self._tract_coords[structure_id]
+
+    def _draw_tracts(self, axis: str, chosen: set[int]) -> None:
+        if not self._tracts_ready():
+            return
+        a = slices.AXIS_INDEX[axis]
+        visible = [i for i in self.tracts.ids if not self.state.is_hidden(i)]
+        for structure_id in sorted(visible, key=lambda i: -self.tracts.size(i)):
+            coords = self._coords(structure_id)
+            here = coords[a] == self.index
+            if not here.any():
+                continue
+            rows, cols = slices.pixels_for_voxels(self.labels.shape, axis,
+                                                  tuple(c[here] for c in coords))
+            slices.draw_tract(self.image, rows, cols, self.colors[structure_id],
+                              structure_id in chosen, self.opacity)
+
     def structure_at_pixel(self, row: int, col: int) -> int | None:
         if self.image is None or not (0 <= row < self.image.shape[0]
                                       and 0 <= col < self.image.shape[1]):
             return None
         voxel = slices.voxel_for_pixel(self.labels.shape, self.state.slice_axis, self.index,
                                        row, col)
-        structure_id = self.state.atlas.label_at(slices.world_for_voxel(self.labels.affine, voxel))
+        point = slices.world_for_voxel(self.labels.affine, voxel)
+        if self._tracts_ready():
+            for structure_id in self.tracts.tracts_at(point):
+                if not self.state.is_hidden(structure_id):
+                    return structure_id
+        structure_id = self.state.atlas.label_at(point)
         if structure_id is None or self.state.is_hidden(structure_id):
             return None
         return structure_id

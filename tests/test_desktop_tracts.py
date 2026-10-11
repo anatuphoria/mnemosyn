@@ -99,3 +99,30 @@ def test_the_tracts_action_is_harmless_without_a_tract_layer(qapp, toy_atlas, tm
     w.shortcuts["Tracts"].trigger()
     assert w.state.tract_ids == () and w.view.tract_actor is None
     w.close()
+
+
+def test_slices_outline_visible_tracts_only(window):
+    window.state.set_slice("axial", -4.0)
+    before = window.slices.image.copy()
+    window.shortcuts["Tracts"].trigger()
+    assert window.slices.image[35, 10, :3].tolist() == window.slices.colors[151].tolist()
+    window.state.set_hidden(window.state.tract_ids, True)
+    assert window.slices.image[35, 10, :3].tolist() == before[35, 10, :3].tolist()
+
+
+def test_a_selected_tract_is_filled_in_slices(window):
+    window.shortcuts["Tracts"].trigger()
+    window.state.set_slice("axial", 4.0)
+    plain = window.slices.image[34, 9, :3].copy()
+    window.state.select(150)
+    assert window.slices.image[34, 9, :3].tolist() != plain.tolist()
+
+
+def test_slice_clicks_pick_the_smallest_visible_tract_else_the_label(window):
+    window.state.set_slice("axial", -4.0)
+    window.shortcuts["Tracts"].trigger()
+    assert window.slices.structure_at_pixel(34, 8) == 160
+    window.state.set_hidden([160], True)
+    assert window.slices.structure_at_pixel(34, 8) == 151
+    window.state.set_hidden(window.state.tract_ids, True)
+    assert window.slices.structure_at_pixel(34, 8) not in TRACT_LEAVES

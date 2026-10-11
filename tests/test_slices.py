@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 from cns_atlas.model import Structure
-from cns_desktop.slices import (centre_from_table, centre_mm, color_table, compose, extract,
-                                index_for_mm, label_centres, mask_table, mm_for_index,
-                                slice_count, voxel_for_pixel, world_for_voxel)
+from cns_desktop.slices import (centre_from_table, centre_mm, color_table, compose, draw_tract,
+                                extract, index_for_mm, label_centres, mask_table, mm_for_index,
+                                pixels_for_voxels, slice_count, voxel_for_pixel, world_for_voxel)
 
 AAL = np.array([[1.0, 0, 0, -90.0], [0, 1.0, 0, -126.0], [0, 0, 1.0, -72.0], [0, 0, 0, 1.0]])
 COLORS = np.array([[0, 0, 0], [200, 0, 0], [0, 200, 0]], dtype=np.uint8)
@@ -140,3 +140,25 @@ def test_label_centre_table_matches_the_volume_scan():
     assert centre_from_table(table, affine, [5]) is None
     assert centre_from_table(table, affine, [99]) is None
     assert centre_from_table(table, affine, []) is None
+
+
+def test_pixels_for_voxels_inverts_voxel_for_pixel():
+    shape = (5, 6, 7)
+    for axis in ("axial", "coronal", "sagittal"):
+        for row, col in ((0, 0), (2, 3), (4, 1)):
+            voxel = voxel_for_pixel(shape, axis, 2, row, col)
+            rows, cols = pixels_for_voxels(shape, axis, tuple(np.array([v]) for v in voxel))
+            assert (int(rows[0]), int(cols[0])) == (row, col), axis
+
+
+def test_draw_tract_outlines_and_fills():
+    image = np.zeros((6, 6, 4), dtype=np.uint8)
+    rows = np.array([1, 1, 1, 2, 2, 2, 3, 3, 3])
+    cols = np.array([1, 2, 3] * 3)
+    color = np.array([200, 100, 0], dtype=np.uint8)
+    draw_tract(image, rows, cols, color, False, 0.5)
+    assert image[1, 1, :3].tolist() == [200, 100, 0]
+    assert image[2, 2, :3].tolist() == [0, 0, 0]
+    draw_tract(image, rows, cols, color, True, 0.5)
+    assert image[2, 2, :3].tolist() == [100, 50, 0]
+    assert image[0, 0, :3].tolist() == [0, 0, 0]

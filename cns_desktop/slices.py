@@ -120,3 +120,27 @@ def centre_from_table(table, affine, ids) -> tuple[float, float, float] | None:
     if total == 0:
         return None
     return world_for_voxel(affine, sums[known].sum(axis=0) / total)
+
+
+def pixels_for_voxels(shape, axis: str, ijk) -> tuple[np.ndarray, np.ndarray]:
+    _, ny, nz = shape[:3]
+    i, j, k = (np.asarray(c, dtype=np.int64) for c in ijk)
+    if axis == "axial":
+        return ny - 1 - j, i
+    if axis == "coronal":
+        return nz - 1 - k, i
+    return nz - 1 - k, ny - 1 - j
+
+
+def draw_tract(image: np.ndarray, rows, cols, color, filled: bool, opacity: float) -> None:
+    if len(rows) == 0:
+        return
+    r0, c0 = int(np.min(rows)), int(np.min(cols))
+    mask = np.zeros((int(np.max(rows)) - r0 + 1, int(np.max(cols)) - c0 + 1), dtype=bool)
+    mask[np.asarray(rows) - r0, np.asarray(cols) - c0] = True
+    region = image[r0:r0 + mask.shape[0], c0:c0 + mask.shape[1], :3]
+    color = np.asarray(color, dtype=np.float32)
+    if filled:
+        blend = region[mask].astype(np.float32) * (1.0 - opacity) + color * opacity
+        region[mask] = np.clip(np.rint(blend), 0, 255)
+    region[outline(mask)] = color
