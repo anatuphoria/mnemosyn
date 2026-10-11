@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QLineEdit, QTreeWidget, QTreeWidgetItem, QVBoxLayo
 from ..state import AppState
 
 ID_ROLE = Qt.ItemDataRole.UserRole
-CHECK_FLAGS = Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsAutoTristate
 
 
 class StructureTree(QWidget):
@@ -23,7 +22,6 @@ class StructureTree(QWidget):
         layout.addWidget(self.tree)
 
         self.items: dict[int, QTreeWidgetItem] = {}
-        self._geometry = set(state.geometry_ids)
         self._add(self.tree.invisibleRootItem(), state.atlas.structures[0].id)
         self.tree.expandToDepth(3)
 
@@ -31,12 +29,12 @@ class StructureTree(QWidget):
         self.tree.itemChanged.connect(self._on_item_checked)
         self.filter_box.textChanged.connect(self.apply_filter)
         state.selection_changed.connect(self._on_selection_changed)
-        state.visibility_changed.connect(self._on_visibility_changed)
+        state.visibility_changed.connect(lambda _ids: self._sync_checks())
 
     def _add(self, parent: QTreeWidgetItem, structure_id: int) -> None:
         item = QTreeWidgetItem(parent, [self.state.atlas.get(structure_id).name])
         item.setData(0, ID_ROLE, structure_id)
-        item.setFlags(item.flags() | CHECK_FLAGS)
+        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
         item.setCheckState(0, Qt.CheckState.Checked)
         self.items[structure_id] = item
         for child in self.state.atlas.children(structure_id):
@@ -48,9 +46,22 @@ class StructureTree(QWidget):
 
     def _on_item_checked(self, item: QTreeWidgetItem, _column: int) -> None:
         structure_id = item.data(0, ID_ROLE)
-        if structure_id in self._geometry:
-            hidden = item.checkState(0) != Qt.CheckState.Checked
-            self.state.set_hidden([structure_id], hidden)
+        hidden = item.checkState(0) != Qt.CheckState.Checked
+        self.state.set_hidden(self.state.geometry_in(structure_id), hidden)
+        self._sync_checks()
+
+    def _sync_checks(self) -> None:
+        with QSignalBlocker(self.tree):
+            for structure_id, item in self.items.items():
+                ids = self.state.geometry_in(structure_id)
+                shown = sum(not self.state.is_hidden(i) for i in ids)
+                if shown == len(ids):
+                    mark = Qt.CheckState.Checked
+                elif shown == 0:
+                    mark = Qt.CheckState.Unchecked
+                else:
+                    mark = Qt.CheckState.PartiallyChecked
+                item.setCheckState(0, mark)
 
     def apply_filter(self, text: str) -> None:
         atlas = self.state.atlas
@@ -72,10 +83,3 @@ class StructureTree(QWidget):
             self.tree.setCurrentItem(item)
         if item is not None:
             self.tree.scrollToItem(item)
-
-    def _on_visibility_changed(self, ids: frozenset[int]) -> None:
-        with QSignalBlocker(self.tree):
-            for structure_id in ids:
-                hidden = self.state.is_hidden(structure_id)
-                self.items[structure_id].setCheckState(
-                    0, Qt.CheckState.Unchecked if hidden else Qt.CheckState.Checked)

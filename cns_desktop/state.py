@@ -6,10 +6,13 @@ from PySide6.QtCore import QObject, Signal
 
 from cns_atlas import Atlas
 
+from .slices import AXES
+
 
 class AppState(QObject):
     selection_changed = Signal(object)
     visibility_changed = Signal(object)
+    slice_changed = Signal(str, float)
 
     def __init__(self, atlas: Atlas) -> None:
         super().__init__()
@@ -18,6 +21,8 @@ class AppState(QObject):
         self._geometry = set(self.geometry_ids)
         self._selected: int | None = None
         self._hidden: set[int] = set()
+        self.slice_axis = "axial"
+        self.slice_mm = 0.0
 
     @property
     def selected(self) -> int | None:
@@ -55,3 +60,11 @@ class AppState(QObject):
         keep = set(self.geometry_in(structure_id))
         self.set_hidden(keep, False)
         self.set_hidden([i for i in self.geometry_ids if i not in keep], True)
+
+    def set_slice(self, axis: str, mm: float) -> None:
+        if axis not in AXES:
+            raise ValueError(f"unknown slice axis {axis!r}")
+        mm = float(mm)
+        if (axis, mm) != (self.slice_axis, self.slice_mm):
+            self.slice_axis, self.slice_mm = axis, mm
+            self.slice_changed.emit(axis, mm)

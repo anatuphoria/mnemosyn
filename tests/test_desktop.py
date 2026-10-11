@@ -169,3 +169,34 @@ def test_selecting_a_concept_highlights_all_of_its_geometry(window):
     assert ambient(101) > 0 and ambient(102) > 0
     window.state.select(111)
     assert ambient(101) == 0 and ambient(102) == 0 and ambient(111) > 0
+
+
+def test_group_toggle_sends_one_visibility_change(window):
+    seen = []
+    window.state.visibility_changed.connect(seen.append)
+    window.tree.items[1].setCheckState(0, Qt.CheckState.Unchecked)
+    assert seen == [frozenset(window.state.geometry_ids)]
+    window.tree.items[1].setCheckState(0, Qt.CheckState.Checked)
+    assert len(seen) == 2
+    assert not any(window.state.is_hidden(i) for i in window.state.geometry_ids)
+
+
+def test_check_marks_follow_the_state(window):
+    window.state.set_hidden([101], True)
+    assert window.tree.items[101].checkState(0) == Qt.CheckState.Unchecked
+    assert window.tree.items[100].checkState(0) == Qt.CheckState.PartiallyChecked
+    assert window.tree.items[1].checkState(0) == Qt.CheckState.PartiallyChecked
+    window.state.show_all()
+    assert window.tree.items[1].checkState(0) == Qt.CheckState.Checked
+
+
+def test_slice_state_emits_once_and_validates(atlas):
+    state = AppState(atlas)
+    assert (state.slice_axis, state.slice_mm) == ("axial", 0.0)
+    seen = []
+    state.slice_changed.connect(lambda axis, mm: seen.append((axis, mm)))
+    state.set_slice("coronal", 12)
+    state.set_slice("coronal", 12.0)
+    assert seen == [("coronal", 12.0)]
+    with pytest.raises(ValueError, match="oblique"):
+        state.set_slice("oblique", 0.0)
