@@ -21,7 +21,14 @@ async def wait_until(pilot, cond, timeout: float = 10.0) -> None:
 
 
 async def settle(pilot, app) -> None:
-    await wait_until(pilot, lambda: not app.scene.camera.ease_pending() and app.render_idle())
+    vp = app.query_one("#viewport", Viewport)
+
+    def current() -> bool:
+        frame = vp.frame
+        return frame is not None and (frame.cols, frame.rows) == tuple(vp.size)
+
+    await wait_until(pilot, lambda: not app.scene.camera.ease_pending() and app.render_idle()
+                     and current())
 
 
 def make_app(tmp_path) -> BrainApp:
