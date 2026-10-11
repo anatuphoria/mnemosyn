@@ -24,9 +24,13 @@ def mm_for_index(affine, axis: str, index: int) -> float:
     return float(affine[a][3] + affine[a][a] * index)
 
 
+def is_ras(affine) -> bool:
+    return nib.aff2axcodes(np.asarray(affine)) == ("R", "A", "S")
+
+
 def extract(volume: np.ndarray, affine, axis: str, index: int) -> np.ndarray:
     """Neurological view: patient left on screen left, anterior or superior up."""
-    if nib.aff2axcodes(np.asarray(affine)) != ("R", "A", "S"):
+    if not is_ras(affine):
         raise ValueError("slices need a volume stored in RAS orientation")
     if axis == "axial":
         return volume[:, :, index].T[::-1, :]

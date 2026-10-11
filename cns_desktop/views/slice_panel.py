@@ -13,6 +13,7 @@ from ..state import AppState
 
 NO_TEMPLATE = "No template in this atlas"
 NO_LABELS = "No labelled volume in this atlas"
+NOT_RAS = "Slices need a volume stored in RAS orientation"
 COORDINATE = {"axial": "z", "coronal": "y", "sagittal": "x"}
 EDGES = {"axial": ("A", "P", "L", "R"), "coronal": ("S", "I", "L", "R"),
          "sagittal": ("S", "I", "A", "P")}
@@ -84,8 +85,12 @@ class SlicePanel(QWidget):
         state.visibility_changed.connect(lambda _ids: self.redraw())
         state.slice_changed.connect(self._on_slice_changed)
 
-        if self.labels is None:
+        if self.labels is not None and not slices.is_ras(self.labels.affine):
+            self.labels = None
+            self.note.setText(NOT_RAS)
+        elif self.labels is None:
             self.note.setText(NO_LABELS)
+        if self.labels is None:
             self.setEnabled(False)
             return
         self._on_slice_changed(state.slice_axis, state.slice_mm)
@@ -150,7 +155,10 @@ class SlicePanel(QWidget):
             return None
         voxel = slices.voxel_for_pixel(self.labels.shape, self.state.slice_axis, self.index,
                                        row, col)
-        return self.state.atlas.label_at(slices.world_for_voxel(self.labels.affine, voxel))
+        structure_id = self.state.atlas.label_at(slices.world_for_voxel(self.labels.affine, voxel))
+        if structure_id is None or self.state.is_hidden(structure_id):
+            return None
+        return structure_id
 
     def name_at_pixel(self, row: int, col: int) -> str:
         structure_id = self.structure_at_pixel(row, col)

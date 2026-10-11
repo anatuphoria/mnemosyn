@@ -11,7 +11,7 @@ from cns_atlas import DISCLAIMER, Atlas
 from cns_desktop.app import disclaimer_due, main, mark_disclaimer_shown
 from cns_desktop.main_window import MainWindow, about_text
 from cns_desktop.state import AppState
-from cns_desktop.views.slice_panel import NO_TEMPLATE, SlicePanel
+from cns_desktop.views.slice_panel import NO_TEMPLATE, NOT_RAS, SlicePanel
 
 
 @pytest.fixture(scope="session")
@@ -317,3 +317,49 @@ def test_slice_panel_without_template(qapp, tmp_path):
     panel = SlicePanel(AppState(Atlas.open(root)))
     assert panel.note.text() == NO_TEMPLATE
     assert tuple(panel.image[0, 0]) == (0, 0, 0, 255)
+
+
+def test_non_ras_volume_disables_slices_instead_of_crashing(qapp, tmp_path):
+    volume = np.zeros((10, 10, 10), dtype=np.uint16)
+    volume[2:4, 2:4, 2:4] = 101
+    root = write_package(tmp_path / "pkg", tiny_structures(),
+                         meshes={101: tetra(0), 102: tetra(5), 110: tetra(9)}, volume=volume,
+                         affine=np.diag([-1.0, 1.0, 1.0, 1.0]))
+    window = MainWindow(Atlas.open(root))
+    assert window.slices.note.text() == NOT_RAS
+    assert not window.slices.isEnabled()
+    window.close()
+
+
+def plane_extent(view):
+    xmin, xmax, ymin, ymax, _, _ = view.plane.GetBounds()
+    return xmax - xmin, ymax - ymin
+
+
+def test_plane_keeps_the_volume_extent_when_structures_are_isolated(window):
+    full = plane_extent(window.view)
+    window.state.isolate(111)
+    window.state.set_slice("axial", -8.0)
+    assert plane_extent(window.view) == pytest.approx(full)
+
+
+def test_plane_returns_after_hiding_and_showing_everything(window):
+    window.state.set_hidden(window.state.geometry_ids, True)
+    window.state.set_slice("axial", -8.0)
+    window.state.show_all()
+    assert window.view.plane.GetVisibility()
+    assert window.view.plane.GetBounds()[4] == pytest.approx(-8.0)
+
+
+def test_hidden_structures_cannot_be_named_or_selected_in_slices(window):
+    window.state.set_slice("axial", 20.0)
+    window.state.select(111)
+    window.state.set_hidden([101], True)
+    assert window.slices.name_at_pixel(19, 12) == ""
+    window.slices.click_pixel(19, 12)
+    assert window.state.selected == 111
+
+
+def test_about_text_credits_the_template_source(atlas):
+    assert "toy-template" in atlas.sources
+    assert "Toy template" in about_text(atlas)

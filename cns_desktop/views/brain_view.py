@@ -69,6 +69,7 @@ class BrainView(QtInteractor):
             self.attributes.SetBlockColor(block, _rgb(state.atlas.get(structure_id).rgb_triplet))
             self.attributes.SetBlockVisibility(block, True)
         self.renderer.AddActor(self.actor)
+        self.scene_bounds = self._scene_bounds()
         self.highlighted: list[int] = []
         self.overlay: vtkActor | None = None
         self.overlay_ids: list[int] = []
@@ -161,8 +162,19 @@ class BrainView(QtInteractor):
             self._refresh_overlay()
         self.render()
 
+    def _scene_bounds(self) -> tuple[float, ...]:
+        volumes = self.state.atlas.volumes
+        if not volumes:
+            return tuple(self.actor.GetBounds())
+        shape, affine = volumes[0].shape, volumes[0].affine
+        corners = np.array([[i, j, k, 1.0] for i in (0, shape[0] - 1) for j in (0, shape[1] - 1)
+                            for k in (0, shape[2] - 1)])
+        world = (np.asarray(affine) @ corners.T)[:3]
+        low, high = world.min(axis=1), world.max(axis=1)
+        return (low[0], high[0], low[1], high[1], low[2], high[2])
+
     def _on_slice_changed(self, axis: str, mm: float) -> None:
-        bounds = self.actor.GetBounds()
+        bounds = self.scene_bounds
         if bounds[0] > bounds[1]:
             self.plane.SetVisibility(False)
             return

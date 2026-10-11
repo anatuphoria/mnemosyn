@@ -130,7 +130,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:
         package = staging / "package"
-        write_package(package, recipe, structures, [s.source for s in recipe.sources], volumes,
+        write_package(package, recipe, structures,
+                      [s.source for s in (*recipe.sources, *recipe.templates)], volumes,
                       meshes, src / "knowledge", licence_files, report, templates)
         previous = staging / "previous"
         if out.exists():
