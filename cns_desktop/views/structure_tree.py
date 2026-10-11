@@ -47,8 +47,8 @@ class StructureTree(QWidget):
     def _on_item_checked(self, item: QTreeWidgetItem, _column: int) -> None:
         structure_id = item.data(0, ID_ROLE)
         hidden = item.checkState(0) != Qt.CheckState.Checked
-        self.state.set_hidden(self.state.geometry_in(structure_id), hidden)
-        self._sync_checks()
+        if not self.state.set_hidden(self.state.geometry_in(structure_id), hidden):
+            self._sync_checks()
 
     def _sync_checks(self) -> None:
         with QSignalBlocker(self.tree):

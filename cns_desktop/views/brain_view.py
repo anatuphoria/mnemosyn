@@ -175,7 +175,7 @@ class BrainView(QtInteractor):
 
     def _on_slice_changed(self, axis: str, mm: float) -> None:
         bounds = self.scene_bounds
-        if bounds[0] > bounds[1]:
+        if not self.state.atlas.volumes or bounds[0] > bounds[1]:
             self.plane.SetVisibility(False)
             return
         center = [(bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2,

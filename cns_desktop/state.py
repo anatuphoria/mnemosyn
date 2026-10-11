@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable
 
 from PySide6.QtCore import QObject, Signal
@@ -42,16 +43,17 @@ class AppState(QObject):
     def is_hidden(self, structure_id: int) -> bool:
         return structure_id in self._hidden
 
-    def set_hidden(self, ids: Iterable[int], hidden: bool) -> None:
+    def set_hidden(self, ids: Iterable[int], hidden: bool) -> bool:
         ids = set(ids) & self._geometry
         changed = ids - self._hidden if hidden else ids & self._hidden
         if not changed:
-            return
+            return False
         if hidden:
             self._hidden |= changed
         else:
             self._hidden -= changed
         self.visibility_changed.emit(frozenset(changed))
+        return True
 
     def show_all(self) -> None:
         self.set_hidden(list(self._hidden), False)
@@ -65,6 +67,8 @@ class AppState(QObject):
         if axis not in AXES:
             raise ValueError(f"unknown slice axis {axis!r}")
         mm = float(mm)
+        if not math.isfinite(mm):
+            raise ValueError(f"slice position must be finite, got {mm}")
         if (axis, mm) != (self.slice_axis, self.slice_mm):
             self.slice_axis, self.slice_mm = axis, mm
             self.slice_changed.emit(axis, mm)

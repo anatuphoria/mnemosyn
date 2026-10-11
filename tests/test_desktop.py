@@ -615,3 +615,50 @@ def test_quiz_keys_still_work_after_clicking_the_3d_view_and_the_slice(window, q
     QTest.keyClick(qapp.focusWidget(), Qt.Key.Key_Escape)
     assert not window.quiz_active
     assert window.view.focusPolicy() == policy
+
+
+def test_set_slice_rejects_positions_that_are_not_finite(atlas):
+    state = AppState(atlas)
+    for bad in (float("nan"), float("inf")):
+        with pytest.raises(ValueError):
+            state.set_slice("axial", bad)
+
+
+def test_centre_on_selection_moves_the_slice_once(qapp, tmp_path):
+    volume = np.zeros((6, 6, 6), dtype=np.uint16)
+    volume[1:3, 2, 2] = 101
+    root = write_package(tmp_path / "pkg", tiny_structures(),
+                         meshes={101: tetra(0), 102: tetra(5), 110: tetra(9)}, volume=volume)
+    window = MainWindow(Atlas.open(root), progress_path=tmp_path / "progress.sqlite")
+    window.state.set_slice("sagittal", 5.0)
+    window.state.select(101)
+    seen = []
+    window.state.slice_changed.connect(lambda axis, mm: seen.append(mm))
+    window.slices.centre_on_selection()
+    assert len(seen) == 1 and seen[0] in (1.0, 2.0)
+    window.close()
+
+
+def test_a_tree_check_refreshes_the_marks_once(window, monkeypatch):
+    calls = []
+    original = window.tree._sync_checks
+    monkeypatch.setattr(window.tree, "_sync_checks", lambda: (calls.append(1), original()))
+    window.tree.items[100].setCheckState(0, Qt.CheckState.Unchecked)
+    assert len(calls) == 1
+    assert window.state.is_hidden(101)
+
+
+def test_clicking_the_current_axis_keeps_the_position(window):
+    window.state.set_slice("axial", 20.0)
+    window.slices.set_axis("axial")
+    assert window.state.slice_mm == 20.0
+
+
+def test_no_cutting_plane_without_a_labelled_volume(qapp, tmp_path):
+    root = write_package(tmp_path / "pkg", tiny_structures(),
+                         meshes={101: tetra(0), 102: tetra(5), 110: tetra(9)})
+    window = MainWindow(Atlas.open(root), progress_path=tmp_path / "progress.sqlite")
+    assert not window.view.plane.GetVisibility()
+    window.state.set_slice("coronal", 3.0)
+    assert not window.view.plane.GetVisibility()
+    window.close()

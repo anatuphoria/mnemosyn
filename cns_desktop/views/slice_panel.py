@@ -97,7 +97,7 @@ class SlicePanel(QWidget):
         self._on_slice_changed(state.slice_axis, state.slice_mm)
 
     def set_axis(self, axis: str) -> None:
-        if self.labels is None:
+        if self.labels is None or axis == self.state.slice_axis:
             return
         middle = self.labels.shape[slices.AXIS_INDEX[axis]] // 2
         self.state.set_slice(axis, slices.mm_for_index(self.labels.affine, axis, middle))
@@ -182,7 +182,9 @@ class SlicePanel(QWidget):
         centre = slices.centre_from_table(self.label_centres(), self.labels.affine, ids)
         if centre is not None:
             axis = self.state.slice_axis
-            self.state.set_slice(axis, centre[slices.AXIS_INDEX[axis]])
+            shape, affine = self.labels.shape, self.labels.affine
+            index = slices.index_for_mm(affine, shape, axis, centre[slices.AXIS_INDEX[axis]])
+            self.state.set_slice(axis, slices.mm_for_index(affine, axis, index))
 
     def _pixel(self, scene_pos) -> tuple[int, int]:
         point = self.item.mapFromScene(scene_pos)
