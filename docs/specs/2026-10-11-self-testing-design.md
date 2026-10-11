@@ -190,3 +190,29 @@ In scope: sections 2 to 9.
 Out of scope: tuning FSRS parameters to the person's history (needs the optimiser and
 PyTorch; later, after a few hundred reviews), questions about functions and pathways (with B4
 and more reviewed descriptions), syncing progress between computers, the terminal app.
+
+## 12. Amendments made during planning (2026-10-11)
+
+1. Answer checking is `AnswerIndex(pool)`, built once, with `check(typed, item) -> Verdict(correct,
+   exact, matched)`; `matched` is the accepted answer a typo matched, otherwise the item's name.
+2. `item_for(pool, structure_id)` takes the level's item list and returns the most specific
+   (deepest) item containing the structure. Find it judges a click correct when the clicked
+   structure is part of the target's geometry, so a click anywhere inside a group counts for it.
+3. Find it feedback selects the target (3D highlight and slice outline) and names what was
+   clicked in the text. In Find it the slice does not move to the target before the answer.
+4. Slice centring uses a per-label centre table built in 16-slice chunks. Measured on the real
+   atlas: scanning the volume costs 35 ms per call; the table costs 52 ms once and about 6 MB,
+   then each centre is a lookup. It is built when the quiz setup opens, and "Centre on
+   selection" uses it too.
+5. The quiz dock cannot be closed; "End quiz (Esc)" or Esc leaves quiz mode. During a quiz the
+   Hide, Isolate, Show all and Start quiz actions are disabled, so H and E rate answers and
+   nothing can be hidden.
+6. `QuizChoice` and `due_and_new` live in `cns_study/session.py`; `with_reviewed_entries` in
+   `cns_study/items.py`; `mode_stats`, `weakest` and `day_start` in `cns_study/progress.py`.
+7. SQLite runs with `synchronous = NORMAL` in WAL mode: an app crash loses nothing; a power cut
+   may lose the last answer.
+8. `MainWindow(atlas, progress_path=None)` opens the progress store on first use, so tests and
+   plain browsing never create the file.
+9. Practice does not repeat wrong answers within the round.
+10. During a quiz the status bar shows "quiz in progress" instead of the selected structure's
+    name.
