@@ -249,3 +249,29 @@ In scope: sections 2 to 8.
 Out of scope: spinal cord (C2), brainstem and cerebellar nuclei (C3), descriptions of the new
 structures, the pathway view (B4), registration between MNI template variants, terminal app
 changes.
+
+## 11. Amendments made during planning (2026-10-11)
+
+1. Zenodo record 3627772 has no whole-record zip (the files-archive URL returns 404), so
+   `[[tracts]]` pins every file: `download` is a URL template containing `{name}`, and
+   `[tracts.files]` maps each mask name to its sha256.
+2. The Neudorfer name table is not downloaded: names live in `structures.toml`; the label
+   numbers were mapped from that table during planning.
+3. In the existing merge a higher `priority` wins, so `neudorfer2020` has `priority = 0` and
+   AAL3 keeps `priority = 1`.
+4. Label references are typed: a string is a mask name and must belong to a `[[tracts]]`
+   source; a number is a label and must belong to a `[[sources]]` entry. The
+   mammillothalamic tract and inferior thalamic peduncle are `kind = "tract"` but stored as
+   labels.
+5. The build report lists dropped entries; the reasons are recorded in section 2, not in the
+   recipe.
+6. Source spaces are stated in this spec only, not in the About box.
+7. Selecting a structure shows hidden tracts only when every 3D shape under it is a tract, so
+   selecting the CNS root does not show all tracts.
+8. The slice panel uses the tract layer only when its grid equals the panel's label volume.
+9. Tests use a second toy atlas with tracts and a 2 mm source; the existing toy atlas is
+   unchanged.
+10. Tract mask voxels outside the label grid are a build error.
+11. Tract timing budgets are measured in a subprocess, like the quiz timing.
+12. Groups whose members are all structure items are left out of the Groups quiz level (with
+    tracts outside the Brain group, "Brain" would otherwise become a quiz item).

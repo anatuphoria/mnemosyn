@@ -9,7 +9,7 @@ from cns_atlas.model import KINDS, SIDES
 
 from .hierarchy import PlannedStructure, RawStructure
 from .idlock import IdLock
-from .recipe import Recipe
+from .recipe import MESH_GRIDS, Recipe
 
 MAX_ID = 65535
 
@@ -54,7 +54,9 @@ def check_ids(raws: list[RawStructure], lock: IdLock) -> list[str]:
 
 
 def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[str]:
-    known = {spec.source.id for spec in recipe.sources}
+    labels = {spec.source.id: spec for spec in recipe.sources}
+    tracts = {spec.source.id: spec for spec in recipe.tracts}
+    known = set(labels) | set(tracts)
     volumes = {v.name for v in recipe.volumes}
     problems = []
     for spec in recipe.sources:
@@ -67,15 +69,55 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: licence file {spec.licence_file} is missing")
         if spec.volume not in volumes:
             problems.append(f"source {name}: unknown volume {spec.volume!r}")
+        if spec.mesh_grid not in MESH_GRIDS:
+            problems.append(f"source {name}: mesh_grid must be one of {MESH_GRIDS}")
+        problems += [f"source {name}: drop value {value!r} is not a label number"
+                     for value in spec.drop if not isinstance(value, int) or isinstance(value, bool)]
+    for spec in recipe.tracts:
+        name = spec.source.id
+        if not spec.source.licence:
+            problems.append(f"tracts {name}: licence is missing")
+        if not spec.source.redistribution:
+            problems.append(f"tracts {name}: redistribution is not allowed")
+        if spec.licence_file and not (src / spec.licence_file).exists():
+            problems.append(f"tracts {name}: licence file {spec.licence_file} is missing")
+        if spec.labels not in volumes:
+            problems.append(f"tracts {name}: unknown volume {spec.labels!r}")
+        if "{name}" not in spec.download:
+            problems.append(f"tracts {name}: download must contain {{name}}")
+        if not spec.files:
+            problems.append(f"tracts {name}: no files listed")
+        problems += [f"tracts {name}: dropped file {dropped!r} is not listed"
+                     for dropped in spec.drop if dropped not in spec.names]
+    if len({spec.labels for spec in recipe.tracts}) > 1:
+        problems.append("tracts: all tract sources must use one label volume")
     for v in recipe.volumes:
-        if v.grid_source not in known:
+        if v.grid_source not in labels:
             problems.append(f"volume {v.name}: unknown grid source {v.grid_source!r}")
+    mapped: dict[str, set[str]] = {name: set() for name in tracts}
     for r in raws:
         if r.labels and not r.sources:
             problems.append(f"structure {r.id}: has geometry but lists no source")
         for name in sorted({*r.sources, *(ref.source for ref in r.labels)}):
             if name not in known:
                 problems.append(f"structure {r.id}: unknown source {name!r}")
+        for ref in r.labels:
+            if isinstance(ref.value, str):
+                spec = tracts.get(ref.source)
+                if spec is None:
+                    problems.append(f"structure {r.id}: mask {ref.value!r} needs a tracts "
+                                    f"source, not {ref.source!r}")
+                elif ref.value not in spec.names:
+                    problems.append(f"structure {r.id}: tracts {ref.source} has no file "
+                                    f"{ref.value!r}")
+                else:
+                    mapped[ref.source].add(ref.value)
+            elif ref.source in tracts:
+                problems.append(f"structure {r.id}: tracts {ref.source} needs a file name, "
+                                f"not {ref.value!r}")
+    for name, spec in tracts.items():
+        problems += [f"tracts {name}: file {file!r} has no structure and is not dropped"
+                     for file in spec.names if file not in mapped[name] and file not in spec.drop]
     return problems
 
 
@@ -104,12 +146,14 @@ def check_knowledge(knowledge_dir: Path, references: dict[str, Reference],
     return problems
 
 
-def check_voxels(planned: list[PlannedStructure], volumes: list[np.ndarray]) -> list[str]:
+def check_voxels(planned: list[PlannedStructure], volumes: list[np.ndarray],
+                 spared: frozenset[int] | set[int] = frozenset()) -> list[str]:
     present: set[int] = set()
     for data in volumes:
         present.update(np.unique(data).tolist())
     return [f"structure {p.structure.id} ({p.structure.name}) has no voxels"
-            for p in planned if p.labels and p.structure.id not in present]
+            for p in planned
+            if p.labels and p.structure.id not in present and p.structure.id not in spared]
 
 
 def check_templates(recipe: Recipe, src: Path) -> list[str]:

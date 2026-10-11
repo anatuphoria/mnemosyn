@@ -1,0 +1,134 @@
+import pytest
+
+from tools.build_atlas.hierarchy import LabelRef, RawStructure, build_tree, load_structures, with_xrefs
+from tools.build_atlas.recipe import load_recipe
+from tools.build_atlas.validate import check_sources
+
+RECIPE = """\
+name = "t"
+version = "0"
+species = "Homo sapiens"
+licence = "CC BY 4.0"
+lod0_max_faces = 2000
+lod_fractions = [1.0]
+min_faces = 4
+smoothing_iterations = 0
+smoothing_pass_band = 0.1
+
+[[volumes]]
+name = "brain"
+space = "MNI152"
+grid_source = "lab"
+
+[[sources]]
+id = "lab"
+title = "Labels"
+authors = "A"
+year = 2020
+version = "1"
+licence = "CC0"
+redistribution = true
+download = "file:///x/lab.nii.gz"
+sha256 = "AA"
+volume = "brain"
+priority = 1
+drop = [4]
+mesh_grid = "native"
+
+[[tracts]]
+id = "fib"
+title = "Fibres"
+authors = "B"
+year = 2021
+version = "1"
+licence = "CC BY-SA 4.0"
+redistribution = true
+download = "file:///x/{name}.nii.gz"
+labels = "brain"
+drop = ["Extra"]
+
+[tracts.files]
+Long_L = "BB"
+Short = "CC"
+Extra = "DD"
+"""
+
+
+def recipe(tmp_path, text=RECIPE):
+    path = tmp_path / "recipe.toml"
+    path.write_text(text)
+    return load_recipe(path)
+
+
+def raw(sid, refs, kind="tract"):
+    return RawStructure(id=sid, parent=1, acronym=f"S{sid}", name=f"S{sid}", kind=kind,
+                        side="midline", concept=None, color=None, synonyms=(), xrefs={},
+                        sources=tuple(sorted({ref.source for ref in refs})), labels=tuple(refs))
+
+
+GOOD = [raw(10, [LabelRef("fib", "Long_L")]), raw(11, [LabelRef("fib", "Short")]),
+        raw(12, [LabelRef("lab", 1)], kind="nucleus")]
+
+
+def test_recipe_reads_drops_native_meshing_and_tracts(tmp_path):
+    loaded = recipe(tmp_path)
+    assert loaded.sources[0].drop == (4,) and loaded.sources[0].mesh_grid == "native"
+    tracts = loaded.tracts[0]
+    assert tracts.names == ("Extra", "Long_L", "Short")
+    assert tracts.drop == ("Extra",) and tracts.labels == "brain"
+    spec = tracts.file_spec("Short")
+    assert spec.download == "file:///x/Short.nii.gz" and spec.sha256 == "cc"
+    assert spec.source.id == "fib" and spec.member == ""
+
+
+def test_valid_sources_have_no_problems(tmp_path):
+    assert check_sources(GOOD, recipe(tmp_path), tmp_path) == []
+
+
+def test_every_tract_file_needs_a_structure_or_a_drop(tmp_path):
+    problems = check_sources(GOOD[:1] + GOOD[2:], recipe(tmp_path), tmp_path)
+    assert problems == ["tracts fib: file 'Short' has no structure and is not dropped"]
+
+
+def test_unknown_drops_and_unknown_masks_are_reported(tmp_path):
+    text = RECIPE.replace('drop = ["Extra"]', 'drop = ["Extra", "Ghost"]')
+    problems = check_sources([*GOOD, raw(13, [LabelRef("fib", "Nope")])], recipe(tmp_path, text),
+                             tmp_path)
+    assert "tracts fib: dropped file 'Ghost' is not listed" in problems
+    assert "structure 13: tracts fib has no file 'Nope'" in problems
+
+
+def test_masks_and_label_numbers_must_match_their_source(tmp_path):
+    wrong = [raw(13, [LabelRef("lab", "Long_L")]), raw(14, [LabelRef("fib", 3)])]
+    problems = check_sources([*GOOD, *wrong], recipe(tmp_path), tmp_path)
+    assert "structure 13: mask 'Long_L' needs a tracts source, not 'lab'" in problems
+    assert "structure 14: tracts fib needs a file name, not 3" in problems
+
+
+def test_tract_download_needs_a_name_slot_and_a_licence(tmp_path):
+    text = (RECIPE.replace('file:///x/{name}.nii.gz', 'file:///x/all.nii.gz')
+            .replace('licence = "CC BY-SA 4.0"\n', ""))
+    problems = check_sources(GOOD, recipe(tmp_path, text), tmp_path)
+    assert "tracts fib: download must contain {name}" in problems
+    assert "tracts fib: licence is missing" in problems
+
+
+def test_mesh_grid_and_drop_values_are_checked(tmp_path):
+    text = RECIPE.replace('mesh_grid = "native"', 'mesh_grid = "fine"').replace(
+        "drop = [4]", 'drop = ["four"]')
+    problems = check_sources(GOOD, recipe(tmp_path, text), tmp_path)
+    assert "source lab: mesh_grid must be one of ('label', 'native')" in problems
+    assert "source lab: drop value 'four' is not a label number" in problems
+
+
+def test_string_label_refs_load_and_become_xrefs(tmp_path):
+    path = tmp_path / "structures.toml"
+    path.write_text(
+        'groups = [{ id = 1, acronym = "CNS", name = "CNS" }]\n'
+        'concepts = [{ id = 10, parent = 1, acronym = "LT", name = "Long tract", kind = "tract",'
+        ' source = "fib", left = "Long_L", right = "Long_R" }]\n')
+    raws = load_structures(path)
+    left = next(r for r in raws if r.id == 11)
+    assert left.labels == (LabelRef("fib", "Long_L"),)
+    planned = {p.structure.id: p.structure for p in with_xrefs(build_tree(raws), {})}
+    assert planned[11].xrefs == {"fib": "Long_L"}

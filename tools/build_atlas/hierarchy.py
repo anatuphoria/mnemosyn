@@ -17,7 +17,11 @@ CONCEPT_KEYS = GROUP_KEYS | {"kind", "left", "right", "midline", "source"}
 @dataclass(frozen=True)
 class LabelRef:
     source: str
-    value: int
+    value: int | str
+
+
+def _ref(value) -> int | str:
+    return value if isinstance(value, str) else int(value)
 
 
 @dataclass(frozen=True)
@@ -69,7 +73,7 @@ def _expand_concept(record: dict, source: str) -> list[RawStructure]:
     kind = record.get("kind", "region")
     if "midline" in record:
         return [_raw(record, kind=kind, side="midline", concept=None, sources=(source,),
-                     labels=(LabelRef(source, int(record["midline"])),))]
+                     labels=(LabelRef(source, _ref(record["midline"])),))]
     concept = _raw(record, kind=kind, side="none", concept=None, sources=(), labels=())
     out = [concept]
     for offset, side in ((1, "left"), (2, "right")):
@@ -79,7 +83,7 @@ def _expand_concept(record: dict, source: str) -> list[RawStructure]:
                 acronym=f"{concept.acronym}-{side[0].upper()}",
                 name=f"{concept.name} ({side})", kind=kind, side=side, concept=concept.id,
                 color=concept.color, synonyms=(f"{side} {concept.name}",), xrefs={},
-                sources=(source,), labels=(LabelRef(source, int(record[side])),)))
+                sources=(source,), labels=(LabelRef(source, _ref(record[side])),)))
     return out
 
 
@@ -150,7 +154,8 @@ def with_xrefs(planned: list[PlannedStructure],
     for p in planned:
         xrefs = dict(p.structure.xrefs)
         for ref in p.labels:
-            name = names.get(ref.source, {}).get(ref.value)
+            name = (ref.value if isinstance(ref.value, str)
+                    else names.get(ref.source, {}).get(ref.value))
             if name:
                 xrefs[ref.source] = name
         out.append(replace(p, structure=replace(p.structure, xrefs=xrefs)))
