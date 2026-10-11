@@ -36,6 +36,17 @@ def mark_disclaimer_shown(settings) -> None:
     settings.sync()
 
 
+def peak_memory_mb() -> float | None:
+    try:
+        with open("/proc/self/status", encoding="utf-8") as status:
+            for line in status:
+                if line.startswith("VmHWM:"):
+                    return int(line.split()[1]) / 1024
+    except OSError:
+        return None
+    return None
+
+
 def run_benchmark(window, frames: int = 300) -> None:
     from PySide6.QtWidgets import QApplication
 
@@ -94,6 +105,9 @@ def main(argv: list[str] | None = None) -> int:
     window.view.render()
     print(f"first frame: {time.perf_counter() - STARTED:.2f} s")
     if args.first_frame:
+        peak = peak_memory_mb()
+        if peak is not None:
+            print(f"peak memory: {peak:.0f} MB")
         window.close()
         return 0
     if args.bench:

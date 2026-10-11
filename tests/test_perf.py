@@ -4,10 +4,12 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from atlas_package import tetra, write_package
 from cns_atlas import Atlas
+from cns_atlas.meshes import MeshData
 from cns_atlas.model import Structure
 
 pytestmark = pytest.mark.perf
@@ -86,14 +88,88 @@ def test_real_atlas_memory_under_500mb():
 
 
 @pytest.mark.slow
-def test_desktop_first_frame_under_2s():
+def test_desktop_first_frame_under_2s_and_memory_under_600mb():
     pytest.importorskip("pyvistaqt")
     real_atlas_or_skip()
     env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
-    runs = []
+    runs, output = [], ""
     for _ in range(2):
         start = time.perf_counter()
-        subprocess.run([sys.executable, "-m", "cns_desktop", "--first-frame"], env=env,
-                       check=True, capture_output=True, timeout=120)
+        result = subprocess.run([sys.executable, "-m", "cns_desktop", "--first-frame"], env=env,
+                                check=True, capture_output=True, text=True, timeout=120)
         runs.append(time.perf_counter() - start)
+        output = result.stdout
     assert runs[-1] < 2.0
+    peak = [line for line in output.splitlines() if line.startswith("peak memory:")]
+    assert peak and float(peak[0].split()[2]) < 600
+
+
+@pytest.mark.slow
+def test_selection_on_the_real_atlas_under_7ms():
+    pytest.importorskip("pyvistaqt")
+    atlas_path = real_atlas_or_skip()
+    from PySide6.QtWidgets import QApplication
+
+    from cns_desktop.main_window import MainWindow
+
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(Atlas.open(atlas_path))
+    window.resize(1500, 900)
+    window.show()
+    app.processEvents()
+    window.view.render()
+    times = []
+    for structure_id in list(window.state.geometry_ids)[:60]:
+        start = time.perf_counter()
+        window.state.select(structure_id)
+        times.append(time.perf_counter() - start)
+    window.close()
+    times.sort()
+    assert times[len(times) // 2] < 0.007
+
+
+def sphere_scene(count: int):
+    import pyvista as pv
+
+    structures = [Structure(1, "ROOT", "Root", (1,), GREY, kind="group")]
+    levels = {"lod0": {}, "lod1": {}, "lod2": {}}
+    side = int(np.ceil(count ** (1 / 3)))
+    for k in range(count):
+        structure_id = 1000 + k
+        structures.append(Structure(structure_id, f"S{k}", f"Sphere {k}", (1, structure_id), GREY))
+        centre = 10.0 * np.array([k % side, (k // side) % side, k // (side * side)])
+        for name, resolution in (("lod0", 40), ("lod1", 20), ("lod2", 10)):
+            sphere = pv.Sphere(radius=4.0, center=centre, theta_resolution=resolution,
+                               phi_resolution=resolution).compute_normals()
+            levels[name][structure_id] = MeshData(
+                np.asarray(sphere.points, dtype=np.float32),
+                np.asarray(sphere.point_data["Normals"], dtype=np.float16),
+                np.asarray(sphere.regular_faces, dtype=np.uint32))
+    return structures, levels
+
+
+@pytest.mark.slow
+def test_generated_3500_structure_scene_at_60_fps(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    from PySide6.QtWidgets import QApplication
+
+    from cns_desktop.state import AppState
+    from cns_desktop.views.brain_view import BrainView
+
+    structures, levels = sphere_scene(3500)
+    root = write_package(tmp_path / "pkg", structures, meshes_by_lod=levels)
+    app = QApplication.instance() or QApplication([])
+    view = BrainView(AppState(Atlas.open(root)))
+    view.resize(1400, 850)
+    view.show()
+    app.processEvents()
+    assert view.lod == 1
+    view.render()
+    start = time.perf_counter()
+    for _ in range(30):
+        view.camera.Azimuth(3)
+        view.render()
+        view.screenshot(return_img=True)
+    fps = 30 / (time.perf_counter() - start)
+    view.close()
+    assert fps >= 60

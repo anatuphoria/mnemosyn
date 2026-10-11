@@ -197,3 +197,9 @@ the editor and model importers, terminal app changes.
 3. VTK 9.7 names the mapper `vtkCompositePolyDataMapper` (module `vtkRenderingCore`).
 4. The structure tree computes its own tri-state check marks, so one click results in one
    visibility change.
+5. Desktop app memory budget is 600 MB (section 3.6 said 500 MB). Measured on the real atlas at
+   first frame: 556 to 570 MB on screen and offscreen. About 316 MB is the Qt, VTK, PyVista and
+   pyqtgraph import baseline before any atlas data; the full-detail 166-structure scene adds
+   about 240 MB. Holding 500 MB would need the 25 percent detail level for the current atlas
+   (measured 488 MB), which contradicts section 3.4. Full detail was kept; the 500 MB loader
+   budget of spec A (atlas data without the GUI) still applies and is still tested.

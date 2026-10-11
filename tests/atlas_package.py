@@ -34,7 +34,7 @@ def tiny_structures() -> list[Structure]:
 
 def write_package(root: Path, structures: list[Structure], *, meshes=None, lods=("lod0",),
                   volume=None, affine=None, sources=(), entries=None, references="",
-                  format_version=FORMAT_VERSION, template=None) -> Path:
+                  format_version=FORMAT_VERSION, template=None, meshes_by_lod=None) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     volumes = []
     if volume is not None:
@@ -56,8 +56,12 @@ def write_package(root: Path, structures: list[Structure], *, meshes=None, lods=
     (root / "sources.json").write_text(json.dumps([s.to_json() for s in sources]))
     (root / "collections.json").write_text("[]")
     (root / "pathways.json").write_text("[]")
-    for name in lods:
-        write_lod(root / "meshes" / name, meshes or {})
+    if meshes_by_lod is not None:
+        for name, level in meshes_by_lod.items():
+            write_lod(root / "meshes" / name, level)
+    else:
+        for name in lods:
+            write_lod(root / "meshes" / name, meshes or {})
     knowledge = root / "knowledge"
     knowledge.mkdir(exist_ok=True)
     (knowledge / "references.toml").write_text(references)
