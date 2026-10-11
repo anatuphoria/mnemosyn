@@ -195,13 +195,17 @@ class MainWindow(QMainWindow):
             return
         state = self.state
         hidden = [i for i in state.geometry_ids if state.is_hidden(i)]
-        self._saved = (self.saveState(), hidden, state.selected, state.slice_axis, state.slice_mm)
+        self._saved = (self.saveState(), hidden, state.selected, state.slice_axis, state.slice_mm,
+                       [(w, w.focusPolicy()) for w in (self.view, self.slices.view)])
         self.quiz_active = True
         for name in QUIZ_LOCKED:
             self.shortcuts[name].setEnabled(False)
         state.show_all()
+        for widget, _ in self._saved[5]:
+            widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.tree_dock.hide()
         self.info_dock.hide()
+        self.chart_dock.hide()
         self.quiz_dock.show()
         self.statusBar().clearMessage()
         self._update_status()
@@ -209,10 +213,12 @@ class MainWindow(QMainWindow):
     def leave_quiz(self) -> None:
         if not self.quiz_active:
             return
-        layout, hidden, selected, axis, mm = self._saved
+        layout, hidden, selected, axis, mm, focus = self._saved
         self.quiz_active = False
         for name in QUIZ_LOCKED:
             self.shortcuts[name].setEnabled(True)
+        for widget, policy in focus:
+            widget.setFocusPolicy(policy)
         self.restoreState(layout)
         self.state.show_all()
         self.state.set_hidden(hidden, True)

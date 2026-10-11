@@ -5,7 +5,7 @@ import time
 import numpy as np
 import pytest
 from fsrs import Rating, State
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QPoint, QSettings, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialogButtonBox
@@ -590,3 +590,23 @@ def test_progress_window_counts_reviews(window):
     assert cells == ["Name it (typed)", "Structures", "2", "0", "1", "0", "0"]
     assert dialog.weakest.count() == 1 and "Alpha gyrus" in dialog.weakest.item(0).text()
     dialog.reject()
+
+
+def test_the_activity_chart_is_hidden_during_a_quiz(window):
+    start_quiz(window, "name-typed")
+    assert not window.chart_dock.isVisible()
+    window.quiz.stop()
+    assert window.chart_dock.isVisible()
+
+
+def test_quiz_keys_still_work_after_clicking_the_3d_view_and_the_slice(window, qapp):
+    policy = window.view.focusPolicy()
+    quiz = start_quiz(window, "name-typed")
+    QTest.mouseClick(window.view, Qt.MouseButton.LeftButton, pos=QPoint(5, 5))
+    QTest.keyClicks(qapp.focusWidget(), "alpha gyrus")
+    QTest.keyClick(qapp.focusWidget(), Qt.Key.Key_Return)
+    assert quiz.phase == "feedback"
+    QTest.mouseClick(window.slices.view, Qt.MouseButton.LeftButton, pos=QPoint(5, 5))
+    QTest.keyClick(qapp.focusWidget(), Qt.Key.Key_Escape)
+    assert not window.quiz_active
+    assert window.view.focusPolicy() == policy
