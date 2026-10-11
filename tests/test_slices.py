@@ -95,7 +95,8 @@ def test_selected_but_hidden_is_not_drawn():
 
 
 def test_color_and_mask_tables():
-    structures = [Structure(1, "A", "A", (1,), (1, 2, 3)), Structure(5, "B", "B", (1, 5), (9, 8, 7))]
+    structures = [Structure(1, "A", "A", (1,), (1, 2, 3)),
+                  Structure(5, "B", "B", (1, 5), (9, 8, 7))]
     table = color_table(structures)
     assert table.shape == (6, 3) and tuple(table[5]) == (9, 8, 7) and tuple(table[2]) == (0, 0, 0)
     assert mask_table(4, [1, 3, 99]).tolist() == [False, True, False, True]
