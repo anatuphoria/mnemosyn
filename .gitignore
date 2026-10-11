@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.ruff_cache/
+build/
+dist/
+*.spec
+views.json

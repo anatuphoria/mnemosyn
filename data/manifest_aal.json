@@ -1,0 +1,1861 @@
+{
+ "atlas": "AAL116",
+ "regions": [
+  {
+   "id": "Precentral_L",
+   "name": "Precentral_L",
+   "system": "frontal",
+   "color": [
+    68,
+    162,
+    227
+   ],
+   "center": [
+    -0.4325581395348836,
+    0.5515598411798072,
+    -0.07734921535261871
+   ],
+   "mesh": "../assets/meshes/Precentral_L.npz"
+  },
+  {
+   "id": "Precentral_R",
+   "name": "Precentral_R",
+   "system": "frontal",
+   "color": [
+    82,
+    158,
+    229
+   ],
+   "center": [
+    0.4566761970488678,
+    0.5645535508889546,
+    -0.10610930362483152
+   ],
+   "mesh": "../assets/meshes/Precentral_R.npz"
+  },
+  {
+   "id": "Frontal_Sup_L",
+   "name": "Frontal_Sup_L",
+   "system": "frontal",
+   "color": [
+    96,
+    156,
+    231
+   ],
+   "center": [
+    -0.20858880553240103,
+    0.45504615479608534,
+    0.37210953659967266
+   ],
+   "mesh": "../assets/meshes/Frontal_Sup_L.npz"
+  },
+  {
+   "id": "Frontal_Sup_R",
+   "name": "Frontal_Sup_R",
+   "system": "frontal",
+   "color": [
+    71,
+    130,
+    227
+   ],
+   "center": [
+    0.2400339688801228,
+    0.47227153188691645,
+    0.33233618233618234
+   ],
+   "mesh": "../assets/meshes/Frontal_Sup_R.npz"
+  },
+  {
+   "id": "Frontal_Sup_Orb_L",
+   "name": "Frontal_Sup_Orb_L",
+   "system": "frontal",
+   "color": [
+    85,
+    129,
+    230
+   ],
+   "center": [
+    -0.18693896388600437,
+    -0.16353986385139035,
+    0.5102111457251642
+   ],
+   "mesh": "../assets/meshes/Frontal_Sup_Orb_L.npz"
+  },
+  {
+   "id": "Frontal_Sup_Orb_R",
+   "name": "Frontal_Sup_Orb_R",
+   "system": "frontal",
+   "color": [
+    100,
+    130,
+    232
+   ],
+   "center": [
+    0.2019837289646718,
+    -0.17216092722612283,
+    0.517976150674245
+   ],
+   "mesh": "../assets/meshes/Frontal_Sup_Orb_R.npz"
+  },
+  {
+   "id": "Frontal_Mid_L",
+   "name": "Frontal_Mid_L",
+   "system": "frontal",
+   "color": [
+    75,
+    99,
+    228
+   ],
+   "center": [
+    -0.37509996115795,
+    0.3792309274110631,
+    0.34988004661046007
+   ],
+   "mesh": "../assets/meshes/Frontal_Mid_L.npz"
+  },
+  {
+   "id": "Frontal_Mid_R",
+   "name": "Frontal_Mid_R",
+   "system": "frontal",
+   "color": [
+    89,
+    172,
+    230
+   ],
+   "center": [
+    0.4154649947753396,
+    0.3646029258098224,
+    0.35278648554510617
+   ],
+   "mesh": "../assets/meshes/Frontal_Mid_R.npz"
+  },
+  {
+   "id": "Frontal_Mid_Orb_L",
+   "name": "Frontal_Mid_Orb_L",
+   "system": "frontal",
+   "color": [
+    103,
+    170,
+    232
+   ],
+   "center": [
+    -0.3431681681681681,
+    -0.12207207207207205,
+    0.5460210210210211
+   ],
+   "mesh": "../assets/meshes/Frontal_Mid_Orb_L.npz"
+  },
+  {
+   "id": "Frontal_Mid_Orb_R",
+   "name": "Frontal_Mid_Orb_R",
+   "system": "frontal",
+   "color": [
+    78,
+    145,
+    228
+   ],
+   "center": [
+    0.3654953475643131,
+    -0.13490968801313627,
+    0.5697208538587849
+   ],
+   "mesh": "../assets/meshes/Frontal_Mid_Orb_R.npz"
+  },
+  {
+   "id": "Frontal_Inf_Oper_L",
+   "name": "Frontal_Inf_Oper_L",
+   "system": "frontal",
+   "color": [
+    93,
+    144,
+    231
+   ],
+   "center": [
+    -0.5421751230999787,
+    0.19779490473132091,
+    0.12768143866409756
+   ],
+   "mesh": "../assets/meshes/Frontal_Inf_Oper_L.npz"
+  },
+  {
+   "id": "Frontal_Inf_Oper_R",
+   "name": "Frontal_Inf_Oper_R",
+   "system": "frontal",
+   "color": [
+    68,
+    116,
+    227
+   ],
+   "center": [
+    0.5547454531014216,
+    0.22439837979509178,
+    0.15194980541656725
+   ],
+   "mesh": "../assets/meshes/Frontal_Inf_Oper_R.npz"
+  },
+  {
+   "id": "Frontal_Inf_Tri_L",
+   "name": "Frontal_Inf_Tri_L",
+   "system": "frontal",
+   "color": [
+    82,
+    116,
+    229
+   ],
+   "center": [
+    -0.5098897236501033,
+    0.13980932296472035,
+    0.3185185185185184
+   ],
+   "mesh": "../assets/meshes/Frontal_Inf_Tri_L.npz"
+  },
+  {
+   "id": "Frontal_Inf_Tri_R",
+   "name": "Frontal_Inf_Tri_R",
+   "system": "frontal",
+   "color": [
+    96,
+    118,
+    231
+   ],
+   "center": [
+    0.5562374089570743,
+    0.1424143809081048,
+    0.32113228989100673
+   ],
+   "mesh": "../assets/meshes/Frontal_Inf_Tri_R.npz"
+  },
+  {
+   "id": "Frontal_Inf_Orb_L",
+   "name": "Frontal_Inf_Orb_L",
+   "system": "frontal",
+   "color": [
+    71,
+    164,
+    227
+   ],
+   "center": [
+    -0.40266929651545036,
+    -0.14954635108481262,
+    0.32769230769230767
+   ],
+   "mesh": "../assets/meshes/Frontal_Inf_Orb_L.npz"
+  },
+  {
+   "id": "Frontal_Inf_Orb_R",
+   "name": "Frontal_Inf_Orb_R",
+   "system": "frontal",
+   "color": [
+    85,
+    160,
+    230
+   ],
+   "center": [
+    0.4545596563171256,
+    -0.14731497754344858,
+    0.34438586213630157
+   ],
+   "mesh": "../assets/meshes/Frontal_Inf_Orb_R.npz"
+  },
+  {
+   "id": "Rolandic_Oper_L",
+   "name": "Rolandic_Oper_L",
+   "system": "frontal",
+   "color": [
+    100,
+    159,
+    232
+   ],
+   "center": [
+    -0.5267340067340067,
+    0.14042648709315383,
+    -0.10861952861952867
+   ],
+   "mesh": "../assets/meshes/Rolandic_Oper_L.npz"
+  },
+  {
+   "id": "Rolandic_Oper_R",
+   "name": "Rolandic_Oper_R",
+   "system": "frontal",
+   "color": [
+    75,
+    132,
+    228
+   ],
+   "center": [
+    0.5820185324317555,
+    0.14810919108439766,
+    -0.0837465564738292
+   ],
+   "mesh": "../assets/meshes/Rolandic_Oper_R.npz"
+  },
+  {
+   "id": "Supp_Motor_Area_L",
+   "name": "Supp_Motor_Area_L",
+   "system": "frontal",
+   "color": [
+    89,
+    132,
+    230
+   ],
+   "center": [
+    -0.06323034725456707,
+    0.6673808414842417,
+    0.03944522072141991
+   ],
+   "mesh": "../assets/meshes/Supp_Motor_Area_L.npz"
+  },
+  {
+   "id": "Supp_Motor_Area_R",
+   "name": "Supp_Motor_Area_R",
+   "system": "frontal",
+   "color": [
+    103,
+    133,
+    232
+   ],
+   "center": [
+    0.09162566193354896,
+    0.6723651530062328,
+    -0.012146773513285483
+   ],
+   "mesh": "../assets/meshes/Supp_Motor_Area_R.npz"
+  },
+  {
+   "id": "Olfactory_L",
+   "name": "Olfactory_L",
+   "system": "frontal",
+   "color": [
+    78,
+    102,
+    228
+   ],
+   "center": [
+    -0.09182539682539688,
+    -0.1409523809523809,
+    0.1540476190476192
+   ],
+   "mesh": "../assets/meshes/Olfactory_L.npz"
+  },
+  {
+   "id": "Olfactory_R",
+   "name": "Olfactory_R",
+   "system": "frontal",
+   "color": [
+    93,
+    174,
+    231
+   ],
+   "center": [
+    0.11249519415609387,
+    -0.13956170703575546,
+    0.16293733179546324
+   ],
+   "mesh": "../assets/meshes/Olfactory_R.npz"
+  },
+  {
+   "id": "Frontal_Sup_Medial_L",
+   "name": "Frontal_Sup_Medial_L",
+   "system": "frontal",
+   "color": [
+    68,
+    150,
+    227
+   ],
+   "center": [
+    -0.05748663101604276,
+    0.32929292929292936,
+    0.5320781342840165
+   ],
+   "mesh": "../assets/meshes/Frontal_Sup_Medial_L.npz"
+  },
+  {
+   "id": "Frontal_Sup_Medial_R",
+   "name": "Frontal_Sup_Medial_R",
+   "system": "frontal",
+   "color": [
+    82,
+    148,
+    229
+   ],
+   "center": [
+    0.09723003228157867,
+    0.32140997604915134,
+    0.5503176090804958
+   ],
+   "mesh": "../assets/meshes/Frontal_Sup_Medial_R.npz"
+  },
+  {
+   "id": "Frontal_Med_Orb_L",
+   "name": "Frontal_Med_Orb_L",
+   "system": "frontal",
+   "color": [
+    96,
+    147,
+    231
+   ],
+   "center": [
+    -0.06042342760006186,
+    -0.09840828310925669,
+    0.5835265028589091
+   ],
+   "mesh": "../assets/meshes/Frontal_Med_Orb_L.npz"
+  },
+  {
+   "id": "Frontal_Med_Orb_R",
+   "name": "Frontal_Med_Orb_R",
+   "system": "frontal",
+   "color": [
+    71,
+    119,
+    227
+   ],
+   "center": [
+    0.0870456905503635,
+    -0.09462616822429908,
+    0.5600726895119418
+   ],
+   "mesh": "../assets/meshes/Frontal_Med_Orb_R.npz"
+  },
+  {
+   "id": "Rectus_L",
+   "name": "Rectus_L",
+   "system": "frontal",
+   "color": [
+    85,
+    119,
+    230
+   ],
+   "center": [
+    -0.06045905059989565,
+    -0.2174230568596766,
+    0.39673969744392285
+   ],
+   "mesh": "../assets/meshes/Rectus_L.npz"
+  },
+  {
+   "id": "Rectus_R",
+   "name": "Rectus_R",
+   "system": "frontal",
+   "color": [
+    100,
+    121,
+    232
+   ],
+   "center": [
+    0.08891871737509326,
+    -0.21595824011931397,
+    0.3827889634601045
+   ],
+   "mesh": "../assets/meshes/Rectus_R.npz"
+  },
+  {
+   "id": "Insula_L",
+   "name": "Insula_L",
+   "system": "insular",
+   "color": [
+    238,
+    122,
+    98
+   ],
+   "center": [
+    -0.39344576007654586,
+    0.02413586891520146,
+    0.06044731491448406
+   ],
+   "mesh": "../assets/meshes/Insula_L.npz"
+  },
+  {
+   "id": "Insula_R",
+   "name": "Insula_R",
+   "system": "insular",
+   "color": [
+    240,
+    144,
+    113
+   ],
+   "center": [
+    0.43024482109227874,
+    0.009039548022598846,
+    0.05578154425612038
+   ],
+   "mesh": "../assets/meshes/Insula_R.npz"
+  },
+  {
+   "id": "Cingulum_Ant_L",
+   "name": "Cingulum_Ant_L",
+   "system": "limbic",
+   "color": [
+    237,
+    145,
+    151
+   ],
+   "center": [
+    -0.04849206349206349,
+    0.13928571428571435,
+    0.3799523809523808
+   ],
+   "mesh": "../assets/meshes/Cingulum_Ant_L.npz"
+  },
+  {
+   "id": "Cingulum_Ant_R",
+   "name": "Cingulum_Ant_R",
+   "system": "limbic",
+   "color": [
+    233,
+    122,
+    122
+   ],
+   "center": [
+    0.0901920961326902,
+    0.16036219006516034,
+    0.396919691969197
+   ],
+   "mesh": "../assets/meshes/Cingulum_Ant_R.npz"
+  },
+  {
+   "id": "Cingulum_Mid_L",
+   "name": "Cingulum_Mid_L",
+   "system": "limbic",
+   "color": [
+    236,
+    144,
+    137
+   ],
+   "center": [
+    -0.0653614975098746,
+    0.44682580571297736,
+    -0.17889976529852888
+   ],
+   "mesh": "../assets/meshes/Cingulum_Mid_L.npz"
+  },
+  {
+   "id": "Cingulum_Mid_R",
+   "name": "Cingulum_Mid_R",
+   "system": "limbic",
+   "color": [
+    232,
+    129,
+    112
+   ],
+   "center": [
+    0.08515660463005001,
+    0.4270842790134665,
+    -0.11330004539264643
+   ],
+   "mesh": "../assets/meshes/Cingulum_Mid_R.npz"
+  },
+  {
+   "id": "Cingulum_Post_L",
+   "name": "Cingulum_Post_L",
+   "system": "limbic",
+   "color": [
+    234,
+    149,
+    126
+   ],
+   "center": [
+    -0.057835373170146434,
+    0.25865130789536833,
+    -0.4908087353011759
+   ],
+   "mesh": "../assets/meshes/Cingulum_Post_L.npz"
+  },
+  {
+   "id": "Cingulum_Post_R",
+   "name": "Cingulum_Post_R",
+   "system": "limbic",
+   "color": [
+    236,
+    140,
+    161
+   ],
+   "center": [
+    0.07973466003316755,
+    0.22746268656716417,
+    -0.4787396351575456
+   ],
+   "mesh": "../assets/meshes/Cingulum_Post_R.npz"
+  },
+  {
+   "id": "Hippocampus_L",
+   "name": "Hippocampus_L",
+   "system": "limbic",
+   "color": [
+    232,
+    115,
+    132
+   ],
+   "center": [
+    -0.28061516452074386,
+    -0.12649022412970912,
+    -0.2440391034811635
+   ],
+   "mesh": "../assets/meshes/Hippocampus_L.npz"
+  },
+  {
+   "id": "Hippocampus_R",
+   "name": "Hippocampus_R",
+   "system": "limbic",
+   "color": [
+    234,
+    130,
+    137
+   ],
+   "center": [
+    0.3216114634719286,
+    -0.12863518910030539,
+    -0.2332393704486727
+   ],
+   "mesh": "../assets/meshes/Hippocampus_R.npz"
+  },
+  {
+   "id": "ParaHippocampal_L",
+   "name": "ParaHippocampal_L",
+   "system": "limbic",
+   "color": [
+    237,
+    144,
+    144
+   ],
+   "center": [
+    -0.23880936150874799,
+    -0.24353556009997726,
+    -0.192138150420359
+   ],
+   "mesh": "../assets/meshes/ParaHippocampal_L.npz"
+  },
+  {
+   "id": "ParaHippocampal_R",
+   "name": "ParaHippocampal_R",
+   "system": "limbic",
+   "color": [
+    233,
+    127,
+    119
+   ],
+   "center": [
+    0.2794267765999215,
+    -0.2415979583824107,
+    -0.18111503729878284
+   ],
+   "mesh": "../assets/meshes/ParaHippocampal_R.npz"
+  },
+  {
+   "id": "Amygdala_L",
+   "name": "Amygdala_L",
+   "system": "limbic",
+   "color": [
+    235,
+    148,
+    133
+   ],
+   "center": [
+    -0.2612121212121213,
+    -0.20505050505050504,
+    -0.021616161616161693
+   ],
+   "mesh": "../assets/meshes/Amygdala_L.npz"
+  },
+  {
+   "id": "Amygdala_R",
+   "name": "Amygdala_R",
+   "system": "limbic",
+   "color": [
+    237,
+    165,
+    145
+   ],
+   "center": [
+    0.30062724014336917,
+    -0.2089605734767025,
+    -0.006362007168458837
+   ],
+   "mesh": "../assets/meshes/Amygdala_R.npz"
+  },
+  {
+   "id": "Calcarine_L",
+   "name": "Calcarine_L",
+   "system": "occipital",
+   "color": [
+    172,
+    103,
+    218
+   ],
+   "center": [
+    -0.0831414230882787,
+    0.05670701702588335,
+    -0.8869008955811435
+   ],
+   "mesh": "../assets/meshes/Calcarine_L.npz"
+  },
+  {
+   "id": "Calcarine_R",
+   "name": "Calcarine_R",
+   "system": "occipital",
+   "color": [
+    187,
+    116,
+    221
+   ],
+   "center": [
+    0.17455370469878803,
+    0.08910382709415485,
+    -0.8272135649889546
+   ],
+   "mesh": "../assets/meshes/Calcarine_R.npz"
+  },
+  {
+   "id": "Cuneus_L",
+   "name": "Cuneus_L",
+   "system": "occipital",
+   "color": [
+    184,
+    93,
+    216
+   ],
+   "center": [
+    -0.06952089704383281,
+    0.2870977137032183,
+    -0.9047182175622542
+   ],
+   "mesh": "../assets/meshes/Cuneus_L.npz"
+  },
+  {
+   "id": "Cuneus_R",
+   "name": "Cuneus_R",
+   "system": "occipital",
+   "color": [
+    198,
+    106,
+    219
+   ],
+   "center": [
+    0.1465511860174781,
+    0.2983614232209738,
+    -0.8954431960049937
+   ],
+   "mesh": "../assets/meshes/Cuneus_R.npz"
+  },
+  {
+   "id": "Lingual_L",
+   "name": "Lingual_L",
+   "system": "occipital",
+   "color": [
+    211,
+    119,
+    222
+   ],
+   "center": [
+    -0.16509148766905324,
+    -0.06675152479448422,
+    -0.7651657385308936
+   ],
+   "mesh": "../assets/meshes/Lingual_L.npz"
+  },
+  {
+   "id": "Lingual_R",
+   "name": "Lingual_R",
+   "system": "occipital",
+   "color": [
+    212,
+    96,
+    216
+   ],
+   "center": [
+    0.1786376811594203,
+    -0.05795169082125603,
+    -0.7571304347826088
+   ],
+   "mesh": "../assets/meshes/Lingual_R.npz"
+  },
+  {
+   "id": "Occipital_Sup_L",
+   "name": "Occipital_Sup_L",
+   "system": "occipital",
+   "color": [
+    219,
+    110,
+    216
+   ],
+   "center": [
+    -0.18618838457784284,
+    0.2983731901740686,
+    -0.9512282414185781
+   ],
+   "mesh": "../assets/meshes/Occipital_Sup_L.npz"
+  },
+  {
+   "id": "Occipital_Sup_R",
+   "name": "Occipital_Sup_R",
+   "system": "occipital",
+   "color": [
+    183,
+    123,
+    223
+   ],
+   "center": [
+    0.2662577651961941,
+    0.325171030903515,
+    -0.9134072501376111
+   ],
+   "mesh": "../assets/meshes/Occipital_Sup_R.npz"
+  },
+  {
+   "id": "Occipital_Mid_L",
+   "name": "Occipital_Mid_L",
+   "system": "occipital",
+   "color": [
+    179,
+    100,
+    217
+   ],
+   "center": [
+    -0.36241250424736665,
+    0.1640842677539925,
+    -0.9113489636425416
+   ],
+   "mesh": "../assets/meshes/Occipital_Mid_L.npz"
+  },
+  {
+   "id": "Occipital_Mid_R",
+   "name": "Occipital_Mid_R",
+   "system": "occipital",
+   "color": [
+    193,
+    113,
+    220
+   ],
+   "center": [
+    0.41253045228259716,
+    0.20075203897892177,
+    -0.8999258553119373
+   ],
+   "mesh": "../assets/meshes/Occipital_Mid_R.npz"
+  },
+  {
+   "id": "Occipital_Inf_L",
+   "name": "Occipital_Inf_L",
+   "system": "occipital",
+   "color": [
+    206,
+    126,
+    223
+   ],
+   "center": [
+    -0.40536072735860196,
+    -0.10183020427441257,
+    -0.8840949344668793
+   ],
+   "mesh": "../assets/meshes/Occipital_Inf_L.npz"
+  },
+  {
+   "id": "Occipital_Inf_R",
+   "name": "Occipital_Inf_R",
+   "system": "occipital",
+   "color": [
+    205,
+    103,
+    218
+   ],
+   "center": [
+    0.42078418155263453,
+    -0.09992135715088189,
+    -0.9243455791484103
+   ],
+   "mesh": "../assets/meshes/Occipital_Inf_R.npz"
+  },
+  {
+   "id": "Fusiform_L",
+   "name": "Fusiform_L",
+   "system": "temporal",
+   "color": [
+    231,
+    194,
+    87
+   ],
+   "center": [
+    -0.34877344877344885,
+    -0.2400673400673401,
+    -0.4600577200577201
+   ],
+   "mesh": "../assets/meshes/Fusiform_L.npz"
+  },
+  {
+   "id": "Fusiform_R",
+   "name": "Fusiform_R",
+   "system": "temporal",
+   "color": [
+    227,
+    197,
+    62
+   ],
+   "center": [
+    0.3739917041743888,
+    -0.23926396611066983,
+    -0.4466507810431559
+   ],
+   "mesh": "../assets/meshes/Fusiform_R.npz"
+  },
+  {
+   "id": "Postcentral_L",
+   "name": "Postcentral_L",
+   "system": "parietal",
+   "color": [
+    82,
+    198,
+    143
+   ],
+   "center": [
+    -0.4767157702409501,
+    0.5272981614708233,
+    -0.26417151992691557
+   ],
+   "mesh": "../assets/meshes/Postcentral_L.npz"
+  },
+  {
+   "id": "Postcentral_R",
+   "name": "Postcentral_R",
+   "system": "parietal",
+   "color": [
+    95,
+    203,
+    159
+   ],
+   "center": [
+    0.4573139186793385,
+    0.5694887668207052,
+    -0.2974743511494754
+   ],
+   "mesh": "../assets/meshes/Postcentral_R.npz"
+  },
+  {
+   "id": "Parietal_Sup_L",
+   "name": "Parietal_Sup_L",
+   "system": "parietal",
+   "color": [
+    73,
+    195,
+    155
+   ],
+   "center": [
+    -0.26348130212536996,
+    0.6406349206349204,
+    -0.6756416464891042
+   ],
+   "mesh": "../assets/meshes/Parietal_Sup_L.npz"
+  },
+  {
+   "id": "Parietal_Sup_R",
+   "name": "Parietal_Sup_R",
+   "system": "parietal",
+   "color": [
+    85,
+    200,
+    170
+   ],
+   "center": [
+    0.2871387138713871,
+    0.6745974597459745,
+    -0.6714271427142715
+   ],
+   "mesh": "../assets/meshes/Parietal_Sup_R.npz"
+  },
+  {
+   "id": "Parietal_Inf_L",
+   "name": "Parietal_Inf_L",
+   "system": "parietal",
+   "color": [
+    98,
+    204,
+    183
+   ],
+   "center": [
+    -0.478962902420197,
+    0.5046996322026972,
+    -0.5224356354720066
+   ],
+   "mesh": "../assets/meshes/Parietal_Inf_L.npz"
+  },
+  {
+   "id": "Parietal_Inf_R",
+   "name": "Parietal_Inf_R",
+   "system": "parietal",
+   "color": [
+    76,
+    196,
+    182
+   ],
+   "center": [
+    0.5143494423791821,
+    0.5354646840148699,
+    -0.528756712102437
+   ],
+   "mesh": "../assets/meshes/Parietal_Inf_R.npz"
+  },
+  {
+   "id": "SupraMarginal_L",
+   "name": "SupraMarginal_L",
+   "system": "parietal",
+   "color": [
+    89,
+    201,
+    195
+   ],
+   "center": [
+    -0.6238499646142956,
+    0.32354918612880396,
+    -0.38818117480537856
+   ],
+   "mesh": "../assets/meshes/SupraMarginal_L.npz"
+  },
+  {
+   "id": "SupraMarginal_R",
+   "name": "SupraMarginal_R",
+   "system": "parietal",
+   "color": [
+    101,
+    205,
+    155
+   ],
+   "center": [
+    0.6362490149724193,
+    0.3681639085894405,
+    -0.3646403242147923
+   ],
+   "mesh": "../assets/meshes/SupraMarginal_R.npz"
+  },
+  {
+   "id": "Angular_L",
+   "name": "Angular_L",
+   "system": "parietal",
+   "color": [
+    79,
+    197,
+    149
+   ],
+   "center": [
+    -0.4937198067632851,
+    0.3809226105901298,
+    -0.6897982381358341
+   ],
+   "mesh": "../assets/meshes/Angular_L.npz"
+  },
+  {
+   "id": "Angular_R",
+   "name": "Angular_R",
+   "system": "parietal",
+   "color": [
+    92,
+    202,
+    165
+   ],
+   "center": [
+    0.5025367833587012,
+    0.4146118721461188,
+    -0.6804287163876205
+   ],
+   "mesh": "../assets/meshes/Angular_R.npz"
+  },
+  {
+   "id": "Precuneus_L",
+   "name": "Precuneus_L",
+   "system": "parietal",
+   "color": [
+    70,
+    194,
+    162
+   ],
+   "center": [
+    -0.08434114386495331,
+    0.5182224741748551,
+    -0.6369425547996976
+   ],
+   "mesh": "../assets/meshes/Precuneus_L.npz"
+  },
+  {
+   "id": "Precuneus_R",
+   "name": "Precuneus_R",
+   "system": "parietal",
+   "color": [
+    82,
+    198,
+    176
+   ],
+   "center": [
+    0.10765356474391691,
+    0.47067551471839375,
+    -0.6368215075718905
+   ],
+   "mesh": "../assets/meshes/Precuneus_R.npz"
+  },
+  {
+   "id": "Paracentral_Lobule_L",
+   "name": "Paracentral_Lobule_L",
+   "system": "parietal",
+   "color": [
+    95,
+    203,
+    190
+   ],
+   "center": [
+    -0.08860884605880905,
+    0.7632484968289267,
+    -0.2961205831480108
+   ],
+   "mesh": "../assets/meshes/Paracentral_Lobule_L.npz"
+  },
+  {
+   "id": "Paracentral_Lobule_R",
+   "name": "Paracentral_Lobule_R",
+   "system": "parietal",
+   "color": [
+    73,
+    195,
+    190
+   ],
+   "center": [
+    0.07918660287081344,
+    0.7421318447634238,
+    -0.36602870813397126
+   ],
+   "mesh": "../assets/meshes/Paracentral_Lobule_R.npz"
+  },
+  {
+   "id": "Caudate_L",
+   "name": "Caudate_L",
+   "system": "subcortical",
+   "color": [
+    234,
+    120,
+    144
+   ],
+   "center": [
+    -0.1307461307461308,
+    0.08967428967428961,
+    0.1080388080388079
+   ],
+   "mesh": "../assets/meshes/Caudate_L.npz"
+  },
+  {
+   "id": "Caudate_R",
+   "name": "Caudate_R",
+   "system": "subcortical",
+   "color": [
+    237,
+    134,
+    149
+   ],
+   "center": [
+    0.16105522021014973,
+    0.0905432595573441,
+    0.11974066621953941
+   ],
+   "mesh": "../assets/meshes/Caudate_R.npz"
+  },
+  {
+   "id": "Putamen_L",
+   "name": "Putamen_L",
+   "system": "subcortical",
+   "color": [
+    233,
+    109,
+    118
+   ],
+   "center": [
+    -0.2689791873141724,
+    0.011892963330029715,
+    0.0288954960907388
+   ],
+   "mesh": "../assets/meshes/Putamen_L.npz"
+  },
+  {
+   "id": "Putamen_R",
+   "name": "Putamen_R",
+   "system": "subcortical",
+   "color": [
+    235,
+    123,
+    123
+   ],
+   "center": [
+    0.3053884711779448,
+    0.013262322472848748,
+    0.040873015873015735
+   ],
+   "mesh": "../assets/meshes/Putamen_R.npz"
+  },
+  {
+   "id": "Pallidum_L",
+   "name": "Pallidum_L",
+   "system": "subcortical",
+   "color": [
+    237,
+    144,
+    137
+   ],
+   "center": [
+    -0.2006825938566553,
+    -0.011604095563139873,
+    -0.015092908608266953
+   ],
+   "mesh": "../assets/meshes/Pallidum_L.npz"
+  },
+  {
+   "id": "Pallidum_R",
+   "name": "Pallidum_R",
+   "system": "subcortical",
+   "color": [
+    233,
+    130,
+    112
+   ],
+   "center": [
+    0.23246031746031753,
+    -0.012063492063492099,
+    -0.011746031746031822
+   ],
+   "mesh": "../assets/meshes/Pallidum_R.npz"
+  },
+  {
+   "id": "Thalamus_L",
+   "name": "Thalamus_L",
+   "system": "subcortical",
+   "color": [
+    236,
+    150,
+    127
+   ],
+   "center": [
+    -0.12442424242424248,
+    0.07341414141414143,
+    -0.20937373737373738
+   ],
+   "mesh": "../assets/meshes/Thalamus_L.npz"
+  },
+  {
+   "id": "Thalamus_R",
+   "name": "Thalamus_R",
+   "system": "subcortical",
+   "color": [
+    232,
+    102,
+    130
+   ],
+   "center": [
+    0.14115421002838216,
+    0.07476085356880052,
+    -0.20853568800588676
+   ],
+   "mesh": "../assets/meshes/Thalamus_R.npz"
+  },
+  {
+   "id": "Heschl_L",
+   "name": "Heschl_L",
+   "system": "temporal",
+   "color": [
+    229,
+    146,
+    76
+   ],
+   "center": [
+    -0.4705185185185185,
+    0.09639506172839513,
+    -0.22261728395061733
+   ],
+   "mesh": "../assets/meshes/Heschl_L.npz"
+  },
+  {
+   "id": "Heschl_R",
+   "name": "Heschl_R",
+   "system": "temporal",
+   "color": [
+    231,
+    165,
+    90
+   ],
+   "center": [
+    0.5097724230254351,
+    0.10049085229808127,
+    -0.20160642570281118
+   ],
+   "mesh": "../assets/meshes/Heschl_R.npz"
+  },
+  {
+   "id": "Temporal_Sup_L",
+   "name": "Temporal_Sup_L",
+   "system": "temporal",
+   "color": [
+    227,
+    163,
+    65
+   ],
+   "center": [
+    -0.5937282229965158,
+    0.06489547038327524,
+    -0.24455090979481217
+   ],
+   "mesh": "../assets/meshes/Temporal_Sup_L.npz"
+  },
+  {
+   "id": "Temporal_Sup_R",
+   "name": "Temporal_Sup_R",
+   "system": "temporal",
+   "color": [
+    230,
+    180,
+    80
+   ],
+   "center": [
+    0.6425837489829849,
+    0.0602072942092044,
+    -0.2556722912023771
+   ],
+   "mesh": "../assets/meshes/Temporal_Sup_R.npz"
+  },
+  {
+   "id": "Temporal_Pole_Sup_L",
+   "name": "Temporal_Pole_Sup_L",
+   "system": "temporal",
+   "color": [
+    232,
+    196,
+    94
+   ],
+   "center": [
+    -0.4461565067012537,
+    -0.23818417639429315,
+    0.1540856031128404
+   ],
+   "mesh": "../assets/meshes/Temporal_Pole_Sup_L.npz"
+  },
+  {
+   "id": "Temporal_Pole_Sup_R",
+   "name": "Temporal_Pole_Sup_R",
+   "system": "temporal",
+   "color": [
+    228,
+    199,
+    69
+   ],
+   "center": [
+    0.5326357747882412,
+    -0.20210928417206447,
+    0.14952665670154455
+   ],
+   "mesh": "../assets/meshes/Temporal_Pole_Sup_R.npz"
+  },
+  {
+   "id": "Temporal_Mid_L",
+   "name": "Temporal_Mid_L",
+   "system": "temporal",
+   "color": [
+    230,
+    139,
+    83
+   ],
+   "center": [
+    -0.6207653221817527,
+    -0.039830927649624606,
+    -0.388713521291425
+   ],
+   "mesh": "../assets/meshes/Temporal_Mid_L.npz"
+  },
+  {
+   "id": "Temporal_Mid_R",
+   "name": "Temporal_Mid_R",
+   "system": "temporal",
+   "color": [
+    232,
+    159,
+    97
+   ],
+   "center": [
+    0.635110002268088,
+    -0.030835916433557663,
+    -0.42850734608502816
+   ],
+   "mesh": "../assets/meshes/Temporal_Mid_R.npz"
+  },
+  {
+   "id": "Temporal_Pole_Mid_L",
+   "name": "Temporal_Pole_Mid_L",
+   "system": "temporal",
+   "color": [
+    228,
+    155,
+    72
+   ],
+   "center": [
+    -0.408270787343635,
+    -0.3929654157468727,
+    0.14778513612950708
+   ],
+   "mesh": "../assets/meshes/Temporal_Pole_Mid_L.npz"
+  },
+  {
+   "id": "Temporal_Pole_Mid_R",
+   "name": "Temporal_Pole_Mid_R",
+   "system": "temporal",
+   "color": [
+    231,
+    173,
+    87
+   ],
+   "center": [
+    0.48933820087990265,
+    -0.37242347655153046,
+    0.14718711972292434
+   ],
+   "mesh": "../assets/meshes/Temporal_Pole_Mid_R.npz"
+  },
+  {
+   "id": "Temporal_Inf_L",
+   "name": "Temporal_Inf_L",
+   "system": "temporal",
+   "color": [
+    227,
+    173,
+    62
+   ],
+   "center": [
+    -0.5559583333333333,
+    -0.27243749999999994,
+    -0.32546527777777784
+   ],
+   "mesh": "../assets/meshes/Temporal_Inf_L.npz"
+  },
+  {
+   "id": "Temporal_Inf_R",
+   "name": "Temporal_Inf_R",
+   "system": "temporal",
+   "color": [
+    229,
+    190,
+    76
+   ],
+   "center": [
+    0.5931340392965357,
+    -0.26367413238371906,
+    -0.3570986786617937
+   ],
+   "mesh": "../assets/meshes/Temporal_Inf_R.npz"
+  },
+  {
+   "id": "Cerebelum_Crus1_L",
+   "name": "Cerebelum_Crus1_L",
+   "system": "unknown",
+   "color": [
+    163,
+    157,
+    185
+   ],
+   "center": [
+    -0.3931702736159132,
+    -0.33625304136253037,
+    -0.7549238058650275
+   ],
+   "mesh": "../assets/meshes/Cerebelum_Crus1_L.npz"
+  },
+  {
+   "id": "Cerebelum_Crus1_R",
+   "name": "Cerebelum_Crus1_R",
+   "system": "unknown",
+   "color": [
+    140,
+    147,
+    173
+   ],
+   "center": [
+    0.4246055723397113,
+    -0.3427744209466264,
+    -0.7596844578717692
+   ],
+   "mesh": "../assets/meshes/Cerebelum_Crus1_R.npz"
+  },
+  {
+   "id": "Cerebelum_Crus2_L",
+   "name": "Cerebelum_Crus2_L",
+   "system": "unknown",
+   "color": [
+    150,
+    154,
+    180
+   ],
+   "center": [
+    -0.30854159333567993,
+    -0.43826117564237943,
+    -0.8286636160976182
+   ],
+   "mesh": "../assets/meshes/Cerebelum_Crus2_L.npz"
+  },
+  {
+   "id": "Cerebelum_Crus2_R",
+   "name": "Cerebelum_Crus2_R",
+   "system": "unknown",
+   "color": [
+    159,
+    161,
+    186
+   ],
+   "center": [
+    0.36303994121660627,
+    -0.45779667244003563,
+    -0.782186532304624
+   ],
+   "mesh": "../assets/meshes/Cerebelum_Crus2_R.npz"
+  },
+  {
+   "id": "Cerebelum_3_L",
+   "name": "Cerebelum_3_L",
+   "system": "unknown",
+   "color": [
+    142,
+    142,
+    174
+   ],
+   "center": [
+    -0.09019607843137262,
+    -0.21977124183006538,
+    -0.42630718954248376
+   ],
+   "mesh": "../assets/meshes/Cerebelum_3_L.npz"
+  },
+  {
+   "id": "Cerebelum_3_R",
+   "name": "Cerebelum_3_R",
+   "system": "unknown",
+   "color": [
+    154,
+    152,
+    181
+   ],
+   "center": [
+    0.14514224369296835,
+    -0.22887815351583465,
+    -0.3967793880837359
+   ],
+   "mesh": "../assets/meshes/Cerebelum_3_R.npz"
+  },
+  {
+   "id": "Cerebelum_4_5_L",
+   "name": "Cerebelum_4_5_L",
+   "system": "unknown",
+   "color": [
+    165,
+    161,
+    188
+   ],
+   "center": [
+    -0.15936790123456793,
+    -0.2029037037037037,
+    -0.49625679012345675
+   ],
+   "mesh": "../assets/meshes/Cerebelum_4_5_L.npz"
+  },
+  {
+   "id": "Cerebelum_4_5_R",
+   "name": "Cerebelum_4_5_R",
+   "system": "unknown",
+   "color": [
+    152,
+    145,
+    176
+   ],
+   "center": [
+    0.19876113046844748,
+    -0.21504710285198092,
+    -0.4907213834043102
+   ],
+   "mesh": "../assets/meshes/Cerebelum_4_5_R.npz"
+  },
+  {
+   "id": "Cerebelum_6_L",
+   "name": "Cerebelum_6_L",
+   "system": "unknown",
+   "color": [
+    154,
+    160,
+    183
+   ],
+   "center": [
+    -0.250282041191132,
+    -0.2608946608946609,
+    -0.6695395513577332
+   ],
+   "mesh": "../assets/meshes/Cerebelum_6_L.npz"
+  },
+  {
+   "id": "Cerebelum_6_R",
+   "name": "Cerebelum_6_R",
+   "system": "unknown",
+   "color": [
+    138,
+    142,
+    171
+   ],
+   "center": [
+    0.28255029402661713,
+    -0.27711544413494277,
+    -0.6615289384091613
+   ],
+   "mesh": "../assets/meshes/Cerebelum_6_R.npz"
+  },
+  {
+   "id": "Cerebelum_7b_L",
+   "name": "Cerebelum_7b_L",
+   "system": "unknown",
+   "color": [
+    147,
+    149,
+    178
+   ],
+   "center": [
+    -0.350997150997151,
+    -0.5194681861348528,
+    -0.6783285849952517
+   ],
+   "mesh": "../assets/meshes/Cerebelum_7b_L.npz"
+  },
+  {
+   "id": "Cerebelum_7b_R",
+   "name": "Cerebelum_7b_R",
+   "system": "unknown",
+   "color": [
+    157,
+    157,
+    185
+   ],
+   "center": [
+    0.37698709945900954,
+    -0.5528922180607574,
+    -0.7156471077819393
+   ],
+   "mesh": "../assets/meshes/Cerebelum_7b_R.npz"
+  },
+  {
+   "id": "Cerebelum_8_L",
+   "name": "Cerebelum_8_L",
+   "system": "unknown",
+   "color": [
+    142,
+    140,
+    173
+   ],
+   "center": [
+    -0.2781016310428075,
+    -0.5450509332862274,
+    -0.6196785020314431
+   ],
+   "mesh": "../assets/meshes/Cerebelum_8_L.npz"
+  },
+  {
+   "id": "Cerebelum_8_R",
+   "name": "Cerebelum_8_R",
+   "system": "unknown",
+   "color": [
+    154,
+    150,
+    180
+   ],
+   "center": [
+    0.28636626227614104,
+    -0.5644232620835741,
+    -0.6403427691122665
+   ],
+   "mesh": "../assets/meshes/Cerebelum_8_R.npz"
+  },
+  {
+   "id": "Cerebelum_9_L",
+   "name": "Cerebelum_9_L",
+   "system": "unknown",
+   "color": [
+    165,
+    159,
+    186
+   ],
+   "center": [
+    -0.11392405063291133,
+    -0.5248433704129907,
+    -0.5576524741081703
+   ],
+   "mesh": "../assets/meshes/Cerebelum_9_L.npz"
+  },
+  {
+   "id": "Cerebelum_9_R",
+   "name": "Cerebelum_9_R",
+   "system": "unknown",
+   "color": [
+    142,
+    149,
+    174
+   ],
+   "center": [
+    0.11322620519159458,
+    -0.5291580826809504,
+    -0.5639060568603214
+   ],
+   "mesh": "../assets/meshes/Cerebelum_9_R.npz"
+  },
+  {
+   "id": "Cerebelum_10_L",
+   "name": "Cerebelum_10_L",
+   "system": "unknown",
+   "color": [
+    152,
+    156,
+    181
+   ],
+   "center": [
+    -0.2421296296296297,
+    -0.47854938271604935,
+    -0.3888888888888889
+   ],
+   "mesh": "../assets/meshes/Cerebelum_10_L.npz"
+  },
+  {
+   "id": "Cerebelum_10_R",
+   "name": "Cerebelum_10_R",
+   "system": "unknown",
+   "color": [
+    161,
+    163,
+    188
+   ],
+   "center": [
+    0.29783368273934313,
+    -0.47379454926624737,
+    -0.389098532494759
+   ],
+   "mesh": "../assets/meshes/Cerebelum_10_R.npz"
+  },
+  {
+   "id": "Vermis_1_2",
+   "name": "Vermis_1_2",
+   "system": "cerebellum",
+   "color": [
+    135,
+    177,
+    114
+   ],
+   "center": [
+    0.016771488469601713,
+    -0.23731656184486374,
+    -0.44570230607966455
+   ],
+   "mesh": "../assets/meshes/Vermis_1_2.npz"
+  },
+  {
+   "id": "Vermis_3",
+   "name": "Vermis_3",
+   "system": "cerebellum",
+   "color": [
+    140,
+    182,
+    125
+   ],
+   "center": [
+    0.022807017543859665,
+    -0.14132553606237816,
+    -0.45877192982456133
+   ],
+   "mesh": "../assets/meshes/Vermis_3.npz"
+  },
+  {
+   "id": "Vermis_4_5",
+   "name": "Vermis_4_5",
+   "system": "cerebellum",
+   "color": [
+    119,
+    172,
+    106
+   ],
+   "center": [
+    0.020384294068504654,
+    -0.08223893065998326,
+    -0.5954887218045113
+   ],
+   "mesh": "../assets/meshes/Vermis_4_5.npz"
+  },
+  {
+   "id": "Vermis_6",
+   "name": "Vermis_6",
+   "system": "cerebellum",
+   "color": [
+    124,
+    178,
+    117
+   ],
+   "center": [
+    0.019646600778676297,
+    -0.18215034441449535,
+    -0.7594489368074275
+   ],
+   "mesh": "../assets/meshes/Vermis_6.npz"
+  },
+  {
+   "id": "Vermis_7",
+   "name": "Vermis_7",
+   "system": "cerebellum",
+   "color": [
+    158,
+    184,
+    127
+   ],
+   "center": [
+    0.020733104238258842,
+    -0.29278350515463913,
+    -0.8132875143184423
+   ],
+   "mesh": "../assets/meshes/Vermis_7.npz"
+  },
+  {
+   "id": "Vermis_8",
+   "name": "Vermis_8",
+   "system": "cerebellum",
+   "color": [
+    140,
+    174,
+    109
+   ],
+   "center": [
+    0.020118884316415137,
+    -0.3927754915409236,
+    -0.7294924554183815
+   ],
+   "mesh": "../assets/meshes/Vermis_8.npz"
+  },
+  {
+   "id": "Vermis_9",
+   "name": "Vermis_9",
+   "system": "cerebellum",
+   "color": [
+    144,
+    180,
+    120
+   ],
+   "center": [
+    0.017879948914431686,
+    -0.4033205619412516,
+    -0.6241379310344827
+   ],
+   "mesh": "../assets/meshes/Vermis_9.npz"
+  },
+  {
+   "id": "Vermis_10",
+   "name": "Vermis_10",
+   "system": "cerebellum",
+   "color": [
+    148,
+    185,
+    130
+   ],
+   "center": [
+    0.012698412698412653,
+    -0.36527777777777776,
+    -0.5236111111111111
+   ],
+   "mesh": "../assets/meshes/Vermis_10.npz"
+  }
+ ]
+}

@@ -1,0 +1,725 @@
+{
+  "atlas": "procedural-36",
+  "regions": [
+    {
+      "id": "frontal_sup_L",
+      "name": "Frontal_Sup_L",
+      "system": "frontal",
+      "color": [
+        86,
+        140,
+        230
+      ],
+      "center": [
+        -0.42,
+        0.45,
+        0.55
+      ],
+      "radii": [
+        0.34,
+        0.38,
+        0.42
+      ]
+    },
+    {
+      "id": "frontal_sup_R",
+      "name": "Frontal_Sup_R",
+      "system": "frontal",
+      "color": [
+        86,
+        140,
+        230
+      ],
+      "center": [
+        0.42,
+        0.45,
+        0.55
+      ],
+      "radii": [
+        0.34,
+        0.38,
+        0.42
+      ]
+    },
+    {
+      "id": "frontal_mid_L",
+      "name": "Frontal_Mid_L",
+      "system": "frontal",
+      "color": [
+        86,
+        140,
+        230
+      ],
+      "center": [
+        -0.55,
+        0.1,
+        0.55
+      ],
+      "radii": [
+        0.28,
+        0.34,
+        0.4
+      ]
+    },
+    {
+      "id": "frontal_mid_R",
+      "name": "Frontal_Mid_R",
+      "system": "frontal",
+      "color": [
+        86,
+        140,
+        230
+      ],
+      "center": [
+        0.55,
+        0.1,
+        0.55
+      ],
+      "radii": [
+        0.28,
+        0.34,
+        0.4
+      ]
+    },
+    {
+      "id": "frontal_inf_L",
+      "name": "Frontal_Inf_Tri_L",
+      "system": "frontal",
+      "color": [
+        86,
+        140,
+        230
+      ],
+      "center": [
+        -0.5,
+        -0.2,
+        0.45
+      ],
+      "radii": [
+        0.24,
+        0.26,
+        0.32
+      ]
+    },
+    {
+      "id": "frontal_inf_R",
+      "name": "Frontal_Inf_Tri_R",
+      "system": "frontal",
+      "color": [
+        86,
+        140,
+        230
+      ],
+      "center": [
+        0.5,
+        -0.2,
+        0.45
+      ],
+      "radii": [
+        0.24,
+        0.26,
+        0.32
+      ]
+    },
+    {
+      "id": "precentral_L",
+      "name": "Precentral_L",
+      "system": "frontal",
+      "color": [
+        86,
+        140,
+        230
+      ],
+      "center": [
+        -0.58,
+        0.15,
+        0.05
+      ],
+      "radii": [
+        0.2,
+        0.45,
+        0.28
+      ]
+    },
+    {
+      "id": "precentral_R",
+      "name": "Precentral_R",
+      "system": "frontal",
+      "color": [
+        86,
+        140,
+        230
+      ],
+      "center": [
+        0.58,
+        0.15,
+        0.05
+      ],
+      "radii": [
+        0.2,
+        0.45,
+        0.28
+      ]
+    },
+    {
+      "id": "postcentral_L",
+      "name": "Postcentral_L",
+      "system": "parietal",
+      "color": [
+        86,
+        200,
+        170
+      ],
+      "center": [
+        -0.6,
+        0.15,
+        -0.3
+      ],
+      "radii": [
+        0.2,
+        0.44,
+        0.26
+      ]
+    },
+    {
+      "id": "postcentral_R",
+      "name": "Postcentral_R",
+      "system": "parietal",
+      "color": [
+        86,
+        200,
+        170
+      ],
+      "center": [
+        0.6,
+        0.15,
+        -0.3
+      ],
+      "radii": [
+        0.2,
+        0.44,
+        0.26
+      ]
+    },
+    {
+      "id": "parietal_sup_L",
+      "name": "Parietal_Sup_L",
+      "system": "parietal",
+      "color": [
+        86,
+        200,
+        170
+      ],
+      "center": [
+        -0.4,
+        0.55,
+        -0.35
+      ],
+      "radii": [
+        0.32,
+        0.3,
+        0.36
+      ]
+    },
+    {
+      "id": "parietal_sup_R",
+      "name": "Parietal_Sup_R",
+      "system": "parietal",
+      "color": [
+        86,
+        200,
+        170
+      ],
+      "center": [
+        0.4,
+        0.55,
+        -0.35
+      ],
+      "radii": [
+        0.32,
+        0.3,
+        0.36
+      ]
+    },
+    {
+      "id": "precuneus_L",
+      "name": "Precuneus_L",
+      "system": "parietal",
+      "color": [
+        86,
+        200,
+        170
+      ],
+      "center": [
+        -0.22,
+        0.35,
+        -0.55
+      ],
+      "radii": [
+        0.24,
+        0.32,
+        0.3
+      ]
+    },
+    {
+      "id": "precuneus_R",
+      "name": "Precuneus_R",
+      "system": "parietal",
+      "color": [
+        86,
+        200,
+        170
+      ],
+      "center": [
+        0.22,
+        0.35,
+        -0.55
+      ],
+      "radii": [
+        0.24,
+        0.32,
+        0.3
+      ]
+    },
+    {
+      "id": "temporal_sup_L",
+      "name": "Temporal_Sup_L",
+      "system": "temporal",
+      "color": [
+        230,
+        170,
+        80
+      ],
+      "center": [
+        -0.62,
+        -0.25,
+        0.05
+      ],
+      "radii": [
+        0.22,
+        0.24,
+        0.42
+      ]
+    },
+    {
+      "id": "temporal_sup_R",
+      "name": "Temporal_Sup_R",
+      "system": "temporal",
+      "color": [
+        230,
+        170,
+        80
+      ],
+      "center": [
+        0.62,
+        -0.25,
+        0.05
+      ],
+      "radii": [
+        0.22,
+        0.24,
+        0.42
+      ]
+    },
+    {
+      "id": "temporal_mid_L",
+      "name": "Temporal_Mid_L",
+      "system": "temporal",
+      "color": [
+        230,
+        170,
+        80
+      ],
+      "center": [
+        -0.55,
+        -0.5,
+        -0.05
+      ],
+      "radii": [
+        0.24,
+        0.22,
+        0.38
+      ]
+    },
+    {
+      "id": "temporal_mid_R",
+      "name": "Temporal_Mid_R",
+      "system": "temporal",
+      "color": [
+        230,
+        170,
+        80
+      ],
+      "center": [
+        0.55,
+        -0.5,
+        -0.05
+      ],
+      "radii": [
+        0.24,
+        0.22,
+        0.38
+      ]
+    },
+    {
+      "id": "occipital_L",
+      "name": "Occipital_Mid_L",
+      "system": "occipital",
+      "color": [
+        200,
+        110,
+        220
+      ],
+      "center": [
+        -0.35,
+        0.1,
+        -0.8
+      ],
+      "radii": [
+        0.3,
+        0.38,
+        0.3
+      ]
+    },
+    {
+      "id": "occipital_R",
+      "name": "Occipital_Mid_R",
+      "system": "occipital",
+      "color": [
+        200,
+        110,
+        220
+      ],
+      "center": [
+        0.35,
+        0.1,
+        -0.8
+      ],
+      "radii": [
+        0.3,
+        0.38,
+        0.3
+      ]
+    },
+    {
+      "id": "insula_L",
+      "name": "Insula_L",
+      "system": "subcortical",
+      "color": [
+        235,
+        120,
+        120
+      ],
+      "center": [
+        -0.38,
+        0.0,
+        0.1
+      ],
+      "radii": [
+        0.16,
+        0.2,
+        0.22
+      ]
+    },
+    {
+      "id": "insula_R",
+      "name": "Insula_R",
+      "system": "subcortical",
+      "color": [
+        235,
+        120,
+        120
+      ],
+      "center": [
+        0.38,
+        0.0,
+        0.1
+      ],
+      "radii": [
+        0.16,
+        0.2,
+        0.22
+      ]
+    },
+    {
+      "id": "thalamus_L",
+      "name": "Thalamus_L",
+      "system": "subcortical",
+      "color": [
+        235,
+        120,
+        120
+      ],
+      "center": [
+        -0.14,
+        0.02,
+        -0.1
+      ],
+      "radii": [
+        0.13,
+        0.15,
+        0.16
+      ]
+    },
+    {
+      "id": "thalamus_R",
+      "name": "Thalamus_R",
+      "system": "subcortical",
+      "color": [
+        235,
+        120,
+        120
+      ],
+      "center": [
+        0.14,
+        0.02,
+        -0.1
+      ],
+      "radii": [
+        0.13,
+        0.15,
+        0.16
+      ]
+    },
+    {
+      "id": "hippocampus_L",
+      "name": "Hippocampus_L",
+      "system": "limbic",
+      "color": [
+        235,
+        150,
+        150
+      ],
+      "center": [
+        -0.22,
+        -0.28,
+        -0.15
+      ],
+      "radii": [
+        0.11,
+        0.12,
+        0.24
+      ]
+    },
+    {
+      "id": "hippocampus_R",
+      "name": "Hippocampus_R",
+      "system": "limbic",
+      "color": [
+        235,
+        150,
+        150
+      ],
+      "center": [
+        0.22,
+        -0.28,
+        -0.15
+      ],
+      "radii": [
+        0.11,
+        0.12,
+        0.24
+      ]
+    },
+    {
+      "id": "amygdala_L",
+      "name": "Amygdala_L",
+      "system": "limbic",
+      "color": [
+        240,
+        130,
+        130
+      ],
+      "center": [
+        -0.2,
+        -0.18,
+        0.18
+      ],
+      "radii": [
+        0.1,
+        0.11,
+        0.11
+      ]
+    },
+    {
+      "id": "amygdala_R",
+      "name": "Amygdala_R",
+      "system": "limbic",
+      "color": [
+        240,
+        130,
+        130
+      ],
+      "center": [
+        0.2,
+        -0.18,
+        0.18
+      ],
+      "radii": [
+        0.1,
+        0.11,
+        0.11
+      ]
+    },
+    {
+      "id": "caudate_L",
+      "name": "Caudate_L",
+      "system": "subcortical",
+      "color": [
+        235,
+        120,
+        120
+      ],
+      "center": [
+        -0.16,
+        0.22,
+        0.1
+      ],
+      "radii": [
+        0.1,
+        0.16,
+        0.2
+      ]
+    },
+    {
+      "id": "caudate_R",
+      "name": "Caudate_R",
+      "system": "subcortical",
+      "color": [
+        235,
+        120,
+        120
+      ],
+      "center": [
+        0.16,
+        0.22,
+        0.1
+      ],
+      "radii": [
+        0.1,
+        0.16,
+        0.2
+      ]
+    },
+    {
+      "id": "cerebellum_L",
+      "name": "Cerebellum_6_L",
+      "system": "cerebellum",
+      "color": [
+        140,
+        180,
+        120
+      ],
+      "center": [
+        -0.32,
+        -0.62,
+        -0.55
+      ],
+      "radii": [
+        0.3,
+        0.24,
+        0.28
+      ]
+    },
+    {
+      "id": "cerebellum_R",
+      "name": "Cerebellum_6_R",
+      "system": "cerebellum",
+      "color": [
+        140,
+        180,
+        120
+      ],
+      "center": [
+        0.32,
+        -0.62,
+        -0.55
+      ],
+      "radii": [
+        0.3,
+        0.24,
+        0.28
+      ]
+    },
+    {
+      "id": "vermis",
+      "name": "Vermis_7",
+      "system": "cerebellum",
+      "color": [
+        140,
+        180,
+        120
+      ],
+      "center": [
+        0.0,
+        -0.55,
+        -0.6
+      ],
+      "radii": [
+        0.14,
+        0.18,
+        0.2
+      ]
+    },
+    {
+      "id": "pons",
+      "name": "Brainstem_Pons",
+      "system": "brainstem",
+      "color": [
+        180,
+        170,
+        160
+      ],
+      "center": [
+        0.0,
+        -0.3,
+        0.05
+      ],
+      "radii": [
+        0.16,
+        0.18,
+        0.16
+      ]
+    },
+    {
+      "id": "medulla",
+      "name": "Brainstem_Medulla",
+      "system": "brainstem",
+      "color": [
+        180,
+        170,
+        160
+      ],
+      "center": [
+        0.0,
+        -0.55,
+        -0.05
+      ],
+      "radii": [
+        0.12,
+        0.2,
+        0.13
+      ]
+    },
+    {
+      "id": "midbrain",
+      "name": "Brainstem_Midbrain",
+      "system": "brainstem",
+      "color": [
+        180,
+        170,
+        160
+      ],
+      "center": [
+        0.0,
+        -0.1,
+        -0.05
+      ],
+      "radii": [
+        0.13,
+        0.14,
+        0.13
+      ]
+    }
+  ]
+}
