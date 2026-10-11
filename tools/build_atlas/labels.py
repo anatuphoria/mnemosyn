@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import nibabel as nib
+import numpy as np
+from nibabel.processing import resample_from_to
+
+from .hierarchy import PlannedStructure
+
+
+def read_label_names(path: Path) -> dict[int, str]:
+    names = {}
+    for line in path.read_text(encoding="latin-1").splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[0].isdigit():
+            names[int(parts[0])] = parts[1]
+    return names
+
+
+def load_label_image(path: Path) -> nib.Nifti1Image:
+    image = nib.load(path)
+    return nib.Nifti1Image(np.asarray(image.dataobj).astype(np.int32), image.affine)
+
+
+def source_values(image: nib.Nifti1Image) -> set[int]:
+    return set(np.unique(np.asarray(image.dataobj)).tolist()) - {0}
+
+
+def mapping_for(source_id: str, planned: list[PlannedStructure]) -> dict[int, int]:
+    return {ref.value: p.structure.id for p in planned for ref in p.labels
+            if ref.source == source_id}
+
+
+def merge(grid: nib.Nifti1Image, layers: list[tuple[int, nib.Nifti1Image, dict[int, int]]]
+          ) -> np.ndarray:
+    out = np.zeros(grid.shape[:3], dtype=np.uint16)
+    for _, image, mapping in sorted(layers, key=lambda layer: layer[0]):
+        if image.shape[:3] != grid.shape[:3] or not np.allclose(image.affine, grid.affine):
+            image = resample_from_to(image, (grid.shape[:3], grid.affine), order=0)
+        values = np.rint(np.asarray(image.dataobj)).astype(np.int64)
+        lookup = np.zeros(int(max(values.max(), 0)) + 1, dtype=np.uint16)
+        for value, structure_id in mapping.items():
+            if 0 <= value < len(lookup):
+                lookup[value] = structure_id
+        mapped = lookup[np.clip(values, 0, None)]
+        out[mapped > 0] = mapped[mapped > 0]
+    return out
