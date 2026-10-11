@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 
 
-class LabelVolume:
+class Volume:
     def __init__(self, path: Path, space: str, affine_to_world: np.ndarray) -> None:
         self.path = path
         self.space = space
@@ -40,9 +40,15 @@ class LabelVolume:
         return self._shape
 
     @property
+    def name(self) -> str:
+        return Path(self.path).name.split(".")[0]
+
+    @property
     def data(self) -> np.ndarray:
         return self._load()
 
+
+class LabelVolume(Volume):
     def label_at(self, point) -> int:
         data = self._load()
         world = np.append(np.asarray(point, dtype=float), 1.0)
@@ -52,7 +58,7 @@ class LabelVolume:
         return int(data[tuple(ijk)])
 
 
-class TemplateVolume(LabelVolume):
+class TemplateVolume(Volume):
     def __init__(self, path: Path, space: str, affine_to_world: np.ndarray, labels: str) -> None:
         super().__init__(path, space, affine_to_world)
         self.labels = labels

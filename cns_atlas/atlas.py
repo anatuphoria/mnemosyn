@@ -67,7 +67,8 @@ class Atlas:
             TemplateVolume(root / v["file"], v["space"], np.array(v["affine_to_world"]),
                            str(v.get("labels", "")))
             for v in records if v.get("role") == "template"]
-        self.template = templates[0] if templates else None
+        self.template = next((t for t in templates if any(
+            v.name == t.labels and v.shape == t.shape for v in self.volumes)), None)
         self._references: dict[str, Reference] | None = None
         self._entries: dict[tuple[str, int | str], Entry | None] = {}
         self._search_rows = []
