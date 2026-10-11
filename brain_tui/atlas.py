@@ -1,42 +1,14 @@
 from __future__ import annotations
 
-import json
-import os
+from pathlib import Path
+
 import numpy as np
+
+from cns_atlas import Atlas
 
 from .scene import Mesh, Region
 
-AAL_116 = [
-    "Precentral_L", "Precentral_R", "Frontal_Sup_L", "Frontal_Sup_R",
-    "Frontal_Sup_Orb_L", "Frontal_Sup_Orb_R", "Frontal_Mid_L", "Frontal_Mid_R",
-    "Frontal_Mid_Orb_L", "Frontal_Mid_Orb_R", "Frontal_Inf_Oper_L", "Frontal_Inf_Oper_R",
-    "Frontal_Inf_Tri_L", "Frontal_Inf_Tri_R", "Frontal_Inf_Orb_L", "Frontal_Inf_Orb_R",
-    "Rolandic_Oper_L", "Rolandic_Oper_R", "Supp_Motor_Area_L", "Supp_Motor_Area_R",
-    "Olfactory_L", "Olfactory_R", "Frontal_Sup_Medial_L", "Frontal_Sup_Medial_R",
-    "Frontal_Med_Orb_L", "Frontal_Med_Orb_R", "Rectus_L", "Rectus_R",
-    "Insula_L", "Insula_R", "Cingulum_Ant_L", "Cingulum_Ant_R",
-    "Cingulum_Mid_L", "Cingulum_Mid_R", "Cingulum_Post_L", "Cingulum_Post_R",
-    "Hippocampus_L", "Hippocampus_R", "ParaHippocampal_L", "ParaHippocampal_R",
-    "Amygdala_L", "Amygdala_R", "Calcarine_L", "Calcarine_R",
-    "Cuneus_L", "Cuneus_R", "Lingual_L", "Lingual_R",
-    "Occipital_Sup_L", "Occipital_Sup_R", "Occipital_Mid_L", "Occipital_Mid_R",
-    "Occipital_Inf_L", "Occipital_Inf_R", "Fusiform_L", "Fusiform_R",
-    "Postcentral_L", "Postcentral_R", "Parietal_Sup_L", "Parietal_Sup_R",
-    "Parietal_Inf_L", "Parietal_Inf_R", "SupraMarginal_L", "SupraMarginal_R",
-    "Angular_L", "Angular_R", "Precuneus_L", "Precuneus_R",
-    "Paracentral_Lobule_L", "Paracentral_Lobule_R", "Caudate_L", "Caudate_R",
-    "Putamen_L", "Putamen_R", "Pallidum_L", "Pallidum_R",
-    "Thalamus_L", "Thalamus_R", "Heschl_L", "Heschl_R",
-    "Temporal_Sup_L", "Temporal_Sup_R", "Temporal_Pole_Sup_L", "Temporal_Pole_Sup_R",
-    "Temporal_Mid_L", "Temporal_Mid_R", "Temporal_Pole_Mid_L", "Temporal_Pole_Mid_R",
-    "Temporal_Inf_L", "Temporal_Inf_R", "Cerebellum_Crus1_L", "Cerebellum_Crus1_R",
-    "Cerebellum_Crus2_L", "Cerebellum_Crus2_R", "Cerebellum_3_L", "Cerebellum_3_R",
-    "Cerebellum_45_L", "Cerebellum_45_R", "Cerebellum_6_L", "Cerebellum_6_R",
-    "Cerebellum_7b_L", "Cerebellum_7b_R", "Cerebellum_8_L", "Cerebellum_8_R",
-    "Cerebellum_9_L", "Cerebellum_9_R", "Cerebellum_10_L", "Cerebellum_10_R",
-    "Vermis_123", "Vermis_456", "Vermis_7", "Vermis_8", "Vermis_910",
-    "Brainstem_Midbrain", "Brainstem_Pons", "Brainstem_Medulla",
-]
+MM_PER_UNIT = 90.0
 
 
 def make_ellipsoid(rx: float, ry: float, rz: float, n_lat: int = 8, n_lon: int = 12) -> Mesh:
@@ -127,35 +99,31 @@ def build_procedural_regions() -> dict[str, Region]:
     return regions
 
 
-def load_regions(manifest_path: str | None = None) -> dict[str, Region]:
-    if manifest_path and os.path.exists(manifest_path):
-        with open(manifest_path) as f:
-            man = json.load(f)
-        regions: dict[str, Region] = {}
-        base = os.path.dirname(os.path.abspath(manifest_path))
-        for item in man.get("regions", []):
-            mesh_file = os.path.join(base, item["mesh"]) if item.get("mesh") else ""
-            if os.path.exists(mesh_file) and mesh_file.endswith(".npz"):
-                d = np.load(mesh_file)
-                verts = d["verts"].astype(np.float32)
-                faces = d["faces"].astype(np.int32)
-                v0, v1, v2 = verts[faces[:, 0]], verts[faces[:, 1]], verts[faces[:, 2]]
-                vol = float((v0 * np.cross(v1, v2)).sum() / 6.0)
-                if vol < 0:
-                    faces = faces[:, ::-1].copy()
-                mesh = Mesh(verts=verts, faces=faces,
-                            color=tuple(item.get("color", [120, 140, 200])))
-            else:
-                radii = tuple(item.get("radii", [0.2, 0.2, 0.2]))
-                mesh = make_ellipsoid(*radii)
-                mesh.color = tuple(item.get("color", [120, 140, 200]))
-            regions[item["id"]] = Region(
-                id=item["id"], name=item.get("name", item["id"]),
-                system=item.get("system", "unknown"),
-                color=tuple(item.get("color", [120, 140, 200])),
-                mesh=mesh,
-                base_center=np.array(item.get("center", [0, 0, 0]), dtype=np.float32),
-            )
-        if regions:
-            return regions
-    return build_procedural_regions()
+def open_atlas(path) -> Atlas | None:
+    root = Path(path)
+    return Atlas.open(root) if (root / "structures.json").exists() else None
+
+
+def _outward(verts: np.ndarray, faces: np.ndarray) -> np.ndarray:
+    v0, v1, v2 = verts[faces[:, 0]], verts[faces[:, 1]], verts[faces[:, 2]]
+    if float((v0 * np.cross(v1, v2)).sum()) < 0:
+        return faces[:, ::-1].copy()
+    return faces
+
+
+def regions_from_atlas(atlas: Atlas) -> dict[str, Region]:
+    regions: dict[str, Region] = {}
+    for s in atlas.structures:
+        data = atlas.mesh(s.id, lod=1)
+        if data is None:
+            continue
+        world = np.asarray(data.vertices, dtype=np.float32)[:, [0, 2, 1]] / MM_PER_UNIT
+        center = world.mean(axis=0).astype(np.float32)
+        verts = (world - center).astype(np.float32)
+        faces = _outward(verts, np.asarray(data.faces, dtype=np.int32))
+        group = atlas.get(s.concept if s.concept is not None else s.id).parent
+        system = atlas.get(group).name if group is not None else "unknown"
+        regions[str(s.id)] = Region(id=str(s.id), name=s.name, system=system,
+                                    color=s.rgb_triplet, mesh=Mesh(verts, faces, s.rgb_triplet),
+                                    base_center=center)
+    return regions

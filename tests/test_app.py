@@ -32,7 +32,7 @@ async def settle(pilot, app) -> None:
 
 
 def make_app(tmp_path) -> BrainApp:
-    return BrainApp(views_file=str(tmp_path / "views.json"))
+    return BrainApp(atlas=str(tmp_path / "no-atlas"), views_file=str(tmp_path / "views.json"))
 
 
 def inspector_text(app) -> str:
@@ -157,9 +157,22 @@ def test_quiz_hides_answer_until_revealed(tmp_path):
         async with app.run_test(size=(140, 44)) as pilot:
             await pilot.press("z")
             region = app.scene.regions[app.scene.selected_id]
-            answer = app.kb.get(region.name)["function"]
+            answer = app.kb.get(region.id)["function"]
             assert "QUIZ" in inspector_text(app)
             assert answer not in inspector_text(app)
             await pilot.press("z")
             assert answer in inspector_text(app)
+    run(go())
+
+
+def test_atlas_regions_and_descriptions(tmp_path, toy_atlas):
+    async def go():
+        app = BrainApp(atlas=str(toy_atlas), views_file=str(tmp_path / "views.json"))
+        async with app.run_test(size=(140, 44)):
+            assert set(app.scene.regions) == {"101", "102", "111", "112", "120"}
+            assert app.scene.regions["101"].system == "Brain"
+            app._select("101")
+            assert "Does alpha things [ref2020]." in inspector_text(app)
+            app._select("111")
+            assert "No description yet." in inspector_text(app)
     run(go())

@@ -6,6 +6,7 @@ import os
 import random
 import time
 
+from rich.markup import escape
 from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -17,7 +18,9 @@ from textual.widget import Widget
 from textual.widgets import Footer, Header, Input, Label, Static, Tree
 from textual.widgets.tree import TreeNode
 
-from .atlas import load_regions
+from cns_atlas import DISCLAIMER
+
+from .atlas import build_procedural_regions, open_atlas, regions_from_atlas
 from .knowledge import KnowledgeBase
 from .pipeline import Frame, RenderRequest, RenderWorker
 from .renderer import pick_region, _FULL_BUDGET, _DRAG_BUDGET
@@ -185,18 +188,13 @@ class BrainApp(App):
         Binding("o", "toggle_hifi", "HiFi"),
     ]
 
-    def __init__(self, manifest: str | None = None, knowledge: str | None = None,
-                 views_file: str | None = None):
+    def __init__(self, atlas: str | None = None, views_file: str | None = None):
         super().__init__()
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if manifest is None:
-            for cand in ("data/manifest_aal.json", "data/manifest.json"):
-                if os.path.exists(os.path.join(base, cand)):
-                    manifest = os.path.join(base, cand)
-                    break
-        knowledge = knowledge or os.path.join(base, "data", "knowledge.json")
-        self.scene = SceneState(regions=load_regions(manifest))
-        self.kb = KnowledgeBase(knowledge)
+        self.atlas = open_atlas(atlas or os.path.join(base, "atlases", "cns"))
+        regions = regions_from_atlas(self.atlas) if self.atlas else build_procedural_regions()
+        self.scene = SceneState(regions=regions)
+        self.kb = KnowledgeBase(self.atlas)
         self.protocol = detect_graphics_protocol()
         self.hifi = False
         self._move_mode = False
@@ -225,7 +223,7 @@ class BrainApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Input(placeholder="  /  search 116 regions - e.g. hippocampus, thalamus, cerebellum …", id="search")
+        yield Input(placeholder="  /  search regions - e.g. hippocampus, thalamus, cerebellum …", id="search")
         with Horizontal(id="main"):
             with Vertical(id="left"):
                 yield Label("🧠 REGIONS (Tab cycles, click selects)")
@@ -243,7 +241,7 @@ class BrainApp(App):
 
     def on_mount(self) -> None:
         for rid, r in self.scene.regions.items():
-            if r.name == "Hippocampus_L":
+            if r.name.startswith("Hippocampus"):
                 self.scene.select(rid)
                 break
         self._build_tree()
@@ -303,17 +301,17 @@ class BrainApp(App):
         if r is None:
             box.update("No selection.\nClick the brain, press Tab, or / search.")
             return
-        k = self.kb.get(r.name)
+        k = self.kb.get(r.id)
         iso = " (ISOLATED)" if self.scene.isolated_id == r.id else ""
         box.update(
             f"[bold]{r.name}[/]{iso}\n"
             f"system: {r.system}   color: #{r.color[0]:02x}{r.color[1]:02x}{r.color[2]:02x}\n"
             f"visible: {r.visible}   move: ({r.move[0]:+.2f},{r.move[1]:+.2f},{r.move[2]:+.2f})\n\n"
-            f"[bold]Function:[/] {k['function']}\n\n"
-            f"[bold]Connections:[/] {k['connections']}\n\n"
-            f"[bold]Clinical:[/] {k['disorders']}\n\n"
+            f"[bold]Function:[/] {escape(k['function'])}\n\n"
+            f"[bold]Connections:[/] {escape(k['connections'])}\n\n"
+            f"[bold]Clinical:[/] {escape(k['disorders'])}\n\n"
             f"[dim]I isolate · H hide · U unhide · M move-mode + arrows · X explode[/]\n"
-            f"[dim red]Educational model - not for diagnosis.[/]"
+            f"[dim red]{DISCLAIMER}[/]"
         )
 
     def on_input_changed(self, e: Input.Changed) -> None:
@@ -604,11 +602,9 @@ class BrainApp(App):
 def main() -> None:
     import argparse
     p = argparse.ArgumentParser(description="3D TUI Brain Model")
-    p.add_argument("--manifest", default=None)
-    p.add_argument("--knowledge", default=None)
+    p.add_argument("--atlas", default=None, help="atlas package directory (default: atlases/cns)")
     args = p.parse_args()
-    BrainApp(manifest=args.manifest, knowledge=args.knowledge).run()
-
+    BrainApp(atlas=args.atlas).run()
 
 if __name__ == "__main__":
     main()
