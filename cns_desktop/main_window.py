@@ -20,12 +20,14 @@ from .state import AppState
 from .views.activity_chart import ActivityChart
 from .views.brain_view import BrainView
 from .views.info_panel import InfoPanel
+from .views.progress_dialog import ProgressDialog
 from .views.quiz_panel import QuizPanel
+from .views.quiz_setup import QuizSetup
 from .views.slice_panel import SlicePanel
 from .views.structure_tree import StructureTree
 
 HOVER_MS = 1500
-QUIZ_LOCKED = ("Hide", "Isolate", "Show all")
+QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz")
 RECOVERED = ("Your progress file could not be read. It was kept as {path} and a new one was "
              "started.")
 
@@ -129,6 +131,13 @@ class MainWindow(QMainWindow):
         focus_filter = QAction(self, shortcut=QKeySequence.StandardKey.Find,
                                triggered=lambda: self.tree.filter_box.setFocus())
         self.addAction(focus_filter)
+        study = self.menuBar().addMenu("Study")
+        start = QAction("Start quiz  (Q)", self, shortcut=QKeySequence("Q"),
+                        triggered=self.open_quiz_setup)
+        start.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+        study.addAction(start)
+        study.addAction(QAction("Progress", self, triggered=self.show_progress))
+        self.shortcuts["Start quiz"] = start
 
     def _show_hover(self, name: str) -> None:
         if self.quiz_active:
@@ -155,6 +164,18 @@ class MainWindow(QMainWindow):
             atlas = self.state.atlas
             self._answers = AnswerIndex(structure_items(atlas) + group_items(atlas))
         return self._answers
+
+    def open_quiz_setup(self) -> QuizSetup:
+        self.slices.label_centres()
+        dialog = QuizSetup(self.state.atlas, self.progress_store(), self)
+        dialog.accepted.connect(lambda: self.start_quiz(dialog.choice()))
+        dialog.open()
+        return dialog
+
+    def show_progress(self) -> ProgressDialog:
+        dialog = ProgressDialog(self.state.atlas, self.progress_store(), self)
+        dialog.open()
+        return dialog
 
     def start_quiz(self, choice: QuizChoice, rng: random.Random | None = None,
                    now: Callable[[], datetime] = utc_now) -> None:

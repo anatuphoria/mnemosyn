@@ -8,13 +8,14 @@ from fsrs import Rating, State
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialogButtonBox
 
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas
 from cns_desktop.app import disclaimer_due, main, mark_disclaimer_shown
 from cns_desktop.main_window import MainWindow, about_text
 from cns_desktop.state import AppState
+from cns_desktop.views.quiz_setup import NO_ITEMS, NO_REVIEWED, NOTHING_DUE
 from cns_desktop.views.slice_panel import NO_TEMPLATE, NOT_RAS, SlicePanel
 from cns_study.session import QuizChoice
 
@@ -533,3 +534,59 @@ def test_flashcards_use_reviewed_descriptions(reviewed_window):
     QTest.keyClick(quiz, Qt.Key.Key_4)
     assert quiz.phase == "summary"
     assert window.progress_store().card(100, "flashcard").state == State.Review
+
+
+def ok_button(dialog):
+    return dialog.buttons.button(QDialogButtonBox.StandardButton.Ok)
+
+
+def test_setup_starts_a_typed_quiz_by_default(window):
+    dialog = window.open_quiz_setup()
+    assert dialog.note.text() == "0 due, 3 new" and ok_button(dialog).isEnabled()
+    dialog.accept()
+    assert window.quiz_active and window.quiz.mode == "name-typed"
+
+
+def test_setup_explains_when_there_is_nothing_to_ask(window):
+    dialog = window.open_quiz_setup()
+    dialog.level.setCurrentIndex(1)
+    assert dialog.note.text() == NO_ITEMS and not ok_button(dialog).isEnabled()
+    dialog.level.setCurrentIndex(0)
+    dialog.mode.setCurrentIndex(2)
+    assert dialog.note.text() == NO_REVIEWED and not ok_button(dialog).isEnabled()
+    dialog.mode.setCurrentIndex(1)
+    assert not dialog.answer_style.isEnabled()
+    dialog.reject()
+
+
+def test_setup_offers_practice_when_nothing_is_due(window):
+    quiz = start_quiz(window, "name-typed")
+    while quiz.phase == "asking":
+        quiz.submit_text(quiz.item.name)
+        quiz.go_on(Rating.Easy)
+    quiz.stop()
+    dialog = window.open_quiz_setup()
+    assert dialog.note.text() == NOTHING_DUE and not ok_button(dialog).isEnabled()
+    dialog.session.setCurrentIndex(1)
+    assert ok_button(dialog).isEnabled()
+    dialog.reject()
+
+
+def test_start_quiz_is_disabled_during_a_quiz(window):
+    assert window.shortcuts["Start quiz"].isEnabled()
+    start_quiz(window, "name-typed")
+    assert not window.shortcuts["Start quiz"].isEnabled()
+    window.quiz.stop()
+    assert window.shortcuts["Start quiz"].isEnabled()
+
+
+def test_progress_window_counts_reviews(window):
+    quiz = start_quiz(window, "name-typed")
+    quiz.submit_text(quiz.item.name)
+    quiz.go_on(Rating.Easy)
+    quiz.stop()
+    dialog = window.show_progress()
+    cells = [dialog.table.item(0, column).text() for column in range(7)]
+    assert cells == ["Name it (typed)", "Structures", "2", "0", "1", "0", "0"]
+    assert dialog.weakest.count() == 1 and "Alpha gyrus" in dialog.weakest.item(0).text()
+    dialog.reject()
