@@ -1,21 +1,38 @@
 from __future__ import annotations
 
+import random
+from collections.abc import Callable
+from datetime import datetime
 from html import escape
+from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QDockWidget, QLabel, QMainWindow, QMessageBox
 
 from cns_atlas import DISCLAIMER, Atlas
+from cns_study.answers import AnswerIndex
+from cns_study.items import group_items, items, structure_items
+from cns_study.progress import ProgressStore
+from cns_study.session import QuizChoice, Session, utc_now
 
 from .state import AppState
 from .views.activity_chart import ActivityChart
 from .views.brain_view import BrainView
 from .views.info_panel import InfoPanel
+from .views.quiz_panel import QuizPanel
 from .views.slice_panel import SlicePanel
 from .views.structure_tree import StructureTree
 
 HOVER_MS = 1500
+QUIZ_LOCKED = ("Hide", "Isolate", "Show all")
+RECOVERED = ("Your progress file could not be read. It was kept as {path} and a new one was "
+             "started.")
+
+
+def default_progress_path() -> Path:
+    base = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericDataLocation)
+    return Path(base) / "cns-atlas" / "progress.sqlite"
 
 
 def gpu_name(view: BrainView) -> str:
@@ -37,11 +54,18 @@ def about_text(atlas: Atlas) -> str:
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, atlas: Atlas) -> None:
+    def __init__(self, atlas: Atlas, progress_path: Path | None = None) -> None:
         super().__init__()
         self.setWindowTitle(f"CNS Atlas - {atlas.metadata.get('name', 'atlas')}")
         self.resize(1500, 900)
         self.state = AppState(atlas)
+        self.progress_path = progress_path or default_progress_path()
+        self._store: ProgressStore | None = None
+        self._answers: AnswerIndex | None = None
+        self._saved: tuple | None = None
+        self.recovery_box: QMessageBox | None = None
+        self.quiz_active = False
+        self.shortcuts: dict[str, QAction] = {}
 
         self.view = BrainView(self.state, self)
         self.setCentralWidget(self.view)
@@ -49,20 +73,27 @@ class MainWindow(QMainWindow):
         self.slices = SlicePanel(self.state)
         self.info = InfoPanel(self.state)
         self.chart = ActivityChart(self.state)
-        tree_dock = self._dock("Structures", self.tree, Qt.DockWidgetArea.LeftDockWidgetArea)
-        slice_dock = self._dock("Slices", self.slices, Qt.DockWidgetArea.RightDockWidgetArea)
-        info_dock = self._dock("Info", self.info, Qt.DockWidgetArea.RightDockWidgetArea)
-        chart_dock = self._dock("Activity", self.chart, Qt.DockWidgetArea.BottomDockWidgetArea)
-        self.splitDockWidget(slice_dock, info_dock, Qt.Orientation.Horizontal)
-        self.resizeDocks([tree_dock, slice_dock, info_dock], [250, 420, 300],
+        self.quiz = QuizPanel(self.state)
+        left, right = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea
+        self.tree_dock = self._dock("Structures", self.tree, left)
+        self.slice_dock = self._dock("Slices", self.slices, right)
+        self.info_dock = self._dock("Info", self.info, right)
+        self.chart_dock = self._dock("Activity", self.chart, Qt.DockWidgetArea.BottomDockWidgetArea)
+        self.quiz_dock = self._dock("Quiz", self.quiz, left)
+        self.quiz_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
+        self.quiz_dock.hide()
+        self.splitDockWidget(self.slice_dock, self.info_dock, Qt.Orientation.Horizontal)
+        self.resizeDocks([self.tree_dock, self.slice_dock, self.info_dock], [250, 420, 300],
                          Qt.Orientation.Horizontal)
-        self.resizeDocks([chart_dock], [180], Qt.Orientation.Vertical)
+        self.resizeDocks([self.chart_dock], [180], Qt.Orientation.Vertical)
 
         self._add_actions()
         self.status = QLabel()
         self.statusBar().addWidget(self.status, 1)
         self.statusBar().addPermanentWidget(QLabel(f"GPU: {gpu_name(self.view)}"))
         self.slices.hovered.connect(self._show_hover)
+        self.quiz.finished.connect(self.leave_quiz)
+        self.quiz.centre_requested.connect(self.slices.centre_on_selection)
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())
         self._status_timer = QTimer(self, interval=250, timeout=self._update_status)
@@ -87,6 +118,7 @@ class MainWindow(QMainWindow):
             act = QAction(f"{text}  ({key})", self, shortcut=QKeySequence(key), triggered=slot)
             act.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
             toolbar.addAction(act)
+            self.shortcuts[text] = act
 
         action("Hide", "H", self._hide_selected)
         action("Isolate", "I", self._isolate_selected)
@@ -99,10 +131,71 @@ class MainWindow(QMainWindow):
         self.addAction(focus_filter)
 
     def _show_hover(self, name: str) -> None:
+        if self.quiz_active:
+            return
         if name:
             self.statusBar().showMessage(name, HOVER_MS)
         else:
             self.statusBar().clearMessage()
+
+    def progress_store(self) -> ProgressStore:
+        if self._store is None:
+            name = str(self.state.atlas.metadata.get("name", "atlas"))
+            self._store = ProgressStore(self.progress_path, name)
+            if self._store.recovered_from is not None:
+                self.recovery_box = QMessageBox(
+                    QMessageBox.Icon.Warning, "Progress file damaged",
+                    RECOVERED.format(path=self._store.recovered_from),
+                    QMessageBox.StandardButton.Ok, self)
+                self.recovery_box.open()
+        return self._store
+
+    def answer_index(self) -> AnswerIndex:
+        if self._answers is None:
+            atlas = self.state.atlas
+            self._answers = AnswerIndex(structure_items(atlas) + group_items(atlas))
+        return self._answers
+
+    def start_quiz(self, choice: QuizChoice, rng: random.Random | None = None,
+                   now: Callable[[], datetime] = utc_now) -> None:
+        atlas = self.state.atlas
+        pool = items(atlas, choice.level)
+        chosen = items(atlas, choice.level, choice.scope)
+        rng = rng or random.Random()
+        session = Session(chosen, choice.mode, self.progress_store(), choice.practice, now=now,
+                          rng=rng)
+        self.enter_quiz()
+        self.quiz.start(session, choice.mode, self.answer_index(), pool, rng)
+
+    def enter_quiz(self) -> None:
+        if self.quiz_active:
+            return
+        state = self.state
+        hidden = [i for i in state.geometry_ids if state.is_hidden(i)]
+        self._saved = (self.saveState(), hidden, state.selected, state.slice_axis, state.slice_mm)
+        self.quiz_active = True
+        for name in QUIZ_LOCKED:
+            self.shortcuts[name].setEnabled(False)
+        state.show_all()
+        self.tree_dock.hide()
+        self.info_dock.hide()
+        self.quiz_dock.show()
+        self.statusBar().clearMessage()
+        self._update_status()
+
+    def leave_quiz(self) -> None:
+        if not self.quiz_active:
+            return
+        layout, hidden, selected, axis, mm = self._saved
+        self.quiz_active = False
+        for name in QUIZ_LOCKED:
+            self.shortcuts[name].setEnabled(True)
+        self.restoreState(layout)
+        self.state.show_all()
+        self.state.set_hidden(hidden, True)
+        self.state.select(selected)
+        self.state.set_slice(axis, mm)
+        self._update_status()
 
     def show_about(self) -> None:
         QMessageBox.about(self, "About CNS Atlas", about_text(self.state.atlas))
@@ -122,6 +215,10 @@ class MainWindow(QMainWindow):
             self.state.isolate(self.state.selected)
 
     def _update_status(self) -> None:
+        if self.quiz_active:
+            self.status.setText(f"quiz in progress   │   last frame: "
+                                f"{self.view.last_render_ms:.1f} ms   │   Esc ends the quiz")
+            return
         selected = self.state.selected
         name = self.state.atlas.get(selected).name if selected else "-"
         total = len(self.state.geometry_ids)
@@ -132,6 +229,10 @@ class MainWindow(QMainWindow):
             "drag rotate · right-drag/wheel zoom · middle/shift-drag pan · click select")
 
     def closeEvent(self, event) -> None:
+        if self.quiz_active:
+            self.quiz.stop()
         self._status_timer.stop()
+        if self._store is not None:
+            self._store.close()
         self.view.close()
         super().closeEvent(event)

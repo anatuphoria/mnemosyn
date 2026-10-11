@@ -1,9 +1,12 @@
+import random
 import time
 
 import numpy as np
 import pytest
+from fsrs import Rating, State
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtGui import QAction
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from atlas_package import tetra, tiny_structures, write_package
@@ -12,6 +15,7 @@ from cns_desktop.app import disclaimer_due, main, mark_disclaimer_shown
 from cns_desktop.main_window import MainWindow, about_text
 from cns_desktop.state import AppState
 from cns_desktop.views.slice_panel import NO_TEMPLATE, NOT_RAS, SlicePanel
+from cns_study.session import QuizChoice
 
 
 @pytest.fixture(scope="session")
@@ -25,8 +29,8 @@ def atlas(toy_atlas):
 
 
 @pytest.fixture
-def window(qapp, atlas):
-    w = MainWindow(atlas)
+def window(qapp, atlas, tmp_path):
+    w = MainWindow(atlas, progress_path=tmp_path / "progress.sqlite")
     w.resize(1400, 900)
     w.show()
     qapp.processEvents()
@@ -363,3 +367,115 @@ def test_hidden_structures_cannot_be_named_or_selected_in_slices(window):
 def test_about_text_credits_the_template_source(atlas):
     assert "toy-template" in atlas.sources
     assert "Toy template" in about_text(atlas)
+
+
+def start_quiz(window, mode, practice=False, level="structures", scope=None):
+    window.start_quiz(QuizChoice(mode, level, scope, practice), rng=random.Random(1))
+    return window.quiz
+
+
+def test_quiz_mode_hides_giveaways_and_restores_the_window(window):
+    window.state.set_hidden([102], True)
+    window.state.select(111)
+    window.state.set_slice("axial", 20.0)
+    window.enter_quiz()
+    assert not window.tree_dock.isVisible() and not window.info_dock.isVisible()
+    assert window.quiz_dock.isVisible()
+    assert not window.state.is_hidden(102)
+    assert not window.shortcuts["Hide"].isEnabled()
+    window.slices.hovered.emit("Alpha gyrus (left)")
+    assert window.statusBar().currentMessage() == ""
+    window.state.select(101)
+    window._update_status()
+    assert "Alpha" not in window.status.text()
+    window.state.set_slice("coronal", 0.0)
+    window.leave_quiz()
+    assert window.tree_dock.isVisible() and window.info_dock.isVisible()
+    assert not window.quiz_dock.isVisible()
+    assert window.state.is_hidden(102) and window.state.selected == 111
+    assert (window.state.slice_axis, window.state.slice_mm) == ("axial", 20.0)
+    assert window.shortcuts["Hide"].isEnabled()
+
+
+def test_name_it_typed_round_records_progress(window):
+    quiz = start_quiz(window, "name-typed")
+    assert window.quiz_active and quiz.item.id == 100 and window.state.selected == 100
+    assert "Alpha" not in quiz.prompt.text()
+    quiz.submit_text("ALPHA GYRUS")
+    assert quiz.phase == "feedback" and "Correct" in quiz.feedback.text()
+    quiz.go_on()
+    assert window.progress_store().card(100, "name-typed") is not None
+    assert quiz.item.id == 110
+    quiz.submit_text("Gamma body")
+    assert "Wrong" in quiz.feedback.text() and "Beta nucleus" in quiz.feedback.text()
+
+
+def test_a_typo_is_accepted_and_shown(window):
+    quiz = start_quiz(window, "name-typed")
+    quiz.submit_text("alpha gyruss")
+    assert "Correct" in quiz.feedback.text() and "You typed" in quiz.feedback.text()
+
+
+def test_enter_in_the_answer_box_shows_feedback_before_moving_on(window):
+    quiz = start_quiz(window, "name-typed")
+    QTest.keyClicks(quiz.answer_box, "alpha gyrus")
+    QTest.keyClick(quiz.answer_box, Qt.Key.Key_Return)
+    assert quiz.phase == "feedback" and quiz.item.id == 100
+    QTest.keyClick(quiz, Qt.Key.Key_E)
+    assert quiz.item.id == 110
+    assert window.progress_store().card(100, "name-typed").state == State.Review
+
+
+def test_multiple_choice_with_number_keys(window):
+    quiz = start_quiz(window, "name-choice")
+    assert len([b for b in quiz.choice_buttons if b.isVisible()]) == 3
+    right = next(n for n, option in enumerate(quiz.options) if option.id == quiz.item.id)
+    keys = [Qt.Key.Key_1, Qt.Key.Key_2, Qt.Key.Key_3, Qt.Key.Key_4]
+    QTest.keyClick(quiz, keys[right])
+    assert "Correct" in quiz.feedback.text()
+
+
+def test_clicking_during_name_it_keeps_the_question_highlighted(window):
+    start_quiz(window, "name-typed")
+    window.state.select(111)
+    assert window.state.selected == 100
+
+
+def test_escape_after_answering_saves_the_answer_and_leaves(window):
+    quiz = start_quiz(window, "name-typed")
+    quiz.submit_text("Alpha gyrus")
+    QTest.keyClick(quiz, Qt.Key.Key_Escape)
+    assert not window.quiz_active
+    assert window.progress_store().review_count("name-typed") == 1
+
+
+def test_escape_in_the_answer_box_leaves_without_saving(window):
+    quiz = start_quiz(window, "name-typed")
+    QTest.keyClick(quiz.answer_box, Qt.Key.Key_Escape)
+    assert not window.quiz_active
+    assert window.progress_store().review_count("name-typed") == 0
+
+
+def test_finishing_shows_a_summary_and_closes(window):
+    quiz = start_quiz(window, "name-typed")
+    while quiz.phase == "asking":
+        quiz.submit_text(quiz.item.name)
+        quiz.go_on(Rating.Easy)
+    assert quiz.phase == "summary"
+    assert "3 answered, 100% correct" in quiz.prompt.text()
+    assert window.state.selected is None
+    QTest.keyClick(quiz, Qt.Key.Key_Return)
+    assert not window.quiz_active and window.tree_dock.isVisible()
+
+
+def test_practice_saves_nothing(window):
+    quiz = start_quiz(window, "name-typed", practice=True)
+    quiz.submit_text(quiz.item.name)
+    quiz.go_on()
+    assert window.progress_store().review_count("name-typed") == 0
+
+
+def test_a_damaged_progress_file_is_reported(window):
+    window.progress_path.write_bytes(b"garbage" * 200)
+    window.progress_store()
+    assert ".broken-" in window.recovery_box.text()
