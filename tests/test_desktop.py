@@ -1,3 +1,5 @@
+import time
+
 import pytest
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import QApplication
@@ -136,3 +138,26 @@ def test_disclaimer_is_due_once(tmp_path):
 def test_main_reports_missing_atlas(tmp_path, capsys):
     assert main(["--atlas", str(tmp_path / "missing")]) == 1
     assert "python -m tools.build_atlas" in capsys.readouterr().err
+
+
+@pytest.mark.perf
+def test_selection_updates_all_panels_under_7ms(window):
+    ids = list(window.state.geometry_ids)
+    times = []
+    for i in range(40):
+        target = ids[i % len(ids)]
+        if target == window.state.selected:
+            continue
+        start = time.perf_counter()
+        window.state.select(target)
+        times.append(time.perf_counter() - start)
+    times.sort()
+    assert times[len(times) // 2] < 0.007
+
+
+def test_view_uses_the_packages_stored_normals(window, atlas):
+    actor = window.view._actors[101]
+    normals = actor.GetMapper().GetInput().GetPointData().GetNormals()
+    assert normals is not None
+    assert normals.GetNumberOfTuples() == len(atlas.mesh(101).normals)
+    assert actor.GetProperty().GetInterpolationAsString() == "Gouraud"
