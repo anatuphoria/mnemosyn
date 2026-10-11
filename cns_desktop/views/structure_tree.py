@@ -24,6 +24,7 @@ class StructureTree(QWidget):
         self.items: dict[int, QTreeWidgetItem] = {}
         self._add(self.tree.invisibleRootItem(), state.atlas.structures[0].id)
         self.tree.expandToDepth(3)
+        self._sync_checks()
 
         self.tree.currentItemChanged.connect(self._on_current_item)
         self.tree.itemChanged.connect(self._on_item_checked)

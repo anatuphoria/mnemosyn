@@ -152,6 +152,7 @@ class MainWindow(QMainWindow):
         action("Hide", "H", self._hide_selected)
         action("Isolate", "I", self._isolate_selected)
         action("Show all", "U", self.state.show_all)
+        action("Tracts", "T", self.state.toggle_tracts)
         action("Reset view", "R", self.view.reset_view)
         action("Centre slice", "C", self.slices.centre_on_selection)
         action("About", "F1", self.show_about)

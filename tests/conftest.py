@@ -8,6 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 collect_ignore = []
 if not importlib.util.find_spec("pyvistaqt"):
     collect_ignore.append("test_desktop.py")
+    collect_ignore.append("test_desktop_tracts.py")
 if not importlib.util.find_spec("pyvista"):
     collect_ignore.append("test_build_atlas.py")
 

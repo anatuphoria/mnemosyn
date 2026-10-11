@@ -22,7 +22,8 @@ class TractLayer:
         self.affine = np.asarray(affine, dtype=float)
         self._world_to_voxel = np.linalg.inv(self.affine)
         self.ids = tuple(int(i) for i in ids)
-        self._spans = {sid: (int(offsets[n]), int(offsets[n + 1])) for n, sid in enumerate(self.ids)}
+        self._spans = {sid: (int(offsets[n]), int(offsets[n + 1]))
+                       for n, sid in enumerate(self.ids)}
         self._by_size = sorted(self.ids, key=lambda sid: (self.size(sid), sid))
 
     def size(self, structure_id: int) -> int:

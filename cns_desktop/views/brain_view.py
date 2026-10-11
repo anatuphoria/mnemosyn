@@ -59,7 +59,9 @@ class BrainView(QtInteractor):
         super().__init__(parent, auto_update=False)
         self.state = state
         self.set_background(BACKGROUND)
-        self.ids = list(state.geometry_ids)
+        self.ids = [i for i in state.geometry_ids if not state.is_tract(i)]
+        self.tract_ids = list(state.tract_ids)
+        self._tract_set = frozenset(self.tract_ids)
         self.lod = choose_lod(face_totals(state.atlas, self.ids))
         self.blocks = {i: _polydata(state.atlas.mesh(i, self.lod)) for i in self.ids}
         blocks = [self.blocks[i] for i in self.ids]
@@ -67,8 +69,12 @@ class BrainView(QtInteractor):
         for structure_id in self.ids:
             block = self.blocks[structure_id]
             self.attributes.SetBlockColor(block, _rgb(state.atlas.get(structure_id).rgb_triplet))
-            self.attributes.SetBlockVisibility(block, True)
+            self.attributes.SetBlockVisibility(block, not state.is_hidden(structure_id))
         self.renderer.AddActor(self.actor)
+        self.tract_actor: vtkActor | None = None
+        self.tract_attributes = None
+        self.tract_lod: int | None = None
+        self.tract_builds = 0
         self.scene_bounds = self._scene_bounds()
         self.highlighted: list[int] = []
         self.overlay: vtkActor | None = None
@@ -101,7 +107,28 @@ class BrainView(QtInteractor):
 
     def is_drawn(self, structure_id: int) -> bool:
         block = self.blocks.get(structure_id)
-        return block is not None and bool(self.attributes.GetBlockVisibility(block))
+        attributes = self._attributes_for(structure_id)
+        return (block is not None and attributes is not None
+                and bool(attributes.GetBlockVisibility(block)))
+
+    def _attributes_for(self, structure_id: int):
+        return self.tract_attributes if structure_id in self._tract_set else self.attributes
+
+    def _ensure_tracts(self) -> None:
+        if self.tract_actor is not None or not self.tract_ids:
+            return
+        atlas = self.state.atlas
+        self.tract_lod = choose_lod(face_totals(atlas, self.tract_ids))
+        for structure_id in self.tract_ids:
+            self.blocks[structure_id] = _polydata(atlas.mesh(structure_id, self.tract_lod))
+        actor, _, attributes = _composite([self.blocks[i] for i in self.tract_ids])
+        for structure_id in self.tract_ids:
+            block = self.blocks[structure_id]
+            attributes.SetBlockColor(block, _rgb(atlas.get(structure_id).rgb_triplet))
+            attributes.SetBlockVisibility(block, not self.state.is_hidden(structure_id))
+        self.tract_actor, self.tract_attributes = actor, attributes
+        self.tract_builds += 1
+        self.renderer.AddActor(actor)
 
     def _event_pos(self) -> tuple[int, int]:
         return self.iren.interactor.GetEventPosition()
@@ -120,10 +147,12 @@ class BrainView(QtInteractor):
     def structure_at(self, x: int, y: int) -> int | None:
         """VTK display coords: origin is bottom-left."""
         self._picker.Pick(x, y, 0, self.renderer)
-        if self._picker.GetActor() is not self.actor:
-            return None
+        actor = self._picker.GetActor()
         index = self._picker.GetFlatBlockIndex() - 1
-        return self.ids[index] if 0 <= index < len(self.ids) else None
+        for candidate, ids in ((self.actor, self.ids), (self.tract_actor, self.tract_ids)):
+            if candidate is not None and actor is candidate:
+                return ids[index] if 0 <= index < len(ids) else None
+        return None
 
     def pick_at(self, x: int, y: int) -> None:
         structure_id = self.structure_at(x, y)
@@ -154,10 +183,13 @@ class BrainView(QtInteractor):
         self.render()
 
     def _on_visibility_changed(self, ids: frozenset[int]) -> None:
+        if any(i in self._tract_set and not self.state.is_hidden(i) for i in ids):
+            self._ensure_tracts()
         for structure_id in ids:
             block = self.blocks.get(structure_id)
-            if block is not None:
-                self.attributes.SetBlockVisibility(block, not self.state.is_hidden(structure_id))
+            attributes = self._attributes_for(structure_id)
+            if block is not None and attributes is not None:
+                attributes.SetBlockVisibility(block, not self.state.is_hidden(structure_id))
         if any(i in ids for i in self.highlighted):
             self._refresh_overlay()
         self.render()
