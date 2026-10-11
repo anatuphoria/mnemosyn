@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import time
 
+import numpy as np
+import pyvista as pv
 from pyvistaqt import QtInteractor
 from vtkmodules.vtkRenderingCore import vtkActor, vtkPropPicker
 
@@ -11,7 +13,7 @@ BACKGROUND = "#0a0a10"
 CLICK_TOLERANCE_PX = 3
 
 
-def _lighten(rgb: tuple[int, int, int], amount: float) -> tuple[float, float, float]:
+def _lighten(rgb, amount: float) -> tuple[float, float, float]:
     return tuple((c + (255 - c) * amount) / 255 for c in rgb)
 
 
@@ -20,14 +22,18 @@ class BrainView(QtInteractor):
         super().__init__(parent, auto_update=False)
         self.state = state
         self.set_background(BACKGROUND)
-        self._actors: dict[str, vtkActor] = {}
-        self._id_by_actor: dict[str, str] = {}
-        self._highlighted: str | None = None
-        for s in state.atlas.structures.values():
-            actor = self.add_mesh(s.mesh, color=s.color, smooth_shading=True,
-                                  specular=0.15, name=s.id, reset_camera=False)
-            self._actors[s.id] = actor
-            self._id_by_actor[actor.GetAddressAsString("vtkActor")] = s.id
+        self._actors: dict[int, vtkActor] = {}
+        self._id_by_actor: dict[str, int] = {}
+        self._highlighted: int | None = None
+        for structure_id in state.geometry_ids:
+            data = state.atlas.mesh(structure_id, lod=0)
+            mesh = pv.PolyData.from_regular_faces(np.asarray(data.vertices, dtype=np.float32),
+                                                  np.asarray(data.faces, dtype=np.int64))
+            actor = self.add_mesh(mesh, color=state.atlas.get(structure_id).rgb_triplet,
+                                  smooth_shading=True, specular=0.15, name=str(structure_id),
+                                  reset_camera=False)
+            self._actors[structure_id] = actor
+            self._id_by_actor[actor.GetAddressAsString("vtkActor")] = structure_id
         self.reset_view()
 
         self._picker = vtkPropPicker()
@@ -44,8 +50,8 @@ class BrainView(QtInteractor):
         state.visibility_changed.connect(self._on_visibility_changed)
 
     def reset_view(self) -> None:
-        """World frame: x right, y up, z front."""
-        self.camera_position = [(-3.0, 1.0, 1.8), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
+        """World frame is MNI millimetres: x right, y anterior, z superior."""
+        self.camera_position = [(-400.0, 250.0, 150.0), (0.0, -18.0, 10.0), (0.0, 0.0, 1.0)]
         self.reset_camera()
         self.render()
 
@@ -63,7 +69,7 @@ class BrainView(QtInteractor):
         if abs(x1 - x0) <= CLICK_TOLERANCE_PX and abs(y1 - y0) <= CLICK_TOLERANCE_PX:
             self.pick_at(x1, y1)
 
-    def structure_at(self, x: int, y: int) -> str | None:
+    def structure_at(self, x: int, y: int) -> int | None:
         """VTK display coords: origin is bottom-left."""
         if not self._picker.PickProp(x, y, self.renderer):
             return None
@@ -71,27 +77,32 @@ class BrainView(QtInteractor):
         return self._id_by_actor.get(actor.GetAddressAsString("vtkActor")) if actor else None
 
     def pick_at(self, x: int, y: int) -> None:
-        sid = self.structure_at(x, y)
-        if sid is not None:
-            self.state.select(sid)
+        structure_id = self.structure_at(x, y)
+        if structure_id is not None:
+            self.state.select(structure_id)
 
-    def _paint(self, sid: str, selected: bool) -> None:
-        prop = self._actors[sid].GetProperty()
-        color = self.state.atlas.structures[sid].color
+    def _paint(self, structure_id: int, selected: bool) -> None:
+        actor = self._actors.get(structure_id)
+        if actor is None:
+            return
+        color = self.state.atlas.get(structure_id).rgb_triplet
+        prop = actor.GetProperty()
         prop.SetColor(_lighten(color, 0.45) if selected else tuple(c / 255 for c in color))
         prop.SetAmbient(0.35 if selected else 0.0)
 
-    def _on_selection_changed(self, sid: str | None) -> None:
+    def _on_selection_changed(self, structure_id: int | None) -> None:
         if self._highlighted is not None:
             self._paint(self._highlighted, False)
-        if sid is not None:
-            self._paint(sid, True)
-        self._highlighted = sid
+        if structure_id is not None:
+            self._paint(structure_id, True)
+        self._highlighted = structure_id
         self.render()
 
-    def _on_visibility_changed(self, ids: frozenset[str]) -> None:
-        for sid in ids:
-            self._actors[sid].SetVisibility(not self.state.is_hidden(sid))
+    def _on_visibility_changed(self, ids: frozenset[int]) -> None:
+        for structure_id in ids:
+            actor = self._actors.get(structure_id)
+            if actor is not None:
+                actor.SetVisibility(not self.state.is_hidden(structure_id))
         self.render()
 
     def _on_render_start(self, *_):

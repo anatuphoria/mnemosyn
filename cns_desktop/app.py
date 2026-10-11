@@ -3,6 +3,11 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+from pathlib import Path
+
+STARTED = time.perf_counter()
+DEFAULT_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
+DISCLAIMER_KEY = "disclaimer_shown"
 
 
 def apply_dark_theme(app) -> None:
@@ -21,6 +26,15 @@ def apply_dark_theme(app) -> None:
     app.setPalette(p)
 
 
+def disclaimer_due(settings) -> bool:
+    return not settings.value(DISCLAIMER_KEY, False, type=bool)
+
+
+def mark_disclaimer_shown(settings) -> None:
+    settings.setValue(DISCLAIMER_KEY, True)
+    settings.sync()
+
+
 def run_benchmark(window, frames: int = 300) -> None:
     from PySide6.QtWidgets import QApplication
 
@@ -34,32 +48,40 @@ def run_benchmark(window, frames: int = 300) -> None:
         times.append(view.last_render_ms)
     wall = time.perf_counter() - t0
     times.sort()
-    n = len(window.state.atlas.structures)
-    tris = sum(s.mesh.n_cells for s in window.state.atlas.structures.values())
-    print(f"{n} structures, {tris:,} triangles, 3D view {view.width()}x{view.height()} px")
+    ids = window.state.geometry_ids
+    tris = sum(len(window.state.atlas.mesh(i).faces) for i in ids)
+    print(f"{len(ids)} structures, {tris:,} triangles, 3D view {view.width()}x{view.height()} px")
     print(f"{frames / wall:.0f} fps on screen | render median {times[len(times) // 2]:.2f} ms, "
           f"p95 {times[int(len(times) * 0.95)]:.2f} ms, max {times[-1]:.2f} ms "
           "(fps is capped by the display refresh rate when vsync is on)")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="CNS Atlas desktop prototype")
-    parser.add_argument("--manifest", help="atlas manifest (default: bundled AAL116)")
-    parser.add_argument("--knowledge", help="knowledge JSON (default: data/knowledge.json)")
+    parser = argparse.ArgumentParser(description="CNS Atlas desktop app")
+    parser.add_argument("--atlas", type=Path, default=DEFAULT_ATLAS, help="atlas package directory")
     parser.add_argument("--bench", action="store_true", help="measure on-screen fps, then exit")
+    parser.add_argument("--first-frame", action="store_true",
+                        help="print the time to the first frame, then exit")
     args = parser.parse_args(argv)
 
+    from cns_atlas import Atlas, AtlasError
+
+    try:
+        atlas = Atlas.open(args.atlas)
+    except AtlasError as exc:
+        print(f"{exc}\nBuild the atlas first: python -m tools.build_atlas", file=sys.stderr)
+        return 1
+
+    from PySide6.QtCore import QSettings
     from PySide6.QtWidgets import QApplication
 
-    app = QApplication(sys.argv[:1])
+    app = QApplication.instance() or QApplication(sys.argv[:1])
     app.setApplicationName("CNS Atlas")
     apply_dark_theme(app)
 
-    t0 = time.perf_counter()
-    from .atlas_data import load_atlas
     from .main_window import MainWindow
 
-    window = MainWindow(load_atlas(args.manifest), args.knowledge)
+    window = MainWindow(atlas)
     if args.bench:
         window.showFullScreen()
         deadline = time.perf_counter() + 2.0
@@ -68,11 +90,19 @@ def main(argv: list[str] | None = None) -> int:
     else:
         window.show()
     app.processEvents()
-    print(f"startup: {time.perf_counter() - t0:.2f} s (imports + atlas + window)")
+    window.view.render()
+    print(f"first frame: {time.perf_counter() - STARTED:.2f} s")
+    if args.first_frame:
+        window.close()
+        return 0
     if args.bench:
         run_benchmark(window)
         window.close()
         return 0
+    settings = QSettings("cns-atlas", "cns-atlas")
+    if disclaimer_due(settings):
+        window.show_disclaimer()
+        mark_disclaimer_shown(settings)
     return app.exec()
 
 
