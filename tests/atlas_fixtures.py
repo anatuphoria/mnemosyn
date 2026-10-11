@@ -1,4 +1,10 @@
+import hashlib
+import io
+import tarfile
 from pathlib import Path
+
+import nibabel as nib
+import numpy as np
 
 TOY_RECIPE = """\
 name = "toy-atlas"
@@ -72,3 +78,45 @@ def write_source_tree(root: Path, download, sha256: str) -> Path:
     (root / "knowledge" / "references.toml").write_text(TOY_REFERENCES)
     (root / "knowledge" / "en" / "100.md").write_text(TOY_ENTRY)
     return root
+
+
+AFFINE = np.array([[4.0, 0, 0, -80.0], [0, 4.0, 0, -96.0], [0, 0, 4.0, -60.0], [0, 0, 0, 1.0]])
+SHAPE = (40, 48, 36)
+BLOBS = {
+    1: ((12, 28, 20), (6, 9, 7)),
+    2: ((28, 28, 20), (6, 9, 7)),
+    3: ((15, 16, 12), (3, 3, 3)),
+    4: ((25, 16, 12), (3, 3, 3)),
+    5: ((20, 10, 8), (4, 3, 3)),
+}
+NAMES = {1: "Alpha_L", 2: "Alpha_R", 3: "Beta_L", 4: "Beta_R", 5: "Gamma"}
+
+
+def label_volume(blobs=BLOBS) -> np.ndarray:
+    grid = np.indices(SHAPE).transpose(1, 2, 3, 0)
+    volume = np.zeros(SHAPE, dtype=np.uint8)
+    for value, (center, radii) in blobs.items():
+        inside = (((grid - np.array(center)) / np.array(radii)) ** 2).sum(axis=-1) <= 1.0
+        volume[inside] = value
+    return volume
+
+
+def make_source_archive(folder: Path, blobs=BLOBS, names=NAMES) -> tuple[Path, str]:
+    folder.mkdir(parents=True, exist_ok=True)
+    image = nib.Nifti1Image(label_volume(blobs), AFFINE)
+    table = "".join(f"{value} {name} {value}\n" for value, name in sorted(names.items()))
+    archive = folder / "toy_atlas.tar.gz"
+    with tarfile.open(archive, "w:gz") as tar:
+        for name, payload in (("TOY/toy.nii", image.to_bytes()), ("TOY/toy.txt", table.encode())):
+            info = tarfile.TarInfo(name)
+            info.size = len(payload)
+            tar.addfile(info, io.BytesIO(payload))
+    return archive, hashlib.sha256(archive.read_bytes()).hexdigest()
+
+
+def build_toy_atlas(root: Path) -> Path:
+    from tools.build_atlas.build import build
+
+    archive, sha256 = make_source_archive(root / "upstream")
+    src = write_source_tree(root / "src", archive, sha256)
+    return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)
