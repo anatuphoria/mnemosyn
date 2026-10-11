@@ -265,6 +265,7 @@ class QuizPanel(QWidget):
         summary = self.session.summary()
         self.item, self.phase, self.options = None, "summary", []
         self._select(None)
+        self.dim_grey.emit(False)
         missed = ", ".join(item.name for item in summary.most_missed) or "none"
         lines = [f"{summary.answered} answered, {summary.percent}% correct",
                  f"Most missed: {escape(missed)}"]

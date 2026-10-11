@@ -240,3 +240,12 @@ def test_slices_ignore_a_tract_layer_on_another_grid(window):
     layer.affine = np.asarray(layer.affine, dtype=float).copy()
     layer.affine[0, 3] += 4.0
     assert window.slices.structure_at_pixel(34, 8) not in TRACT_LEAVES
+
+
+def test_the_summary_is_not_dimmed(window):
+    quiz = start_quiz(window, "name-typed", "tracts")
+    while quiz.phase == "asking":
+        quiz.submit_text(quiz.item.name)
+        quiz.go_on(Rating.Easy)
+    assert quiz.phase == "summary"
+    assert window.view.actor.GetProperty().GetOpacity() == pytest.approx(1.0)
