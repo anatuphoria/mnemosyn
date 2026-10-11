@@ -96,6 +96,7 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
         if v.grid_source not in labels:
             problems.append(f"volume {v.name}: unknown grid source {v.grid_source!r}")
     mapped: dict[str, set[str]] = {name: set() for name in tracts}
+    numbers: dict[str, set[int]] = {name: set() for name in labels}
     for r in raws:
         if r.labels and not r.sources:
             problems.append(f"structure {r.id}: has geometry but lists no source")
@@ -116,9 +117,16 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             elif ref.source in tracts:
                 problems.append(f"structure {r.id}: tracts {ref.source} needs a file name, "
                                 f"not {ref.value!r}")
+            elif ref.source in labels:
+                numbers[ref.source].add(ref.value)
     for name, spec in tracts.items():
         problems += [f"tracts {name}: file {file!r} has no structure and is not dropped"
                      for file in spec.names if file not in mapped[name] and file not in spec.drop]
+        problems += [f"tracts {name}: file {file!r} is both dropped and mapped"
+                     for file in spec.drop if file in mapped[name]]
+    for name, spec in labels.items():
+        problems += [f"source {name}: label {value} is both dropped and mapped"
+                     for value in spec.drop if value in numbers[name]]
     return problems
 
 

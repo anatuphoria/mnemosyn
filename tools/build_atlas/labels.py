@@ -33,12 +33,15 @@ def mapping_for(source_id: str, planned: list[PlannedStructure]) -> dict[int, in
 
 
 def relabel(image: nib.Nifti1Image, mapping: dict) -> np.ndarray:
-    values = np.rint(np.asarray(image.dataobj)).astype(np.int64)
-    lookup = np.zeros(int(max(values.max(), 0)) + 1, dtype=np.uint16)
+    values = np.asarray(image.dataobj)
+    if not np.issubdtype(values.dtype, np.integer):
+        values = np.rint(values)
+    values = np.clip(values, 0, None).astype(np.int32, copy=False)
+    lookup = np.zeros(int(values.max(initial=0)) + 1, dtype=np.uint16)
     for value, structure_id in mapping.items():
         if isinstance(value, int) and 0 <= value < len(lookup):
             lookup[value] = structure_id
-    return lookup[np.clip(values, 0, None)]
+    return lookup[values]
 
 
 def crop(data: np.ndarray, affine: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

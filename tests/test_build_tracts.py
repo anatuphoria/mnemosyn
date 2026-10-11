@@ -243,3 +243,34 @@ def test_builds_with_tracts_are_identical(tmp_path):
     for name in ("tracts/ids.npy", "tracts/offsets.npy", "tracts/voxels.npy",
                  "meshes/lod0/vertices.npy", "volumes/brain.nii.gz", "build-report.md"):
         assert (first / name).read_bytes() == (second / name).read_bytes(), name
+
+
+def test_a_dropped_entry_cannot_also_be_mapped(tmp_path):
+    both = [*GOOD, raw(13, [LabelRef("fib", "Extra")]),
+            raw(14, [LabelRef("lab", 4)], kind="nucleus")]
+    problems = check_sources(both, recipe(tmp_path), tmp_path)
+    assert "tracts fib: file 'Extra' is both dropped and mapped" in problems
+    assert "source lab: label 4 is both dropped and mapped" in problems
+
+
+def test_the_report_counts_structures_per_source(toy_tract_atlas):
+    report = (toy_tract_atlas / "build-report.md").read_text()
+    for line in ("- source toy: 5 structures", "- source toyhyp: 3 structures",
+                 "- source toytracts: 3 structures"):
+        assert line in report
+
+
+def test_relabel_does_not_widen_integer_labels():
+    import tracemalloc
+
+    from tools.build_atlas.labels import relabel
+
+    data = np.zeros((128, 128, 64), dtype=np.int32)
+    data[10:20, 10:20, 10:20] = 7
+    image = nib.Nifti1Image(data, np.eye(4))
+    tracemalloc.start()
+    out = relabel(image, {7: 300})
+    peak = tracemalloc.get_traced_memory()[1]
+    tracemalloc.stop()
+    assert out[15, 15, 15] == 300 and out[0, 0, 0] == 0 and out.dtype == np.uint16
+    assert peak < 2.5 * data.nbytes

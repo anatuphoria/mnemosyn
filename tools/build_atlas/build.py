@@ -32,7 +32,7 @@ def present(data: np.ndarray) -> set[int]:
 
 def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[int, MeshData]],
                  volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=(),
-                 tracts=None, shape_only=()) -> str:
+                 tracts=None, shape_only=(), per_source=None) -> str:
     kinds: dict[str, int] = {}
     for s in structures:
         kinds[s.kind] = kinds.get(s.kind, 0) + 1
@@ -46,6 +46,7 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
               for spec, data, _ in volumes]
     lines += [f"- template for {name}: shape {list(data.shape)}, uint8"
               for name, data, _ in templates]
+    lines += [f"- source {name}: {count} structures" for name, count in (per_source or {}).items()]
     if tracts is not None:
         _, rows = tracts
         lines.append(f"- tracts: {len(rows)}, voxels {sum(len(flat) for _, flat in rows)}")
@@ -173,7 +174,11 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     structures = [p.structure for p in planned]
     specs = (*recipe.sources, *recipe.templates, *recipe.tracts)
     licence_files = [src / s.licence_file for s in specs if s.licence_file]
-    report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only)
+    per_source = {spec.source.id: sum(any(ref.source == spec.source.id for ref in p.labels)
+                                      for p in planned)
+                  for spec in (*recipe.sources, *recipe.tracts)}
+    report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
+                          per_source)
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:
