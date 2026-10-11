@@ -15,17 +15,24 @@ from cns_atlas.model import Structure
 from .fetch import DEFAULT_CACHE, fetch, member_path
 from .hierarchy import build_tree, load_structures, with_xrefs
 from .idlock import IdLock, load_lock, write_lock
-from .labels import load_label_image, mapping_for, merge, read_label_names, source_values
+from .labels import (crop, load_label_image, mapping_for, merge, read_label_names, relabel,
+                     source_values)
 from .meshing import levels, surface
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
 from .templates import covers, on_grid, to_uint8
+from .tracts import place
 from .validate import (check_hierarchy, check_ids, check_knowledge, check_sources,
                        check_templates, check_voxels)
 from .writer import write_package
 
 
+def present(data: np.ndarray) -> set[int]:
+    return set(np.unique(data).tolist()) - {0}
+
+
 def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[int, MeshData]],
-                 volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=()) -> str:
+                 volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=(),
+                 tracts=None, shape_only=()) -> str:
     kinds: dict[str, int] = {}
     for s in structures:
         kinds[s.kind] = kinds.get(s.kind, 0) + 1
@@ -39,6 +46,15 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
               for spec, data, _ in volumes]
     lines += [f"- template for {name}: shape {list(data.shape)}, uint8"
               for name, data, _ in templates]
+    if tracts is not None:
+        _, rows = tracts
+        lines.append(f"- tracts: {len(rows)}, voxels {sum(len(flat) for _, flat in rows)}")
+    for spec in (*recipe.sources, *recipe.tracts):
+        if spec.drop:
+            lines.append(f"- dropped from {spec.source.id}: "
+                         f"{', '.join(str(value) for value in spec.drop)}")
+    if shape_only:
+        lines.append(f"- 3D shape only, no voxels at label resolution: {', '.join(shape_only)}")
     return "\n".join(lines) + "\n"
 
 
@@ -86,9 +102,13 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
         if spec.label_names:
             names[spec.source.id] = read_label_names(member_path(spec, archive, spec.label_names))
     for spec in recipe.sources:
+        values = source_values(images[spec.source.id])
         mapped = set(mapping_for(spec.source.id, planned))
+        dropped = set(spec.drop)
         problems += [f"source {spec.source.id}: label {value} has no structure"
-                     for value in sorted(source_values(images[spec.source.id]) - mapped)]
+                     for value in sorted(values - mapped - dropped)]
+        problems += [f"source {spec.source.id}: drop value {value} is not in the source"
+                     for value in sorted(dropped - values)]
     planned = with_xrefs(planned, names)
     volumes = []
     for vspec in recipe.volumes:
@@ -96,10 +116,28 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
                   for s in recipe.sources if s.volume == vspec.name]
         grid = images[vspec.grid_source]
         volumes.append((vspec, merge(grid, layers), grid.affine))
-    problems += check_voxels(planned, [data for _, data, _ in volumes])
+    grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
+    natives = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
+                    images[s.source.id].affine)
+               for s in recipe.sources if s.mesh_grid == "native"]
+    native_ids = set().union(*(present(data) for data, _ in natives))
+    tract_rows: list[tuple[int, np.ndarray]] = []
+    for spec in recipe.tracts:
+        shape, affine = grids[spec.labels]
+        for p in planned:
+            for ref in p.labels:
+                if ref.source == spec.source.id:
+                    log(f"fetching {spec.source.id} {ref.value}")
+                    image = nib.load(fetch(spec.file_spec(ref.value), cache))
+                    flat = place(image, shape, affine, f"tracts {spec.source.id}: {ref.value}")
+                    tract_rows.append((p.structure.id, flat))
+    tract_ids = {structure_id for structure_id, flat in tract_rows if len(flat)}
+    label_ids = set().union(*(present(data) for _, data, _ in volumes))
+    shape_only = [p.structure.name for p in planned if p.structure.id in native_ids - label_ids]
+    problems += check_voxels(planned, [data for _, data, _ in volumes],
+                             spared=native_ids | tract_ids)
     if problems:
         raise BuildError(problems)
-    grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
     templates = []
     for spec in recipe.templates:
         log(f"fetching {spec.source.id}")
@@ -110,11 +148,21 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
         templates.append((spec.volume, to_uint8(on_grid(image, shape, affine)), affine))
 
     log("meshing")
+    jobs = [(data, affine, present(data)) for data, affine in natives]
+    jobs += [(data, affine, present(data) - native_ids) for _, data, affine in volumes]
+    tracts = None
+    if recipe.tracts:
+        name = recipe.tracts[0].labels
+        shape, affine = grids[name]
+        tracts = (name, tract_rows)
+        for structure_id, flat in tract_rows:
+            mask = np.zeros(shape, dtype=np.uint16)
+            mask.flat[flat] = structure_id
+            jobs.append((mask, affine, {structure_id}))
     meshes: list[dict[int, MeshData]] = [{} for _ in recipe.lod_fractions]
-    for _, data, affine in volumes:
-        present = set(np.unique(data).tolist())
+    for data, affine, ids in jobs:
         for p in planned:
-            if p.labels and p.structure.id in present:
+            if p.structure.id in ids:
                 mesh = surface(data, affine, p.structure.id, recipe.smoothing_iterations,
                                recipe.smoothing_pass_band)
                 built = levels(mesh, recipe.lod0_max_faces, recipe.lod_fractions,
@@ -123,16 +171,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
                     level[p.structure.id] = mesh_data
 
     structures = [p.structure for p in planned]
-    licence_files = [src / s.licence_file for s in (*recipe.sources, *recipe.templates)
-                     if s.licence_file]
-    report = build_report(recipe, structures, meshes, volumes, templates)
+    specs = (*recipe.sources, *recipe.templates, *recipe.tracts)
+    licence_files = [src / s.licence_file for s in specs if s.licence_file]
+    report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only)
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:
         package = staging / "package"
-        write_package(package, recipe, structures,
-                      [s.source for s in (*recipe.sources, *recipe.templates)], volumes,
-                      meshes, src / "knowledge", licence_files, report, templates)
+        write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
+                      src / "knowledge", licence_files, report, templates, tracts)
         previous = staging / "previous"
         if out.exists():
             out.replace(previous)

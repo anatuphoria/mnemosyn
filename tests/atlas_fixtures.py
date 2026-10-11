@@ -145,3 +145,112 @@ def build_toy_atlas(root: Path) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)
+
+
+HYP_SHAPE = (80, 96, 72)
+HYP_AFFINE = np.array([[2.0, 0, 0, -80.0], [0, 2.0, 0, -96.0], [0, 0, 2.0, -60.0],
+                       [0, 0, 0, 1.0]])
+HYP_BLOBS = {1: ((24, 74, 40), (4, 4, 4)), 2: ((56, 74, 40), (4, 4, 4)),
+             4: ((40, 20, 20), (3, 3, 3))}
+TINY_VOXEL = (41, 41, 41)
+TRACT_SHAPE = (30, 36, 28)
+TRACT_AFFINE = np.array([[4.0, 0, 0, -72.0], [0, 4.0, 0, -88.0], [0, 0, 4.0, -52.0],
+                         [0, 0, 0, 1.0]])
+TRACT_BOXES = {
+    "Long_Tract_L": ((6, 10, 2), (10, 14, 26)),
+    "Long_Tract_R": ((20, 10, 2), (24, 14, 26)),
+    "Short_Tract": ((6, 11, 12), (24, 13, 14)),
+    "Extra": ((14, 30, 5), (15, 31, 6)),
+}
+
+TOY_HYP_SOURCE = """
+[[sources]]
+id = "toyhyp"
+title = "Toy hypothalamus"
+authors = "Test C"
+year = 2024
+version = "1"
+licence = "CC BY 4.0"
+redistribution = true
+download = "{download}"
+sha256 = "{sha256}"
+volume = "brain"
+priority = 0
+drop = [4]
+mesh_grid = "native"
+"""
+
+TOY_TRACT_SOURCE = """
+[[tracts]]
+id = "toytracts"
+title = "Toy tracts"
+authors = "Test D"
+year = 2024
+version = "1"
+licence = "CC BY-SA 4.0"
+redistribution = true
+download = "{download}"
+labels = "brain"
+drop = ["Extra"]
+
+[tracts.files]
+{files}
+"""
+
+TOY_HYP_STRUCTURES = """\
+  { id = 130, parent = 2, acronym = "DEL", name = "Delta nucleus", kind = "nucleus", source = "toyhyp", left = 1, right = 2 },
+  { id = 140, parent = 2, acronym = "TIN", name = "Tiny nucleus", kind = "nucleus", source = "toyhyp", midline = 3 },
+"""
+
+TOY_TRACT_STRUCTURES = """\
+  { id = 150, parent = 2, acronym = "LT", name = "Long tract", kind = "tract", source = "toytracts", left = "Long_Tract_L", right = "Long_Tract_R" },
+  { id = 160, parent = 2, acronym = "ST", name = "Short tract", kind = "tract", source = "toytracts", midline = "Short_Tract" },
+"""
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def hyp_volume() -> np.ndarray:
+    grid = np.indices(HYP_SHAPE).transpose(1, 2, 3, 0)
+    volume = np.zeros(HYP_SHAPE, dtype=np.uint8)
+    for value, (center, radii) in HYP_BLOBS.items():
+        inside = (((grid - np.array(center)) / np.array(radii)) ** 2).sum(axis=-1) <= 1.0
+        volume[inside] = value
+    volume[TINY_VOXEL] = 3
+    return volume
+
+
+def write_extended_source_tree(root: Path, tracts: bool) -> Path:
+    archive, sha256 = make_source_archive(root / "upstream")
+    src = write_source_tree(root / "src", archive, sha256)
+    hyp = root / "upstream" / "toy_hyp.nii.gz"
+    nib.save(nib.Nifti1Image(hyp_volume(), HYP_AFFINE), hyp)
+    recipe = (src / "recipe.toml").read_text()
+    recipe += TOY_HYP_SOURCE.format(download=hyp, sha256=sha256_file(hyp))
+    concepts = TOY_HYP_STRUCTURES
+    if tracts:
+        folder = root / "upstream" / "tracts"
+        folder.mkdir()
+        lines = []
+        for name, (lo, hi) in sorted(TRACT_BOXES.items()):
+            mask = np.zeros(TRACT_SHAPE, dtype=np.uint8)
+            mask[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]] = 1
+            path = folder / f"{name}.nii.gz"
+            nib.save(nib.Nifti1Image(mask, TRACT_AFFINE), path)
+            lines.append(f'{name} = "{sha256_file(path)}"')
+        recipe += TOY_TRACT_SOURCE.format(download=folder / "{name}.nii.gz",
+                                          files="\n".join(lines))
+        concepts += TOY_TRACT_STRUCTURES
+    (src / "recipe.toml").write_text(recipe)
+    structures = TOY_STRUCTURES.rstrip().removesuffix("]") + concepts + "]\n"
+    (src / "structures.toml").write_text(structures)
+    return src
+
+
+def build_extended_toy_atlas(root: Path, tracts: bool = True) -> Path:
+    from tools.build_atlas.build import build
+
+    src = write_extended_source_tree(root, tracts)
+    return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)

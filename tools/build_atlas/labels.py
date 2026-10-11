@@ -32,17 +32,31 @@ def mapping_for(source_id: str, planned: list[PlannedStructure]) -> dict[int, in
             if ref.source == source_id}
 
 
+def relabel(image: nib.Nifti1Image, mapping: dict) -> np.ndarray:
+    values = np.rint(np.asarray(image.dataobj)).astype(np.int64)
+    lookup = np.zeros(int(max(values.max(), 0)) + 1, dtype=np.uint16)
+    for value, structure_id in mapping.items():
+        if isinstance(value, int) and 0 <= value < len(lookup):
+            lookup[value] = structure_id
+    return lookup[np.clip(values, 0, None)]
+
+
+def crop(data: np.ndarray, affine: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    index = np.argwhere(data > 0)
+    if not len(index):
+        return data, affine
+    lo, hi = index.min(axis=0), index.max(axis=0) + 1
+    shift = np.eye(4)
+    shift[:3, 3] = lo
+    return data[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]], np.asarray(affine) @ shift
+
+
 def merge(grid: nib.Nifti1Image, layers: list[tuple[int, nib.Nifti1Image, dict[int, int]]]
           ) -> np.ndarray:
     out = np.zeros(grid.shape[:3], dtype=np.uint16)
     for _, image, mapping in sorted(layers, key=lambda layer: layer[0]):
         if image.shape[:3] != grid.shape[:3] or not np.allclose(image.affine, grid.affine):
             image = resample_from_to(image, (grid.shape[:3], grid.affine), order=0)
-        values = np.rint(np.asarray(image.dataobj)).astype(np.int64)
-        lookup = np.zeros(int(max(values.max(), 0)) + 1, dtype=np.uint16)
-        for value, structure_id in mapping.items():
-            if 0 <= value < len(lookup):
-                lookup[value] = structure_id
-        mapped = lookup[np.clip(values, 0, None)]
+        mapped = relabel(image, mapping)
         out[mapped > 0] = mapped[mapped > 0]
     return out

@@ -1,7 +1,16 @@
+import json
+
+import nibabel as nib
+import numpy as np
 import pytest
 
-from tools.build_atlas.hierarchy import LabelRef, RawStructure, build_tree, load_structures, with_xrefs
-from tools.build_atlas.recipe import load_recipe
+from atlas_fixtures import AFFINE, SHAPE, build_extended_toy_atlas, write_extended_source_tree
+from cns_atlas import Atlas
+from tools.build_atlas.build import build
+from tools.build_atlas.hierarchy import (LabelRef, RawStructure, build_tree, load_structures,
+                                         with_xrefs)
+from tools.build_atlas.recipe import BuildError, load_recipe
+from tools.build_atlas.tracts import place
 from tools.build_atlas.validate import check_sources
 
 RECIPE = """\
@@ -132,3 +141,105 @@ def test_string_label_refs_load_and_become_xrefs(tmp_path):
     assert left.labels == (LabelRef("fib", "Long_L"),)
     planned = {p.structure.id: p.structure for p in with_xrefs(build_tree(raws), {})}
     assert planned[11].xrefs == {"fib": "Long_L"}
+
+
+@pytest.fixture(scope="module")
+def hyp_atlas(tmp_path_factory):
+    pytest.importorskip("pyvista")
+    return Atlas.open(build_extended_toy_atlas(tmp_path_factory.mktemp("hyp"), tracts=False))
+
+
+def test_native_labels_are_resampled_and_the_older_source_wins(hyp_atlas):
+    data = np.asarray(hyp_atlas.volumes[0].data)
+    assert data[12, 36, 20] == 101
+    assert data[12, 39, 20] == 131
+    assert data[28, 39, 20] == 132
+
+
+def test_dropped_labels_leave_no_voxels(hyp_atlas):
+    present = set(np.unique(np.asarray(hyp_atlas.volumes[0].data)).tolist())
+    assert present <= {0, 101, 102, 111, 112, 120, 131, 132}
+
+
+def test_a_nucleus_lost_at_label_resolution_keeps_its_native_shape(hyp_atlas):
+    assert 140 not in np.unique(np.asarray(hyp_atlas.volumes[0].data))
+    assert hyp_atlas.has_mesh(140) and hyp_atlas.has_mesh(131)
+    report = (hyp_atlas.root / "build-report.md").read_text()
+    assert "3D shape only, no voxels at label resolution: Tiny nucleus" in report
+    assert "dropped from toyhyp: 4" in report
+
+
+def test_native_meshes_follow_the_finer_grid(hyp_atlas):
+    vertices = np.asarray(hyp_atlas.mesh(140).vertices, dtype=float)
+    assert np.ptp(vertices, axis=0).max() < 3.0
+    assert np.allclose(vertices.mean(axis=0), (2.0, -14.0, 22.0), atol=1.0)
+
+
+def test_unknown_drop_values_and_unmapped_values_fail(tmp_path):
+    pytest.importorskip("pyvista")
+    src = write_extended_source_tree(tmp_path, tracts=False)
+    recipe = src / "recipe.toml"
+    recipe.write_text(recipe.read_text().replace("drop = [4]", "drop = [9]"))
+    with pytest.raises(BuildError) as error:
+        build(src, tmp_path / "out", cache=tmp_path / "cache", log=lambda *_: None)
+    text = str(error.value)
+    assert "source toyhyp: label 4 has no structure" in text
+    assert "source toyhyp: drop value 9 is not in the source" in text
+
+
+def offset_image(mask, voxels=(1, 1, 1)):
+    affine = AFFINE.copy()
+    affine[:3, 3] += 4.0 * np.array(voxels)
+    return nib.Nifti1Image(mask, affine)
+
+
+def test_place_returns_sorted_flat_indices_on_the_label_grid():
+    mask = np.zeros((3, 3, 3), dtype=np.uint8)
+    mask[0, 0, 0] = mask[2, 1, 0] = 1
+    expected = sorted(np.ravel_multi_index(([1, 3], [1, 2], [1, 1]), SHAPE).tolist())
+    assert place(offset_image(mask), SHAPE, AFFINE, "t").tolist() == expected
+
+
+def test_place_needs_a_whole_voxel_offset():
+    image = nib.Nifti1Image(np.ones((2, 2, 2), dtype=np.uint8),
+                            AFFINE + np.array([[0, 0, 0, 1.0]] + [[0, 0, 0, 0]] * 3))
+    with pytest.raises(BuildError, match="whole-voxel offset"):
+        place(image, SHAPE, AFFINE, "t")
+
+
+def test_place_rejects_voxels_outside_the_grid():
+    with pytest.raises(BuildError, match="outside the label grid"):
+        place(offset_image(np.ones((2, 2, 2), dtype=np.uint8), (39, 0, 0)), SHAPE, AFFINE, "t")
+
+
+def test_tract_layer_is_written_on_the_label_grid(toy_tract_atlas):
+    folder = toy_tract_atlas / "tracts"
+    assert np.load(folder / "ids.npy").tolist() == [151, 152, 160]
+    assert np.load(folder / "offsets.npy").tolist() == [0, 384, 768, 840]
+    voxels = np.load(folder / "voxels.npy")
+    long_left = np.array(np.unravel_index(voxels[:384], SHAPE))
+    assert long_left.min(axis=1).tolist() == [8, 12, 4]
+    assert long_left.max(axis=1).tolist() == [11, 15, 27]
+    assert np.all(np.diff(voxels[:384].astype(np.int64)) > 0)
+    metadata = json.loads((toy_tract_atlas / "metadata.json").read_text())
+    assert {"file": "tracts", "role": "tracts", "labels": "brain"} in metadata["volumes"]
+
+
+def test_tracts_get_meshes_sources_xrefs_and_a_report(toy_tract_atlas):
+    atlas = Atlas.open(toy_tract_atlas)
+    assert all(atlas.has_mesh(i) for i in (151, 152, 160))
+    assert atlas.get(151).xrefs == {"toytracts": "Long_Tract_L"}
+    assert {"toytracts", "toyhyp"} <= set(atlas.sources)
+    report = (toy_tract_atlas / "build-report.md").read_text()
+    assert "- tracts: 3, voxels 840" in report
+    assert "dropped from toytracts: Extra" in report
+
+
+def test_builds_with_tracts_are_identical(tmp_path):
+    pytest.importorskip("pyvista")
+    src = write_extended_source_tree(tmp_path / "a", tracts=True)
+    first = build(src, tmp_path / "one", cache=tmp_path / "cache", log=lambda *_: None)
+    second = build(src, tmp_path / "two", cache=tmp_path / "cache", log=lambda *_: None)
+    for name in ("tracts/ids.npy", "tracts/offsets.npy", "tracts/voxels.npy",
+                 "meshes/lod0/vertices.npy", "volumes/brain.nii.gz", "build-report.md"):
+        assert (first / name).read_bytes() == (second / name).read_bytes(), name

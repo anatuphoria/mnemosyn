@@ -38,7 +38,7 @@ def orientation(affine: np.ndarray) -> str:
 def write_package(out: Path, recipe: Recipe, structures: list[Structure], sources: list[Source],
                   volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]],
                   meshes: list[dict[int, MeshData]], knowledge_src: Path,
-                  licence_files: list[Path], report: str, templates=()) -> None:
+                  licence_files: list[Path], report: str, templates=(), tracts=None) -> None:
     (out / "volumes").mkdir(parents=True)
     volume_records = []
     spaces = {spec.name: spec.space for spec, _, _ in volumes}
@@ -51,6 +51,17 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
         volume_records.append({"file": f"volumes/{name}-template.nii.gz", "space": spaces[name],
                                "role": "template", "labels": name,
                                "affine_to_world": np.eye(4).tolist()})
+    if tracts is not None:
+        labels, rows = tracts
+        folder = out / "tracts"
+        folder.mkdir()
+        sizes = [len(flat) for _, flat in rows]
+        np.save(folder / "ids.npy", np.array([sid for sid, _ in rows], dtype=np.uint16))
+        np.save(folder / "offsets.npy", np.concatenate([[0], np.cumsum(sizes)]).astype(np.int64))
+        np.save(folder / "voxels.npy",
+                np.concatenate([np.asarray(flat, dtype=np.uint32) for _, flat in rows])
+                if rows else np.zeros(0, dtype=np.uint32))
+        volume_records.append({"file": "tracts", "role": "tracts", "labels": labels})
     _, first_data, first_affine = volumes[0]
     write_json(out / "metadata.json", {
         "name": recipe.name,
