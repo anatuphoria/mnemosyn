@@ -8,7 +8,8 @@ from cns_atlas import Atlas
 from cns_atlas.knowledge import load_references, parse_entry
 from tools.build_atlas.hierarchy import build_tree, load_structures
 from tools.build_atlas.recipe import load_recipe
-from tools.build_atlas.validate import check_hierarchy, check_knowledge, check_sources
+from tools.build_atlas.validate import (check_hierarchy, check_knowledge, check_sources,
+                                        check_templates)
 
 SRC = Path(__file__).resolve().parent.parent / "atlas_src"
 AAL3_EMPTY_LABELS = {35, 36, 81, 82}
@@ -60,6 +61,11 @@ def test_real_build(tmp_path):
             assert x < 0, s.name
         if s.side == "right":
             assert x > 0, s.name
+    template = atlas.template
+    assert template is not None and template.shape == atlas.volumes[0].shape
+    labelled = np.asarray(atlas.volumes[0].data) > 0
+    intensity = np.asarray(template.data, dtype=float)
+    assert intensity[labelled].mean() > 2 * intensity[~labelled].mean()
 
 
 def test_frontal_concepts_have_distinct_shades_and_sides_match():
@@ -68,3 +74,9 @@ def test_frontal_concepts_have_distinct_shades_and_sides_match():
     assert len({s.rgb_triplet for s in frontal}) == len(frontal) == 16
     for s in frontal:
         assert planned[s.id + 1].rgb_triplet == planned[s.id + 2].rgb_triplet == s.rgb_triplet
+
+
+def test_colin27_template_is_declared_and_valid():
+    recipe = load_recipe(SRC / "recipe.toml")
+    assert [t.source.id for t in recipe.templates] == ["colin27"]
+    assert check_templates(recipe, SRC) == []

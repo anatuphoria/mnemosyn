@@ -33,3 +33,19 @@ member = "AAL3/AAL3v1_1mm.nii.gz"
 label_names = "AAL3/AAL3v1_1mm.nii.txt"
 volume = "brain"
 priority = 1
+
+[[templates]]
+id = "colin27"
+title = "Colin 27 Average Brain, Stereotaxic Registration Model"
+authors = "Holmes CJ, Hoge R, Collins L, Woods R, Toga AW, Evans AC"
+year = 1998
+version = "1998 (colin27_t1_tal_lin, 1 mm)"
+doi = "10.1097/00004728-199803000-00032"
+url = "https://www.mcgill.ca/bic/software/tools-data-analysis/anatomical-mri/atlases/colin-27"
+licence = "Permissive notice: copyright Louis Collins, McConnell Brain Imaging Centre, MNI, McGill University"
+licence_file = "LICENSES/Colin27.txt"
+redistribution = true
+download = "http://packages.bic.mni.mcgill.ca/mni-models/colin27/mni_colin27_1998_nifti.zip"
+sha256 = "9dd49943ec20fb72407d85591219f6f701fa60e3a8234e73d8f41a754bdbf87d"
+member = "colin27_t1_tal_lin.nii"
+volume = "brain"
