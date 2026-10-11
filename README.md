@@ -31,6 +31,7 @@ Drag rotates, right-drag or the wheel zooms, middle- or shift-drag pans, a click
 | `R` | Reset the view |
 | `C` | Centre the slice on the selection |
 | `F1` | About, data sources and licences |
+| `Q` | Start a quiz (Study menu) |
 | `Ctrl+F` | Filter the structure tree (names, abbreviations, synonyms, atlas labels) |
 
 Tree checkboxes show and hide structures; unticking a group hides its whole subtree. The info
@@ -44,6 +45,16 @@ with L/R, A/P and S/I letters on the edges). The slider moves the plane, which a
 as a translucent sheet in the 3D view; the second slider sets label opacity. Hovering shows
 the structure under the cursor, clicking selects it, and `C` (Centre slice) moves the plane
 through the selected structure.
+
+The **Study** menu starts a quiz (`Q`) or shows your progress. *Name it* highlights a
+structure on both sides and asks for its name: type it (synonyms, abbreviations, any word
+order and small typos count) or pick one of four. *Find it* names a structure and you click it
+in 3D or in a slice. *Flashcards* show reviewed descriptions only. Choose single structures or
+bigger groups, the whole atlas or one part of it, and either what is due now or a practice
+round that leaves your schedule alone. Scheduling uses FSRS, the spaced repetition method Anki
+uses, with at most 20 new items a day per mode. Progress is saved after every answer in
+`~/.local/share/cns-atlas/progress.sqlite`. During a quiz the tree, the info panel and hover
+names are hidden; `Esc` ends the quiz and restores the window.
 
 ## Terminal viewer
 
@@ -103,7 +114,9 @@ scales to thousands of structures; it switches to a lighter level of detail when
 exceeds 3 million triangles. Budgets enforced by `pytest -m perf`: opening a 5,000-structure
 atlas under 200 ms, search under 10 ms per keystroke, a slice under 5 ms. With the real atlas
 built, `pytest -m slow` checks start to first frame under 2 s, app memory under 600 MB,
-selection under 7 ms, and a generated 3,500-structure scene at 60 fps or more.
+selection under 7 ms, a generated 3,500-structure scene at 60 fps or more, and quiz timing: a
+quiz starts under 100 ms, moves to the next question under 50 ms and checks a typed answer
+under 1 ms.
 
 ## Tests
 

@@ -128,6 +128,87 @@ def test_selection_on_the_real_atlas_under_7ms():
     assert times[len(times) // 2] < 0.007
 
 
+@pytest.mark.slow
+def test_real_atlas_quiz_levels():
+    from cns_study.items import group_items, structure_items
+
+    atlas = Atlas.open(real_atlas_or_skip())
+    groups = {item.name for item in group_items(atlas)}
+    assert {"Thalamus", "Frontal lobe", "Vermis"} <= groups
+    assert not {"Central nervous system", "Brain", "Diencephalon", "Pons"} & groups
+    assert len(structure_items(atlas)) > 80
+
+
+@pytest.mark.slow
+def test_answer_check_on_the_real_atlas_under_1ms():
+    from cns_study.answers import AnswerIndex
+    from cns_study.items import group_items, structure_items
+
+    atlas = Atlas.open(real_atlas_or_skip())
+    pool = structure_items(atlas) + group_items(atlas)
+    index = AnswerIndex(pool)
+    target = next(item for item in pool if item.name == "Middle temporal gyrus")
+    assert index.check("midle temporal gyrus", target).correct
+    times = []
+    for _ in range(50):
+        start = time.perf_counter()
+        index.check("midle temporal gyrus", target)
+        times.append(time.perf_counter() - start)
+    times.sort()
+    assert times[len(times) // 2] < 0.001
+
+
+QUIZ_TIMING = """
+import sys
+import time
+from pathlib import Path
+
+from fsrs import Rating
+from PySide6.QtWidgets import QApplication
+
+from cns_atlas import Atlas
+from cns_desktop.main_window import MainWindow
+from cns_study.session import QuizChoice
+
+app = QApplication([])
+window = MainWindow(Atlas.open(sys.argv[1]), progress_path=Path(sys.argv[2]))
+window.resize(1500, 900)
+window.show()
+app.processEvents()
+window.view.render()
+window.slices.label_centres()
+window.progress_store()
+start = time.perf_counter()
+window.start_quiz(QuizChoice("name-typed", "structures", None, False))
+app.processEvents()
+started = time.perf_counter() - start
+quiz = window.quiz
+times = []
+for _ in range(20):
+    quiz.submit_text(quiz.item.name)
+    start = time.perf_counter()
+    quiz.go_on(Rating.Easy)
+    app.processEvents()
+    times.append(time.perf_counter() - start)
+window.close()
+times.sort()
+print(started, times[len(times) // 2])
+"""
+
+
+@pytest.mark.slow
+def test_quiz_on_the_real_atlas_starts_under_100ms_and_moves_on_under_50ms(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    atlas_path = real_atlas_or_skip()
+    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
+    result = subprocess.run([sys.executable, "-c", QUIZ_TIMING, str(atlas_path),
+                             str(tmp_path / "progress.sqlite")], env=env, check=True,
+                            capture_output=True, text=True, timeout=120)
+    started, moved_on = map(float, result.stdout.split()[-2:])
+    assert started < 0.100
+    assert moved_on < 0.050
+
+
 def sphere_scene(count: int):
     import pyvista as pv
 
