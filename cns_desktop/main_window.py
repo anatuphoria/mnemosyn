@@ -28,8 +28,12 @@ from .views.structure_tree import StructureTree
 
 HOVER_MS = 1500
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz")
-RECOVERED = ("Your progress file could not be read. It was kept as {path} and a new one was "
-             "started.")
+RECOVERED = {
+    "damaged": ("Progress file damaged", "Your progress file could not be read. It was kept as "
+                "{path} and a new one was started."),
+    "newer": ("Progress file from a newer version", "Your progress file was written by a newer "
+              "version of this app. It was kept as {path} and a new one was started."),
+}
 
 
 def default_progress_path() -> Path:
@@ -152,9 +156,9 @@ class MainWindow(QMainWindow):
             name = str(self.state.atlas.metadata.get("name", "atlas"))
             self._store = ProgressStore(self.progress_path, name)
             if self._store.recovered_from is not None:
+                title, text = RECOVERED[self._store.recovery_reason]
                 self.recovery_box = QMessageBox(
-                    QMessageBox.Icon.Warning, "Progress file damaged",
-                    RECOVERED.format(path=self._store.recovered_from),
+                    QMessageBox.Icon.Warning, title, text.format(path=self._store.recovered_from),
                     QMessageBox.StandardButton.Ok, self)
                 self.recovery_box.open()
         return self._store

@@ -1,6 +1,8 @@
 import sqlite3
+import time
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from fsrs import Card, Rating, Scheduler
 
 from cns_study.progress import ModeStats, ProgressStore, day_start, mode_stats, weakest
@@ -75,8 +77,63 @@ def test_day_start_is_local_midnight_in_utc():
 
 def test_mode_stats_and_weakest():
     cards = {1: reviewed(1, Rating.Good, T0), 2: reviewed(2, Rating.Easy, T0)}
-    stats = mode_stats(cards, [1, 2, 3], day_start(T0) + timedelta(days=1))
+    stats = mode_stats(cards, [1, 2, 3], T0)
     assert stats == ModeStats(new=1, learning=1, known=1, due_today=1, due_week=1)
     weak = weakest(cards, [1, 2, 3], Scheduler(enable_fuzzing=False), T0 + timedelta(days=4))
     assert [item for item, _ in weak] == [1, 2]
     assert all(0 < value < 1 for _, value in weak)
+
+
+def test_a_new_file_gets_the_current_schema_version(tmp_path):
+    path = tmp_path / "p.sqlite"
+    ProgressStore(path, "atlas-a").close()
+    db = sqlite3.connect(path)
+    assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+    db.close()
+
+
+def test_the_reason_for_setting_a_file_aside_is_kept(tmp_path):
+    newer = tmp_path / "newer.sqlite"
+    db = sqlite3.connect(newer)
+    db.execute("PRAGMA user_version = 2")
+    db.close()
+    assert ProgressStore(newer, "atlas-a").recovery_reason == "newer"
+    damaged = tmp_path / "damaged.sqlite"
+    damaged.write_bytes(b"not a database" * 100)
+    assert ProgressStore(damaged, "atlas-a").recovery_reason == "damaged"
+    assert ProgressStore(tmp_path / "fresh.sqlite", "atlas-a").recovery_reason is None
+
+
+def test_a_failed_commit_does_not_block_the_next_answer(tmp_path):
+    store = ProgressStore(tmp_path / "p.sqlite", "atlas-a")
+    real = store.db
+
+    class FailingCommit:
+        failed = False
+
+        def execute(self, sql, *args):
+            if sql == "COMMIT" and not self.failed:
+                self.failed = True
+                raise sqlite3.OperationalError("database is locked")
+            return real.execute(sql, *args)
+
+    store.db = FailingCommit()
+    with pytest.raises(sqlite3.OperationalError):
+        store.record(1, "find", reviewed(1, Rating.Good, T0), Rating.Good, True, 500, T0)
+    store.record(2, "find", reviewed(2, Rating.Good, T0), Rating.Good, True, 500, T0)
+    assert list(store.cards("find")) == [2]
+
+
+@pytest.fixture
+def berlin(monkeypatch):
+    monkeypatch.setenv("TZ", "Europe/Berlin")
+    time.tzset()
+    yield
+    monkeypatch.undo()
+    time.tzset()
+
+
+def test_day_boundaries_follow_the_calendar_across_a_clock_change(berlin):
+    moment = datetime(2026, 10, 24, 10, tzinfo=timezone.utc)
+    assert day_start(moment, 2).astimezone().hour == 0
+    assert day_start(moment, 2) - day_start(moment, 1) == timedelta(hours=25)

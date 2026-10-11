@@ -92,25 +92,24 @@ class Session:
         item = self.current
         if item is None:
             raise RuntimeError("no question is waiting for an answer")
+        if not self.practice:
+            moment = self.now()
+            card = self.cards.get(item.id) or Card(card_id=item.id, due=moment)
+            card, _ = self.scheduler.review_card(card, rating, moment, answer_ms)
+            self.store.record(item.id, self.mode, card, int(rating), correct, answer_ms, moment)
+            self.cards[item.id] = card
+            if card.due <= moment + LEARN_AHEAD:
+                self.waiting.append(item.id)
         self.current = None
         self.answered += 1
         self.right += int(correct)
         if not correct:
             self.missed[item.id] += 1
-        if self.practice:
-            return
-        moment = self.now()
-        card = self.cards.get(item.id) or Card(card_id=item.id, due=moment)
-        card, _ = self.scheduler.review_card(card, rating, moment, answer_ms)
-        self.cards[item.id] = card
-        self.store.record(item.id, self.mode, card, int(rating), correct, answer_ms, moment)
-        if card.due <= moment + LEARN_AHEAD:
-            self.waiting.append(item.id)
 
     def summary(self) -> Summary:
         percent = round(100 * self.right / self.answered) if self.answered else 0
         order = sorted(self.missed.items(), key=lambda pair: (-pair[1], pair[0]))
-        tomorrow_end = day_start(self.now()) + timedelta(days=2)
+        tomorrow_end = day_start(self.now(), 2)
         due = sum(card.due < tomorrow_end for card in self.cards.values())
         return Summary(self.answered, self.right, percent,
                        tuple(self.items[i] for i, _ in order[:5]), due)

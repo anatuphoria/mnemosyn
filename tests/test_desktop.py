@@ -1,5 +1,6 @@
 import random
 import shutil
+import sqlite3
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -593,7 +594,7 @@ def test_progress_window_counts_reviews(window):
     dialog = window.show_progress()
     cells = [dialog.table.item(0, column).text() for column in range(7)]
     due = window.progress_store().card(100, "name-typed").due
-    week_end = day_start(datetime.now(timezone.utc)) + timedelta(days=7)
+    week_end = day_start(datetime.now(timezone.utc), 7)
     in_week = "1" if due < week_end else "0"
     assert cells == ["Name it (typed)", "Structures", "2", "0", "1", "0", in_week]
     assert dialog.weakest.count() == 1 and "Alpha gyrus" in dialog.weakest.item(0).text()
@@ -711,3 +712,26 @@ def test_next_button_moves_on_after_feedback(window):
     assert quiz.phase == "feedback" and quiz.next_button.isVisible()
     quiz.next_button.click()
     assert quiz.phase == "asking" and quiz.item.id == 110
+
+
+def test_a_progress_file_from_a_newer_version_is_named_as_such(window):
+    db = sqlite3.connect(window.progress_path)
+    db.execute("PRAGMA user_version = 2")
+    db.close()
+    window.progress_store()
+    assert "newer version" in window.recovery_box.text()
+
+
+def test_a_failed_save_keeps_the_answer_on_screen(window, monkeypatch):
+    quiz = start_quiz(window, "name-typed")
+    quiz.submit_text("Alpha gyrus")
+
+    def broken(*args):
+        raise sqlite3.OperationalError("disk full")
+
+    monkeypatch.setattr(window.progress_store(), "record", broken)
+    quiz.go_on()
+    assert quiz.phase == "feedback" and "Could not save" in quiz.hint.text()
+    monkeypatch.undo()
+    quiz.go_on()
+    assert quiz.item.id == 110

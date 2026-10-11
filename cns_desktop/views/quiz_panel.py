@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import sqlite3
 import time
 from html import escape
 
@@ -23,6 +24,7 @@ RATING_KEYS = {Qt.Key.Key_1: 1, Qt.Key.Key_2: 2, Qt.Key.Key_3: 3, Qt.Key.Key_4: 
 RIGHT = "<span style='color:#5c5'><b>Correct</b></span>"
 WRONG = "<span style='color:#e66'><b>Wrong</b></span>"
 RATINGS = ("1 Again", "2 Hard", "3 Good", "4 Easy")
+SAVE_FAILED = "Could not save this answer. Press Enter to try again."
 
 
 class AnswerBox(QLineEdit):
@@ -212,16 +214,22 @@ class QuizPanel(QWidget):
         self._layout()
         self.setFocus()
 
-    def _record(self, rating: Rating | None) -> None:
+    def _save(self, rating: Rating) -> bool:
+        try:
+            self.session.answer(rating, self.correct, self.answer_ms)
+        except sqlite3.Error:
+            self.hint.setText(SAVE_FAILED)
+            return False
+        return True
+
+    def _record(self, rating: Rating | None) -> bool:
         if not self.correct:
             rating = Rating.Again
-        self.session.answer(rating or Rating.Good, self.correct, self.answer_ms)
+        return self._save(rating or Rating.Good)
 
     def go_on(self, rating: Rating | None = None) -> None:
-        if self.phase != "feedback":
-            return
-        self._record(rating)
-        self._ask()
+        if self.phase == "feedback" and self._record(rating):
+            self._ask()
 
     def reveal(self) -> None:
         if self.phase != "asking" or self.mode != "flashcard":
@@ -237,8 +245,8 @@ class QuizPanel(QWidget):
         if self.phase != "revealed" or value not in (1, 2, 3, 4):
             return
         self.correct = value > 1
-        self.session.answer(Rating(value), self.correct, self.answer_ms)
-        self._ask()
+        if self._save(Rating(value)):
+            self._ask()
 
     def _show_summary(self) -> None:
         summary = self.session.summary()

@@ -1,4 +1,5 @@
 import random
+import sqlite3
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -123,3 +124,19 @@ def test_summary_counts_answers_and_most_missed(store):
 def test_answering_without_a_question_raises(store):
     with pytest.raises(RuntimeError):
         session(store, make_items(1), Clock()).answer(Rating.Good, True, 100)
+
+
+def test_a_failed_write_keeps_the_question(store, monkeypatch):
+    quiz = session(store, make_items(2), Clock())
+    quiz.next()
+
+    def broken(*args):
+        raise sqlite3.OperationalError("disk full")
+
+    monkeypatch.setattr(store, "record", broken)
+    with pytest.raises(sqlite3.OperationalError):
+        quiz.answer(Rating.Good, True, 500)
+    assert quiz.current.id == 1 and quiz.answered == 0
+    monkeypatch.undo()
+    quiz.answer(Rating.Good, True, 500)
+    assert quiz.answered == 1 and store.card(1, "find") is not None

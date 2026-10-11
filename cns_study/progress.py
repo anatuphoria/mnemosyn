@@ -30,9 +30,13 @@ def stamp(moment: datetime) -> str:
     return moment.astimezone(timezone.utc).isoformat(timespec="microseconds")
 
 
-def day_start(moment: datetime) -> datetime:
-    local = moment.astimezone()
-    return local.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
+def day_start(moment: datetime, days: int = 0) -> datetime:
+    day = moment.astimezone().date() + timedelta(days=days)
+    return datetime(day.year, day.month, day.day).astimezone(timezone.utc)
+
+
+class NewerVersion(sqlite3.DatabaseError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -49,9 +53,11 @@ class ProgressStore:
         self.path = Path(path)
         self.atlas = atlas
         self.recovered_from: Path | None = None
+        self.recovery_reason: str | None = None
         try:
             self.db = self._open()
-        except sqlite3.DatabaseError:
+        except sqlite3.DatabaseError as exc:
+            self.recovery_reason = "newer" if isinstance(exc, NewerVersion) else "damaged"
             self.recovered_from = self._set_aside()
             self.db = self._open()
 
@@ -60,8 +66,8 @@ class ProgressStore:
         db = sqlite3.connect(self.path, isolation_level=None)
         try:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, SCHEMA_VERSION):
-                raise sqlite3.DatabaseError(f"unknown progress schema version {version}")
+            if version > SCHEMA_VERSION:
+                raise NewerVersion(f"progress schema version {version} is newer than this app")
             db.execute("PRAGMA journal_mode = WAL")
             db.execute("PRAGMA synchronous = NORMAL")
             db.executescript(SCHEMA)
@@ -97,10 +103,10 @@ class ProgressStore:
             self.db.execute(UPSERT_CARD, (self.atlas, item, mode, card.to_json(), stamp(card.due)))
             self.db.execute(INSERT_REVIEW, (self.atlas, item, mode, int(rating), int(correct),
                                             int(answer_ms), stamp(when)))
+            self.db.execute("COMMIT")
         except BaseException:
             self.db.execute("ROLLBACK")
             raise
-        self.db.execute("COMMIT")
 
     def review_count(self, mode: str) -> int:
         return self.db.execute("SELECT COUNT(*) FROM reviews WHERE atlas = ? AND mode = ?",
@@ -116,9 +122,9 @@ class ProgressStore:
         self.db.close()
 
 
-def mode_stats(cards: dict[int, Card], ids: list[int], today_end: datetime) -> ModeStats:
+def mode_stats(cards: dict[int, Card], ids: list[int], now: datetime) -> ModeStats:
     seen = [cards[i] for i in ids if i in cards]
-    week_end = today_end + timedelta(days=6)
+    today_end, week_end = day_start(now, 1), day_start(now, 7)
     return ModeStats(
         new=len(ids) - len(seen),
         learning=sum(c.state in (State.Learning, State.Relearning) for c in seen),

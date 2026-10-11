@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fsrs import Scheduler
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QListWidget, QTableWidget,
@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QListWidget, Q
 
 from cns_atlas import Atlas
 from cns_study.items import LEVELS, items
-from cns_study.progress import MODES, ProgressStore, day_start, mode_stats, weakest
+from cns_study.progress import MODES, ProgressStore, mode_stats, weakest
 from cns_study.session import utc_now
 
 MODE_LABELS = {"name-typed": "Name it (typed)", "name-choice": "Name it (choice)",
@@ -23,7 +23,6 @@ class ProgressDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Progress")
         moment = now()
-        today_end = day_start(moment) + timedelta(days=1)
         scheduler = Scheduler()
         pools = {level: items(atlas, level) for level in LEVELS}
         names = {item.id: item.name for pool in pools.values() for item in pool}
@@ -36,7 +35,7 @@ class ProgressDialog(QDialog):
             cards = store.cards(mode)
             for level in LEVELS:
                 ids = [item.id for item in pools[level]]
-                stats = mode_stats(cards, ids, today_end)
+                stats = mode_stats(cards, ids, moment)
                 values = (MODE_LABELS[mode], level.capitalize(), stats.new, stats.learning,
                           stats.known, stats.due_today, stats.due_week)
                 for column, value in enumerate(values):
