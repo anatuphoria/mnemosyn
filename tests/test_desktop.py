@@ -2,7 +2,7 @@ import random
 import shutil
 import sqlite3
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 import pytest
@@ -15,7 +15,8 @@ from PySide6.QtWidgets import QApplication, QDialogButtonBox
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas
 from cns_desktop.app import disclaimer_due, main, mark_disclaimer_shown
-from cns_desktop.main_window import MainWindow, about_text, default_progress_path
+from cns_desktop.main_window import (MainWindow, about_text, default_progress_path,
+                                     migrate_progress)
 from cns_desktop.state import AppState
 from cns_desktop.views.quiz_setup import NO_ITEMS, NO_REVIEWED, NOTHING_DUE
 from cns_desktop.views.slice_panel import NO_TEMPLATE, NOT_RAS, SlicePanel
@@ -334,7 +335,7 @@ def test_non_ras_volume_disables_slices_instead_of_crashing(qapp, tmp_path):
     root = write_package(tmp_path / "pkg", tiny_structures(),
                          meshes={101: tetra(0), 102: tetra(5), 110: tetra(9)}, volume=volume,
                          affine=np.diag([-1.0, 1.0, 1.0, 1.0]))
-    window = MainWindow(Atlas.open(root))
+    window = MainWindow(Atlas.open(root), progress_path=tmp_path / "progress.sqlite")
     assert window.slices.note.text() == NOT_RAS
     assert not window.slices.isEnabled()
     window.close()
@@ -747,8 +748,8 @@ def test_progress_moves_from_the_old_folder(tmp_path):
     old.mkdir()
     (old / "progress.sqlite").write_bytes(b"cards")
     (old / "progress.sqlite-wal").write_bytes(b"log")
+    migrate_progress(tmp_path)
     path = default_progress_path(tmp_path)
-    assert path == tmp_path / "mnemosyn" / "progress.sqlite"
     assert path.read_bytes() == b"cards"
     assert (tmp_path / "mnemosyn" / "progress.sqlite-wal").read_bytes() == b"log"
     assert not (old / "progress.sqlite").exists()
@@ -758,5 +759,58 @@ def test_progress_is_never_moved_over_an_existing_file(tmp_path):
     for folder, payload in (("cns-atlas", b"old"), ("mnemosyn", b"new")):
         (tmp_path / folder).mkdir()
         (tmp_path / folder / "progress.sqlite").write_bytes(payload)
+    migrate_progress(tmp_path)
     assert default_progress_path(tmp_path).read_bytes() == b"new"
     assert (tmp_path / "cns-atlas" / "progress.sqlite").read_bytes() == b"old"
+
+
+def test_finding_the_progress_path_moves_nothing(tmp_path):
+    (tmp_path / "cns-atlas").mkdir()
+    (tmp_path / "cns-atlas" / "progress.sqlite").write_bytes(b"cards")
+    assert default_progress_path(tmp_path) == tmp_path / "mnemosyn" / "progress.sqlite"
+    assert (tmp_path / "cns-atlas" / "progress.sqlite").exists()
+
+
+def test_a_failed_progress_move_does_not_stop_the_app(tmp_path):
+    (tmp_path / "cns-atlas").mkdir()
+    (tmp_path / "cns-atlas" / "progress.sqlite").write_bytes(b"cards")
+    (tmp_path / "mnemosyn").write_bytes(b"a file where the folder should be")
+    migrate_progress(tmp_path)
+    assert (tmp_path / "cns-atlas" / "progress.sqlite").read_bytes() == b"cards"
+
+
+def test_find_it_moves_the_slice_to_the_answer_after_a_wrong_click(window, qapp):
+    start_quiz(window, "find")
+    window.state.set_slice("axial", -12.0)
+    row, col = find_slice_pixel(window.slices, {111, 112})
+    window.slices.click_pixel(row, col)
+    qapp.processEvents()
+    assert window.state.selected == 100 and window.state.slice_mm == 20.0
+
+
+def test_a_failed_save_when_leaving_keeps_the_quiz_open(window, monkeypatch):
+    quiz = start_quiz(window, "name-typed")
+    quiz.submit_text("Alpha gyrus")
+
+    def broken(*args):
+        raise sqlite3.OperationalError("disk full")
+
+    monkeypatch.setattr(window.progress_store(), "record", broken)
+    QTest.keyClick(quiz, Qt.Key.Key_Escape)
+    assert window.quiz_active and "Could not save" in quiz.hint.text()
+    monkeypatch.undo()
+    QTest.keyClick(quiz, Qt.Key.Key_Escape)
+    assert not window.quiz_active
+    assert window.progress_store().review_count("name-typed") == 1
+
+
+def test_a_failed_flashcard_save_asks_to_rate_again(reviewed_window, monkeypatch):
+    quiz = start_quiz(reviewed_window, "flashcard")
+    quiz.reveal()
+
+    def broken(*args):
+        raise sqlite3.OperationalError("disk full")
+
+    monkeypatch.setattr(reviewed_window.progress_store(), "record", broken)
+    quiz.rate(3)
+    assert quiz.phase == "revealed" and "rate it again" in quiz.hint.text()

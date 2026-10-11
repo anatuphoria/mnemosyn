@@ -92,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
     app.setApplicationName("Mnemosyn")
     apply_dark_theme(app)
 
-    from .main_window import MainWindow
+    from .main_window import MainWindow, migrate_progress
 
     window = MainWindow(atlas)
     if args.bench:
@@ -115,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         run_benchmark(window)
         window.close()
         return 0
+    migrate_progress()
     settings = QSettings("mnemosyn", "mnemosyn")
     if disclaimer_due(settings):
         window.show_disclaimer()

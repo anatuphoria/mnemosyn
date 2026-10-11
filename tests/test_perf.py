@@ -105,7 +105,7 @@ def test_desktop_first_frame_under_2s_and_memory_under_600mb():
 
 
 @pytest.mark.slow
-def test_selection_on_the_real_atlas_under_7ms():
+def test_selection_on_the_real_atlas_under_7ms(tmp_path):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
     from PySide6.QtWidgets import QApplication
@@ -113,7 +113,7 @@ def test_selection_on_the_real_atlas_under_7ms():
     from cns_desktop.main_window import MainWindow
 
     app = QApplication.instance() or QApplication([])
-    window = MainWindow(Atlas.open(atlas_path))
+    window = MainWindow(Atlas.open(atlas_path), progress_path=tmp_path / "progress.sqlite")
     window.resize(1500, 900)
     window.show()
     app.processEvents()

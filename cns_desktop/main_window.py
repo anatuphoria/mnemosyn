@@ -39,19 +39,29 @@ RECOVERED = {
 }
 
 
+def data_folder() -> Path:
+    location = QStandardPaths.StandardLocation.GenericDataLocation
+    return Path(QStandardPaths.writableLocation(location))
+
+
 def default_progress_path(base: Path | None = None) -> Path:
-    if base is None:
-        location = QStandardPaths.StandardLocation.GenericDataLocation
-        base = Path(QStandardPaths.writableLocation(location))
-    path = base / APP_FOLDER / "progress.sqlite"
+    return (base or data_folder()) / APP_FOLDER / "progress.sqlite"
+
+
+def migrate_progress(base: Path | None = None) -> None:
+    base = base or data_folder()
+    path = default_progress_path(base)
     old = base / OLD_FOLDER / "progress.sqlite"
-    if old.exists() and not path.exists():
+    if not old.exists() or path.exists():
+        return
+    try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        for suffix in ("", "-wal", "-shm"):
+        for suffix in ("-wal", "-shm", ""):
             source = old.with_name(old.name + suffix)
             if source.exists():
                 source.replace(path.with_name(path.name + suffix))
-    return path
+    except OSError:
+        return
 
 
 def gpu_name(view: BrainView) -> str:

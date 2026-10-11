@@ -24,7 +24,8 @@ RATING_KEYS = {Qt.Key.Key_1: 1, Qt.Key.Key_2: 2, Qt.Key.Key_3: 3, Qt.Key.Key_4: 
 RIGHT = "<span style='color:#5c5'><b>Correct</b></span>"
 WRONG = "<span style='color:#e66'><b>Wrong</b></span>"
 RATINGS = ("1 Again", "2 Hard", "3 Good", "4 Easy")
-SAVE_FAILED = "Could not save this answer. Press Enter to try again."
+SAVE_FAILED = {"feedback": "Could not save this answer. Press Enter to try again.",
+               "revealed": "Could not save this answer. Please rate it again."}
 
 
 class AnswerBox(QLineEdit):
@@ -127,12 +128,16 @@ class QuizPanel(QWidget):
         else:
             self.go_on()
 
-    def _hold(self, item_id: int) -> None:
-        QTimer.singleShot(0, lambda: self._restore(item_id))
+    def _hold(self, item_id: int, centre: bool = False) -> None:
+        QTimer.singleShot(0, lambda: self._restore(item_id, centre))
 
-    def _restore(self, item_id: int) -> None:
-        if self.item is not None and self.item.id == item_id and self.state.selected != item_id:
+    def _restore(self, item_id: int, centre: bool) -> None:
+        if self.item is None or self.item.id != item_id:
+            return
+        if self.state.selected != item_id:
             self._select(item_id)
+        if centre:
+            self.centre_requested.emit()
 
     def _focus(self) -> None:
         if self.phase == "asking" and self.mode == "name-typed":
@@ -218,7 +223,7 @@ class QuizPanel(QWidget):
         try:
             self.session.answer(rating, self.correct, self.answer_ms)
         except sqlite3.Error:
-            self.hint.setText(SAVE_FAILED)
+            self.hint.setText(SAVE_FAILED[self.phase])
             return False
         return True
 
@@ -266,8 +271,8 @@ class QuizPanel(QWidget):
     def stop(self) -> None:
         if self.phase == "idle":
             return
-        if self.phase == "feedback":
-            self._record(None)
+        if self.phase == "feedback" and not self._record(None):
+            return
         self.phase, self.item, self.session, self.options = "idle", None, None, []
         self._layout()
         self.finished.emit()
@@ -283,8 +288,7 @@ class QuizPanel(QWidget):
         clicked = item_for(self.pool, structure_id)
         name = clicked.name if clicked else self.state.atlas.get(structure_id).name
         correct = structure_id in self.item.geometry
-        self._hold(self.item.id)
-        self.centre_requested.emit()
+        self._hold(self.item.id, centre=True)
         self._judge(correct, "" if correct else f"You clicked: {name}.")
 
     def keyPressEvent(self, event) -> None:

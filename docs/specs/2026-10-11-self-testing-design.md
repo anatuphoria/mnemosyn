@@ -216,3 +216,6 @@ and more reviewed descriptions), syncing progress between computers, the termina
 9. Practice does not repeat wrong answers within the round.
 10. During a quiz the status bar shows "quiz in progress" instead of the selected structure's
     name.
+11. The project is named Mnemosyn (2026-10-11). The progress file lives in
+    `~/.local/share/mnemosyn/progress.sqlite`; a file in the old `cns-atlas` folder is moved
+    there once, on the first normal start, never over an existing file.

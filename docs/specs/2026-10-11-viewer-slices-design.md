@@ -204,3 +204,5 @@ the editor and model importers, terminal app changes.
    (measured 488 MB), which contradicts section 3.4. Full detail was kept; the 500 MB loader
    budget of spec A (atlas data without the GUI) still applies and is still tested. Accepted by
    the owner on 2026-10-11.
+6. Groups pass their colour on unchanged; only structures are shaded among their siblings, so
+   shades no longer compound through uncoloured groups (cleanup pass, 2026-10-11).
