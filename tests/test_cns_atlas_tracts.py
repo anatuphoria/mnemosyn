@@ -1,3 +1,4 @@
+import json
 import shutil
 
 import numpy as np
@@ -34,5 +35,35 @@ def test_a_damaged_tract_layer_raises(toy_tract_atlas, tmp_path, damage):
         np.save(root / "tracts" / "offsets.npy", np.array([0, 500, 400, 840], dtype=np.int64))
     else:
         (root / "tracts" / "voxels.npy").unlink()
+    with pytest.raises(AtlasError, match="tracts"):
+        Atlas.open(root)
+
+
+def damaged_copy(toy_tract_atlas, tmp_path):
+    return shutil.copytree(toy_tract_atlas, tmp_path / "pkg")
+
+
+def test_unsorted_tract_voxels_raise(toy_tract_atlas, tmp_path):
+    root = damaged_copy(toy_tract_atlas, tmp_path)
+    voxels = np.load(root / "tracts" / "voxels.npy")
+    np.save(root / "tracts" / "voxels.npy", voxels[::-1].copy())
+    with pytest.raises(AtlasError, match="not sorted"):
+        Atlas.open(root)
+
+
+def test_repeated_tract_ids_raise(toy_tract_atlas, tmp_path):
+    root = damaged_copy(toy_tract_atlas, tmp_path)
+    np.save(root / "tracts" / "ids.npy", np.array([151, 151, 160], dtype=np.uint16))
+    with pytest.raises(AtlasError, match="repeated"):
+        Atlas.open(root)
+
+
+def test_a_tracts_record_without_a_file_raises(toy_tract_atlas, tmp_path):
+    root = damaged_copy(toy_tract_atlas, tmp_path)
+    metadata = json.loads((root / "metadata.json").read_text())
+    for record in metadata["volumes"]:
+        if record.get("role") == "tracts":
+            del record["file"]
+    (root / "metadata.json").write_text(json.dumps(metadata))
     with pytest.raises(AtlasError, match="tracts"):
         Atlas.open(root)

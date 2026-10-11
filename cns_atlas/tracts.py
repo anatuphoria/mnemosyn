@@ -16,6 +16,14 @@ class TractLayer:
         if (len(offsets) != len(ids) + 1 or offsets[0] != 0 or np.any(np.diff(offsets) < 0)
                 or offsets[-1] != len(self._voxels)):
             raise ValueError("tract offsets do not match the voxel list")
+        if len(set(ids.tolist())) != len(ids):
+            raise ValueError("tract ids are repeated")
+        steps = np.diff(np.asarray(self._voxels, dtype=np.int64))
+        within = np.ones(len(steps), dtype=bool)
+        starts = offsets[1:-1]
+        within[starts[(starts > 0) & (starts < len(self._voxels))] - 1] = False
+        if np.any(steps[within] <= 0):
+            raise ValueError("tract voxels are not sorted within each tract")
         self.shape = tuple(int(n) for n in shape[:3])
         if len(self._voxels) and int(np.max(self._voxels)) >= int(np.prod(self.shape)):
             raise ValueError("tract voxels lie outside the label grid")

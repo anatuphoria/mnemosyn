@@ -77,6 +77,8 @@ class Atlas:
             volume = next((v for v in self.volumes if v.name == record.get("labels")), None)
             if volume is None:
                 continue
+            if not record.get("file"):
+                raise AtlasError(f"{root / 'metadata.json'}: tracts record has no file")
             try:
                 self.tracts = TractLayer(root / record["file"], volume.shape, volume.affine)
             except ValueError as exc:
