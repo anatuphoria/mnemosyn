@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from cns_atlas import Atlas, Structure
 
-LEVELS = ("structures", "groups")
+LEVELS = ("structures", "groups", "tracts")
 
 
 @dataclass(frozen=True)
@@ -33,30 +33,39 @@ def _item(atlas: Atlas, structure: Structure, level: str, meshed: frozenset[int]
 def structure_items(atlas: Atlas) -> list[Item]:
     meshed = _meshed(atlas)
     found = (_item(atlas, s, "structures", meshed) for s in atlas.structures
-             if s.kind != "group" and s.concept is None)
+             if s.kind not in ("group", "tract") and s.concept is None)
     return [item for item in found if item.geometry]
 
 
 def group_items(atlas: Atlas) -> list[Item]:
     meshed = _meshed(atlas)
     singles = structure_items(atlas)
+    everyone = frozenset(single.id for single in singles)
     candidates = []
     for structure in atlas.structures:
         if structure.kind != "group":
             continue
         item = _item(atlas, structure, "groups", meshed)
         members = frozenset(single.id for single in singles if structure.id in single.path)
-        if len(members) >= 2 and item.geometry != meshed:
+        if len(members) >= 2 and members != everyone:
             candidates.append((item, members))
     return [item for item, members in candidates
             if not any(other.id != item.id and item.id in other.path and same == members
                        for other, same in candidates)]
 
 
+def tract_items(atlas: Atlas) -> list[Item]:
+    meshed = _meshed(atlas)
+    found = (_item(atlas, s, "tracts", meshed) for s in atlas.structures
+             if s.kind == "tract" and s.concept is None)
+    return [item for item in found if item.geometry]
+
+
 def items(atlas: Atlas, level: str, scope: int | None = None) -> list[Item]:
     if level not in LEVELS:
         raise ValueError(f"unknown level {level!r}")
-    pool = structure_items(atlas) if level == "structures" else group_items(atlas)
+    pool = {"structures": structure_items, "groups": group_items,
+            "tracts": tract_items}[level](atlas)
     return pool if scope is None else [item for item in pool if scope in item.path]
 
 

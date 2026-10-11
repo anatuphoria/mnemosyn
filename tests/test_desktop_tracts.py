@@ -1,9 +1,13 @@
+import random
+
 import pytest
+from fsrs import Rating
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
+from cns_study.session import QuizChoice
 
 TRACT_LEAVES = (151, 152, 160)
 GREY = (101, 102, 111, 112, 120, 131, 132, 140)
@@ -126,3 +130,42 @@ def test_slice_clicks_pick_the_smallest_visible_tract_else_the_label(window):
     assert window.slices.structure_at_pixel(34, 8) == 151
     window.state.set_hidden(window.state.tract_ids, True)
     assert window.slices.structure_at_pixel(34, 8) not in TRACT_LEAVES
+
+
+def start_quiz(window, mode, level):
+    window.start_quiz(QuizChoice(mode, level, None, False), rng=random.Random(1))
+    return window.quiz
+
+
+def test_name_it_on_tracts_shows_only_the_asked_tract(window):
+    quiz = start_quiz(window, "name-typed", "tracts")
+    assert quiz.item.id == 150 and "tract" in quiz.prompt.text()
+    assert not window.state.is_hidden(151) and window.state.is_hidden(160)
+    quiz.submit_text("long tract")
+    assert "Correct" in quiz.feedback.text()
+    quiz.go_on(Rating.Easy)
+    assert quiz.item.id == 160
+    assert not window.state.is_hidden(160) and window.state.is_hidden(151)
+
+
+def test_find_it_on_tracts_shows_every_tract(window):
+    start_quiz(window, "find", "tracts")
+    assert not any(window.state.is_hidden(i) for i in TRACT_LEAVES)
+
+
+def test_other_levels_hide_tracts_and_leaving_restores_them(window):
+    window.shortcuts["Tracts"].trigger()
+    quiz = start_quiz(window, "name-typed", "structures")
+    assert all(window.state.is_hidden(i) for i in TRACT_LEAVES)
+    assert not window.shortcuts["Tracts"].isEnabled()
+    quiz.stop()
+    assert not any(window.state.is_hidden(i) for i in TRACT_LEAVES)
+    assert window.shortcuts["Tracts"].isEnabled()
+
+
+def test_the_setup_dialog_offers_the_tracts_level(window):
+    dialog = window.open_quiz_setup()
+    assert dialog.level.count() == 3
+    dialog.level.setCurrentIndex(2)
+    assert dialog.note.text() == "0 due, 2 new"
+    dialog.reject()

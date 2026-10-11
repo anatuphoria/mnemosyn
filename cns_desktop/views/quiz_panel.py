@@ -24,6 +24,7 @@ RATING_KEYS = {Qt.Key.Key_1: 1, Qt.Key.Key_2: 2, Qt.Key.Key_3: 3, Qt.Key.Key_4: 
 RIGHT = "<span style='color:#5c5'><b>Correct</b></span>"
 WRONG = "<span style='color:#e66'><b>Wrong</b></span>"
 RATINGS = ("1 Again", "2 Hard", "3 Good", "4 Easy")
+WHAT = {"structures": "structure", "groups": "group", "tracts": "tract"}
 SAVE_FAILED = {"feedback": "Could not save this answer. Press Enter to try again.",
                "revealed": "Could not save this answer. Please rate it again."}
 
@@ -166,6 +167,9 @@ class QuizPanel(QWidget):
 
     def _present(self, item: Item) -> None:
         self.options = []
+        if item.level == "tracts" and self.mode != "find":
+            self.state.set_hidden([i for i in self.state.tract_ids if i not in item.geometry],
+                                  True)
         if self.mode == "find":
             self._select(None)
             self.prompt.setText(f"<b>Find:</b> {escape(item.name)}<br>"
@@ -178,7 +182,7 @@ class QuizPanel(QWidget):
             self.prompt.setText(f"<b>{escape(item.name)}</b> ({escape(item.acronym)})")
             self.hint.setText("Space shows the description")
             return
-        what = "structure" if item.level == "structures" else "group"
+        what = WHAT[item.level]
         self.prompt.setText(f"<b>Which {what} is highlighted?</b>")
         if self.mode == "name-choice":
             self.options = choices(item, self.pool, self.rng)

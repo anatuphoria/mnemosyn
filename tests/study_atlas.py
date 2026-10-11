@@ -48,8 +48,8 @@ def study_structures() -> list[Structure]:
     ]
 
 
-def study_atlas(root: Path, entries: dict[int, str] | None = None) -> Atlas:
-    structures = study_structures()
+def study_atlas(root: Path, entries: dict[int, str] | None = None, extra=()) -> Atlas:
+    structures = [*study_structures(), *extra]
     meshes = {s.id: tetra(float(n)) for n, s in enumerate(structures) if s.side != "none"}
     package = write_package(root / "pkg", structures, meshes=meshes,
                             entries={"en": entries or {}})

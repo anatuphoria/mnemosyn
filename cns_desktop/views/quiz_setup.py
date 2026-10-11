@@ -13,7 +13,7 @@ from cns_study.session import QuizChoice, due_and_new, utc_now
 
 MODES = (("Name it", "name"), ("Find it", "find"), ("Flashcards", "flashcard"))
 STYLES = (("Type the name", "name-typed"), ("Choose from 4", "name-choice"))
-LEVELS = (("Structures", "structures"), ("Groups", "groups"))
+LEVELS = (("Structures", "structures"), ("Groups", "groups"), ("Tracts", "tracts"))
 SESSIONS = (("Due now", False), ("Practice", True))
 NO_ITEMS = "Nothing to ask in this scope at this level."
 NO_REVIEWED = "No reviewed descriptions yet."

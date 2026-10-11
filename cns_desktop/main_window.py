@@ -12,7 +12,8 @@ from PySide6.QtWidgets import QDockWidget, QLabel, QMainWindow, QMessageBox
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_study.answers import AnswerIndex
-from cns_study.items import group_items, items, structure_items, with_reviewed_entries
+from cns_study.items import (group_items, items, structure_items, tract_items,
+                             with_reviewed_entries)
 from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, Session, utc_now
 
@@ -30,7 +31,7 @@ APP_NAME = "Mnemosyn"
 APP_FOLDER = "mnemosyn"
 OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
-QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz")
+QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
 RECOVERED = {
     "damaged": ("Progress file damaged", "Your progress file could not be read. It was kept as "
                 "{path} and a new one was started."),
@@ -190,7 +191,8 @@ class MainWindow(QMainWindow):
     def answer_index(self) -> AnswerIndex:
         if self._answers is None:
             atlas = self.state.atlas
-            self._answers = AnswerIndex(structure_items(atlas) + group_items(atlas))
+            pool = structure_items(atlas) + group_items(atlas) + tract_items(atlas)
+            self._answers = AnswerIndex(pool)
         return self._answers
 
     def open_quiz_setup(self) -> QuizSetup:
@@ -216,6 +218,8 @@ class MainWindow(QMainWindow):
         session = Session(chosen, choice.mode, self.progress_store(), choice.practice, now=now,
                           rng=rng)
         self.enter_quiz()
+        shown = choice.level == "tracts" and choice.mode == "find"
+        self.state.set_hidden(self.state.tract_ids, not shown)
         self.quiz.start(session, choice.mode, self.answer_index(), pool, rng)
 
     def _quiz_locked(self) -> list[QAction]:

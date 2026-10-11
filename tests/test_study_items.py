@@ -1,7 +1,8 @@
 import pytest
 
-from cns_study.items import (Item, group_items, item_for, items, structure_items,
-                             with_reviewed_entries)
+from cns_atlas import Structure
+from cns_study.items import (LEVELS, Item, group_items, item_for, items, structure_items,
+                             tract_items, with_reviewed_entries)
 from study_atlas import entry, study_atlas
 
 
@@ -51,3 +52,14 @@ def test_item_for_returns_the_most_specific_item():
 def test_with_reviewed_entries_keeps_items_with_a_reviewed_description(tmp_path):
     atlas = study_atlas(tmp_path, entries={300: entry(300, "reviewed"), 310: entry(310, "draft")})
     assert [i.id for i in with_reviewed_entries(atlas, structure_items(atlas))] == [300]
+
+
+def test_tracts_have_their_own_level_and_leave_groups_alone(tmp_path):
+    tract = Structure(700, "TRK", "Test tract", (1, 700), (170, 170, 180), kind="tract",
+                      side="midline")
+    atlas = study_atlas(tmp_path, extra=[tract])
+    assert [i.id for i in tract_items(atlas)] == [700]
+    assert [i.id for i in items(atlas, "tracts")] == [700]
+    assert 700 not in [i.id for i in structure_items(atlas)]
+    assert [i.id for i in group_items(atlas)] == [10, 20, 31, 40, 60]
+    assert LEVELS == ("structures", "groups", "tracts")
