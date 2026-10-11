@@ -1,0 +1,136 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+from pathlib import Path
+
+from cns_atlas.model import Structure
+
+from .recipe import BuildError, read_toml
+
+DEFAULT_COLOR = (170, 170, 180)
+GROUP_KEYS = {"id", "parent", "acronym", "name", "color", "synonyms", "xrefs"}
+CONCEPT_KEYS = GROUP_KEYS | {"kind", "left", "right", "midline", "source"}
+
+
+@dataclass(frozen=True)
+class LabelRef:
+    source: str
+    value: int
+
+
+@dataclass(frozen=True)
+class RawStructure:
+    id: int
+    parent: int | None
+    acronym: str
+    name: str
+    kind: str
+    side: str
+    concept: int | None
+    color: tuple[int, int, int] | None
+    synonyms: tuple[str, ...]
+    xrefs: dict
+    sources: tuple[str, ...]
+    labels: tuple[LabelRef, ...]
+
+
+@dataclass(frozen=True)
+class PlannedStructure:
+    structure: Structure
+    labels: tuple[LabelRef, ...]
+
+
+def _record_problems(record: dict, allowed: set[str], label: str) -> list[str]:
+    problems = []
+    unknown = set(record) - allowed
+    if unknown:
+        problems.append(f"{label} {record.get('id')}: unknown keys {sorted(unknown)}")
+    missing = {"id", "acronym", "name"} - set(record)
+    if missing:
+        problems.append(f"{label} {record.get('id')}: missing {sorted(missing)}")
+    if "midline" in record and ("left" in record or "right" in record):
+        problems.append(f"{label} {record.get('id')}: has both 'midline' and 'left'/'right'")
+    return problems
+
+
+def _raw(record: dict, **fields) -> RawStructure:
+    color = record.get("color")
+    parent = record.get("parent")
+    return RawStructure(id=int(record["id"]), parent=int(parent) if parent is not None else None,
+                        acronym=str(record["acronym"]), name=str(record["name"]),
+                        color=tuple(int(c) for c in color) if color else None,
+                        synonyms=tuple(record.get("synonyms", ())),
+                        xrefs=dict(record.get("xrefs", {})), **fields)
+
+
+def _expand_concept(record: dict, source: str) -> list[RawStructure]:
+    kind = record.get("kind", "region")
+    if "midline" in record:
+        return [_raw(record, kind=kind, side="midline", concept=None, sources=(source,),
+                     labels=(LabelRef(source, int(record["midline"])),))]
+    concept = _raw(record, kind=kind, side="none", concept=None, sources=(), labels=())
+    out = [concept]
+    for offset, side in ((1, "left"), (2, "right")):
+        if side in record:
+            out.append(RawStructure(
+                id=concept.id + offset, parent=concept.id,
+                acronym=f"{concept.acronym}-{side[0].upper()}",
+                name=f"{concept.name} ({side})", kind=kind, side=side, concept=concept.id,
+                color=concept.color, synonyms=(f"{side} {concept.name}",), xrefs={},
+                sources=(source,), labels=(LabelRef(source, int(record[side])),)))
+    return out
+
+
+def load_structures(path: Path) -> list[RawStructure]:
+    data = read_toml(path)
+    default_source = data.get("default_source", "")
+    raws: list[RawStructure] = []
+    problems: list[str] = []
+    for record in data.get("groups", []):
+        found = _record_problems(record, GROUP_KEYS, "group")
+        problems += found
+        if not found:
+            raws.append(_raw(record, kind="group", side="none", concept=None, sources=(),
+                             labels=()))
+    for record in data.get("concepts", []):
+        found = _record_problems(record, CONCEPT_KEYS, "concept")
+        problems += found
+        if not found:
+            raws.extend(_expand_concept(record, record.get("source", default_source)))
+    if problems:
+        raise BuildError(problems)
+    return raws
+
+
+def build_tree(raws: list[RawStructure]) -> list[PlannedStructure]:
+    by_id = {r.id: r for r in raws}
+    children: dict[int | None, list[int]] = {}
+    for r in raws:
+        children.setdefault(r.parent, []).append(r.id)
+    out: list[PlannedStructure] = []
+    stack = [(children[None][0], (), DEFAULT_COLOR)]
+    while stack:
+        structure_id, path, inherited = stack.pop()
+        r = by_id[structure_id]
+        path = (*path, structure_id)
+        color = r.color or inherited
+        structure = Structure(id=r.id, acronym=r.acronym, name=r.name, structure_id_path=path,
+                              rgb_triplet=color, kind=r.kind, side=r.side, concept=r.concept,
+                              synonyms=r.synonyms, xrefs=r.xrefs, sources=r.sources)
+        out.append(PlannedStructure(structure, r.labels))
+        for child in sorted(children.get(structure_id, []), reverse=True):
+            stack.append((child, path, color))
+    return out
+
+
+def with_xrefs(planned: list[PlannedStructure],
+               names: dict[str, dict[int, str]]) -> list[PlannedStructure]:
+    out = []
+    for p in planned:
+        xrefs = dict(p.structure.xrefs)
+        for ref in p.labels:
+            name = names.get(ref.source, {}).get(ref.value)
+            if name:
+                xrefs[ref.source] = name
+        out.append(replace(p, structure=replace(p.structure, xrefs=xrefs)))
+    return out
