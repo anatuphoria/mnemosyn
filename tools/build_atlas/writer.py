@@ -22,9 +22,9 @@ def write_json(path: Path, data) -> None:
     path.write_text(text + "\n", encoding="utf-8")
 
 
-def write_volume(path: Path, data: np.ndarray, affine: np.ndarray) -> None:
-    image = nib.Nifti1Image(data.astype(np.uint16), affine)
-    image.set_data_dtype(np.uint16)
+def write_volume(path: Path, data: np.ndarray, affine: np.ndarray, dtype=np.uint16) -> None:
+    image = nib.Nifti1Image(data.astype(dtype), affine)
+    image.set_data_dtype(dtype)
     buffer = io.BytesIO()
     with gzip.GzipFile(filename="", mode="wb", fileobj=buffer, mtime=0) as gz:
         gz.write(image.to_bytes())
@@ -38,12 +38,18 @@ def orientation(affine: np.ndarray) -> str:
 def write_package(out: Path, recipe: Recipe, structures: list[Structure], sources: list[Source],
                   volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]],
                   meshes: list[dict[int, MeshData]], knowledge_src: Path,
-                  licence_files: list[Path], report: str) -> None:
+                  licence_files: list[Path], report: str, templates=()) -> None:
     (out / "volumes").mkdir(parents=True)
     volume_records = []
+    spaces = {spec.name: spec.space for spec, _, _ in volumes}
     for spec, data, affine in volumes:
         write_volume(out / "volumes" / f"{spec.name}.nii.gz", data, affine)
         volume_records.append({"file": f"volumes/{spec.name}.nii.gz", "space": spec.space,
+                               "role": "labels", "affine_to_world": np.eye(4).tolist()})
+    for name, data, affine in templates:
+        write_volume(out / "volumes" / f"{name}-template.nii.gz", data, affine, dtype=np.uint8)
+        volume_records.append({"file": f"volumes/{name}-template.nii.gz", "space": spaces[name],
+                               "role": "template", "labels": name,
                                "affine_to_world": np.eye(4).tolist()})
     _, first_data, first_affine = volumes[0]
     write_json(out / "metadata.json", {

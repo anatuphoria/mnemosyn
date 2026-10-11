@@ -110,3 +110,22 @@ def check_voxels(planned: list[PlannedStructure], volumes: list[np.ndarray]) -> 
         present.update(np.unique(data).tolist())
     return [f"structure {p.structure.id} ({p.structure.name}) has no voxels"
             for p in planned if p.labels and p.structure.id not in present]
+
+
+def check_templates(recipe: Recipe, src: Path) -> list[str]:
+    volumes = {v.name for v in recipe.volumes}
+    problems = []
+    for spec in recipe.templates:
+        name = spec.source.id
+        if not spec.source.licence:
+            problems.append(f"template {name}: licence is missing")
+        if not spec.source.redistribution:
+            problems.append(f"template {name}: redistribution is not allowed")
+        if spec.licence_file and not (src / spec.licence_file).exists():
+            problems.append(f"template {name}: licence file {spec.licence_file} is missing")
+        if spec.volume not in volumes:
+            problems.append(f"template {name}: unknown volume {spec.volume!r}")
+    targets = [spec.volume for spec in recipe.templates]
+    problems += [f"volume {v}: more than one template"
+                 for v in sorted({t for t in targets if targets.count(t) > 1})]
+    return problems

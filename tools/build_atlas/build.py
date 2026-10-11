@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+import nibabel as nib
 import numpy as np
 
 from cns_atlas.knowledge import KnowledgeError, load_references
@@ -17,12 +18,14 @@ from .idlock import IdLock, load_lock, write_lock
 from .labels import load_label_image, mapping_for, merge, read_label_names, source_values
 from .meshing import levels, surface
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
-from .validate import check_hierarchy, check_ids, check_knowledge, check_sources, check_voxels
+from .templates import covers, on_grid, to_uint8
+from .validate import (check_hierarchy, check_ids, check_knowledge, check_sources,
+                       check_templates, check_voxels)
 from .writer import write_package
 
 
 def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[int, MeshData]],
-                 volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]]) -> str:
+                 volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=()) -> str:
     kinds: dict[str, int] = {}
     for s in structures:
         kinds[s.kind] = kinds.get(s.kind, 0) + 1
@@ -34,6 +37,8 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
               for name, level in zip(LODS, meshes)]
     lines += [f"- volume {spec.name}: shape {list(data.shape)}, space {spec.space}"
               for spec, data, _ in volumes]
+    lines += [f"- template for {name}: shape {list(data.shape)}, uint8"
+              for name, data, _ in templates]
     return "\n".join(lines) + "\n"
 
 
@@ -66,6 +71,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     except KnowledgeError as exc:
         raise BuildError([str(exc)]) from exc
     problems = check_hierarchy(raws) + check_ids(raws, lock) + check_sources(raws, recipe, src)
+    problems += check_templates(recipe, src)
     problems += check_knowledge(src / "knowledge", references, {r.id: r.concept for r in raws},
                                 set())
     if problems:
@@ -93,6 +99,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     problems += check_voxels(planned, [data for _, data, _ in volumes])
     if problems:
         raise BuildError(problems)
+    grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
+    templates = []
+    for spec in recipe.templates:
+        log(f"fetching {spec.source.id}")
+        image = nib.load(member_path(spec, fetch(spec, cache), spec.member))
+        shape, affine = grids[spec.volume]
+        if not covers(image, shape, affine):
+            raise BuildError([f"template {spec.source.id} does not cover volume {spec.volume}"])
+        templates.append((spec.volume, to_uint8(on_grid(image, shape, affine)), affine))
 
     log("meshing")
     meshes: list[dict[int, MeshData]] = [{} for _ in recipe.lod_fractions]
@@ -108,14 +123,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
                     level[p.structure.id] = mesh_data
 
     structures = [p.structure for p in planned]
-    licence_files = [src / s.licence_file for s in recipe.sources if s.licence_file]
-    report = build_report(recipe, structures, meshes, volumes)
+    licence_files = [src / s.licence_file for s in (*recipe.sources, *recipe.templates)
+                     if s.licence_file]
+    report = build_report(recipe, structures, meshes, volumes, templates)
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:
         package = staging / "package"
         write_package(package, recipe, structures, [s.source for s in recipe.sources], volumes,
-                      meshes, src / "knowledge", licence_files, report)
+                      meshes, src / "knowledge", licence_files, report, templates)
         previous = staging / "previous"
         if out.exists():
             out.replace(previous)

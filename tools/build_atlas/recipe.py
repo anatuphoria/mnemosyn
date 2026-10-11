@@ -48,6 +48,7 @@ class Recipe:
     smoothing_pass_band: float
     sources: tuple[SourceSpec, ...]
     volumes: tuple[VolumeSpec, ...]
+    templates: tuple[SourceSpec, ...] = ()
 
 
 def read_toml(path: Path) -> dict:
@@ -89,6 +90,7 @@ def load_recipe(path: Path) -> Recipe:
             sources=tuple(_source_spec(s) for s in data.get("sources", [])),
             volumes=tuple(VolumeSpec(v["name"], v["space"], v["grid_source"])
                           for v in data.get("volumes", [])),
+            templates=tuple(_source_spec(t) for t in data.get("templates", [])),
         )
     except KeyError as exc:
         raise BuildError([f"{path}: missing key {exc}"]) from exc

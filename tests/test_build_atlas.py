@@ -1,9 +1,11 @@
 import json
 
+import nibabel as nib
 import numpy as np
 import pytest
 
-from atlas_fixtures import AFFINE, BLOBS, NAMES, make_source_archive, write_source_tree
+from atlas_fixtures import (AFFINE, BLOBS, NAMES, TEMPLATE_AFFINE, make_source_archive,
+                            write_source_tree)
 from cns_atlas import Atlas
 from tools.build_atlas.__main__ import main
 from tools.build_atlas.build import build
@@ -135,3 +137,27 @@ def test_previous_package_survives_a_failed_final_rename(toy_src, tmp_path, monk
     monkeypatch.undo()
     assert files_of(out) == before
     assert not list(tmp_path.glob(".out-*"))
+
+
+def test_template_is_written_on_the_label_grid_as_uint8(toy_atlas):
+    image = nib.load(toy_atlas / "volumes" / "brain-template.nii.gz")
+    data = np.asarray(image.dataobj)
+    assert data.dtype == np.uint8 and data.shape == (40, 48, 36)
+    assert data.min() == 0 and data.max() == 255
+    assert np.allclose(image.affine, AFFINE)
+    records = json.loads((toy_atlas / "metadata.json").read_text())["volumes"]
+    assert records == [
+        {"file": "volumes/brain.nii.gz", "space": "MNI152", "role": "labels",
+         "affine_to_world": np.eye(4).tolist()},
+        {"file": "volumes/brain-template.nii.gz", "space": "MNI152", "role": "template",
+         "labels": "brain", "affine_to_world": np.eye(4).tolist()},
+    ]
+
+
+def test_template_that_does_not_cover_the_grid_fails(tmp_path):
+    small = TEMPLATE_AFFINE.copy()
+    small[:3, 3] = [0.0, 0.0, 0.0]
+    archive, sha256 = make_source_archive(tmp_path / "upstream", template_affine=small)
+    src = write_source_tree(tmp_path / "src", archive, sha256)
+    with pytest.raises(BuildError, match="template toy-template does not cover volume brain"):
+        build(src, tmp_path / "out", cache=tmp_path / "cache", log=lambda *_: None)

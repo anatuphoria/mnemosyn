@@ -8,7 +8,7 @@ from tools.build_atlas.hierarchy import (LabelRef, PlannedStructure, RawStructur
 from tools.build_atlas.idlock import IdLock, load_lock, write_lock
 from tools.build_atlas.recipe import BuildError, load_recipe
 from tools.build_atlas.validate import (check_hierarchy, check_ids, check_knowledge,
-                                        check_sources, check_voxels)
+                                        check_sources, check_templates, check_voxels)
 
 
 def raw(id, parent, kind="region", side="none", sources=(), labels=(), concept=None):
@@ -188,3 +188,28 @@ def test_sibling_factors_span_evenly_by_id():
     factors = sibling_factors([30, 10, 20])
     assert list(factors) == [10, 20, 30]
     assert [round(f, 6) for f in factors.values()] == [-0.15, 0.0, 0.15]
+
+
+def edit_template(src, old, new):
+    path = src / "recipe.toml"
+    head, tail = path.read_text().split("[[templates]]")
+    assert old in tail
+    path.write_text(head + "[[templates]]" + tail.replace(old, new))
+
+
+def test_toy_templates_are_valid(src):
+    recipe = load_recipe(src / "recipe.toml")
+    assert [t.source.id for t in recipe.templates] == ["toy-template"]
+    assert recipe.templates[0].volume == "brain"
+    assert check_templates(recipe, src) == []
+
+
+@pytest.mark.parametrize("old, new, message", [
+    ('licence = "Toy template licence"', 'licence = ""', "template toy-template: licence is missing"),
+    ("redistribution = true", "redistribution = false",
+     "template toy-template: redistribution is not allowed"),
+    ('volume = "brain"', 'volume = "cord"', "template toy-template: unknown volume 'cord'"),
+])
+def test_template_problems(src, old, new, message):
+    edit_template(src, old, new)
+    assert message in check_templates(load_recipe(src / "recipe.toml"), src)

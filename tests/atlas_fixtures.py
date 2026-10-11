@@ -36,6 +36,19 @@ member = "TOY/toy.nii"
 label_names = "TOY/toy.txt"
 volume = "brain"
 priority = 1
+
+[[templates]]
+id = "toy-template"
+title = "Toy template"
+authors = "Test B"
+year = 2024
+version = "1"
+licence = "Toy template licence"
+redistribution = true
+download = "{download}"
+sha256 = "{sha256}"
+member = "TOY/template.nii"
+volume = "brain"
 """
 
 TOY_STRUCTURES = """\
@@ -90,6 +103,14 @@ BLOBS = {
     5: ((20, 10, 8), (4, 3, 3)),
 }
 NAMES = {1: "Alpha_L", 2: "Alpha_R", 3: "Beta_L", 4: "Beta_R", 5: "Gamma"}
+TEMPLATE_SHAPE = (20, 24, 18)
+TEMPLATE_AFFINE = np.array([[8.0, 0, 0, -80.0], [0, 8.0, 0, -96.0], [0, 0, 8.0, -60.0],
+                            [0, 0, 0, 1.0]])
+
+
+def template_volume(shape=TEMPLATE_SHAPE) -> np.ndarray:
+    grid = np.indices(shape).astype(np.float32)
+    return 1000.0 + 50.0 * grid[0] + 20.0 * grid[1] + 10.0 * grid[2]
 
 
 def label_volume(blobs=BLOBS) -> np.ndarray:
@@ -101,13 +122,17 @@ def label_volume(blobs=BLOBS) -> np.ndarray:
     return volume
 
 
-def make_source_archive(folder: Path, blobs=BLOBS, names=NAMES) -> tuple[Path, str]:
+def make_source_archive(folder: Path, blobs=BLOBS, names=NAMES, template_shape=TEMPLATE_SHAPE,
+                        template_affine=TEMPLATE_AFFINE) -> tuple[Path, str]:
     folder.mkdir(parents=True, exist_ok=True)
     image = nib.Nifti1Image(label_volume(blobs), AFFINE)
+    template = nib.Nifti1Image(template_volume(template_shape), template_affine)
     table = "".join(f"{value} {name} {value}\n" for value, name in sorted(names.items()))
     archive = folder / "toy_atlas.tar.gz"
+    members = (("TOY/toy.nii", image.to_bytes()), ("TOY/toy.txt", table.encode()),
+               ("TOY/template.nii", template.to_bytes()))
     with tarfile.open(archive, "w:gz") as tar:
-        for name, payload in (("TOY/toy.nii", image.to_bytes()), ("TOY/toy.txt", table.encode())):
+        for name, payload in members:
             info = tarfile.TarInfo(name)
             info.size = len(payload)
             tar.addfile(info, io.BytesIO(payload))
