@@ -1,0 +1,42 @@
+[purves2018]
+authors = "Purves D, Augustine GJ, Fitzpatrick D, et al. (eds)"
+title = "Neuroscience"
+edition = "6th"
+year = 2018
+publisher = "Sinauer Associates"
+isbn = "9781605353807"
+
+[kandel2021]
+authors = "Kandel ER, Koester JD, Mack SH, Siegelbaum SA (eds)"
+title = "Principles of Neural Science"
+edition = "6th"
+year = 2021
+publisher = "McGraw Hill"
+isbn = "9781259642234"
+
+[penfield1937]
+authors = "Penfield W, Boldrey E"
+title = "Somatic motor and sensory representation in the cerebral cortex of man as studied by electrical stimulation"
+journal = "Brain"
+volume = "60(4)"
+pages = "389-443"
+year = 1937
+doi = "10.1093/brain/60.4.389"
+
+[scoville1957]
+authors = "Scoville WB, Milner B"
+title = "Loss of recent memory after bilateral hippocampal lesions"
+journal = "Journal of Neurology, Neurosurgery, and Psychiatry"
+volume = "20(1)"
+pages = "11-21"
+year = 1957
+doi = "10.1136/jnnp.20.1.11"
+
+[braak1991]
+authors = "Braak H, Braak E"
+title = "Neuropathological stageing of Alzheimer-related changes"
+journal = "Acta Neuropathologica"
+volume = "82(4)"
+pages = "239-259"
+year = 1991
+doi = "10.1007/BF00308809"

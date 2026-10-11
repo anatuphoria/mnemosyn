@@ -1,0 +1,35 @@
+name = "cns-atlas"
+version = "0.1.0"
+species = "Homo sapiens"
+citation = "unpublished"
+atlas_link = ""
+licence = "CC BY 4.0"
+lod0_max_faces = 20000
+lod_fractions = [1.0, 0.25, 0.05]
+min_faces = 64
+smoothing_iterations = 30
+smoothing_pass_band = 0.05
+
+[[volumes]]
+name = "brain"
+space = "MNI152"
+grid_source = "aal3"
+
+[[sources]]
+id = "aal3"
+title = "Automated anatomical labelling atlas 3"
+authors = "Rolls ET, Huang CC, Lin CP, Feng J, Joliot M"
+year = 2020
+version = "AAL 3v2 (AAL3v1 1 mm volume)"
+doi = "10.1016/j.neuroimage.2019.116189"
+url = "https://www.gin.cnrs.fr/en/tools/aal/"
+licence = "GNU General Public License (no version stated; GPL-3.0 text included)"
+licence_file = "LICENSES/GPL-3.0.txt"
+redistribution = true
+download = "https://www.gin.cnrs.fr/wp-content/uploads/AAL3v2_for_SPM12.tar.gz"
+sha256 = "63d08024303dd389671f58a6990dbdfce40c828d33af65f2d63c793e9ee5fef6"
+verify_tls = false
+member = "AAL3/AAL3v1_1mm.nii.gz"
+label_names = "AAL3/AAL3v1_1mm.nii.txt"
+volume = "brain"
+priority = 1
