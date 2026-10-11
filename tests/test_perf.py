@@ -134,8 +134,8 @@ def test_real_atlas_quiz_levels():
 
     atlas = Atlas.open(real_atlas_or_skip())
     groups = {item.name for item in group_items(atlas)}
-    assert {"Thalamus", "Frontal lobe", "Vermis"} <= groups
-    assert not {"Central nervous system", "Brain", "Diencephalon", "Pons"} & groups
+    assert {"Thalamus", "Frontal lobe", "Vermis", "Hypothalamus", "Diencephalon"} <= groups
+    assert not {"Central nervous system", "Brain", "Pons", "Tracts"} & groups
     assert len(structure_items(atlas)) > 80
 
 

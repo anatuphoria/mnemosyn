@@ -1,0 +1,11 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+Used for: A high-resolution in vivo magnetic resonance imaging atlas of the human hypothalamic
+region. Neudorfer C, Germann J, Elias GJB, Gramer R, Boutet A, Lozano AM (2020), Scientific
+Data 7: 305, https://doi.org/10.1038/s41597-020-00644-6, data at
+https://zenodo.org/records/3942115
+
+Changes: the 0.5 mm labels were resampled to the 1 mm atlas grid, merged with the other
+sources and converted to 3D surfaces; four duplicated structures were left out.
+
+Full licence text: https://creativecommons.org/licenses/by/4.0/legalcode

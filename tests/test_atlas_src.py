@@ -27,9 +27,40 @@ def test_hierarchy_sources_and_knowledge_are_valid():
 
 def test_every_aal3_label_maps_to_exactly_one_structure():
     raws = load_structures(SRC / "structures.toml")
-    values = [ref.value for r in raws for ref in r.labels]
+    values = [ref.value for r in raws for ref in r.labels if ref.source == "aal3"]
     assert sorted(values) == sorted(set(range(1, 171)) - AAL3_EMPTY_LABELS)
-    assert {ref.source for r in raws for ref in r.labels} == {"aal3"}
+    assert {ref.source for r in raws for ref in r.labels} == {"aal3", "neudorfer2020", "hcp1065"}
+
+
+NEUDORFER_LABELS = set(range(1, 11)) | set(range(13, 39)) | set(range(41, 55))
+
+
+def test_every_hypothalamus_label_is_mapped_or_dropped():
+    raws = load_structures(SRC / "structures.toml")
+    spec = next(s for s in load_recipe(SRC / "recipe.toml").sources
+                if s.source.id == "neudorfer2020")
+    mapped = [ref.value for r in raws for ref in r.labels if ref.source == "neudorfer2020"]
+    assert len(mapped) == len(set(mapped)) == 42
+    assert set(mapped) | set(spec.drop) == NEUDORFER_LABELS
+    assert not set(mapped) & set(spec.drop)
+    assert spec.priority == 0 and spec.mesh_grid == "native"
+
+
+def test_every_tract_file_is_mapped_or_dropped():
+    raws = load_structures(SRC / "structures.toml")
+    tracts = load_recipe(SRC / "recipe.toml").tracts[0]
+    mapped = [ref.value for r in raws for ref in r.labels if ref.source == "hcp1065"]
+    assert len(tracts.names) == 80 and len(mapped) == len(set(mapped)) == 77
+    assert set(mapped) | set(tracts.drop) == set(tracts.names)
+
+
+def test_new_regions_have_the_planned_concepts():
+    raws = load_structures(SRC / "structures.toml")
+    tracts = [r for r in raws if r.kind == "tract" and r.concept is None]
+    assert len(tracts) == 43
+    from_neudorfer = {r.concept or r.id for r in raws if "neudorfer2020" in r.sources}
+    assert len(from_neudorfer) == 21
+    assert all(2500 <= i < 2700 or 3000 <= i < 3500 for i in from_neudorfer)
 
 
 def test_acronyms_are_unique():
@@ -52,7 +83,9 @@ def test_real_build(tmp_path):
     src = shutil.copytree(SRC, tmp_path / "src")
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None))
     geometry = [s for s in atlas.structures if atlas.has_mesh(s.id)]
-    assert len(geometry) == 166
+    assert len(geometry) == 285
+    assert atlas.tracts is not None and len(atlas.tracts.ids) == 77
+    assert atlas.get(3001).xrefs == {"hcp1065": "Cortico_Spinal_Tract_L"}
     assert atlas.get(1351).xrefs == {"aal3": "Hippocampus_L"}
     assert atlas.get(2200).xrefs == {"aal3": "Raphe_D"}
     for s in geometry:

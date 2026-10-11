@@ -169,3 +169,11 @@ def test_the_setup_dialog_offers_the_tracts_level(window):
     dialog.level.setCurrentIndex(2)
     assert dialog.note.text() == "0 due, 2 new"
     dialog.reject()
+
+
+def test_a_grey_matter_quiz_never_builds_the_tracts(window):
+    quiz = start_quiz(window, "name-typed", "structures")
+    assert window.view.tract_builds == 0
+    quiz.stop()
+    assert window.view.tract_builds == 0
+    assert all(window.state.is_hidden(i) for i in TRACT_LEAVES)

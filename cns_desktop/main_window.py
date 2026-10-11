@@ -237,7 +237,7 @@ class MainWindow(QMainWindow):
         self.quiz_active = True
         for action in self._quiz_locked():
             action.setEnabled(False)
-        state.show_all()
+        state.set_hidden([i for i in state.geometry_ids if not state.is_tract(i)], False)
         for widget, _ in self._saved[5]:
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.tree_dock.hide()
@@ -257,7 +257,8 @@ class MainWindow(QMainWindow):
         for widget, policy in focus:
             widget.setFocusPolicy(policy)
         self.restoreState(layout)
-        self.state.show_all()
+        kept = set(hidden)
+        self.state.set_hidden([i for i in self.state.geometry_ids if i not in kept], False)
         self.state.set_hidden(hidden, True)
         self.state.select(selected)
         self.state.set_slice(axis, mm)

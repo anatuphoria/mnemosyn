@@ -1,0 +1,12 @@
+Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+Used for: Population-averaged atlas of the macroscale human structural connectome and its
+network topology. Yeh FC, Panesar S, Fernandes D, Meola A, Yoshino M, Fernandez-Miranda JC,
+Vettel JM, Verstynen T (2018), NeuroImage 178: 57-68,
+https://doi.org/10.1016/j.neuroimage.2018.05.027, data at https://zenodo.org/records/3627772
+
+Changes: the tract masks were placed on the 1 mm atlas grid, stored as voxel lists and
+converted to 3D surfaces; the cerebellum and vermis masks were left out. The adapted tract
+files are shared under the same licence.
+
+Full licence text: https://creativecommons.org/licenses/by-sa/4.0/legalcode
