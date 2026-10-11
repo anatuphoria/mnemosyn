@@ -60,11 +60,13 @@ uses, with at most 20 new items a day per mode. Progress is saved after every an
 `~/.local/share/mnemosyn/progress.sqlite`. During a quiz the tree, the info panel and hover
 names are hidden; `Esc` ends the quiz and restores the window.
 
-**Tracts** (41 white-matter pathways, among them the corticospinal tract, the lemnisci, the
-cerebellar peduncles and seven cranial nerves) are hidden when the app opens. `T` shows or
-hides them all, the tree shows single tracts, and selecting a tract shows it. In slices,
-visible tracts are outlined in their colour, and hovering or clicking where tracts overlap
-picks the smallest. Quizzes have a Tracts level of their own.
+**Tracts** (43 white-matter pathways: 41 from the HCP-1065 atlas, among them the
+corticospinal tract, the lemnisci, the cerebellar peduncles and seven cranial nerves, and the
+mammillothalamic tract and inferior thalamic peduncle from the hypothalamus atlas) are hidden
+when the app opens. `T` shows or hides them all, the tree shows single tracts, and selecting a
+tract shows it. In slices, visible tracts are outlined in their colour, and hovering or
+clicking where tracts overlap picks the smallest. Quizzes have a Tracts level of their own;
+while a tract is named, the grey matter around it is dimmed.
 
 ## Terminal viewer
 
@@ -90,7 +92,7 @@ procedural brain when no atlas is built. Letters are lowercase unless written wi
 
 | Data | Source | Licence |
 |---|---|---|
-| Brain geometry, 166 structures | AAL3: Rolls ET, Huang CC, Lin CP, Feng J, Joliot M (2020), NeuroImage 206: 116189, doi:10.1016/j.neuroimage.2019.116189 | GNU General Public License (text in `atlases/cns/LICENSES/`) |
+| Brain geometry, 166 structures | AAL3: Rolls ET, Huang CC, Lin CP, Feng J, Joliot M (2020), NeuroImage 206: 116189, doi:10.1016/j.neuroimage.2019.116189 | GNU General Public License (text in `atlas_src/LICENSES/GPL-3.0.txt`) |
 | Hypothalamic region, 21 structures | Neudorfer C, Germann J, Elias GJB, Gramer R, Boutet A, Lozano AM (2020), Scientific Data 7: 305, doi:10.1038/s41597-020-00644-6 | CC BY 4.0 (notice in `atlas_src/LICENSES/CC-BY-4.0.txt`) |
 | Tracts, 41 | HCP-1065 tractography atlas: Yeh FC et al. (2018), NeuroImage 178: 57-68, doi:10.1016/j.neuroimage.2018.05.027 | CC BY-SA 4.0 (notice in `atlas_src/LICENSES/CC-BY-SA-4.0.txt`) |
 | MRI template for slices | Colin 27 Average Brain (1998): Holmes CJ, Hoge R, Collins L, Woods R, Toga AW, Evans AC (1998), J Comput Assist Tomogr 22(2): 324-333, doi:10.1097/00004728-199803000-00032 | Permissive notice (text in `atlas_src/LICENSES/Colin27.txt`) |
