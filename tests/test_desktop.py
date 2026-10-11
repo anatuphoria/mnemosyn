@@ -161,3 +161,11 @@ def test_view_uses_the_packages_stored_normals(window, atlas):
     assert normals is not None
     assert normals.GetNumberOfTuples() == len(atlas.mesh(101).normals)
     assert actor.GetProperty().GetInterpolationAsString() == "Gouraud"
+
+
+def test_selecting_a_concept_highlights_all_of_its_geometry(window):
+    ambient = lambda sid: window.view._actors[sid].GetProperty().GetAmbient()
+    window.state.select(100)
+    assert ambient(101) > 0 and ambient(102) > 0
+    window.state.select(111)
+    assert ambient(101) == 0 and ambient(102) == 0 and ambient(111) > 0

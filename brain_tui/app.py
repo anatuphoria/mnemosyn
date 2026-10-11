@@ -264,8 +264,9 @@ class BrainApp(App):
         self.region_nodes = {}
         root = tree.root
         groups: dict[str, list] = {}
+        matches = set(self._matching_region_ids(filt)) if filt.strip() else None
         for rid, r in self.scene.regions.items():
-            if filt and filt.lower() not in r.name.lower() and filt.lower() not in r.system.lower():
+            if matches is not None and rid not in matches and filt.lower() not in r.system.lower():
                 continue
             groups.setdefault(r.system, []).append((rid, r))
         for sys in sorted(groups):
@@ -317,12 +318,23 @@ class BrainApp(App):
     def on_input_changed(self, e: Input.Changed) -> None:
         if e.input.id == "search":
             self._build_tree(e.value)
-            hits = self.kb.search(e.value, [r.name for r in self.scene.regions.values()])
+            hits = self._matching_region_ids(e.value)
             if hits and e.value.strip():
-                for rid, r in self.scene.regions.items():
-                    if r.name == hits[0]:
-                        self._select(rid)
-                        break
+                self._select(hits[0])
+
+    def _matching_region_ids(self, text: str) -> list[str]:
+        """Atlas search (names, acronyms, synonyms, atlas labels) or names when procedural."""
+        if self.atlas is None:
+            by_name = {r.name: rid for rid, r in self.scene.regions.items()}
+            names = self.kb.search(text, list(by_name), limit=len(by_name))
+            return [by_name[name] for name in names]
+        found: list[str] = []
+        for structure_id in self.atlas.search(text, limit=None):
+            for s in self.atlas.structures[self.atlas.subtree(structure_id)]:
+                rid = str(s.id)
+                if rid in self.scene.regions and rid not in found:
+                    found.append(rid)
+        return found
 
     def need_render(self) -> None:
         self._dirty = True

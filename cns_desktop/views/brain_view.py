@@ -25,7 +25,7 @@ class BrainView(QtInteractor):
         self.set_background(BACKGROUND)
         self._actors: dict[int, vtkActor] = {}
         self._id_by_actor: dict[str, int] = {}
-        self._highlighted: int | None = None
+        self._highlighted: list[int] = []
         for structure_id in state.geometry_ids:
             actor = self._make_actor(structure_id)
             self.renderer.AddActor(actor)
@@ -105,11 +105,11 @@ class BrainView(QtInteractor):
         prop.SetAmbient(0.35 if selected else 0.0)
 
     def _on_selection_changed(self, structure_id: int | None) -> None:
-        if self._highlighted is not None:
-            self._paint(self._highlighted, False)
-        if structure_id is not None:
-            self._paint(structure_id, True)
-        self._highlighted = structure_id
+        for previous in self._highlighted:
+            self._paint(previous, False)
+        self._highlighted = [] if structure_id is None else self.state.geometry_in(structure_id)
+        for current in self._highlighted:
+            self._paint(current, True)
         self.render()
 
     def _on_visibility_changed(self, ids: frozenset[int]) -> None:

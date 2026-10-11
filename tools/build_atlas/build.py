@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 from pathlib import Path
@@ -36,8 +37,24 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
     return "\n".join(lines) + "\n"
 
 
+def _replaceable(out: Path) -> bool:
+    if not out.exists():
+        return True
+    if not out.is_dir():
+        return False
+    if not any(out.iterdir()):
+        return True
+    try:
+        metadata = json.loads((out / "metadata.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return isinstance(metadata, dict) and "format_version" in metadata
+
+
 def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     src, out = Path(src), Path(out)
+    if not _replaceable(out):
+        raise BuildError([f"{out}: exists and is not an atlas package; refusing to replace it"])
     recipe = load_recipe(src / "recipe.toml")
     raws = load_structures(src / "structures.toml")
     lock = load_lock(src / "ids.lock")
@@ -99,9 +116,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
         package = staging / "package"
         write_package(package, recipe, structures, [s.source for s in recipe.sources], volumes,
                       meshes, src / "knowledge", licence_files, report)
+        previous = staging / "previous"
         if out.exists():
-            out.replace(staging / "previous")
-        package.replace(out)
+            out.replace(previous)
+        try:
+            package.replace(out)
+        except OSError:
+            if previous.exists():
+                previous.replace(out)
+            raise
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     write_lock(src / "ids.lock", IdLock(lock.published | {s.id for s in structures}, lock.retired))

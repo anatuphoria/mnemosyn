@@ -71,6 +71,8 @@ def member_path(spec: SourceSpec, archive: Path, member: str) -> Path:
             raise BuildError([f"source {spec.source.id}: {member} not found in "
                               f"{archive.name}"]) from exc
         target.parent.mkdir(parents=True, exist_ok=True)
-        with tar.extractfile(info) as src, target.open("wb") as out:
+        partial = target.with_name(target.name + ".part")
+        with tar.extractfile(info) as src, partial.open("wb") as out:
             shutil.copyfileobj(src, out)
+    partial.replace(target)
     return target

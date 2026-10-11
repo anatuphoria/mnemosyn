@@ -102,3 +102,20 @@ def test_merge_maps_values_and_higher_priority_wins():
     assert merged[3, 3, 3] == 0
     lower = merge(grid, [(0, coarse_image, {7: 70}), (1, grid, {1: 10})])
     assert lower[0, 0, 0] == 10
+
+
+def test_interrupted_extraction_is_not_reused(tmp_path, monkeypatch):
+    payload = b"x" * 4096
+    archive = make_tar(tmp_path / "a.tar.gz", {"DIR/volume.nii": payload})
+    spec = spec_for(archive, sha(archive.read_bytes()))
+    cached = fetch(spec, tmp_path / "cache")
+
+    def interrupted(src, dst, *args, **kwargs):
+        dst.write(src.read(100))
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("tools.build_atlas.fetch.shutil.copyfileobj", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        member_path(spec, cached, "DIR/volume.nii")
+    monkeypatch.undo()
+    assert member_path(spec, cached, "DIR/volume.nii").read_bytes() == payload

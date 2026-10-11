@@ -343,4 +343,4 @@ outcome decides the first source. The design does not change either way.
    committed. `atlases/` is ignored and built locally with `python -m tools.build_atlas`.
 4. A source may set `verify_tls = false` (GIN's certificate chain is incomplete). Its sha256
    is pinned and always verified.
-5. Stored vertex normals serve sub-project B; the desktop view computes its own shading here.
+5. The desktop view renders with the stored vertex normals (startup budget, see the plan ledger).

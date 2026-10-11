@@ -1,3 +1,5 @@
+import codecs
+
 import pytest
 
 from cns_atlas.knowledge import KnowledgeError, load_references, parse_entry, resolve
@@ -47,6 +49,11 @@ def test_markdown_links_are_not_citations():
 
 def test_windows_line_endings_parse_the_same():
     assert parse_entry(ENTRY.replace("\n", "\r\n"), "x.md") == parse_entry(ENTRY, "x.md")
+
+
+def test_byte_order_mark_parses_the_same():
+    bom = codecs.BOM_UTF8.decode()
+    assert parse_entry(bom + ENTRY, "x.md") == parse_entry(ENTRY, "x.md")
 
 
 def test_key_target_and_default_status():

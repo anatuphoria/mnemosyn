@@ -108,3 +108,30 @@ def test_cli_success_and_failure(toy_src, tmp_path, capsys):
                                                       "redistribution = false"))
     assert main(args) == 1
     assert "redistribution is not allowed" in capsys.readouterr().err
+
+
+def test_refuses_to_replace_a_directory_that_is_not_an_atlas(toy_src, tmp_path):
+    out = tmp_path / "Documents"
+    out.mkdir()
+    (out / "thesis.docx").write_bytes(b"important")
+    with pytest.raises(BuildError, match="not an atlas package"):
+        build(toy_src, out, cache=tmp_path / "cache", log=lambda *_: None)
+    assert (out / "thesis.docx").read_bytes() == b"important"
+
+
+def test_previous_package_survives_a_failed_final_rename(toy_src, tmp_path, monkeypatch):
+    out = build(toy_src, tmp_path / "out", cache=tmp_path / "cache", log=lambda *_: None)
+    before = files_of(out)
+    original = type(out).replace
+
+    def failing_replace(self, target):
+        if self.name == "package":
+            raise OSError("disk full")
+        return original(self, target)
+
+    monkeypatch.setattr(type(out), "replace", failing_replace)
+    with pytest.raises(OSError, match="disk full"):
+        build(toy_src, out, cache=tmp_path / "cache", log=lambda *_: None)
+    monkeypatch.undo()
+    assert files_of(out) == before
+    assert not list(tmp_path.glob(".out-*"))

@@ -4,6 +4,8 @@ import time
 
 import numpy as np
 
+from textual.widgets import Input
+
 from brain_tui.app import BrainApp, Viewport
 
 
@@ -175,4 +177,16 @@ def test_atlas_regions_and_descriptions(tmp_path, toy_atlas):
             assert "Does alpha things [ref2020]." in inspector_text(app)
             app._select("111")
             assert "No description yet." in inspector_text(app)
+    run(go())
+
+
+def test_search_uses_atlas_labels_acronyms_and_concepts(tmp_path, toy_atlas):
+    async def go():
+        app = BrainApp(atlas=str(toy_atlas), views_file=str(tmp_path / "views.json"))
+        async with app.run_test(size=(140, 44)) as pilot:
+            search = app.query_one("#search", Input)
+            for text, expected in (("alpha_l", "101"), ("ALG-R", "102"), ("beta nucleus", "111")):
+                search.value = text
+                await pilot.pause()
+                assert app.scene.selected_id == expected, text
     run(go())

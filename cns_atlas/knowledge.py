@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import codecs
 import re
 import tomllib
 from dataclasses import dataclass, fields, replace
@@ -7,6 +8,7 @@ from pathlib import Path
 
 SECTIONS = ("Function", "Connections", "Clinical")
 STATUSES = ("draft", "reviewed")
+BOM = codecs.BOM_UTF8.decode()
 CITATION = re.compile(r"\[([a-z][a-z0-9_-]*)\](?!\()")
 
 
@@ -75,7 +77,7 @@ class Entry:
 
 
 def parse_entry(text: str, origin: str) -> Entry:
-    text = text.replace("\r\n", "\n")
+    text = text.removeprefix(BOM).replace("\r\n", "\n")
     if not text.endswith("\n"):
         text += "\n"
     if not text.startswith("+++\n"):
