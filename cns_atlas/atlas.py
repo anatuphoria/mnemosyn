@@ -8,6 +8,7 @@ import numpy as np
 from .knowledge import Entry, KnowledgeError, Reference, load_references, parse_entry, resolve
 from .meshes import LODS, MeshData, MeshLod
 from .model import FORMAT_VERSION, Collection, Pathway, Source, Structure
+from .tracts import TractLayer
 from .volume import LabelVolume, TemplateVolume
 
 DISCLAIMER = (
@@ -69,6 +70,18 @@ class Atlas:
             for v in records if v.get("role") == "template"]
         self.template = next((t for t in templates if any(
             v.name == t.labels and v.shape == t.shape for v in self.volumes)), None)
+        self.tracts: TractLayer | None = None
+        for record in records:
+            if record.get("role") != "tracts":
+                continue
+            volume = next((v for v in self.volumes if v.name == record.get("labels")), None)
+            if volume is None:
+                continue
+            try:
+                self.tracts = TractLayer(root / record["file"], volume.shape, volume.affine)
+            except ValueError as exc:
+                raise AtlasError(f"{root / record['file']}: {exc}") from exc
+            break
         self._references: dict[str, Reference] | None = None
         self._entries: dict[tuple[str, int | str], Entry | None] = {}
         self._search_rows = []
