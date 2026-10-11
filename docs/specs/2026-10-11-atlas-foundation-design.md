@@ -331,3 +331,16 @@ the full description set (C); simulations (D); neurons (E); installer work (F).
 
 The AAL licence has not been verified yet. It is the first implementation task, and its
 outcome decides the first source. The design does not change either way.
+
+## 13. Amendments made during planning (2026-10-11)
+
+1. First source: AAL3 (GIN "AAL 3v2", AAL3v1 1 mm volume), verified GNU General Public License
+   (no version stated; the package ships the GPL-3.0 text). Output grid: AAL3 native 1 mm.
+   166 labelled structures.
+2. Meshes are built with VTK through PyVista. Build dependencies: vtk, pyvista, scipy.
+   nilearn, scikit-image and trimesh are no longer used.
+3. The built package measures about 35 MB, above the 20 MB limit in section 6, so it is not
+   committed. `atlases/` is ignored and built locally with `python -m tools.build_atlas`.
+4. A source may set `verify_tls = false` (GIN's certificate chain is incomplete). Its sha256
+   is pinned and always verified.
+5. Stored vertex normals serve sub-project B; the desktop view computes its own shading here.

@@ -8,3 +8,4 @@ build/
 dist/
 *.spec
 views.json
+atlases/

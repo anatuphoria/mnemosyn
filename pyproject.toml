@@ -1,7 +1,7 @@
 [project]
 name = "brain-tui"
 version = "0.1.0"
-description = "3D TUI Brain Model - rotate, slice, isolate and study 116+ regions in the terminal"
+description = "3D atlas of the central nervous system: desktop app, terminal viewer and atlas build tool"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -10,17 +10,13 @@ dependencies = [
   "par-textual-image>=0.1",
   "numpy>=1.26",
   "pillow>=10.0",
-  "trimesh>=4.0",
   "nibabel>=5.0",
-  "scikit-image>=0.22",
-  "nilearn>=0.10",
   "numba>=0.60",
   "rich>=13.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.4"]
-# desktop prototype; Essentials avoids pulling in Qt WebEngine (~hundreds of MB)
 desktop = [
   "PySide6-Essentials>=6.8",
   "vtk>=9.4",
@@ -28,6 +24,7 @@ desktop = [
   "pyvistaqt>=0.11",
   "pyqtgraph>=0.13",
 ]
+atlas-build = ["vtk>=9.4", "pyvista>=0.44", "scipy>=1.11"]
 
 [project.scripts]
 brain-tui = "brain_tui.app:main"
@@ -38,7 +35,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["brain_tui", "cns_desktop", "tools"]
+packages = ["brain_tui", "cns_atlas", "cns_desktop", "tools"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.pytest.ini_options]
+markers = [
+  "slow: downloads data or needs the real atlas package",
+  "perf: enforces a performance budget",
+]
+addopts = "-m 'not slow'"
