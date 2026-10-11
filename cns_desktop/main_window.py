@@ -26,19 +26,32 @@ from .views.quiz_setup import QuizSetup
 from .views.slice_panel import SlicePanel
 from .views.structure_tree import StructureTree
 
+APP_NAME = "Mnemosyn"
+APP_FOLDER = "mnemosyn"
+OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz")
 RECOVERED = {
     "damaged": ("Progress file damaged", "Your progress file could not be read. It was kept as "
                 "{path} and a new one was started."),
     "newer": ("Progress file from a newer version", "Your progress file was written by a newer "
-              "version of this app. It was kept as {path} and a new one was started."),
+              "version of Mnemosyn. It was kept as {path} and a new one was started."),
 }
 
 
-def default_progress_path() -> Path:
-    base = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericDataLocation)
-    return Path(base) / "cns-atlas" / "progress.sqlite"
+def default_progress_path(base: Path | None = None) -> Path:
+    if base is None:
+        location = QStandardPaths.StandardLocation.GenericDataLocation
+        base = Path(QStandardPaths.writableLocation(location))
+    path = base / APP_FOLDER / "progress.sqlite"
+    old = base / OLD_FOLDER / "progress.sqlite"
+    if old.exists() and not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        for suffix in ("", "-wal", "-shm"):
+            source = old.with_name(old.name + suffix)
+            if source.exists():
+                source.replace(path.with_name(path.name + suffix))
+    return path
 
 
 def gpu_name(view: BrainView) -> str:
@@ -54,7 +67,7 @@ def about_text(atlas: Atlas) -> str:
                    for s in sources)
     name = escape(str(atlas.metadata.get("name", "")))
     version = escape(str(atlas.metadata.get("version", "")))
-    return (f"<h3>CNS Atlas</h3><p>{escape(DISCLAIMER)}</p>"
+    return (f"<h3>{APP_NAME}</h3><p>{escape(DISCLAIMER)}</p>"
             f"<p>Atlas package: {name} {version}</p>"
             f"<h4>Data sources</h4><ul>{rows}</ul>")
 
@@ -62,7 +75,7 @@ def about_text(atlas: Atlas) -> str:
 class MainWindow(QMainWindow):
     def __init__(self, atlas: Atlas, progress_path: Path | None = None) -> None:
         super().__init__()
-        self.setWindowTitle(f"CNS Atlas - {atlas.metadata.get('name', 'atlas')}")
+        self.setWindowTitle(f"{APP_NAME} - {atlas.metadata.get('name', 'atlas')}")
         self.resize(1500, 900)
         self.state = AppState(atlas)
         self.progress_path = progress_path or default_progress_path()
@@ -236,7 +249,7 @@ class MainWindow(QMainWindow):
         self._update_status()
 
     def show_about(self) -> None:
-        QMessageBox.about(self, "About CNS Atlas", about_text(self.state.atlas))
+        QMessageBox.about(self, f"About {APP_NAME}", about_text(self.state.atlas))
 
     def show_disclaimer(self) -> QMessageBox:
         box = QMessageBox(QMessageBox.Icon.Information, "Before you start", DISCLAIMER,

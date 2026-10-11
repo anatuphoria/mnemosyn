@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication, QDialogButtonBox
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas
 from cns_desktop.app import disclaimer_due, main, mark_disclaimer_shown
-from cns_desktop.main_window import MainWindow, about_text
+from cns_desktop.main_window import MainWindow, about_text, default_progress_path
 from cns_desktop.state import AppState
 from cns_desktop.views.quiz_setup import NO_ITEMS, NO_REVIEWED, NOTHING_DUE
 from cns_desktop.views.slice_panel import NO_TEMPLATE, NOT_RAS, SlicePanel
@@ -735,3 +735,28 @@ def test_a_failed_save_keeps_the_answer_on_screen(window, monkeypatch):
     monkeypatch.undo()
     quiz.go_on()
     assert quiz.item.id == 110
+
+
+def test_the_app_is_called_mnemosyn(window, atlas):
+    assert window.windowTitle().startswith("Mnemosyn - ")
+    assert "<h3>Mnemosyn</h3>" in about_text(atlas)
+
+
+def test_progress_moves_from_the_old_folder(tmp_path):
+    old = tmp_path / "cns-atlas"
+    old.mkdir()
+    (old / "progress.sqlite").write_bytes(b"cards")
+    (old / "progress.sqlite-wal").write_bytes(b"log")
+    path = default_progress_path(tmp_path)
+    assert path == tmp_path / "mnemosyn" / "progress.sqlite"
+    assert path.read_bytes() == b"cards"
+    assert (tmp_path / "mnemosyn" / "progress.sqlite-wal").read_bytes() == b"log"
+    assert not (old / "progress.sqlite").exists()
+
+
+def test_progress_is_never_moved_over_an_existing_file(tmp_path):
+    for folder, payload in (("cns-atlas", b"old"), ("mnemosyn", b"new")):
+        (tmp_path / folder).mkdir()
+        (tmp_path / folder / "progress.sqlite").write_bytes(payload)
+    assert default_progress_path(tmp_path).read_bytes() == b"new"
+    assert (tmp_path / "cns-atlas" / "progress.sqlite").read_bytes() == b"old"

@@ -1,7 +1,10 @@
-# CNS Atlas
+# Mnemosyn
 
 A 3D atlas of the human central nervous system for studying: a desktop app, a terminal
 viewer, and the tool that builds the atlas data from open, cited sources.
+
+The name joins Mnemosyne, the Greek goddess of memory, with the synapse, where memories are
+stored: an atlas of the brain that helps you remember it.
 
 > **Disclaimer.** This atlas is a personal study project. It was not built or reviewed by a
 > neuroanatomy specialist and may contain errors. It is not for diagnosis or treatment.
@@ -13,11 +16,11 @@ viewer, and the tool that builds the atlas data from open, cited sources.
 python -m venv .venv
 .venv/bin/pip install -e ".[desktop,atlas-build,dev]"
 .venv/bin/python -m tools.build_atlas    # downloads AAL3 (1.5 MB) and builds atlases/cns (about 15 s)
-.venv/bin/cns-desktop                    # desktop app
+.venv/bin/mnemosyn                       # desktop app
 .venv/bin/brain-tui                      # terminal viewer
 ```
 
-On hybrid-GPU laptops, `prime-run .venv/bin/cns-desktop` uses the discrete GPU.
+On hybrid-GPU laptops, `prime-run .venv/bin/mnemosyn` uses the discrete GPU.
 
 ## Desktop app
 
@@ -53,7 +56,7 @@ in 3D or in a slice. *Flashcards* show reviewed descriptions only. Choose single
 bigger groups, the whole atlas or one part of it, and either what is due now or a practice
 round that leaves your schedule alone. Scheduling uses FSRS, the spaced repetition method Anki
 uses, with at most 20 new items a day per mode. Progress is saved after every answer in
-`~/.local/share/cns-atlas/progress.sqlite`. During a quiz the tree, the info panel and hover
+`~/.local/share/mnemosyn/progress.sqlite`. During a quiz the tree, the info panel and hover
 names are hidden; `Esc` ends the quiz and restores the window.
 
 ## Terminal viewer

@@ -69,7 +69,8 @@ def run_benchmark(window, frames: int = 300) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="CNS Atlas desktop app")
+    parser = argparse.ArgumentParser(
+        description="Mnemosyn: a 3D atlas of the central nervous system")
     parser.add_argument("--atlas", type=Path, default=DEFAULT_ATLAS, help="atlas package directory")
     parser.add_argument("--bench", action="store_true", help="measure on-screen fps, then exit")
     parser.add_argument("--first-frame", action="store_true",
@@ -88,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    app.setApplicationName("CNS Atlas")
+    app.setApplicationName("Mnemosyn")
     apply_dark_theme(app)
 
     from .main_window import MainWindow
@@ -114,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         run_benchmark(window)
         window.close()
         return 0
-    settings = QSettings("cns-atlas", "cns-atlas")
+    settings = QSettings("mnemosyn", "mnemosyn")
     if disclaimer_due(settings):
         window.show_disclaimer()
         mark_disclaimer_shown(settings)

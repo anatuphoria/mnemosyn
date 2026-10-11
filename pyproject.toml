@@ -1,5 +1,5 @@
 [project]
-name = "brain-tui"
+name = "mnemosyn"
 version = "0.1.0"
 description = "3D atlas of the central nervous system: desktop app, terminal viewer and atlas build tool"
 readme = "README.md"
@@ -30,6 +30,7 @@ atlas-build = ["vtk>=9.4", "pyvista>=0.44", "scipy>=1.11"]
 [project.scripts]
 brain-tui = "brain_tui.app:main"
 cns-desktop = "cns_desktop.app:main"
+mnemosyn = "cns_desktop.app:main"
 
 [build-system]
 requires = ["hatchling"]
