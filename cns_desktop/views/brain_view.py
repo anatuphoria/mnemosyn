@@ -17,6 +17,7 @@ from ..state import AppState
 BACKGROUND = "#0a0a10"
 CLICK_TOLERANCE_PX = 3
 HIGHLIGHT = 0.45
+FAINT = 0.08
 PLANE_OPACITY = 0.18
 
 
@@ -96,6 +97,7 @@ class BrainView(QtInteractor):
         state.selection_changed.connect(self._on_selection_changed)
         state.visibility_changed.connect(self._on_visibility_changed)
         state.slice_changed.connect(self._on_slice_changed)
+        state.focus_changed.connect(self._on_focus_changed)
         self.reset_view()
         self._on_slice_changed(state.slice_axis, state.slice_mm)
 
@@ -118,6 +120,23 @@ class BrainView(QtInteractor):
     def _attributes_for(self, structure_id: int):
         return self.tract_attributes if structure_id in self._tract_set else self.attributes
 
+    def _apply_focus(self, attributes, ids) -> None:
+        focus = self.state.focus
+        if focus is None:
+            attributes.RemoveBlockOpacities()
+            attributes.RemoveBlockPickabilities()
+            return
+        for structure_id in ids:
+            block = self.blocks[structure_id]
+            attributes.SetBlockOpacity(block, 1.0 if structure_id in focus else FAINT)
+            attributes.SetBlockPickability(block, structure_id in focus)
+
+    def _on_focus_changed(self, _focus) -> None:
+        self._apply_focus(self.attributes, self.ids)
+        if self.tract_attributes is not None:
+            self._apply_focus(self.tract_attributes, self.tract_ids)
+        self.render()
+
     def _ensure_tracts(self) -> None:
         if self.tract_actor is not None or not self.tract_ids:
             return
@@ -130,6 +149,7 @@ class BrainView(QtInteractor):
             block = self.blocks[structure_id]
             attributes.SetBlockColor(block, _rgb(atlas.get(structure_id).rgb_triplet))
             attributes.SetBlockVisibility(block, not self.state.is_hidden(structure_id))
+        self._apply_focus(attributes, self.tract_ids)
         self.tract_actor, self.tract_attributes = actor, attributes
         self.tract_builds += 1
         self.renderer.AddActor(actor)
@@ -182,7 +202,7 @@ class BrainView(QtInteractor):
         self.renderer.AddActor(actor)
 
     def _on_selection_changed(self, structure_id: int | None) -> None:
-        self.highlighted = [] if structure_id is None else self.state.geometry_in(structure_id)
+        self.highlighted = self.state.highlighted_ids()
         self._refresh_overlay()
         self.render()
 

@@ -88,6 +88,7 @@ class SlicePanel(QWidget):
         state.selection_changed.connect(lambda _id: self.redraw())
         state.visibility_changed.connect(lambda _ids: self.redraw())
         state.slice_changed.connect(self._on_slice_changed)
+        state.focus_changed.connect(lambda _focus: self.redraw())
 
         if self.labels is not None and not slices.is_ras(self.labels.affine):
             self.labels = None
@@ -141,8 +142,8 @@ class SlicePanel(QWidget):
                                          self.index)
         size = len(self.colors)
         hidden = slices.mask_table(size, [i for i in self.state.geometry_ids
-                                          if self.state.is_hidden(i)])
-        chosen = [] if self.state.selected is None else self.state.geometry_in(self.state.selected)
+                                          if not self._shown(i)])
+        chosen = self.state.highlighted_ids()
         selected = slices.mask_table(size, chosen)
         self.image = slices.compose(labels_2d, template_2d, self.colors, hidden, selected,
                                     self.opacity)
@@ -153,6 +154,9 @@ class SlicePanel(QWidget):
         for letter, text, place in zip(self.letters, EDGES[axis], places):
             letter.setText(text)
             letter.setPos(*place)
+
+    def _shown(self, structure_id: int) -> bool:
+        return not self.state.is_hidden(structure_id) and self.state.in_focus(structure_id)
 
     def _tracts_ready(self) -> bool:
         return (self.tracts is not None and self.labels is not None
@@ -170,7 +174,7 @@ class SlicePanel(QWidget):
         if not self._tracts_ready():
             return
         a = slices.AXIS_INDEX[axis]
-        visible = [i for i in self.tracts.ids if not self.state.is_hidden(i)]
+        visible = [i for i in self.tracts.ids if self._shown(i)]
         for structure_id in sorted(visible, key=lambda i: -self.tracts.size(i)):
             coords = self._coords(structure_id)
             here = coords[a] == self.index
@@ -189,12 +193,12 @@ class SlicePanel(QWidget):
                                        row, col)
         point = slices.world_for_voxel(self.labels.affine, voxel)
         if self._tracts_ready():
-            visible = [i for i in self.tracts.tracts_at(point) if not self.state.is_hidden(i)]
+            visible = [i for i in self.tracts.tracts_at(point) if self._shown(i)]
             preferred = [i for i in visible if i in self.preferred]
             if preferred or visible:
                 return (preferred or visible)[0]
         structure_id = self.state.atlas.label_at(point)
-        if structure_id is None or self.state.is_hidden(structure_id):
+        if structure_id is None or not self._shown(structure_id):
             return None
         return structure_id
 
@@ -213,9 +217,9 @@ class SlicePanel(QWidget):
         return self._centres
 
     def centre_on_selection(self) -> None:
-        if self.labels is None or self.state.selected is None:
+        ids = self.state.highlighted_ids()
+        if self.labels is None or not ids:
             return
-        ids = self.state.geometry_in(self.state.selected)
         centre = slices.centre_from_table(self.label_centres(), self.labels.affine, ids)
         if centre is None and self._tracts_ready():
             coords = [self._coords(i) for i in ids if self.tracts.size(i)]

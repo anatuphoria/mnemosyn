@@ -14,6 +14,7 @@ class AppState(QObject):
     selection_changed = Signal(object)
     visibility_changed = Signal(object)
     slice_changed = Signal(str, float)
+    focus_changed = Signal(object)
 
     def __init__(self, atlas: Atlas) -> None:
         super().__init__()
@@ -27,25 +28,42 @@ class AppState(QObject):
         self._hidden: set[int] = set(self.tract_ids)
         self.slice_axis = "axial"
         self.slice_mm = 0.0
+        self.focus: frozenset[int] | None = None
+        self.emphasis: tuple[int, ...] = ()
 
     @property
     def selected(self) -> int | None:
         return self._selected
 
-    def select(self, structure_id: int | None) -> None:
+    def select(self, structure_id: int | None, emphasis: Iterable[int] = ()) -> None:
         if structure_id is not None and structure_id not in self.atlas:
             raise KeyError(structure_id)
         if structure_id is not None:
             inside = self.geometry_in(structure_id)
             if inside and all(i in self._tracts for i in inside):
                 self.set_hidden(inside, False)
-        if structure_id != self._selected:
-            self._selected = structure_id
+        emphasis = tuple(i for i in emphasis if i in self._geometry)
+        if (structure_id, emphasis) != (self._selected, self.emphasis):
+            self._selected, self.emphasis = structure_id, emphasis
             self.selection_changed.emit(structure_id)
 
     def geometry_in(self, structure_id: int) -> list[int]:
         subtree = self.atlas.structures[self.atlas.subtree(structure_id)]
         return [s.id for s in subtree if s.id in self._geometry]
+
+    def highlighted_ids(self) -> list[int]:
+        if self.emphasis:
+            return list(self.emphasis)
+        return [] if self._selected is None else self.geometry_in(self._selected)
+
+    def set_focus(self, ids: Iterable[int] | None) -> None:
+        focus = None if ids is None else frozenset(ids) & self._geometry
+        if focus != self.focus:
+            self.focus = focus
+            self.focus_changed.emit(focus)
+
+    def in_focus(self, structure_id: int) -> bool:
+        return self.focus is None or structure_id in self.focus
 
     def is_hidden(self, structure_id: int) -> bool:
         return structure_id in self._hidden
