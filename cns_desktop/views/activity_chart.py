@@ -159,6 +159,10 @@ class ActivityChart(QWidget):
     def set_step(self, text: str) -> None:
         self.step_label.setText(text)
 
+    def set_edges(self, can_back: bool, can_next: bool) -> None:
+        self.back_button.setEnabled(can_back)
+        self.next_button.setEnabled(can_next)
+
     def set_playing(self, playing: bool) -> None:
         self.play_button.setText(PAUSE if playing else PLAY)
 

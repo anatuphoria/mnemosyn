@@ -162,6 +162,7 @@ class MainWindow(QMainWindow):
         self.chart.speed_changed.connect(self.pathways.set_speed)
         self.pathways.playing_changed.connect(self.chart.set_playing)
         self.pathways.step_changed.connect(self.chart.set_step)
+        self.pathways.edges_changed.connect(self.chart.set_edges)
         self.pathway_dock.visibilityChanged.connect(self._prepare_pathways)
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())

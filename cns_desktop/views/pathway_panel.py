@@ -41,6 +41,7 @@ class PathwayPanel(QWidget):
     time_changed = Signal(float)
     playing_changed = Signal(bool)
     step_changed = Signal(str)
+    edges_changed = Signal(bool, bool)
 
     def __init__(self, state: AppState, hold=nullcontext, parent=None) -> None:
         super().__init__(parent)
@@ -92,21 +93,15 @@ class PathwayPanel(QWidget):
         self.steps = QListWidget()
         self.details = QTextBrowser()
         self.details.setOpenExternalLinks(True)
-        self.back_button = QPushButton("Back (Left)")
-        self.next_button = QPushButton("Next (Right)")
         self.leave_button = QPushButton("Leave pathway (Esc)")
         self.timer = QTimer(self, interval=TICK_MS, timeout=lambda: self.advance(TICK_MS / 1000))
-        nav = QHBoxLayout()
-        nav.addWidget(self.back_button)
-        nav.addWidget(self.next_button)
-        for widget in (*self.side_buttons.values(), self.steps, self.details, self.back_button,
-                       self.next_button, self.leave_button):
+        for widget in (*self.side_buttons.values(), self.steps, self.details, self.leave_button):
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.pages = QStackedWidget()
         self.pages.addWidget(_column(self.choices, self.empty))
         self.pages.addWidget(_column(self.title, self.start, sides, self.draft, self.steps,
-                                     self.details, nav, self.leave_button))
+                                     self.details, self.leave_button))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.pages)
@@ -115,8 +110,6 @@ class PathwayPanel(QWidget):
         self.choices.itemActivated.connect(self._on_choice)
         self.steps.currentRowChanged.connect(self._on_row)
         self.steps.itemClicked.connect(self._on_step_clicked)
-        self.back_button.clicked.connect(self.back)
-        self.next_button.clicked.connect(self.next)
         self.leave_button.clicked.connect(self.leave)
         state.selection_changed.connect(self._on_selection)
 
@@ -208,8 +201,7 @@ class PathwayPanel(QWidget):
             self._applying = False
         with QSignalBlocker(self.steps):
             self.steps.setCurrentRow(self.index)
-        self.back_button.setEnabled(self.index > 0)
-        self.next_button.setEnabled(self.index < len(self.pathway.steps) - 1)
+        self.edges_changed.emit(self.index > 0, self.index < len(self.pathway.steps) - 1)
         self.details.setHtml(self._details_html())
         step = self.pathway.steps[self.index]
         name = self.label(self.index + 1, step).split(" ", 1)[1]

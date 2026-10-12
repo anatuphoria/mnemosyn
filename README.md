@@ -80,7 +80,7 @@ circuit, the stress axis, the body clock, hunger, memory, and decision and self-
 For a sensory or motor route, choose a pathway and a start side (Left or Right): everything
 off the route fades and cannot be clicked, the route's tracts are shown, and the current
 station is highlighted with its role and the effect of a lesion there, with references. Back
-and Next (or the arrow keys) move along the route and the slice follows; crossings and relays
+and Next in the Activity panel (or the arrow keys) move along the route and the slice follows; crossings and relays
 the atlas has no shape for are steps of their own. Leaving (`Esc`) restores the view as it
 was. Behaviour routes light both sides and show, for each step, its role, the disorders linked
 to it and the drugs that act there.
