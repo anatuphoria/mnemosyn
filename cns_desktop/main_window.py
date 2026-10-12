@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QDockWidget, QLabel, QMainWindow, QMessageBox
+from PySide6.QtWidgets import QCheckBox, QDockWidget, QLabel, QMainWindow, QMessageBox
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_study.answers import AnswerIndex
@@ -329,6 +329,7 @@ class MainWindow(QMainWindow):
     def show_disclaimer(self) -> QMessageBox:
         box = QMessageBox(QMessageBox.Icon.Information, "Before you start", DISCLAIMER,
                           QMessageBox.StandardButton.Ok, self)
+        box.setCheckBox(QCheckBox("Don't show this again", box))
         box.open()
         return box
 

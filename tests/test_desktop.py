@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication, QDialogButtonBox
 
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas
-from cns_desktop.app import (disclaimer_due, main, mark_disclaimer_shown, own_memory_mb,
+from cns_desktop.app import (disclaimer_due, main, offer_disclaimer, own_memory_mb,
                              peak_memory_mb)
 from cns_desktop.main_window import (MainWindow, about_text, default_progress_path,
                                      migrate_progress)
@@ -144,11 +144,23 @@ def test_about_text_has_disclaimer_and_sources(atlas):
     assert DISCLAIMER in text and "Toy labelled atlas" in text
 
 
-def test_disclaimer_is_due_once(tmp_path):
+def test_disclaimer_shows_at_every_start_until_its_box_is_ticked(window, tmp_path):
     settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
+    box = offer_disclaimer(window, settings)
+    assert box.checkBox().text() == "Don't show this again" and not box.checkBox().isChecked()
+    box.accept()
     assert disclaimer_due(settings)
-    mark_disclaimer_shown(settings)
+    box = offer_disclaimer(window, settings)
+    box.checkBox().setChecked(True)
+    box.accept()
     assert not disclaimer_due(settings)
+    assert offer_disclaimer(window, settings) is None
+
+
+def test_the_old_shown_once_record_no_longer_hides_the_disclaimer(tmp_path):
+    settings = QSettings(str(tmp_path / "settings.ini"), QSettings.Format.IniFormat)
+    settings.setValue("disclaimer_shown", True)
+    assert disclaimer_due(settings)
 
 
 def test_main_reports_missing_atlas(tmp_path, capsys):

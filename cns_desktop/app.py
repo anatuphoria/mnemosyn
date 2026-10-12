@@ -7,7 +7,7 @@ from pathlib import Path
 
 STARTED = time.perf_counter()
 DEFAULT_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
-DISCLAIMER_KEY = "disclaimer_shown"
+DISCLAIMER_KEY = "disclaimer_hidden"
 
 
 def apply_dark_theme(app) -> None:
@@ -31,9 +31,17 @@ def disclaimer_due(settings) -> bool:
     return not settings.value(DISCLAIMER_KEY, False, type=bool)
 
 
-def mark_disclaimer_shown(settings) -> None:
+def hide_disclaimer(settings) -> None:
     settings.setValue(DISCLAIMER_KEY, True)
     settings.sync()
+
+
+def offer_disclaimer(window, settings):
+    if not disclaimer_due(settings):
+        return None
+    box = window.show_disclaimer()
+    box.finished.connect(lambda _result: box.checkBox().isChecked() and hide_disclaimer(settings))
+    return box
 
 
 def _status_mb(field: str) -> float | None:
@@ -127,9 +135,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     migrate_progress()
     settings = QSettings("mnemosyn", "mnemosyn")
-    if disclaimer_due(settings):
-        window.show_disclaimer()
-        mark_disclaimer_shown(settings)
+    offer_disclaimer(window, settings)
     return app.exec()
 
 
