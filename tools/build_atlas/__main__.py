@@ -15,9 +15,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--src", type=Path, default=Path("atlas_src"))
     parser.add_argument("--out", type=Path, default=Path("atlases/cns"))
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
+    parser.add_argument("--local", action="store_true",
+                        help="also build local-only sources; the result must not be shared")
     args = parser.parse_args(argv)
     try:
-        out = build(args.src, args.out, args.cache)
+        out = build(args.src, args.out, args.cache, local=args.local)
     except BuildError as exc:
         print("build failed:", file=sys.stderr)
         for problem in exc.problems:

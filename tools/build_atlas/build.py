@@ -13,7 +13,7 @@ from cns_atlas.meshes import LODS, MeshData
 from cns_atlas.model import Structure
 
 from .fetch import DEFAULT_CACHE, fetch, member_path
-from .hierarchy import build_tree, load_structures, with_xrefs
+from .hierarchy import build_tree, load_structures, with_xrefs, without_sources
 from .idlock import IdLock, load_lock, write_lock
 from .labels import (crop, load_label_image, mapping_for, merge, read_label_names, relabel,
                      source_values)
@@ -33,7 +33,8 @@ def present(data: np.ndarray) -> set[int]:
 
 def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[int, MeshData]],
                  volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=(),
-                 tracts=None, shape_only=(), per_source=None, pathways: int = 0) -> str:
+                 tracts=None, shape_only=(), per_source=None, pathways: int = 0,
+                 local_note: str = "") -> str:
     kinds: dict[str, int] = {}
     for s in structures:
         kinds[s.kind] = kinds.get(s.kind, 0) + 1
@@ -58,6 +59,8 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
                          f"{', '.join(str(value) for value in spec.drop)}")
     if shape_only:
         lines.append(f"- 3D shape only, no voxels at label resolution: {', '.join(shape_only)}")
+    if local_note:
+        lines.append(local_note)
     return "\n".join(lines) + "\n"
 
 
@@ -75,7 +78,8 @@ def _replaceable(out: Path) -> bool:
     return isinstance(metadata, dict) and "format_version" in metadata
 
 
-def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
+def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
+          local: bool = False) -> Path:
     src, out = Path(src), Path(out)
     if not _replaceable(out):
         raise BuildError([f"{out}: exists and is not an atlas package; refusing to replace it"])
@@ -97,21 +101,23 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     problems += check_pathway_texts(src / "knowledge", pathways)
     if problems:
         raise BuildError(problems)
-    planned = build_tree(raws)
+    skipped = set() if local else {s.source.id for s in recipe.sources if s.local_only}
+    sources = [s for s in recipe.sources if s.source.id not in skipped]
+    planned = build_tree(without_sources(raws, skipped))
     problems = check_pathways(pathways, [p.structure for p in planned],
                               {p.structure.id for p in planned if p.labels})
     if problems:
         raise BuildError(problems)
 
     images, names = {}, {}
-    for spec in recipe.sources:
+    for spec in sources:
         log(f"fetching {spec.source.id}")
         archive = fetch(spec, cache)
         images[spec.source.id] = load_label_image(member_path(spec, archive, spec.member),
                                                    spec.mask)
         if spec.label_names:
             names[spec.source.id] = read_label_names(member_path(spec, archive, spec.label_names))
-    for spec in recipe.sources:
+    for spec in sources:
         values = source_values(images[spec.source.id])
         mapped = set(mapping_for(spec.source.id, planned))
         dropped = set(spec.drop)
@@ -123,13 +129,13 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     volumes = []
     for vspec in recipe.volumes:
         layers = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
-                  for s in recipe.sources if s.volume == vspec.name]
+                  for s in sources if s.volume == vspec.name]
         grid = images[vspec.grid_source]
         volumes.append((vspec, merge(grid, layers), grid.affine))
     grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
     natives = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
                     images[s.source.id].affine)
-               for s in recipe.sources if s.mesh_grid == "native"]
+               for s in sources if s.mesh_grid == "native"]
     native_ids = set().union(*(present(data) for data, _ in natives))
     tract_rows: list[tuple[int, np.ndarray]] = []
     for spec in recipe.tracts:
@@ -181,20 +187,27 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
                     level[p.structure.id] = mesh_data
 
     structures = [p.structure for p in planned]
-    specs = (*recipe.sources, *recipe.templates, *recipe.tracts)
+    specs = (*sources, *recipe.templates, *recipe.tracts)
     licence_files = [src / s.licence_file for s in specs if s.licence_file]
     per_source = {spec.source.id: sum(any(ref.source == spec.source.id for ref in p.labels)
                                       for p in planned)
-                  for spec in (*recipe.sources, *recipe.tracts)}
+                  for spec in (*sources, *recipe.tracts)}
+    included = [s.source.id for s in sources if s.local_only]
+    if included:
+        local_note = f"- local-only sources included: {', '.join(included)}"
+    elif skipped:
+        local_note = f"- local-only sources left out: {', '.join(sorted(skipped))}"
+    else:
+        local_note = ""
     report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
-                          per_source, len(pathways))
+                          per_source, len(pathways), local_note)
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:
         package = staging / "package"
         write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
                       src / "knowledge", licence_files, report, templates, tracts,
-                      pathways)
+                      pathways, included)
         previous = staging / "previous"
         if out.exists():
             out.replace(previous)
@@ -206,6 +219,6 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
             raise
     finally:
         shutil.rmtree(staging, ignore_errors=True)
-    write_lock(src / "ids.lock", IdLock(lock.published | {s.id for s in structures}, lock.retired))
+    write_lock(src / "ids.lock", IdLock(lock.published | {r.id for r in raws}, lock.retired))
     log(f"wrote {out}")
     return out

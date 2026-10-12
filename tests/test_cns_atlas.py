@@ -175,3 +175,12 @@ def test_a_template_for_another_volume_is_ignored(tmp_path):
 def test_a_template_has_no_label_lookup(tmp_path):
     template = Atlas.open(template_package(tmp_path)).template
     assert template is not None and not hasattr(template, "label_at")
+
+
+def test_local_only_sources_come_from_the_metadata(tmp_path):
+    root = write_package(tmp_path / "pkg", tiny_structures())
+    assert Atlas.open(root).local_only == ()
+    metadata = json.loads((root / "metadata.json").read_text())
+    metadata["local_only"] = ["toylocal"]
+    (root / "metadata.json").write_text(json.dumps(metadata))
+    assert Atlas.open(root).local_only == ("toylocal",)

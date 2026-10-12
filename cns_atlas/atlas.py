@@ -52,6 +52,7 @@ class Atlas:
         self.sources = sources
         self.collections = collections
         self.pathways = pathways
+        self.local_only = tuple(str(s) for s in metadata.get("local_only", ()))
         self._position = {s.id: i for i, s in enumerate(structures)}
         self._children: dict[int, list[int]] = {s.id: [] for s in structures}
         for s in structures:

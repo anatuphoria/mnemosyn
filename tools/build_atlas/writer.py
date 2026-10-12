@@ -39,7 +39,7 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
                   volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]],
                   meshes: list[dict[int, MeshData]], knowledge_src: Path,
                   licence_files: list[Path], report: str, templates=(), tracts=None,
-                  pathways=()) -> None:
+                  pathways=(), local_only=()) -> None:
     (out / "volumes").mkdir(parents=True)
     volume_records = []
     spaces = {spec.name: spec.space for spec, _, _ in volumes}
@@ -64,7 +64,7 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
                 if rows else np.zeros(0, dtype=np.uint32))
         volume_records.append({"file": "tracts", "role": "tracts", "labels": labels})
     _, first_data, first_affine = volumes[0]
-    write_json(out / "metadata.json", {
+    metadata = {
         "name": recipe.name,
         "citation": recipe.citation,
         "atlas_link": recipe.atlas_link,
@@ -79,7 +79,10 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
         "coordinate_units": "mm",
         "licence": recipe.licence,
         "volumes": volume_records,
-    })
+    }
+    if local_only:
+        metadata["local_only"] = list(local_only)
+    write_json(out / "metadata.json", metadata)
     write_json(out / "structures.json", [s.to_json() for s in structures])
     write_json(out / "sources.json", [s.to_json() for s in sources])
     write_json(out / "collections.json", [])
