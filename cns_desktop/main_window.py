@@ -21,6 +21,7 @@ from .state import AppState
 from .views.activity_chart import ActivityChart
 from .views.brain_view import BrainView
 from .views.info_panel import InfoPanel
+from .views.pathway_panel import PathwayPanel
 from .views.progress_dialog import ProgressDialog
 from .views.quiz_panel import QuizPanel
 from .views.quiz_setup import QuizSetup
@@ -33,6 +34,7 @@ OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
 GREY_DIMMED = 0.15
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
+PATHWAY_LOCKED = ("Hide", "Isolate", "Show all", "Tracts")
 RECOVERED = {
     "damaged": ("Progress file damaged", "Your progress file could not be read. It was kept as "
                 "{path} and a new one was started."),
@@ -96,6 +98,8 @@ class MainWindow(QMainWindow):
         self._saved: tuple | None = None
         self.recovery_box: QMessageBox | None = None
         self.quiz_active = False
+        self.pathway_active = False
+        self._pathway_saved: tuple | None = None
         self.shortcuts: dict[str, QAction] = {}
 
         self.view = BrainView(self.state, self)
@@ -105,8 +109,12 @@ class MainWindow(QMainWindow):
         self.info = InfoPanel(self.state)
         self.chart = ActivityChart(self.state)
         self.quiz = QuizPanel(self.state)
+        self.pathways = PathwayPanel(self.state)
         left, right = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea
         self.tree_dock = self._dock("Structures", self.tree, left)
+        self.pathway_dock = self._dock("Pathways", self.pathways, left)
+        self.tabifyDockWidget(self.tree_dock, self.pathway_dock)
+        self.tree_dock.raise_()
         self.slice_dock = self._dock("Slices", self.slices, right)
         self.info_dock = self._dock("Info", self.info, right)
         self.chart_dock = self._dock("Activity", self.chart, Qt.DockWidgetArea.BottomDockWidgetArea)
@@ -128,6 +136,11 @@ class MainWindow(QMainWindow):
         self.quiz.find_target.connect(self._prefer_in_slices)
         self.quiz.dim_grey.connect(
             lambda dim: self.view.set_grey_opacity(GREY_DIMMED if dim else 1.0))
+        self.pathways.entered.connect(self.enter_pathway)
+        self.pathways.left.connect(self.leave_pathway)
+        self.pathways.centre_requested.connect(self.slices.centre_on_selection)
+        self.pathway_dock.visibilityChanged.connect(
+            lambda shown: shown and self.slices.label_centres())
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())
         self._status_timer = QTimer(self, interval=250, timeout=self._update_status)
@@ -171,6 +184,12 @@ class MainWindow(QMainWindow):
         study.addAction(start)
         study.addAction(QAction("Progress", self, triggered=self.show_progress))
         self.shortcuts["Start quiz"] = start
+        leave = QAction("Leave pathway", self, shortcut=QKeySequence("Esc"),
+                        triggered=self.pathways.leave)
+        leave.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+        leave.setEnabled(False)
+        self.addAction(leave)
+        self.shortcuts["Leave pathway"] = leave
 
     def _show_hover(self, name: str) -> None:
         if self.quiz_active:
@@ -224,13 +243,15 @@ class MainWindow(QMainWindow):
         rng = rng or random.Random()
         session = Session(chosen, choice.mode, self.progress_store(), choice.practice, now=now,
                           rng=rng)
+        if self.pathway_active:
+            self.pathways.leave()
         self.enter_quiz()
         shown = choice.level == "tracts" and choice.mode == "find"
         self.state.set_hidden(self.state.tract_ids, not shown)
         self.quiz.start(session, choice.mode, self.answer_index(), pool, rng)
 
     def _quiz_locked(self) -> list[QAction]:
-        docks = (self.tree_dock, self.info_dock, self.chart_dock)
+        docks = (self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock)
         return [*(self.shortcuts[name] for name in QUIZ_LOCKED),
                 *(dock.toggleViewAction() for dock in docks)]
 
@@ -238,8 +259,7 @@ class MainWindow(QMainWindow):
         if self.quiz_active:
             return
         state = self.state
-        hidden = [i for i in state.geometry_ids if state.is_hidden(i)]
-        self._saved = (self.saveState(), hidden, state.selected, state.slice_axis, state.slice_mm,
+        self._saved = (self.saveState(), *self._snapshot(),
                        [(w, w.focusPolicy()) for w in (self.view, self.slices.view)])
         self.quiz_active = True
         for action in self._quiz_locked():
@@ -248,6 +268,7 @@ class MainWindow(QMainWindow):
         for widget, _ in self._saved[5]:
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.tree_dock.hide()
+        self.pathway_dock.hide()
         self.info_dock.hide()
         self.chart_dock.hide()
         self.quiz_dock.show()
@@ -264,11 +285,38 @@ class MainWindow(QMainWindow):
         for widget, policy in focus:
             widget.setFocusPolicy(policy)
         self.restoreState(layout)
+        self._restore(hidden, selected, axis, mm)
+        self._update_status()
+
+    def _snapshot(self) -> tuple:
+        state = self.state
+        hidden = [i for i in state.geometry_ids if state.is_hidden(i)]
+        return hidden, state.selected, state.slice_axis, state.slice_mm
+
+    def _restore(self, hidden, selected, axis, mm) -> None:
         self.state.select(selected)
         kept = set(hidden)
         self.state.set_hidden([i for i in self.state.geometry_ids if i not in kept], False)
         self.state.set_hidden(hidden, True)
         self.state.set_slice(axis, mm)
+
+    def enter_pathway(self) -> None:
+        self._pathway_saved = self._snapshot()
+        self.pathway_active = True
+        for name in PATHWAY_LOCKED:
+            self.shortcuts[name].setEnabled(False)
+        self.shortcuts["Leave pathway"].setEnabled(True)
+        self._update_status()
+
+    def leave_pathway(self) -> None:
+        if not self.pathway_active:
+            return
+        self.pathway_active = False
+        for name in PATHWAY_LOCKED:
+            self.shortcuts[name].setEnabled(True)
+        self.shortcuts["Leave pathway"].setEnabled(False)
+        self.state.set_focus(None)
+        self._restore(*self._pathway_saved)
         self._update_status()
 
     def show_about(self) -> None:
@@ -292,6 +340,13 @@ class MainWindow(QMainWindow):
         if self.quiz_active:
             self.status.setText(f"quiz in progress   │   last frame: "
                                 f"{self.view.last_render_ms:.1f} ms   │   Esc ends the quiz")
+            return
+        panel = self.pathways
+        if self.pathway_active and panel.pathway is not None:
+            self.status.setText(
+                f"pathway: {panel.pathway.name} ({panel.side})   │   "
+                f"step {panel.index + 1} of {len(panel.pathway.steps)}   │   "
+                f"last frame: {self.view.last_render_ms:.1f} ms   │   Esc leaves the pathway")
             return
         selected = self.state.selected
         name = self.state.atlas.get(selected).name if selected else "-"

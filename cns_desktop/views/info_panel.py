@@ -10,6 +10,16 @@ from cns_atlas.knowledge import SECTIONS
 from ..state import AppState
 
 
+def references_html(references) -> list[str]:
+    if not references:
+        return []
+    items = []
+    for ref in references:
+        link = f" <a href='{escape(ref.link)}'>link</a>" if ref.link else ""
+        items.append(f"<li>{escape(ref.citation())}{link}</li>")
+    return [f"<h4>References</h4><ol>{''.join(items)}</ol>"]
+
+
 def entry_html(entry: Entry | None) -> list[str]:
     if entry is None:
         return ["<p><i>No description yet.</i></p>"]
@@ -18,12 +28,7 @@ def entry_html(entry: Entry | None) -> list[str]:
         if name in entry.sections:
             body = escape(entry.numbered(entry.sections[name]))
             parts.append(f"<h4>{name}</h4><p>{body}</p>")
-    if entry.references:
-        items = []
-        for ref in entry.references:
-            link = f" <a href='{escape(ref.link)}'>link</a>" if ref.link else ""
-            items.append(f"<li>{escape(ref.citation())}{link}</li>")
-        parts.append(f"<h4>References</h4><ol>{''.join(items)}</ol>")
+    parts += references_html(entry.references)
     return parts
 
 
