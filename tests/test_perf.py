@@ -302,8 +302,17 @@ for index in stations + stations:
     panel.go(index)
     app.processEvents()
     steps.append(time.perf_counter() - start)
+panel.open("stress")
+panel.play()
+ticks = []
+for _ in range(40):
+    start = time.perf_counter()
+    panel.advance(0.05)
+    app.processEvents()
+    ticks.append(time.perf_counter() - start)
+panel.pause()
 window.close()
-print(entered, switched, sorted(steps)[len(steps) // 2])
+print(entered, switched, sorted(steps)[len(steps) // 2], sorted(ticks)[len(ticks) // 2])
 """
 
 
@@ -315,10 +324,11 @@ def test_pathways_on_the_real_atlas_meet_their_budgets(tmp_path):
     result = subprocess.run([sys.executable, "-c", PATHWAY_TIMING, str(atlas_path),
                              str(tmp_path / "progress.sqlite")], env=env, check=True,
                             capture_output=True, text=True, timeout=180)
-    entered, switched, step = map(float, result.stdout.split()[-3:])
+    entered, switched, step, tick = map(float, result.stdout.split()[-4:])
     assert entered < 0.100
     assert switched < 0.100
     assert step < 0.030
+    assert tick < 0.005
 
 
 def sphere_scene(count: int):
