@@ -184,3 +184,32 @@ def test_local_only_sources_come_from_the_metadata(tmp_path):
     metadata["local_only"] = ["toylocal"]
     (root / "metadata.json").write_text(json.dumps(metadata))
     assert Atlas.open(root).local_only == ("toylocal",)
+
+
+def edit_json(root, name, change):
+    data = json.loads((root / name).read_text())
+    (root / name).write_text(json.dumps(change(data)))
+
+
+@pytest.mark.parametrize(("name", "change", "message"), [
+    ("metadata.json", lambda m: [m], "expected a JSON object"),
+    ("metadata.json", lambda m: {**m, "format_version": True}, "format_version True"),
+    ("metadata.json", lambda m: {**m, "format_version": 1.0}, "format_version 1.0"),
+    ("metadata.json", lambda m: {**m, "local_only": "toylocal"}, "local_only must be a list"),
+    ("metadata.json", lambda m: {**m, "local_only": None}, "local_only must be a list"),
+    ("structures.json", lambda s: s + [s[-1]], r"duplicate structure ids \[110\]"),
+    ("structures.json", lambda s: [s[0], s[1], s[2], s[5], s[3], s[4]],
+     "structure 101 is not inside its parent's block"),
+])
+def test_malformed_packages_fail_with_a_clear_message(tmp_path, name, change, message):
+    root = write_package(tmp_path / "pkg", tiny_structures())
+    edit_json(root, name, change)
+    with pytest.raises(AtlasError, match=message):
+        Atlas.open(root)
+
+
+def test_unreadable_meshes_fail_with_a_clear_message(tmp_path):
+    root = write_package(tmp_path / "pkg", tiny_structures(), meshes={101: tetra()})
+    (root / "meshes" / "lod0" / "index.npy").write_bytes(b"not numpy")
+    with pytest.raises(AtlasError, match="meshes"):
+        Atlas.open(root)

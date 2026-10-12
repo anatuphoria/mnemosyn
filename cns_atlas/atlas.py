@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -62,8 +63,11 @@ class Atlas:
                 self._children[s.parent].append(s.id)
         self._subtree_end = _subtree_ends(structures)
         meshes = root / "meshes"
-        self._lods = {level: MeshLod(meshes / name) for level, name in enumerate(LODS)
-                      if (meshes / name / "index.npy").exists()}
+        try:
+            self._lods = {level: MeshLod(meshes / name) for level, name in enumerate(LODS)
+                          if (meshes / name / "index.npy").exists()}
+        except (OSError, ValueError) as exc:
+            raise AtlasError(f"{meshes}: mesh files cannot be read ({exc})") from exc
         records = metadata.get("volumes", [])
         self.volumes = tuple(
             LabelVolume(root / v["file"], v["space"], np.array(v["affine_to_world"]))
@@ -101,10 +105,15 @@ class Atlas:
         if not root.is_dir():
             raise AtlasError(f"{root}: atlas package not found")
         metadata = _read_json(root / "metadata.json")
+        if not isinstance(metadata, dict):
+            raise AtlasError(f"{root / 'metadata.json'}: expected a JSON object")
         version = metadata.get("format_version")
-        if version != FORMAT_VERSION:
+        if type(version) is not int or version != FORMAT_VERSION:
             raise AtlasError(f"{root / 'metadata.json'}: format_version {version!r} is not "
                              f"supported (expected {FORMAT_VERSION})")
+        local = metadata.get("local_only", [])
+        if not (isinstance(local, list) and all(isinstance(s, str) for s in local)):
+            raise AtlasError(f"{root / 'metadata.json'}: local_only must be a list of source ids")
         try:
             structures = tuple(Structure.from_json(d) for d in _read_json(root / "structures.json"))
             sources = {s.id: s for s in map(Source.from_json, _read_json(root / "sources.json"))}
@@ -114,6 +123,10 @@ class Atlas:
             timelines = tuple(map(Timeline.from_json, _read_json(path))) if path.exists() else ()
         except (KeyError, TypeError, ValueError) as exc:
             raise AtlasError(f"{root}: malformed record ({exc!r})") from exc
+        counts = Counter(s.id for s in structures)
+        duplicates = sorted(i for i, n in counts.items() if n > 1)
+        if duplicates:
+            raise AtlasError(f"{root / 'structures.json'}: duplicate structure ids {duplicates}")
         position = {s.id: i for i, s in enumerate(structures)}
         for i, s in enumerate(structures):
             if s.parent is not None and s.parent not in position:
@@ -122,6 +135,14 @@ class Atlas:
             if s.parent is not None and position[s.parent] > i:
                 raise AtlasError(f"{root / 'structures.json'}: structure {s.id} appears before "
                                  f"its parent")
+        stack: list[int] = []
+        for s in structures:
+            while stack and stack[-1] != s.parent:
+                stack.pop()
+            if s.parent is not None and not stack:
+                raise AtlasError(f"{root / 'structures.json'}: structure {s.id} is not inside "
+                                 f"its parent's block")
+            stack.append(s.id)
         return cls(root, metadata, structures, sources, collections, pathways, timelines)
 
     def get(self, structure_id: int) -> Structure:

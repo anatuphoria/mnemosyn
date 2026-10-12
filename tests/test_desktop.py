@@ -860,3 +860,11 @@ def test_a_local_build_says_it_is_not_for_sharing(qapp, tmp_path):
 def test_a_shareable_build_has_no_local_notice(window, atlas):
     assert "not for sharing" not in window.windowTitle()
     assert "may not be shared" not in about_text(atlas)
+
+
+def test_the_about_box_lists_local_sources_without_a_citation(tmp_path):
+    root = write_package(tmp_path / "ghost", tiny_structures())
+    metadata = json.loads((root / "metadata.json").read_text())
+    metadata["local_only"] = ["ghost-source"]
+    (root / "metadata.json").write_text(json.dumps(metadata))
+    assert "ghost-source" in about_text(Atlas.open(root))

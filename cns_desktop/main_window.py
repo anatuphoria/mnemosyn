@@ -84,8 +84,9 @@ def about_text(atlas: Atlas) -> str:
     version = escape(str(atlas.metadata.get("version", "")))
     notice = ""
     if atlas.local_only:
-        items = "".join(f"<li>{escape(atlas.sources[i].citation())}</li>"
-                        for i in atlas.local_only if i in atlas.sources)
+        items = "".join(
+            f"<li>{escape(atlas.sources[i].citation() if i in atlas.sources else i)}</li>"
+            for i in atlas.local_only)
         notice = ("<p><b>Local build, not for sharing.</b> This atlas includes data that may "
                   f"not be shared yet:</p><ul>{items}</ul>")
     return (f"<h3>{APP_NAME}</h3><p>{escape(DISCLAIMER)}</p>"
