@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
-from cns_desktop.views.pathway_panel import PAUSE, PLAY
+from cns_desktop.views.activity_chart import PAUSE, PLAY
 
 MOOD_ROUTE = {111, 112, 101, 102, 120}
 
@@ -72,14 +72,14 @@ def test_play_steps_a_route_without_a_timeline(window):
     panel = window.pathways
     panel.open("loop")
     panel.play()
-    assert panel.playing and panel.play_button.text() == PAUSE
+    assert panel.playing and window.chart.play_button.text() == PAUSE
     panel.advance(2.9)
     assert panel.index == 0
     panel.advance(0.2)
     assert panel.index == 1
     for _ in range(4):
         panel.advance(3.0)
-    assert panel.index == 5 and not panel.playing and panel.play_button.text() == PLAY
+    assert panel.index == 5 and not panel.playing and window.chart.play_button.text() == PLAY
     panel.play()
     assert panel.index == 0
 
@@ -218,3 +218,94 @@ def test_selecting_off_the_route_while_playing_pauses(window):
     panel.play()
     window.state.select(131)
     assert not panel.playing and window.state.selected == 131
+
+
+def test_the_control_bar_shows_only_in_pathway_mode(window):
+    chart, panel = window.chart, window.pathways
+    assert chart.controls.isHidden()
+    panel.open("mood")
+    assert not chart.controls.isHidden()
+    assert chart.step_label.text() == "Step 1 of 4: Beta nucleus"
+    assert chart.time_label.text() == "0 / 60 min"
+    panel.leave()
+    assert chart.controls.isHidden()
+
+
+def test_the_control_bar_drives_the_route(window):
+    chart, panel = window.chart, window.pathways
+    panel.open("loop")
+    chart.next_button.click()
+    assert panel.index == 1 and chart.step_label.text() == "Step 2 of 6: ✕ Toy crossing"
+    chart.back_button.click()
+    assert panel.index == 0
+    chart.play_button.click()
+    assert panel.playing and chart.play_button.text() == PAUSE
+    chart.play_button.click()
+    assert not panel.playing and chart.play_button.text() == PLAY
+    assert chart.time_label.text() == ""
+
+
+def test_speed_scales_playback_without_pausing(window):
+    chart, panel = window.chart, window.pathways
+    panel.open("mood")
+    panel.play()
+    chart.speed.setCurrentIndex(2)
+    assert panel.playing and panel.speed == 2.0
+    panel.advance(1.0)
+    assert panel.time == pytest.approx(20.0) and panel.index == 2
+    chart.speed.setCurrentIndex(0)
+    panel.open("loop")
+    panel.play()
+    panel.advance(3.0)
+    assert panel.index == 0
+    panel.advance(3.0)
+    assert panel.index == 1
+
+
+def test_space_on_the_chart_toggles_play(window):
+    window.pathways.open("loop")
+    QTest.keyClick(window.chart, Qt.Key.Key_Space)
+    assert window.pathways.playing
+
+
+def test_entering_shows_a_hidden_activity_panel_and_leaving_hides_it_again(window, qapp):
+    window.chart_dock.hide()
+    window.pathways.open("mood")
+    assert not window.chart_dock.isHidden()
+    window.pathways.leave()
+    assert window.chart_dock.isHidden()
+
+
+def test_a_quiz_hides_the_control_bar(window):
+    import random
+
+    from cns_study.session import QuizChoice
+
+    window.pathways.open("mood")
+    window.start_quiz(QuizChoice("name-typed", "structures", None, False), rng=random.Random(1))
+    assert window.chart.controls.isHidden()
+    window.quiz.stop()
+
+
+class FakeClick:
+    def __init__(self, pos):
+        self.pos = pos
+
+    def button(self):
+        return Qt.MouseButton.LeftButton
+
+    def scenePos(self):
+        return self.pos
+
+
+def test_only_clicks_inside_the_plot_seek(window):
+    from PySide6.QtCore import QPointF
+
+    chart, panel = window.chart, window.pathways
+    panel.open("mood")
+    seen = []
+    chart.seek_requested.connect(seen.append)
+    chart._on_click(FakeClick(QPointF(-50.0, -50.0)))
+    assert seen == []
+    chart._on_click(FakeClick(chart.plot.plotItem.vb.sceneBoundingRect().center()))
+    assert len(seen) == 1

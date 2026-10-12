@@ -19,8 +19,6 @@ RELAY_COLOR = QColor("#8a8a99")
 KEY_ROLE = Qt.ItemDataRole.UserRole
 TICK_MS = 50
 STEP_SECONDS = 3.0
-PLAY = "Play (Space)"
-PAUSE = "Pause (Space)"
 
 
 def _column(*widgets) -> QWidget:
@@ -41,6 +39,8 @@ class PathwayPanel(QWidget):
     centre_requested = Signal()
     timeline_changed = Signal(object)
     time_changed = Signal(float)
+    playing_changed = Signal(bool)
+    step_changed = Signal(str)
 
     def __init__(self, state: AppState, hold=nullcontext, parent=None) -> None:
         super().__init__(parent)
@@ -57,6 +57,7 @@ class PathwayPanel(QWidget):
         self.timeline: Timeline | None = None
         self.time = 0.0
         self._since = 0.0
+        self.speed = 1.0
 
         self.choices = QListWidget()
         groups = list(dict.fromkeys(p.group for p in state.atlas.pathways))
@@ -94,14 +95,12 @@ class PathwayPanel(QWidget):
         self.back_button = QPushButton("Back (Left)")
         self.next_button = QPushButton("Next (Right)")
         self.leave_button = QPushButton("Leave pathway (Esc)")
-        self.play_button = QPushButton(PLAY)
         self.timer = QTimer(self, interval=TICK_MS, timeout=lambda: self.advance(TICK_MS / 1000))
         nav = QHBoxLayout()
-        nav.addWidget(self.play_button)
         nav.addWidget(self.back_button)
         nav.addWidget(self.next_button)
         for widget in (*self.side_buttons.values(), self.steps, self.details, self.back_button,
-                       self.next_button, self.leave_button, self.play_button):
+                       self.next_button, self.leave_button):
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.pages = QStackedWidget()
@@ -113,7 +112,6 @@ class PathwayPanel(QWidget):
         layout.addWidget(self.pages)
 
         self.choices.itemClicked.connect(self._on_choice)
-        self.play_button.clicked.connect(self.toggle_play)
         self.steps.currentRowChanged.connect(self._on_row)
         self.steps.itemClicked.connect(self._on_step_clicked)
         self.back_button.clicked.connect(self.back)
@@ -209,6 +207,9 @@ class PathwayPanel(QWidget):
         self.back_button.setEnabled(self.index > 0)
         self.next_button.setEnabled(self.index < len(self.pathway.steps) - 1)
         self.details.setHtml(self._details_html())
+        step = self.pathway.steps[self.index]
+        name = self.label(self.index + 1, step).split(" ", 1)[1]
+        self.step_changed.emit(f"Step {self.index + 1} of {len(self.pathway.steps)}: {name}")
 
     def next(self) -> None:
         self.go(self.index + 1)
@@ -279,15 +280,21 @@ class PathwayPanel(QWidget):
             self._go(self.timeline.step_at(0.0))
         self._since = 0.0
         self.timer.start()
-        self.play_button.setText(PAUSE)
+        self.playing_changed.emit(True)
 
     def pause(self) -> None:
+        was = self.timer.isActive()
         self.timer.stop()
-        self.play_button.setText(PLAY)
+        if was:
+            self.playing_changed.emit(False)
+
+    def set_speed(self, speed: float) -> None:
+        self.speed = speed
 
     def advance(self, seconds: float) -> None:
         if self.pathway is None:
             return
+        seconds *= self.speed
         last = len(self.pathway.steps) - 1
         if self.timeline is None:
             self._since += seconds

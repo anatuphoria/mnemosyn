@@ -108,6 +108,7 @@ class MainWindow(QMainWindow):
         self.recovery_box: QMessageBox | None = None
         self.quiz_active = False
         self.pathway_active = False
+        self._chart_was_shown = True
         self._pathway_saved: tuple | None = None
         self.shortcuts: dict[str, QAction] = {}
 
@@ -153,6 +154,12 @@ class MainWindow(QMainWindow):
                 timeline, self.pathways.pathway.name if self.pathways.pathway else ""))
         self.pathways.time_changed.connect(self.chart.set_time)
         self.chart.seek_requested.connect(self.pathways.seek)
+        self.chart.back_requested.connect(self.pathways.back)
+        self.chart.next_requested.connect(self.pathways.next)
+        self.chart.play_requested.connect(self.pathways.toggle_play)
+        self.chart.speed_changed.connect(self.pathways.set_speed)
+        self.pathways.playing_changed.connect(self.chart.set_playing)
+        self.pathways.step_changed.connect(self.chart.set_step)
         self.pathway_dock.visibilityChanged.connect(self._prepare_pathways)
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())
@@ -324,6 +331,9 @@ class MainWindow(QMainWindow):
         for name in PATHWAY_LOCKED:
             self.shortcuts[name].setEnabled(False)
         self.shortcuts["Leave pathway"].setEnabled(True)
+        self._chart_was_shown = not self.chart_dock.isHidden()
+        self.chart_dock.show()
+        self.chart.show_controls(True)
         self._update_status()
 
     def leave_pathway(self) -> None:
@@ -335,6 +345,9 @@ class MainWindow(QMainWindow):
         self.shortcuts["Leave pathway"].setEnabled(False)
         self.state.set_focus(None)
         self._restore(*self._pathway_saved)
+        self.chart.show_controls(False)
+        if not self._chart_was_shown:
+            self.chart_dock.hide()
         self._update_status()
 
     def show_about(self) -> None:
