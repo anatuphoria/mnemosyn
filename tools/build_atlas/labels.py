@@ -7,6 +7,7 @@ import numpy as np
 from nibabel.processing import resample_from_to
 
 from .hierarchy import PlannedStructure
+from .recipe import BuildError
 
 
 def read_label_names(path: Path) -> dict[int, str]:
@@ -18,10 +19,14 @@ def read_label_names(path: Path) -> dict[int, str]:
     return names
 
 
-def load_label_image(path: Path, mask: bool = False) -> nib.Nifti1Image:
+def load_label_image(path: Path, mask: bool = False, name: str = "") -> nib.Nifti1Image:
     image = nib.load(path)
     data = np.asarray(image.dataobj)
-    return nib.Nifti1Image((data != 0 if mask else data).astype(np.int32), image.affine)
+    if mask:
+        data = np.nan_to_num(data) != 0
+    elif not np.issubdtype(data.dtype, np.integer) and np.any(data != np.rint(data)):
+        raise BuildError([f"source {name}: label values are not whole numbers; set mask = true"])
+    return nib.Nifti1Image(data.astype(np.int32), image.affine)
 
 
 def source_values(image: nib.Nifti1Image) -> set[int]:

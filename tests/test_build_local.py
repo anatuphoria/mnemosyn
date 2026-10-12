@@ -10,7 +10,7 @@ from tools.build_atlas.build import build
 from tools.build_atlas.hierarchy import load_structures, without_sources
 from tools.build_atlas.idlock import load_lock
 from tools.build_atlas.labels import load_label_image
-from tools.build_atlas.recipe import load_recipe
+from tools.build_atlas.recipe import BuildError, load_recipe
 from tools.build_atlas.validate import check_sources
 
 
@@ -35,7 +35,28 @@ def test_mask_sources_turn_every_nonzero_voxel_into_label_one(tmp_path):
     values = np.array([[[0.0, 0.3], [0.9, 0.0]]], dtype=np.float32)
     nib.save(nib.Nifti1Image(values, np.eye(4)), path)
     assert np.asarray(load_label_image(path, mask=True).dataobj).tolist() == [[[0, 1], [1, 0]]]
-    assert np.asarray(load_label_image(path).dataobj).tolist() == [[[0, 0], [0, 0]]]
+
+
+def test_fractional_labels_without_mask_stop_the_build(tmp_path):
+    path = tmp_path / "gland.nii.gz"
+    values = np.array([[[0.0, 0.3], [1.0, 2.0]]], dtype=np.float32)
+    nib.save(nib.Nifti1Image(values, np.eye(4)), path)
+    with pytest.raises(BuildError) as error:
+        load_label_image(path, name="toylocal")
+    assert error.value.problems == [
+        "source toylocal: label values are not whole numbers; set mask = true"]
+
+
+def test_whole_number_labels_stored_as_floats_still_load(tmp_path):
+    path = tmp_path / "labels.nii.gz"
+    nib.save(nib.Nifti1Image(np.array([[[0.0, 3.0]]], dtype=np.float32), np.eye(4)), path)
+    assert np.asarray(load_label_image(path).dataobj).tolist() == [[[0, 3]]]
+
+
+def test_a_mask_ignores_missing_values(tmp_path):
+    path = tmp_path / "gland.nii.gz"
+    nib.save(nib.Nifti1Image(np.array([[[np.nan, 0.4]]], dtype=np.float32), np.eye(4)), path)
+    assert np.asarray(load_label_image(path, mask=True).dataobj).tolist() == [[[0, 1]]]
 
 
 def test_recipe_reads_local_only_and_mask(local_src):
