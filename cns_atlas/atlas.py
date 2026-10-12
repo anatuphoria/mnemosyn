@@ -8,6 +8,7 @@ import numpy as np
 from .knowledge import Entry, KnowledgeError, Reference, load_references, parse_entry, resolve
 from .meshes import LODS, MeshData, MeshLod
 from .model import FORMAT_VERSION, Collection, Pathway, Source, Structure
+from .pathways import PathwayText, text_for
 from .tracts import TractLayer
 from .volume import LabelVolume, TemplateVolume
 
@@ -199,6 +200,13 @@ class Atlas:
                 entry = resolve(parsed, self.references)
             self._entries[key] = entry
         return self._entries[key]
+
+    def pathway_text(self, key: str, side: str, lang: str = "en") -> PathwayText | None:
+        pathway = next((p for p in self.pathways if p.key == key), None)
+        entry = None if pathway is None else self.knowledge(f"pathway-{key}", lang)
+        if entry is None:
+            return None
+        return text_for(entry, len(pathway.steps), side)
 
     def label_at(self, point) -> int | None:
         for volume in self.volumes:

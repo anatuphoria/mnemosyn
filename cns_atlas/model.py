@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 FORMAT_VERSION = 1
 KINDS = ("group", "region", "nucleus", "tract", "ventricle", "nerve-root")
 SIDES = ("left", "right", "midline", "none")
+STEP_SIDES = ("same", "opposite", "midline")
 
 
 @dataclass(frozen=True)
@@ -122,14 +123,59 @@ class Collection:
 
 
 @dataclass(frozen=True)
+class Station:
+    structures: tuple[int, ...]
+    side: str = "same"
+
+
+@dataclass(frozen=True)
+class Crossing:
+    name: str
+
+
+@dataclass(frozen=True)
+class Relay:
+    name: str
+    side: str = "same"
+
+
+Step = Station | Crossing | Relay
+
+
+def step_to_json(step: Step) -> dict:
+    if isinstance(step, Station):
+        return {"structures": list(step.structures), "side": step.side}
+    if isinstance(step, Crossing):
+        return {"cross": step.name}
+    return {"relay": step.name, "side": step.side}
+
+
+def step_from_json(data: dict) -> Step:
+    kinds = [kind for kind in ("structures", "cross", "relay") if kind in data]
+    if len(kinds) != 1:
+        raise ValueError(f"step needs exactly one of structures, cross or relay: {data!r}")
+    side = str(data.get("side", "same"))
+    if side not in STEP_SIDES:
+        raise ValueError(f"unknown step side {side!r}")
+    if kinds == ["structures"]:
+        return Station(tuple(int(i) for i in data["structures"]), side)
+    if kinds == ["cross"]:
+        return Crossing(str(data["cross"]))
+    return Relay(str(data["relay"]), side)
+
+
+@dataclass(frozen=True)
 class Pathway:
     key: str
     name: str
-    steps: tuple[int, ...]
+    start: str
+    steps: tuple[Step, ...]
 
     def to_json(self) -> dict:
-        return {"key": self.key, "name": self.name, "steps": list(self.steps)}
+        return {"key": self.key, "name": self.name, "start": self.start,
+                "steps": [step_to_json(step) for step in self.steps]}
 
     @classmethod
     def from_json(cls, data: dict) -> Pathway:
-        return cls(str(data["key"]), str(data["name"]), tuple(int(i) for i in data["steps"]))
+        return cls(str(data["key"]), str(data["name"]), str(data["start"]),
+                   tuple(step_from_json(step) for step in data["steps"]))

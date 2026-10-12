@@ -10,6 +10,13 @@ SECTIONS = ("Function", "Connections", "Clinical")
 STATUSES = ("draft", "reviewed")
 BOM = codecs.BOM_UTF8.decode()
 CITATION = re.compile(r"\[([a-z][a-z0-9_-]*)\](?!\()")
+STEP_SECTION = re.compile(r"Step [1-9][0-9]*")
+
+
+def _section_allowed(name: str, target: int | str) -> bool:
+    if isinstance(target, str) and target.startswith("pathway-"):
+        return name == "Overview" or STEP_SECTION.fullmatch(name) is not None
+    return name in SECTIONS
 
 
 class KnowledgeError(ValueError):
@@ -104,8 +111,10 @@ def parse_entry(text: str, origin: str) -> Entry:
     for line in text[end + 5:].split("\n"):
         if line.startswith("## "):
             current = line[3:].strip()
-            if current not in SECTIONS:
+            if not _section_allowed(current, target):
                 raise KnowledgeError(f"{origin}: unknown section '{current}'")
+            if current in sections:
+                raise KnowledgeError(f"{origin}: section '{current}' appears twice")
             sections[current] = ""
         elif current is not None:
             sections[current] += line + "\n"

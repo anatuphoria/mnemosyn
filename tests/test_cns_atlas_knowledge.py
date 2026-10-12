@@ -108,3 +108,38 @@ def test_reference_problems(tmp_path):
         load_references(path)
     path.write_text('[x2020]\nauthors = "A"\ntitle = "T"\nyear = 2020\n')
     assert not load_references(path)["x2020"].has_locator
+
+
+PATHWAY_ENTRY = """+++
+key = "pathway-visual"
++++
+## Overview
+A [a2020].
+## Step 1
+Role: B.
+Lesion: C.
+## Step 2
+Role: D.
+Lesion: E.
+"""
+
+
+def test_pathway_entries_take_an_overview_and_numbered_steps():
+    entry = parse_entry(PATHWAY_ENTRY, "p.md")
+    assert list(entry.sections) == ["Overview", "Step 1", "Step 2"]
+    assert entry.sections["Step 2"] == "Role: D.\nLesion: E."
+
+
+@pytest.mark.parametrize(("text", "message"), [
+    ("+++\nid = 1350\n+++\n## Step 1\nRole: A.\n", "unknown section 'Step 1'"),
+    ('+++\nkey = "pathway-x"\n+++\n## Function\nA.\n', "unknown section 'Function'"),
+    ('+++\nkey = "pathway-x"\n+++\n## Step 0\nA.\n', "unknown section 'Step 0'"),
+    ('+++\nkey = "pathway-x"\n+++\n## Step 01\nA.\n', "unknown section 'Step 01'"),
+    ("+++\nid = 1350\n+++\n## Function\nA.\n## Function\nB.\n",
+     "section 'Function' appears twice"),
+    ('+++\nkey = "pathway-x"\n+++\n## Step 2\nA.\n## Step 2\nB.\n',
+     "section 'Step 2' appears twice"),
+])
+def test_sections_are_checked_by_kind_of_entry(text, message):
+    with pytest.raises(KnowledgeError, match=message):
+        parse_entry(text, "x.md")

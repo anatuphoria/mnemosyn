@@ -1,7 +1,7 @@
 import numpy as np
 
 from cns_atlas.meshes import MeshData, MeshLod, write_lod
-from cns_atlas.model import Collection, Pathway, Source, Structure
+from cns_atlas.model import Collection, Crossing, Pathway, Relay, Source, Station, Structure
 
 
 def test_structure_round_trips_through_json():
@@ -33,9 +33,14 @@ def test_source_redistribution_must_be_literally_true():
 
 def test_collection_and_pathway_round_trip():
     c = Collection("limbic-system", "Limbic system", (1350, 1400))
-    p = Pathway("spinothalamic", "Spinothalamic pathway", (5101, 1840, 1700))
+    p = Pathway("pain", "Pain and temperature", "side of the body",
+                (Relay("Dorsal horn"), Crossing("Anterior white commissure"),
+                 Station((3260,), "opposite"), Station((1840, 1700), "opposite"),
+                 Station((3320,), "midline")))
     assert Collection.from_json(c.to_json()) == c
     assert Pathway.from_json(p.to_json()) == p
+    assert p.to_json()["steps"][:2] == [{"relay": "Dorsal horn", "side": "same"},
+                                        {"cross": "Anterior white commissure"}]
 
 
 def tetra(offset):
