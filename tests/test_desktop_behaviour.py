@@ -188,3 +188,33 @@ def test_leaving_or_a_route_without_a_timeline_restores_the_chart(window):
     panel.leave()
     assert chart.timeline is None and chart.curve.isVisible() and chart.note.isHidden()
     assert chart.plot.plotItem.titleLabel.text == "Select a structure"
+
+
+def test_closing_the_window_stops_play(qapp, toy_behaviour_atlas, tmp_path):
+    w = MainWindow(Atlas.open(toy_behaviour_atlas), progress_path=tmp_path / "progress.sqlite")
+    w.show()
+    w.pathways.open("mood")
+    w.pathways.play()
+    w.close()
+    assert not w.pathways.timer.isActive()
+
+
+def test_a_timeline_route_opens_on_the_step_of_time_zero(window):
+    from dataclasses import replace
+
+    from cns_atlas.timelines import Mark
+
+    timelines = window.state.atlas.timelines
+    timelines["mood"] = replace(timelines["mood"], marks=(Mark(0.0, 3), Mark(30.0, 1)))
+    panel = window.pathways
+    panel.open("mood")
+    assert panel.index == 2 and panel.time == 0.0
+    assert window.state.emphasis == (101, 102)
+
+
+def test_selecting_off_the_route_while_playing_pauses(window):
+    panel = window.pathways
+    panel.open("mood")
+    panel.play()
+    window.state.select(131)
+    assert not panel.playing and window.state.selected == 131

@@ -137,6 +137,8 @@ class PathwayPanel(QWidget):
             button.setVisible(not both)
         self.timeline = self.state.atlas.timelines.get(key)
         self.time = 0.0
+        if self.timeline is not None:
+            self.index = self.timeline.step_at(0.0)
         self.timeline_changed.emit(self.timeline)
         self.title.setText(f"<b>{escape(pathway.name)}</b>")
         self.pages.setCurrentIndex(1)
@@ -238,6 +240,8 @@ class PathwayPanel(QWidget):
         found = [n for n, ids in enumerate(self.lights) if structure_id in ids]
         if found:
             self.go(self.index if self.index in found else found[0], chosen=structure_id)
+        else:
+            self.pause()
 
     def _details_html(self) -> str:
         parts = [f"<h3>{escape(self.steps.item(self.index).text())}</h3>"]

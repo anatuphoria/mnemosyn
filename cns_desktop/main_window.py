@@ -380,6 +380,7 @@ class MainWindow(QMainWindow):
         if self.quiz_active:
             self.quiz.stop()
         self._status_timer.stop()
+        self.pathways.pause()
         if self._store is not None:
             self._store.close()
         self.view.close()
