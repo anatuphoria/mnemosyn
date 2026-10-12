@@ -24,7 +24,7 @@ def window(qapp, toy_tract_atlas, tmp_path):
     w.close()
 
 
-def picked_ids(view, step=6) -> set[int]:
+def picked_ids(view, step=12) -> set[int]:
     width, height = view.ren_win.GetSize()
     found = {view.structure_at(x, y) for y in range(step, height, step)
              for x in range(step, width, step)}

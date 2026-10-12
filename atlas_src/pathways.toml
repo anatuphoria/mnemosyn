@@ -1,0 +1,109 @@
+[[pathways]]
+key = "visual"
+name = "Visual pathway"
+start = "eye"
+steps = [
+  { structures = [3370] },
+  { cross = "Optic chiasm" },
+  { structures = [1890] },
+  { structures = [3350] },
+  { structures = [1500] },
+]
+
+[[pathways]]
+key = "auditory"
+name = "Auditory pathway"
+start = "ear"
+steps = [
+  { structures = [3440] },
+  { relay = "Cochlear nuclei" },
+  { cross = "Trapezoid body" },
+  { structures = [3250], side = "opposite" },
+  { relay = "Inferior colliculus", side = "opposite" },
+  { structures = [1900], side = "opposite" },
+  { structures = [3360], side = "opposite" },
+  { structures = [1610], side = "opposite" },
+]
+
+[[pathways]]
+key = "papez"
+name = "Papez circuit"
+start = "hippocampus"
+steps = [
+  { structures = [1350] },
+  { structures = [3340] },
+  { structures = [2630] },
+  { structures = [3400] },
+  { structures = [1800] },
+  { structures = [3160] },
+  { structures = [1330, 1340] },
+  { structures = [1360] },
+  { structures = [1350] },
+]
+
+[[pathways]]
+key = "motor"
+name = "Voluntary movement (corticospinal)"
+start = "motor cortex"
+steps = [
+  { structures = [1000] },
+  { structures = [3000] },
+  { cross = "Pyramidal decussation" },
+  { relay = "Lateral corticospinal tract in the spinal cord", side = "opposite" },
+]
+
+[[pathways]]
+key = "touch"
+name = "Touch and position (dorsal column, medial lemniscus)"
+start = "side of the body"
+steps = [
+  { relay = "Dorsal column and gracile and cuneate nuclei" },
+  { cross = "Internal arcuate fibres" },
+  { structures = [3240], side = "opposite" },
+  { structures = [1840], side = "opposite" },
+  { structures = [1700], side = "opposite" },
+]
+
+[[pathways]]
+key = "pain"
+name = "Pain and temperature (spinothalamic)"
+start = "side of the body"
+steps = [
+  { relay = "Dorsal horn" },
+  { cross = "Anterior white commissure" },
+  { structures = [3260], side = "opposite" },
+  { structures = [1840], side = "opposite" },
+  { structures = [1700], side = "opposite" },
+]
+
+[[pathways]]
+key = "basal-ganglia"
+name = "Basal ganglia motor loop"
+start = "motor cortex"
+steps = [
+  { structures = [1070] },
+  { structures = [3050] },
+  { structures = [1420] },
+  { structures = [2010] },
+  { structures = [1430] },
+  { structures = [1820, 1830] },
+  { structures = [3060] },
+  { structures = [1000] },
+]
+
+[[pathways]]
+key = "cerebellar"
+name = "Cerebellar motor loop"
+start = "motor cortex"
+steps = [
+  { structures = [1000] },
+  { structures = [3010] },
+  { relay = "Pontine nuclei" },
+  { structures = [3320], side = "midline" },
+  { structures = [41], side = "opposite" },
+  { relay = "Dentate nucleus", side = "opposite" },
+  { structures = [3330], side = "midline" },
+  { structures = [2030] },
+  { structures = [1830] },
+  { structures = [1000] },
+]

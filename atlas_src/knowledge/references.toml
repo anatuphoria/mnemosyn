@@ -40,3 +40,12 @@ volume = "82(4)"
 pages = "239-259"
 year = 1991
 doi = "10.1007/BF00308809"
+
+[papez1937]
+authors = "Papez JW"
+title = "A proposed mechanism of emotion"
+journal = "Archives of Neurology and Psychiatry"
+volume = "38(4)"
+pages = "725-743"
+year = 1937
+doi = "10.1001/archneurpsyc.1937.02260220069003"

@@ -5,14 +5,20 @@ import numpy as np
 import pytest
 
 from cns_atlas import Atlas
-from cns_atlas.knowledge import load_references, parse_entry
+from cns_atlas.knowledge import CITATION, load_references, parse_entry
+from cns_atlas.model import Station
+from cns_atlas.pathways import resolve
 from tools.build_atlas.hierarchy import build_tree, load_structures
+from tools.build_atlas.pathways import check_pathway_texts, check_pathways, load_pathways
 from tools.build_atlas.recipe import load_recipe
 from tools.build_atlas.validate import (check_hierarchy, check_knowledge, check_sources,
                                         check_templates)
 
 SRC = Path(__file__).resolve().parent.parent / "atlas_src"
 AAL3_EMPTY_LABELS = {35, 36, 81, 82}
+PATHWAY_KEYS = ["visual", "auditory", "papez", "motor", "touch", "pain", "basal-ganglia",
+                "cerebellar"]
+REAL_ATLAS = SRC.parent / "atlases" / "cns"
 
 
 def test_hierarchy_sources_and_knowledge_are_valid():
@@ -22,7 +28,8 @@ def test_hierarchy_sources_and_knowledge_are_valid():
     assert check_hierarchy(raws) == []
     assert check_sources(raws, recipe, SRC) == []
     concepts = {r.id: r.concept for r in raws}
-    assert check_knowledge(SRC / "knowledge", references, concepts, set()) == []
+    keys = {f"pathway-{p.key}" for p in load_pathways(SRC / "pathways.toml")}
+    assert check_knowledge(SRC / "knowledge", references, concepts, keys) == []
 
 
 def test_every_aal3_label_maps_to_exactly_one_structure():
@@ -71,7 +78,7 @@ def test_acronyms_are_unique():
 
 def test_every_description_cites_a_reference():
     paths = sorted((SRC / "knowledge").glob("*/*.md"))
-    assert len(paths) == 5
+    assert len(paths) == 13
     for path in paths:
         assert parse_entry(path.read_text(encoding="utf-8"), str(path)).citations, path
 
@@ -82,6 +89,7 @@ def test_real_build(tmp_path):
 
     src = shutil.copytree(SRC, tmp_path / "src")
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None))
+    assert [p.key for p in atlas.pathways] == PATHWAY_KEYS
     geometry = [s for s in atlas.structures if atlas.has_mesh(s.id)]
     assert len(geometry) == 285
     assert atlas.tracts is not None and len(atlas.tracts.ids) == 77
@@ -113,3 +121,39 @@ def test_colin27_template_is_declared_and_valid():
     recipe = load_recipe(SRC / "recipe.toml")
     assert [t.source.id for t in recipe.templates] == ["colin27"]
     assert check_templates(recipe, SRC) == []
+
+
+def test_pathways_light_shapes_on_both_sides_and_match_their_texts():
+    pathways = load_pathways(SRC / "pathways.toml")
+    assert [p.key for p in pathways] == PATHWAY_KEYS
+    planned = build_tree(load_structures(SRC / "structures.toml"))
+    shaped = {p.structure.id for p in planned if p.labels}
+    assert check_pathways(pathways, [p.structure for p in planned], shaped) == []
+    assert check_pathway_texts(SRC / "knowledge", pathways) == []
+
+
+def test_pathway_texts_are_drafts_citing_a_reference_in_every_section():
+    paths = sorted((SRC / "knowledge" / "en").glob("pathway-*.md"))
+    assert len(paths) == 8
+    for path in paths:
+        entry = parse_entry(path.read_text(encoding="utf-8"), str(path))
+        assert entry.status == "draft", path
+        for name, body in entry.sections.items():
+            assert CITATION.search(body), f"{path}: {name}"
+
+
+@pytest.mark.slow
+def test_the_built_atlas_pathways_light_and_read_on_both_sides():
+    if not (REAL_ATLAS / "pathways.json").exists():
+        pytest.skip("real atlas not built; run python -m tools.build_atlas")
+    atlas = Atlas.open(REAL_ATLAS)
+    assert [p.key for p in atlas.pathways] == PATHWAY_KEYS
+    for pathway in atlas.pathways:
+        for side in ("left", "right"):
+            for step in pathway.steps:
+                if isinstance(step, Station):
+                    assert resolve(atlas, step, side), (pathway.key, step, side)
+            text = atlas.pathway_text(pathway.key, side)
+            assert len(text.steps) == len(pathway.steps)
+            words = [text.overview, *(t.role for t in text.steps), *(t.lesion for t in text.steps)]
+            assert all(word and "{" not in word for word in words), pathway.key
