@@ -208,6 +208,74 @@ TOY_TRACT_STRUCTURES = """\
 """
 
 
+TOY_PATHWAYS = """\
+[[pathways]]
+key = "loop"
+name = "Toy loop"
+start = "alpha gyrus"
+steps = [
+  { structures = [100] },
+  { cross = "Toy crossing" },
+  { structures = [150], side = "opposite" },
+  { structures = [110], side = "opposite" },
+  { relay = "Toy relay", side = "opposite" },
+  { structures = [120], side = "midline" },
+]
+
+[[pathways]]
+key = "short"
+name = "Short path"
+start = "beta nucleus"
+steps = [{ structures = [110] }]
+"""
+
+TOY_PATHWAY_TEXTS = {
+    "pathway-loop": """\
++++
+key = "pathway-loop"
+status = "draft"
++++
+## Overview
+A toy loop that crosses once [ref2020].
+
+## Step 1
+Role: Starts in the {same} alpha gyrus [ref2020].
+Lesion: Loss on the {opposite} side.
+
+## Step 2
+Role: Crosses the midline.
+Lesion: Loss on both sides.
+
+## Step 3
+Role: Runs down the {opposite} long tract.
+Lesion: Loss on the {same} side.
+
+## Step 4
+Role: Reaches the {opposite} beta nucleus.
+Lesion: Loss on the {same} side.
+
+## Step 5
+Role: Relays in a nucleus the atlas lacks.
+Lesion: Not described.
+
+## Step 6
+Role: Ends in the gamma body.
+Lesion: Loss on both sides.
+""",
+    "pathway-short": """\
++++
+key = "pathway-short"
+status = "reviewed"
++++
+## Overview
+One station.
+
+## Step 1
+Role: Sits in the {same} beta nucleus.
+Lesion: Loss on the {opposite} side [ref2020].
+""",
+}
+
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -222,7 +290,7 @@ def hyp_volume() -> np.ndarray:
     return volume
 
 
-def write_extended_source_tree(root: Path, tracts: bool) -> Path:
+def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -246,11 +314,15 @@ def write_extended_source_tree(root: Path, tracts: bool) -> Path:
     (src / "recipe.toml").write_text(recipe)
     structures = TOY_STRUCTURES.rstrip().removesuffix("]") + concepts + "]\n"
     (src / "structures.toml").write_text(structures)
+    if pathways:
+        (src / "pathways.toml").write_text(TOY_PATHWAYS)
+        for key, text in TOY_PATHWAY_TEXTS.items():
+            (src / "knowledge" / "en" / f"{key}.md").write_text(text)
     return src
 
 
-def build_extended_toy_atlas(root: Path, tracts: bool = True) -> Path:
+def build_extended_toy_atlas(root: Path, tracts: bool = True, pathways: bool = False) -> Path:
     from tools.build_atlas.build import build
 
-    src = write_extended_source_tree(root, tracts)
+    src = write_extended_source_tree(root, tracts, pathways)
     return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)

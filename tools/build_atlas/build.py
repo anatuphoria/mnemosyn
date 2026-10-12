@@ -18,6 +18,7 @@ from .idlock import IdLock, load_lock, write_lock
 from .labels import (crop, load_label_image, mapping_for, merge, read_label_names, relabel,
                      source_values)
 from .meshing import levels, surface
+from .pathways import check_pathway_texts, check_pathways, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
 from .templates import covers, on_grid, to_uint8
 from .tracts import place
@@ -32,7 +33,7 @@ def present(data: np.ndarray) -> set[int]:
 
 def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[int, MeshData]],
                  volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=(),
-                 tracts=None, shape_only=(), per_source=None) -> str:
+                 tracts=None, shape_only=(), per_source=None, pathways: int = 0) -> str:
     kinds: dict[str, int] = {}
     for s in structures:
         kinds[s.kind] = kinds.get(s.kind, 0) + 1
@@ -40,6 +41,7 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
              f"- structures: {len(structures)}"]
     lines += [f"- {kind}: {count}" for kind, count in sorted(kinds.items())]
     lines.append(f"- with geometry: {len(meshes[0])}")
+    lines.append(f"- pathways: {pathways}")
     lines += [f"- {name} faces: {sum(len(m.faces) for m in level.values())}"
               for name, level in zip(LODS, meshes)]
     lines += [f"- volume {spec.name}: shape {list(data.shape)}, space {spec.space}"
@@ -80,6 +82,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     recipe = load_recipe(src / "recipe.toml")
     raws = load_structures(src / "structures.toml")
     lock = load_lock(src / "ids.lock")
+    pathways = load_pathways(src / "pathways.toml")
     references_path = src / "knowledge" / "references.toml"
     if not references_path.exists():
         raise BuildError([f"{references_path}: file is missing"])
@@ -90,10 +93,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     problems = check_hierarchy(raws) + check_ids(raws, lock) + check_sources(raws, recipe, src)
     problems += check_templates(recipe, src)
     problems += check_knowledge(src / "knowledge", references, {r.id: r.concept for r in raws},
-                                set())
+                                {f"pathway-{p.key}" for p in pathways})
+    problems += check_pathway_texts(src / "knowledge", pathways)
     if problems:
         raise BuildError(problems)
     planned = build_tree(raws)
+    problems = check_pathways(pathways, [p.structure for p in planned],
+                              {p.structure.id for p in planned if p.labels})
+    if problems:
+        raise BuildError(problems)
 
     images, names = {}, {}
     for spec in recipe.sources:
@@ -178,13 +186,14 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
                                       for p in planned)
                   for spec in (*recipe.sources, *recipe.tracts)}
     report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
-                          per_source)
+                          per_source, len(pathways))
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:
         package = staging / "package"
         write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
-                      src / "knowledge", licence_files, report, templates, tracts)
+                      src / "knowledge", licence_files, report, templates, tracts,
+                      pathways)
         previous = staging / "previous"
         if out.exists():
             out.replace(previous)
