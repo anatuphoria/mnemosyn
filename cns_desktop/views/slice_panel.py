@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from contextlib import contextmanager
 
 import numpy as np
 import pyqtgraph as pg
@@ -37,6 +38,9 @@ class SlicePanel(QWidget):
         self.tracts = atlas.tracts
         self.preferred: frozenset[int] = frozenset()
         self._tract_coords: dict[int, tuple[np.ndarray, ...]] = {}
+        self._holds = 0
+        self._redraw_wanted = False
+        self.redraw_count = 0
 
         bar = QHBoxLayout()
         group = QButtonGroup(self)
@@ -131,9 +135,24 @@ class SlicePanel(QWidget):
         self.opacity = value / 100
         self.redraw()
 
+    @contextmanager
+    def held(self):
+        self._holds += 1
+        try:
+            yield
+        finally:
+            self._holds -= 1
+            if not self._holds and self._redraw_wanted:
+                self._redraw_wanted = False
+                self.redraw()
+
     def redraw(self) -> None:
+        if self._holds:
+            self._redraw_wanted = True
+            return
         if self.labels is None:
             return
+        self.redraw_count += 1
         axis = self.state.slice_axis
         labels_2d = slices.extract(self.labels.data, self.labels.affine, axis, self.index)
         template_2d = None

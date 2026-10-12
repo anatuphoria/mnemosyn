@@ -309,3 +309,33 @@ def test_only_clicks_inside_the_plot_seek(window):
     assert seen == []
     chart._on_click(FakeClick(chart.plot.plotItem.vb.sceneBoundingRect().center()))
     assert len(seen) == 1
+
+
+def test_the_status_bar_names_no_side_for_both_sides_routes(window):
+    window.pathways.open("mood")
+    window._update_status()
+    assert "pathway: Toy mood circuit   │" in window.status.text()
+
+
+def test_selecting_a_station_parent_goes_to_its_step(window):
+    panel = window.pathways
+    panel.open("mood")
+    panel.go(2)
+    window.state.select(110)
+    assert panel.index == 0 and window.state.selected == 110
+    assert window.state.emphasis == (111, 112)
+
+
+def test_stepping_to_a_hidden_station_shows_it(window):
+    panel = window.pathways
+    panel.open("mood")
+    panel.go(2)
+    window.state.set_hidden([111], True)
+    panel.go(0)
+    assert not window.state.is_hidden(111)
+
+
+def test_entering_redraws_the_slices_once(window):
+    before = window.slices.redraw_count
+    window.pathways.open("mood")
+    assert window.slices.redraw_count == before + 1

@@ -6,8 +6,8 @@ from html import escape
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
+                               QVBoxLayout, QWidget)
 
 from cns_atlas import Timeline
 from cns_atlas.timelines import note_parts
@@ -75,6 +75,9 @@ class ActivityChart(QWidget):
             bar.addWidget(widget)
         bar.addWidget(self.step_label, 1)
         bar.addWidget(self.time_label)
+        self.step_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.time_label.setFixedWidth(
+            self.time_label.fontMetrics().horizontalAdvance("0000.0 / 0000 min") + 8)
         self.controls.hide()
         self.back_button.clicked.connect(self.back_requested)
         self.next_button.clicked.connect(self.next_requested)

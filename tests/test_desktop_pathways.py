@@ -255,3 +255,18 @@ def test_showing_the_dock_builds_the_tracts_before_the_first_entry(window, qapp)
     window.pathway_dock.raise_()
     qapp.processEvents()
     assert window.view.tract_builds == 1
+
+
+def test_enter_on_the_list_opens_a_pathway(window):
+    choices = window.pathways.choices
+    choices.setCurrentRow(1)
+    choices.setFocus()
+    QTest.keyClick(choices, Qt.Key.Key_Return)
+    assert window.pathway_active and window.pathways.pathway.key == "loop"
+
+
+def test_leaving_draws_the_3d_view_once(window):
+    enter(window)
+    before = window.view.render_count
+    window.pathways.leave()
+    assert window.view.render_count == before + 1

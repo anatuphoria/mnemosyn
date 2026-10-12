@@ -112,6 +112,7 @@ class PathwayPanel(QWidget):
         layout.addWidget(self.pages)
 
         self.choices.itemClicked.connect(self._on_choice)
+        self.choices.itemActivated.connect(self._on_choice)
         self.steps.currentRowChanged.connect(self._on_row)
         self.steps.itemClicked.connect(self._on_step_clicked)
         self.back_button.clicked.connect(self.back)
@@ -193,10 +194,12 @@ class PathwayPanel(QWidget):
             return
         self.index = max(0, min(index, len(self.pathway.steps) - 1))
         ids = self.lights[self.index]
-        selected = chosen if chosen in ids else (ids[0] if ids else None)
+        keep = chosen is not None and bool(set(self.state.geometry_in(chosen)) & set(ids))
+        selected = chosen if keep else (ids[0] if ids else None)
         self._applying = True
         try:
             with self.hold():
+                self.state.set_hidden(ids, False)
                 self.state.select(selected, emphasis=ids)
                 if ids:
                     self.centre_requested.emit()
@@ -238,7 +241,8 @@ class PathwayPanel(QWidget):
     def _on_selection(self, structure_id: int | None) -> None:
         if self._applying or self.pathway is None or structure_id is None:
             return
-        found = [n for n, ids in enumerate(self.lights) if structure_id in ids]
+        inside = set(self.state.geometry_in(structure_id))
+        found = [n for n, ids in enumerate(self.lights) if inside & set(ids)]
         if found:
             self.go(self.index if self.index in found else found[0], chosen=structure_id)
         else:

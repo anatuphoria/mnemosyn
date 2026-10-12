@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from contextlib import contextmanager
 from collections.abc import Callable
 from datetime import datetime
 from html import escape
@@ -119,7 +120,7 @@ class MainWindow(QMainWindow):
         self.info = InfoPanel(self.state)
         self.chart = ActivityChart(self.state)
         self.quiz = QuizPanel(self.state)
-        self.pathways = PathwayPanel(self.state, hold=self.view.held)
+        self.pathways = PathwayPanel(self.state, hold=self._held)
         left, right = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea
         self.tree_dock = self._dock("Structures", self.tree, left)
         self.pathway_dock = self._dock("Pathways", self.pathways, left)
@@ -325,6 +326,11 @@ class MainWindow(QMainWindow):
             self.slices.label_centres()
             self.view.prepare_tracts()
 
+    @contextmanager
+    def _held(self):
+        with self.view.held(), self.slices.held():
+            yield
+
     def enter_pathway(self) -> None:
         self._pathway_saved = self._snapshot()
         self.pathway_active = True
@@ -343,8 +349,9 @@ class MainWindow(QMainWindow):
         for name in PATHWAY_LOCKED:
             self.shortcuts[name].setEnabled(True)
         self.shortcuts["Leave pathway"].setEnabled(False)
-        self.state.set_focus(None)
-        self._restore(*self._pathway_saved)
+        with self._held():
+            self.state.set_focus(None)
+            self._restore(*self._pathway_saved)
         self.chart.show_controls(False)
         if not self._chart_was_shown:
             self.chart_dock.hide()
@@ -376,7 +383,8 @@ class MainWindow(QMainWindow):
         panel = self.pathways
         if self.pathway_active and panel.pathway is not None:
             self.status.setText(
-                f"pathway: {panel.pathway.name} ({panel.side})   │   "
+                f"pathway: {panel.pathway.name}"
+                f"{f' ({panel.side})' if panel.pathway.sides == 'one' else ''}   │   "
                 f"step {panel.index + 1} of {len(panel.pathway.steps)}   │   "
                 f"last frame: {self.view.last_render_ms:.1f} ms   │   Esc leaves the pathway")
             return
