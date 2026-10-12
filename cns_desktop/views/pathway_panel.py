@@ -3,13 +3,13 @@ from __future__ import annotations
 from contextlib import nullcontext
 from html import escape
 
-from PySide6.QtCore import QSignalBlocker, Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
                                QPushButton, QStackedWidget, QTextBrowser, QVBoxLayout, QWidget)
 
-from cns_atlas import DISCLAIMER, Crossing, Pathway, Relay
-from cns_atlas.pathways import PathwayText, resolve, side_of
+from cns_atlas import DISCLAIMER, Crossing, Pathway, Relay, Timeline
+from cns_atlas.pathways import PathwayText, lights, side_of
 
 from ..state import AppState
 from .info_panel import references_html
@@ -17,6 +17,10 @@ from .info_panel import references_html
 NO_PATHWAYS = "This atlas has no pathways yet."
 RELAY_COLOR = QColor("#8a8a99")
 KEY_ROLE = Qt.ItemDataRole.UserRole
+TICK_MS = 50
+STEP_SECONDS = 3.0
+PLAY = "Play (Space)"
+PAUSE = "Pause (Space)"
 
 
 def _column(*widgets) -> QWidget:
@@ -35,6 +39,8 @@ class PathwayPanel(QWidget):
     entered = Signal()
     left = Signal()
     centre_requested = Signal()
+    timeline_changed = Signal(object)
+    time_changed = Signal(float)
 
     def __init__(self, state: AppState, hold=nullcontext, parent=None) -> None:
         super().__init__(parent)
@@ -48,12 +54,23 @@ class PathwayPanel(QWidget):
         self.route: frozenset[int] = frozenset()
         self.text: PathwayText | None = None
         self._applying = False
+        self.timeline: Timeline | None = None
+        self.time = 0.0
+        self._since = 0.0
 
         self.choices = QListWidget()
-        for pathway in state.atlas.pathways:
-            item = QListWidgetItem(pathway.name)
-            item.setData(KEY_ROLE, pathway.key)
-            self.choices.addItem(item)
+        groups = list(dict.fromkeys(p.group for p in state.atlas.pathways))
+        for group in groups:
+            header = QListWidgetItem(group)
+            header.setFlags(Qt.ItemFlag.NoItemFlags)
+            font = header.font()
+            font.setBold(True)
+            header.setFont(font)
+            self.choices.addItem(header)
+            for pathway in (p for p in state.atlas.pathways if p.group == group):
+                item = QListWidgetItem(pathway.name)
+                item.setData(KEY_ROLE, pathway.key)
+                self.choices.addItem(item)
         self.empty = QLabel(NO_PATHWAYS)
         self.empty.setVisible(not state.atlas.pathways)
 
@@ -77,11 +94,14 @@ class PathwayPanel(QWidget):
         self.back_button = QPushButton("Back (Left)")
         self.next_button = QPushButton("Next (Right)")
         self.leave_button = QPushButton("Leave pathway (Esc)")
+        self.play_button = QPushButton(PLAY)
+        self.timer = QTimer(self, interval=TICK_MS, timeout=lambda: self.advance(TICK_MS / 1000))
         nav = QHBoxLayout()
+        nav.addWidget(self.play_button)
         nav.addWidget(self.back_button)
         nav.addWidget(self.next_button)
         for widget in (*self.side_buttons.values(), self.steps, self.details, self.back_button,
-                       self.next_button, self.leave_button):
+                       self.next_button, self.leave_button, self.play_button):
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.pages = QStackedWidget()
@@ -92,7 +112,8 @@ class PathwayPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.pages)
 
-        self.choices.itemClicked.connect(lambda item: self.open(item.data(KEY_ROLE)))
+        self.choices.itemClicked.connect(self._on_choice)
+        self.play_button.clicked.connect(self.toggle_play)
         self.steps.currentRowChanged.connect(self._on_row)
         self.steps.itemClicked.connect(self._on_step_clicked)
         self.back_button.clicked.connect(self.back)
@@ -100,27 +121,42 @@ class PathwayPanel(QWidget):
         self.leave_button.clicked.connect(self.leave)
         state.selection_changed.connect(self._on_selection)
 
+    def _on_choice(self, item: QListWidgetItem) -> None:
+        key = item.data(KEY_ROLE)
+        if key:
+            self.open(key)
+
     def open(self, key: str, side: str = "left") -> None:
+        self.pause()
         pathway = {p.key: p for p in self.state.atlas.pathways}[key]
         if self.pathway is None:
             self.entered.emit()
         self.pathway, self.index = pathway, 0
+        both = pathway.sides == "both"
+        for button in self.side_buttons.values():
+            button.setVisible(not both)
+        self.timeline = self.state.atlas.timelines.get(key)
+        self.time = 0.0
+        self.timeline_changed.emit(self.timeline)
         self.title.setText(f"<b>{escape(pathway.name)}</b>")
         self.pages.setCurrentIndex(1)
         with self.hold():
             self.set_side(side)
+        self.time_changed.emit(self.time)
         self.setFocus()
 
     def set_side(self, side: str) -> None:
+        self.pause()
         if self.pathway is None:
             return
         atlas = self.state.atlas
         self.side = side
         self.side_buttons[side].setChecked(True)
-        self.lights = [resolve(atlas, step, side) for step in self.pathway.steps]
+        self.lights = lights(atlas, self.pathway, side)
         self.route = frozenset(i for ids in self.lights for i in ids)
         self.text = atlas.pathway_text(self.pathway.key, side)
-        self.start.setText(f"Start: {side} {self.pathway.start}")
+        self.start.setText(f"Start: {side} {self.pathway.start}" if self.pathway.sides == "one"
+                           else f"Start: {self.pathway.start}")
         self.draft.setVisible(self.text is not None and self.text.status == "draft")
         with QSignalBlocker(self.steps):
             self.steps.clear()
@@ -133,18 +169,26 @@ class PathwayPanel(QWidget):
             self.state.set_focus(self.route)
             self.state.set_hidden([i for i in self.state.tract_ids if i not in self.route], True)
             self.state.set_hidden(self.route, False)
-            self.go(self.index)
+            self._go(self.index)
 
     def label(self, n: int, step) -> str:
         if isinstance(step, Crossing):
             return f"{n} ✕ {step.name}"
-        where = side_of(step.side, self.side)
-        if isinstance(step, Relay):
-            return f"{n} {step.name} ({where})"
-        names = " and ".join(self.state.atlas.get(i).name for i in step.structures)
-        return f"{n} {names} ({where})"
+        name = step.name if isinstance(step, Relay) else " and ".join(
+            self.state.atlas.get(i).name for i in step.structures)
+        if self.pathway.sides == "both":
+            return f"{n} {name}"
+        return f"{n} {name} ({side_of(step.side, self.side)})"
 
     def go(self, index: int, chosen: int | None = None) -> None:
+        self.pause()
+        self._go(index, chosen)
+        if self.timeline is not None and self.pathway is not None:
+            time = self.timeline.time_of(self.index)
+            if time is not None:
+                self._set_time(time)
+
+    def _go(self, index: int, chosen: int | None = None) -> None:
         if self.pathway is None:
             return
         self.index = max(0, min(index, len(self.pathway.steps) - 1))
@@ -171,9 +215,12 @@ class PathwayPanel(QWidget):
         self.go(self.index - 1)
 
     def leave(self) -> None:
+        self.pause()
         if self.pathway is None:
             return
         self.pathway, self.lights, self.route, self.text = None, [], frozenset(), None
+        self.timeline = None
+        self.timeline_changed.emit(None)
         self.pages.setCurrentIndex(0)
         self.left.emit()
 
@@ -199,16 +246,81 @@ class PathwayPanel(QWidget):
         else:
             step = self.text.steps[self.index]
             parts.append(f"<p><b>Role</b>: {escape(step.role)}</p>")
-            parts.append(f"<p><b>Lesion</b>: {escape(step.lesion)}</p>")
+            if self.pathway.texts == "lesion":
+                parts.append(f"<p><b>Lesion</b>: {escape(step.lesion)}</p>")
+            else:
+                parts.append(f"<p><b>Disorders</b>: {escape(step.disorders)}</p>")
+                if step.drugs:
+                    parts.append(f"<p><b>Drugs</b>: {escape(step.drugs)}</p>")
             parts.append(f"<h4>Overview</h4><p>{escape(self.text.overview)}</p>")
             parts += references_html(self.text.references)
         parts.append(f"<p style='color:#c55'><small>{escape(DISCLAIMER)}</small></p>")
         return "".join(parts)
+
+    @property
+    def playing(self) -> bool:
+        return self.timer.isActive()
+
+    def toggle_play(self) -> None:
+        self.pause() if self.playing else self.play()
+
+    def play(self) -> None:
+        if self.pathway is None:
+            return
+        last = len(self.pathway.steps) - 1
+        if self.timeline is None and self.index == last:
+            self._go(0)
+        if self.timeline is not None and self.time >= self.timeline.duration:
+            self._set_time(0.0)
+            self._go(self.timeline.step_at(0.0))
+        self._since = 0.0
+        self.timer.start()
+        self.play_button.setText(PAUSE)
+
+    def pause(self) -> None:
+        self.timer.stop()
+        self.play_button.setText(PLAY)
+
+    def advance(self, seconds: float) -> None:
+        if self.pathway is None:
+            return
+        last = len(self.pathway.steps) - 1
+        if self.timeline is None:
+            self._since += seconds
+            if self._since >= STEP_SECONDS:
+                self._since = 0.0
+                self._go(min(self.index + 1, last))
+                if self.index >= last:
+                    self.pause()
+            return
+        timeline = self.timeline
+        self._set_time(min(timeline.duration,
+                           self.time + seconds * timeline.duration / timeline.play_seconds))
+        step = timeline.step_at(self.time)
+        if step != self.index:
+            self._go(step)
+        if self.time >= timeline.duration:
+            self.pause()
+
+    def seek(self, time: float) -> None:
+        if self.timeline is None:
+            return
+        self.pause()
+        self._set_time(max(0.0, min(time, self.timeline.duration)))
+        step = self.timeline.step_at(self.time)
+        if step != self.index:
+            self._go(step)
+
+    def _set_time(self, time: float) -> None:
+        self.time = time
+        self.time_changed.emit(time)
 
     def keyPressEvent(self, event) -> None:
         if self.pathway is not None and event.key() == Qt.Key.Key_Right:
             self.next()
         elif self.pathway is not None and event.key() == Qt.Key.Key_Left:
             self.back()
+        elif self.pathway is not None and event.key() == Qt.Key.Key_Space:
+            self.toggle_play()
         else:
             super().keyPressEvent(event)

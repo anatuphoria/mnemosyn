@@ -49,7 +49,8 @@ def hidden_ids(state) -> set[int]:
 
 def test_the_dock_lists_the_pathways(window):
     choices = window.pathways.choices
-    assert [choices.item(i).text() for i in range(choices.count())] == ["Toy loop", "Short path"]
+    assert [choices.item(i).text() for i in range(choices.count())] == [
+        "Sensory and motor", "Toy loop", "Short path"]
     assert window.pathways.empty.isHidden()
 
 
@@ -60,7 +61,7 @@ def test_an_atlas_without_pathways_says_so(qapp, toy_tract_atlas, tmp_path):
 
 
 def test_clicking_a_pathway_in_the_list_enters_it(window):
-    window.pathways.choices.itemClicked.emit(window.pathways.choices.item(0))
+    window.pathways.choices.itemClicked.emit(window.pathways.choices.item(1))
     assert window.pathway_active and window.pathways.pathway.key == "loop"
     assert window.pathways.pages.currentIndex() == 1
 
