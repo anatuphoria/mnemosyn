@@ -14,7 +14,8 @@ from PySide6.QtWidgets import QApplication, QDialogButtonBox
 
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas
-from cns_desktop.app import disclaimer_due, main, mark_disclaimer_shown
+from cns_desktop.app import (disclaimer_due, main, mark_disclaimer_shown, own_memory_mb,
+                             peak_memory_mb)
 from cns_desktop.main_window import (MainWindow, about_text, default_progress_path,
                                      migrate_progress)
 from cns_desktop.state import AppState
@@ -814,3 +815,9 @@ def test_a_failed_flashcard_save_asks_to_rate_again(reviewed_window, monkeypatch
     monkeypatch.setattr(reviewed_window.progress_store(), "record", broken)
     quiz.rate(3)
     assert quiz.phase == "revealed" and "rate it again" in quiz.hint.text()
+
+
+def test_own_memory_leaves_out_shared_library_pages():
+    own, peak = own_memory_mb(), peak_memory_mb()
+    assert own is not None and peak is not None
+    assert 0 < own < peak

@@ -36,15 +36,23 @@ def mark_disclaimer_shown(settings) -> None:
     settings.sync()
 
 
-def peak_memory_mb() -> float | None:
+def _status_mb(field: str) -> float | None:
     try:
         with open("/proc/self/status", encoding="utf-8") as status:
             for line in status:
-                if line.startswith("VmHWM:"):
+                if line.startswith(f"{field}:"):
                     return int(line.split()[1]) / 1024
     except OSError:
         return None
     return None
+
+
+def peak_memory_mb() -> float | None:
+    return _status_mb("VmHWM")
+
+
+def own_memory_mb() -> float | None:
+    return _status_mb("RssAnon")
 
 
 def run_benchmark(window, frames: int = 300) -> None:
@@ -106,9 +114,11 @@ def main(argv: list[str] | None = None) -> int:
     window.view.render()
     print(f"first frame: {time.perf_counter() - STARTED:.2f} s")
     if args.first_frame:
-        peak = peak_memory_mb()
+        peak, own = peak_memory_mb(), own_memory_mb()
         if peak is not None:
             print(f"peak memory: {peak:.0f} MB")
+        if own is not None:
+            print(f"own memory: {own:.0f} MB")
         window.close()
         return 0
     if args.bench:

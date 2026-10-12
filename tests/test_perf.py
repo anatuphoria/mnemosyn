@@ -88,7 +88,7 @@ def test_real_atlas_memory_under_500mb():
 
 
 @pytest.mark.slow
-def test_desktop_first_frame_under_2s_and_memory_under_600mb():
+def test_desktop_first_frame_under_2s_and_own_memory_under_400mb():
     pytest.importorskip("pyvistaqt")
     real_atlas_or_skip()
     env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
@@ -100,8 +100,8 @@ def test_desktop_first_frame_under_2s_and_memory_under_600mb():
         runs.append(time.perf_counter() - start)
         output = result.stdout
     assert runs[-1] < 2.0
-    peak = [line for line in output.splitlines() if line.startswith("peak memory:")]
-    assert peak and float(peak[0].split()[2]) < 600
+    own = [line for line in output.splitlines() if line.startswith("own memory:")]
+    assert own and float(own[0].split()[2]) < 400
 
 
 @pytest.mark.slow

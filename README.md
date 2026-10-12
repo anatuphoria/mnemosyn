@@ -144,8 +144,9 @@ The 3D view draws every structure with one composite object and picks with the G
 scales to thousands of structures; it switches to a lighter level of detail when the scene
 exceeds 3 million triangles. Budgets enforced by `pytest -m perf`: opening a 5,000-structure
 atlas under 200 ms, search under 10 ms per keystroke, a slice under 5 ms. With the real atlas
-built, `pytest -m slow` checks start to first frame under 2 s, app memory under 600 MB,
-selection under 7 ms, a generated 3,500-structure scene at 60 fps or more, and quiz timing: a
+built, `pytest -m slow` checks start to first frame under 2 s, the app's own memory under
+400 MB (shared libraries such as Qt and VTK not counted, since how much of them is resident
+depends on what the system has cached), selection under 7 ms, a generated 3,500-structure scene at 60 fps or more, and quiz timing: a
 quiz starts under 100 ms, moves to the next question under 50 ms and checks a typed answer
 under 1 ms. Tracts are built the first time they are shown (under 500 ms), then show or hide
 in under 50 ms; a slice with every tract outlined redraws in under 10 ms. Entering a pathway
