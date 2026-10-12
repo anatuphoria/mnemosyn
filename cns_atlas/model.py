@@ -6,6 +6,9 @@ FORMAT_VERSION = 1
 KINDS = ("group", "region", "nucleus", "tract", "ventricle", "nerve-root")
 SIDES = ("left", "right", "midline", "none")
 STEP_SIDES = ("same", "opposite", "midline")
+PATHWAY_SIDES = ("one", "both")
+TEXT_STYLES = ("lesion", "behaviour")
+DEFAULT_GROUP = "Sensory and motor"
 
 
 @dataclass(frozen=True)
@@ -170,12 +173,22 @@ class Pathway:
     name: str
     start: str
     steps: tuple[Step, ...]
+    group: str = DEFAULT_GROUP
+    sides: str = "one"
+    texts: str = "lesion"
 
     def to_json(self) -> dict:
-        return {"key": self.key, "name": self.name, "start": self.start,
+        return {"key": self.key, "name": self.name, "start": self.start, "group": self.group,
+                "sides": self.sides, "texts": self.texts,
                 "steps": [step_to_json(step) for step in self.steps]}
 
     @classmethod
     def from_json(cls, data: dict) -> Pathway:
+        sides, texts = str(data.get("sides", "one")), str(data.get("texts", "lesion"))
+        if sides not in PATHWAY_SIDES:
+            raise ValueError(f"unknown pathway sides {sides!r}")
+        if texts not in TEXT_STYLES:
+            raise ValueError(f"unknown pathway texts {texts!r}")
         return cls(str(data["key"]), str(data["name"]), str(data["start"]),
-                   tuple(step_from_json(step) for step in data["steps"]))
+                   tuple(step_from_json(step) for step in data["steps"]),
+                   str(data.get("group", DEFAULT_GROUP)), sides, texts)

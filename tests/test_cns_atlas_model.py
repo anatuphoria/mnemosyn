@@ -41,6 +41,9 @@ def test_collection_and_pathway_round_trip():
     assert Pathway.from_json(p.to_json()) == p
     assert p.to_json()["steps"][:2] == [{"relay": "Dorsal horn", "side": "same"},
                                         {"cross": "Anterior white commissure"}]
+    both = Pathway("mood", "Mood", "raphe", (Station((2200,)),), "Behaviour", "both", "behaviour")
+    assert Pathway.from_json(both.to_json()) == both
+    assert both.to_json()["group"] == "Behaviour"
 
 
 def tetra(offset):

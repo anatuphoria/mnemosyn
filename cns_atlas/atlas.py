@@ -207,7 +207,7 @@ class Atlas:
         entry = None if pathway is None else self.knowledge(f"pathway-{key}", lang)
         if entry is None:
             return None
-        return text_for(entry, len(pathway.steps), side)
+        return text_for(entry, len(pathway.steps), side, pathway.sides)
 
     def label_at(self, point) -> int | None:
         for volume in self.volumes:
