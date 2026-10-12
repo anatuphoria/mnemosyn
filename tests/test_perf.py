@@ -284,9 +284,7 @@ window.resize(1500, 900)
 window.show()
 app.processEvents()
 window.view.render()
-window.slices.label_centres()
-for _ in range(2):
-    window.shortcuts["Tracts"].trigger()
+window.pathway_dock.raise_()
 app.processEvents()
 panel = window.pathways
 start = time.perf_counter()
@@ -321,6 +319,7 @@ def test_pathways_on_the_real_atlas_meet_their_budgets(tmp_path):
     assert entered < 0.100
     assert switched < 0.100
     assert step < 0.030
+
 
 def sphere_scene(count: int):
     import pyvista as pv

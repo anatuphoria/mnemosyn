@@ -9,7 +9,7 @@ from .model import Station, Step, Structure
 
 START_SIDES = ("left", "right")
 LABELS = ("Role:", "Lesion:")
-SIDE_WORD = re.compile(r"\{([a-z]+)\}")
+SIDE_WORD = re.compile(r"\{([^{}\n]*)\}")
 
 
 @dataclass(frozen=True)

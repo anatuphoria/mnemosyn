@@ -117,6 +117,9 @@ def test_a_missing_description_is_reported(tmp_path):
      "Step 2: unexpected line 'It is short.'"),
     ("{same} alpha gyrus", "{left} alpha gyrus", "Step 1: unknown side word {left}"),
     ("A toy loop", "A {oposite} loop", "Overview: unknown side word {oposite}"),
+    ("Loss on the {opposite} side.", "{Same} side.", "Step 1: unknown side word {Same}"),
+    ("Runs down the {opposite}", "Runs down the {opposite side}",
+     "Step 3: unknown side word {opposite side}"),
 ])
 def test_text_problems_are_reported(tmp_path, old, new, message):
     pathways = load_pathways(write(tmp_path, TOY_PATHWAYS))

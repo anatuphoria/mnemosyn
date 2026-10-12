@@ -157,6 +157,9 @@ class BrainView(QtInteractor):
             self._apply_focus(self.tract_attributes, self.tract_ids)
         self._request_render()
 
+    def prepare_tracts(self) -> None:
+        self._ensure_tracts()
+
     def _ensure_tracts(self) -> None:
         if self.tract_actor is not None or not self.tract_ids:
             return

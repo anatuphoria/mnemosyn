@@ -239,3 +239,18 @@ def test_entering_switching_side_and_stepping_draw_the_3d_view_once(window):
     before = view.render_count
     panel.go(3)
     assert view.render_count == before + 1
+
+
+def test_clicking_the_current_step_brings_its_station_back(window):
+    panel = enter(window)
+    panel.go(3)
+    window.state.select(131)
+    panel.steps.itemClicked.emit(panel.steps.item(3))
+    assert window.state.emphasis == (112,) and window.state.selected == 112
+
+
+def test_showing_the_dock_builds_the_tracts_before_the_first_entry(window, qapp):
+    assert window.view.tract_builds == 0
+    window.pathway_dock.raise_()
+    qapp.processEvents()
+    assert window.view.tract_builds == 1

@@ -139,8 +139,7 @@ class MainWindow(QMainWindow):
         self.pathways.entered.connect(self.enter_pathway)
         self.pathways.left.connect(self.leave_pathway)
         self.pathways.centre_requested.connect(self.slices.centre_on_selection)
-        self.pathway_dock.visibilityChanged.connect(
-            lambda shown: shown and self.slices.label_centres())
+        self.pathway_dock.visibilityChanged.connect(self._prepare_pathways)
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())
         self._status_timer = QTimer(self, interval=250, timeout=self._update_status)
@@ -299,6 +298,11 @@ class MainWindow(QMainWindow):
         self.state.set_hidden([i for i in self.state.geometry_ids if i not in kept], False)
         self.state.set_hidden(hidden, True)
         self.state.set_slice(axis, mm)
+
+    def _prepare_pathways(self, shown: bool) -> None:
+        if shown and self.state.atlas.pathways:
+            self.slices.label_centres()
+            self.view.prepare_tracts()
 
     def enter_pathway(self) -> None:
         self._pathway_saved = self._snapshot()

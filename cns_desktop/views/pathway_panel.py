@@ -94,6 +94,7 @@ class PathwayPanel(QWidget):
 
         self.choices.itemClicked.connect(lambda item: self.open(item.data(KEY_ROLE)))
         self.steps.currentRowChanged.connect(self._on_row)
+        self.steps.itemClicked.connect(self._on_step_clicked)
         self.back_button.clicked.connect(self.back)
         self.next_button.clicked.connect(self.next)
         self.leave_button.clicked.connect(self.leave)
@@ -179,6 +180,10 @@ class PathwayPanel(QWidget):
     def _on_row(self, row: int) -> None:
         if row >= 0:
             self.go(row)
+
+    def _on_step_clicked(self, item: QListWidgetItem) -> None:
+        if self.steps.row(item) == self.index:
+            self.go(self.index)
 
     def _on_selection(self, structure_id: int | None) -> None:
         if self._applying or self.pathway is None or structure_id is None:
