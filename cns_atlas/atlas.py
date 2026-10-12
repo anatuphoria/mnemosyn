@@ -9,6 +9,7 @@ from .knowledge import Entry, KnowledgeError, Reference, load_references, parse_
 from .meshes import LODS, MeshData, MeshLod
 from .model import FORMAT_VERSION, Collection, Pathway, Source, Structure
 from .pathways import PathwayText, text_for
+from .timelines import Timeline
 from .tracts import TractLayer
 from .volume import LabelVolume, TemplateVolume
 
@@ -45,13 +46,14 @@ def _subtree_ends(structures: tuple[Structure, ...]) -> list[int]:
 class Atlas:
     def __init__(self, root: Path, metadata: dict, structures: tuple[Structure, ...],
                  sources: dict[str, Source], collections: tuple[Collection, ...],
-                 pathways: tuple[Pathway, ...]) -> None:
+                 pathways: tuple[Pathway, ...], timelines: tuple[Timeline, ...] = ()) -> None:
         self.root = root
         self.metadata = metadata
         self.structures = structures
         self.sources = sources
         self.collections = collections
         self.pathways = pathways
+        self.timelines = {t.route: t for t in timelines}
         self.local_only = tuple(str(s) for s in metadata.get("local_only", ()))
         self._position = {s.id: i for i, s in enumerate(structures)}
         self._children: dict[int, list[int]] = {s.id: [] for s in structures}
@@ -108,6 +110,8 @@ class Atlas:
             sources = {s.id: s for s in map(Source.from_json, _read_json(root / "sources.json"))}
             collections = tuple(map(Collection.from_json, _read_json(root / "collections.json")))
             pathways = tuple(map(Pathway.from_json, _read_json(root / "pathways.json")))
+            path = root / "timelines.json"
+            timelines = tuple(map(Timeline.from_json, _read_json(path))) if path.exists() else ()
         except (KeyError, TypeError, ValueError) as exc:
             raise AtlasError(f"{root}: malformed record ({exc!r})") from exc
         position = {s.id: i for i, s in enumerate(structures)}
@@ -118,7 +122,7 @@ class Atlas:
             if s.parent is not None and position[s.parent] > i:
                 raise AtlasError(f"{root / 'structures.json'}: structure {s.id} appears before "
                                  f"its parent")
-        return cls(root, metadata, structures, sources, collections, pathways)
+        return cls(root, metadata, structures, sources, collections, pathways, timelines)
 
     def get(self, structure_id: int) -> Structure:
         return self.structures[self._position[structure_id]]
