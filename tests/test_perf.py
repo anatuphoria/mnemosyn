@@ -312,7 +312,7 @@ for _ in range(40):
     ticks.append(time.perf_counter() - start)
 panel.pause()
 window.close()
-print(entered, switched, sorted(steps)[len(steps) // 2], sorted(ticks)[len(ticks) // 2])
+print(entered, switched, sorted(steps)[int(len(steps) * 0.9)], sorted(ticks)[len(ticks) // 2])
 """
 
 

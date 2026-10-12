@@ -32,7 +32,8 @@ Decisions made in discussion:
 
 - Both are pinned by sha256 like every source, `redistribution = false`, `local_only = true`.
 - Both are meshed on their native grid (`mesh_grid = "native"`) and merged into the label volume
-  at priority 0, so they never overwrite an AAL3 or hypothalamus label.
+  at priority -1, below every other source, so they never overwrite an AAL3 or hypothalamus
+  label.
 - The pineal file stores probabilities. A new source option `mask = true` turns every nonzero
   voxel into label 1 before mapping.
 - Permission requests go to Kaibo Tang and to the pineal atlas team; the owner sends them.

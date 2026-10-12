@@ -168,6 +168,10 @@ def test_the_built_atlas_pathways_light_and_read_on_both_sides():
                      *(t.lesion or t.disorders for t in text.steps)]
             assert all(word and "{" not in word for word in words), pathway.key
     assert set(atlas.timelines) == {"stress", "body-clock", "hunger"}
+    for s in atlas.structures:
+        if atlas.has_mesh(s.id):
+            normals = np.asarray(atlas.mesh(s.id).normals, dtype=np.float32)
+            assert (np.linalg.norm(normals, axis=1) > 0.5).all(), s.name
 
 
 def test_the_glands_are_local_only_midline_structures():
