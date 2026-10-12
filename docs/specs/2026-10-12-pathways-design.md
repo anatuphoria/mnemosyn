@@ -1,7 +1,7 @@
 # Pathway View Design (sub-project B, part 4: B4)
 
 Date: 2026-10-12
-Status: approved in discussion, awaiting review of this document
+Status: approved
 Builds on: `docs/specs/2026-10-11-atlas-foundation-design.md` (A, which reserved
 `pathways.json` and `knowledge/<lang>/pathway-<key>.md`), the B1 + B2, B3 and C1 specs
 

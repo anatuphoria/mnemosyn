@@ -36,6 +36,8 @@ Drag rotates, right-drag or the wheel zooms, middle- or shift-drag pans, a click
 | `C` | Centre the slice on the selection |
 | `F1` | About, data sources and licences |
 | `Q` | Start a quiz (Study menu) |
+| `Left` / `Right` | Previous or next step of a pathway (Pathways panel) |
+| `Esc` | Leave the pathway, or end a quiz |
 | `Ctrl+F` | Filter the structure tree (names, abbreviations, synonyms, atlas labels) |
 
 Tree checkboxes show and hide structures; unticking a group hides its whole subtree. The info
@@ -67,6 +69,15 @@ when the app opens. `T` shows or hides them all, the tree shows single tracts, a
 tract shows it. In slices, visible tracts are outlined in their colour, and hovering or
 clicking where tracts overlap picks the smallest. Quizzes have a Tracts level of their own;
 while a tract is named, the grey matter around it is dimmed.
+
+The **Pathways** panel, a tab next to Structures, follows eight routes station by station:
+the visual and auditory pathways, the Papez circuit, voluntary movement, touch and position,
+pain and temperature, and the basal ganglia and cerebellar motor loops. Choose a pathway and a
+start side (Left or Right): everything off the route fades and cannot be clicked, the route's
+tracts are shown, and the current station is highlighted with its role and the effect of a
+lesion there, with references. Back and Next (or the arrow keys) move along the route and the
+slice follows; crossings and relays the atlas has no shape for are steps of their own. Leaving
+(`Esc`) restores the view as it was. All pathway texts are drafts awaiting review.
 
 ## Terminal viewer
 
@@ -111,10 +122,16 @@ To change the atlas, edit `atlas_src/` and rebuild:
 - `knowledge/en/<id>.md`: one description per concept, with `status = "draft"` or
   `"reviewed"`, citing keys from `knowledge/references.toml`.
 - `recipe.toml`: sources with pinned checksums and licences.
+- `pathways.toml`: the routes, one step per station, crossing or relay, with the side of each
+  station relative to the start (`same`, `opposite` or `midline`).
+- `knowledge/en/pathway-<key>.md`: one description per route with an Overview and one
+  `Step N` section per step, each with one `Role:` and one `Lesion:` line; `{same}` and
+  `{opposite}` become "left" or "right".
 
 The build refuses to package a source without a redistribution licence, a description that
 cites a missing reference, a reference without a DOI, URL or ISBN, a changed or reused id,
-or a labelled structure without voxels.
+a labelled structure without voxels, or a pathway with an unknown structure, a station with
+no shape on a side, or a description that does not match its route.
 
 ## Performance
 
@@ -131,7 +148,8 @@ built, `pytest -m slow` checks start to first frame under 2 s, app memory under 
 selection under 7 ms, a generated 3,500-structure scene at 60 fps or more, and quiz timing: a
 quiz starts under 100 ms, moves to the next question under 50 ms and checks a typed answer
 under 1 ms. Tracts are built the first time they are shown (under 500 ms), then show or hide
-in under 50 ms; a slice with every tract outlined redraws in under 10 ms.
+in under 50 ms; a slice with every tract outlined redraws in under 10 ms. Entering a pathway
+or switching its side takes under 100 ms and a step under 30 ms.
 
 ## Tests
 

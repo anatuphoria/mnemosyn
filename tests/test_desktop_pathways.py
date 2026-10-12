@@ -226,3 +226,16 @@ def test_showing_the_dock_prepares_the_slice_centres(window, qapp):
     window.pathway_dock.raise_()
     qapp.processEvents()
     assert window.slices._centres is not None
+
+
+def test_entering_switching_side_and_stepping_draw_the_3d_view_once(window):
+    view, panel = window.view, window.pathways
+    before = view.render_count
+    enter(window)
+    assert view.render_count == before + 1
+    before = view.render_count
+    panel.set_side("right")
+    assert view.render_count == before + 1
+    before = view.render_count
+    panel.go(3)
+    assert view.render_count == before + 1

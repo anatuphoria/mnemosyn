@@ -109,7 +109,7 @@ class MainWindow(QMainWindow):
         self.info = InfoPanel(self.state)
         self.chart = ActivityChart(self.state)
         self.quiz = QuizPanel(self.state)
-        self.pathways = PathwayPanel(self.state)
+        self.pathways = PathwayPanel(self.state, hold=self.view.held)
         left, right = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea
         self.tree_dock = self._dock("Structures", self.tree, left)
         self.pathway_dock = self._dock("Pathways", self.pathways, left)

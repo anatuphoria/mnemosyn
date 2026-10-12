@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from contextlib import contextmanager
 
 import numpy as np
 import pyvista as pv
@@ -88,6 +89,8 @@ class BrainView(QtInteractor):
         self.iren.add_observer("LeftButtonPressEvent", self._on_press)
         self.iren.add_observer("LeftButtonReleaseEvent", self._on_release)
 
+        self._holds = 0
+        self._render_wanted = False
         self.last_render_ms = 0.0
         self.render_count = 0
         self._render_started = 0.0
@@ -107,6 +110,23 @@ class BrainView(QtInteractor):
         self.reset_camera()
         self.render()
 
+    @contextmanager
+    def held(self):
+        self._holds += 1
+        try:
+            yield
+        finally:
+            self._holds -= 1
+            if not self._holds and self._render_wanted:
+                self._render_wanted = False
+                self.render()
+
+    def _request_render(self) -> None:
+        if self._holds:
+            self._render_wanted = True
+        else:
+            self.render()
+
     def is_drawn(self, structure_id: int) -> bool:
         block = self.blocks.get(structure_id)
         attributes = self._attributes_for(structure_id)
@@ -115,7 +135,7 @@ class BrainView(QtInteractor):
 
     def set_grey_opacity(self, opacity: float) -> None:
         self.actor.GetProperty().SetOpacity(opacity)
-        self.render()
+        self._request_render()
 
     def _attributes_for(self, structure_id: int):
         return self.tract_attributes if structure_id in self._tract_set else self.attributes
@@ -135,7 +155,7 @@ class BrainView(QtInteractor):
         self._apply_focus(self.attributes, self.ids)
         if self.tract_attributes is not None:
             self._apply_focus(self.tract_attributes, self.tract_ids)
-        self.render()
+        self._request_render()
 
     def _ensure_tracts(self) -> None:
         if self.tract_actor is not None or not self.tract_ids:
@@ -204,7 +224,7 @@ class BrainView(QtInteractor):
     def _on_selection_changed(self, structure_id: int | None) -> None:
         self.highlighted = self.state.highlighted_ids()
         self._refresh_overlay()
-        self.render()
+        self._request_render()
 
     def _on_visibility_changed(self, ids: frozenset[int]) -> None:
         if any(i in self._tract_set and not self.state.is_hidden(i) for i in ids):
@@ -216,7 +236,7 @@ class BrainView(QtInteractor):
                 attributes.SetBlockVisibility(block, not self.state.is_hidden(structure_id))
         if any(i in ids for i in self.highlighted):
             self._refresh_overlay()
-        self.render()
+        self._request_render()
 
     def _scene_bounds(self) -> tuple[float, ...]:
         volumes = self.state.atlas.volumes
@@ -243,7 +263,7 @@ class BrainView(QtInteractor):
         plane = pv.Plane(center=center, direction=normal, i_size=size, j_size=size)
         self.plane.GetMapper().SetInputData(plane)
         self.plane.SetVisibility(True)
-        self.render()
+        self._request_render()
 
     def _on_render_start(self, *_):
         self._render_started = time.perf_counter()

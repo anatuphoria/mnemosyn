@@ -268,6 +268,60 @@ def test_tracts_on_the_real_atlas_meet_their_budgets(tmp_path):
     assert lookup < 0.001
 
 
+PATHWAY_TIMING = """
+import sys
+import time
+from pathlib import Path
+
+from PySide6.QtWidgets import QApplication
+
+from cns_atlas import Atlas
+from cns_desktop.main_window import MainWindow
+
+app = QApplication([])
+window = MainWindow(Atlas.open(sys.argv[1]), progress_path=Path(sys.argv[2]))
+window.resize(1500, 900)
+window.show()
+app.processEvents()
+window.view.render()
+window.slices.label_centres()
+for _ in range(2):
+    window.shortcuts["Tracts"].trigger()
+app.processEvents()
+panel = window.pathways
+start = time.perf_counter()
+panel.open("cerebellar")
+app.processEvents()
+entered = time.perf_counter() - start
+start = time.perf_counter()
+panel.set_side("right")
+app.processEvents()
+switched = time.perf_counter() - start
+stations = [n for n, ids in enumerate(panel.lights) if ids]
+steps = []
+for index in stations + stations:
+    start = time.perf_counter()
+    panel.go(index)
+    app.processEvents()
+    steps.append(time.perf_counter() - start)
+window.close()
+print(entered, switched, sorted(steps)[len(steps) // 2])
+"""
+
+
+@pytest.mark.slow
+def test_pathways_on_the_real_atlas_meet_their_budgets(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    atlas_path = real_atlas_or_skip()
+    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
+    result = subprocess.run([sys.executable, "-c", PATHWAY_TIMING, str(atlas_path),
+                             str(tmp_path / "progress.sqlite")], env=env, check=True,
+                            capture_output=True, text=True, timeout=180)
+    entered, switched, step = map(float, result.stdout.split()[-3:])
+    assert entered < 0.100
+    assert switched < 0.100
+    assert step < 0.030
+
 def sphere_scene(count: int):
     import pyvista as pv
 

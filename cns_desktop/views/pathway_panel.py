@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from html import escape
 
 from PySide6.QtCore import QSignalBlocker, Qt, Signal
@@ -35,9 +36,10 @@ class PathwayPanel(QWidget):
     left = Signal()
     centre_requested = Signal()
 
-    def __init__(self, state: AppState, parent=None) -> None:
+    def __init__(self, state: AppState, hold=nullcontext, parent=None) -> None:
         super().__init__(parent)
         self.state = state
+        self.hold = hold
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.pathway: Pathway | None = None
         self.side = "left"
@@ -104,7 +106,8 @@ class PathwayPanel(QWidget):
         self.pathway, self.index = pathway, 0
         self.title.setText(f"<b>{escape(pathway.name)}</b>")
         self.pages.setCurrentIndex(1)
-        self.set_side(side)
+        with self.hold():
+            self.set_side(side)
         self.setFocus()
 
     def set_side(self, side: str) -> None:
@@ -125,10 +128,11 @@ class PathwayPanel(QWidget):
                 if isinstance(step, Relay):
                     item.setForeground(RELAY_COLOR)
                 self.steps.addItem(item)
-        self.state.set_focus(self.route)
-        self.state.set_hidden([i for i in self.state.tract_ids if i not in self.route], True)
-        self.state.set_hidden(self.route, False)
-        self.go(self.index)
+        with self.hold():
+            self.state.set_focus(self.route)
+            self.state.set_hidden([i for i in self.state.tract_ids if i not in self.route], True)
+            self.state.set_hidden(self.route, False)
+            self.go(self.index)
 
     def label(self, n: int, step) -> str:
         if isinstance(step, Crossing):
@@ -147,11 +151,12 @@ class PathwayPanel(QWidget):
         selected = chosen if chosen in ids else (ids[0] if ids else None)
         self._applying = True
         try:
-            self.state.select(selected, emphasis=ids)
+            with self.hold():
+                self.state.select(selected, emphasis=ids)
+                if ids:
+                    self.centre_requested.emit()
         finally:
             self._applying = False
-        if ids:
-            self.centre_requested.emit()
         with QSignalBlocker(self.steps):
             self.steps.setCurrentRow(self.index)
         self.back_button.setEnabled(self.index > 0)
