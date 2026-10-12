@@ -9,7 +9,7 @@ from tools.build_atlas.hierarchy import build_tree, load_structures
 from tools.build_atlas.pathways import check_pathway_texts, check_pathways, load_pathways
 from tools.build_atlas.recipe import BuildError
 
-HEAD = '[[pathways]]\nkey = "p"\nname = "N"\nstart = "s"\n'
+HEAD = '[[pathways]]\nkey = "p"\nname = "N"\nstart = "s"\ngroup = "G"\n'
 
 
 def write(tmp_path: Path, text: str) -> Path:
@@ -47,10 +47,11 @@ def test_pathways_parse_into_steps(tmp_path):
 
 
 @pytest.mark.parametrize(("body", "message"), [
-    ('[[pathways]]\nkey = "Bad Key"\nname = "N"\nstart = "s"\nsteps = [{ cross = "X" }]\n',
+    ('[[pathways]]\nkey = "Bad Key"\nname = "N"\nstart = "s"\ngroup = "G"\n'
+     'steps = [{ cross = "X" }]\n',
      "pathway Bad Key: key must be lowercase letters, digits and hyphens"),
     (HEAD + "steps = []\n", "pathway p: needs at least one step"),
-    ('[[pathways]]\nkey = "p"\nname = "N"\nsteps = [{ cross = "X" }]\n',
+    ('[[pathways]]\nkey = "p"\nname = "N"\ngroup = "G"\nsteps = [{ cross = "X" }]\n',
      "pathway p: needs a start"),
     (HEAD + 'colour = 1\nsteps = [{ cross = "X" }]\n', "pathway p: unknown keys ['colour']"),
     (HEAD + 'steps = [{ cross = "X", relay = "Y" }]\n',

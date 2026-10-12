@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from pathlib import Path
 
 from cns_atlas.knowledge import KnowledgeError, parse_entry
-from cns_atlas.model import STEP_SIDES, Pathway, Station, Structure, step_from_json
-from cns_atlas.pathways import lit, step_problems, unknown_side_words
+from cns_atlas.model import (PATHWAY_SIDES, STEP_SIDES, TEXT_STYLES, Pathway, Relay, Station,
+                             Structure, step_from_json)
+from cns_atlas.pathways import lit, lit_both, side_words, step_problems, unknown_side_words
 
 from .recipe import BuildError, read_toml
 
 KEY = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
-FIELDS = ("key", "name", "start", "steps")
+FIELDS = ("key", "name", "start", "steps", "group", "sides", "texts")
 KINDS = ("structures", "cross", "relay")
 
 
@@ -61,27 +63,36 @@ def load_pathways(path: Path) -> list[Pathway]:
             found.append(f"{label}: duplicate key")
         else:
             seen.add(key)
-        for field in ("name", "start"):
+        for field in ("name", "start", "group"):
             if not (isinstance(record.get(field), str) and record[field].strip()):
                 found.append(f"{label}: needs a {field}")
+        sides, texts = record.get("sides", "one"), record.get("texts", "lesion")
+        if sides not in PATHWAY_SIDES:
+            found.append(f"{label}: unknown sides {sides!r}")
+        if texts not in TEXT_STYLES:
+            found.append(f"{label}: unknown texts {texts!r}")
         steps = record.get("steps")
         if not (isinstance(steps, list) and steps):
             found.append(f"{label}: needs at least one step")
         else:
             for i, step in enumerate(steps, 1):
                 found += _step_problems(step, f"{label} step {i}")
+                if sides == "both" and isinstance(step, dict) and "side" in step:
+                    found.append(f"{label} step {i}: a both-sides route takes no side")
         problems += found
         if not found:
             pathways.append(Pathway(key, record["name"], record["start"],
-                                    tuple(step_from_json(step) for step in steps)))
+                                    tuple(step_from_json(step) for step in steps),
+                                    record["group"], sides, texts))
     if problems:
         raise BuildError(problems)
     return pathways
 
 
-def check_pathways(pathways: list[Pathway], structures: list[Structure],
-                   shaped: set[int]) -> list[str]:
+def check_pathways(pathways: list[Pathway], structures: list[Structure], shaped: set[int],
+                   left_out: frozenset[int] | set[int] = frozenset()) -> list[str]:
     known = {s.id for s in structures}
+    has_shape = shaped.__contains__
     problems = []
     for pathway in pathways:
         for i, step in enumerate(pathway.steps, 1):
@@ -89,13 +100,19 @@ def check_pathways(pathways: list[Pathway], structures: list[Structure],
                 continue
             where = f"pathway {pathway.key} step {i}"
             for structure_id in step.structures:
+                if structure_id in left_out:
+                    continue
                 if structure_id not in known:
                     problems.append(f"{where}: unknown structure id {structure_id}")
                     continue
                 single = Station((structure_id,), step.side)
+                if pathway.sides == "both":
+                    if not lit_both(structures, has_shape, single):
+                        problems.append(f"{where}: {structure_id} has no shape to light")
+                    continue
                 problems += [f"{where}: {structure_id} has no shape to light for a {side} start"
                              for side in ("left", "right")
-                             if not lit(structures, shaped.__contains__, single, side)]
+                             if not lit(structures, has_shape, single, side)]
     return problems
 
 
@@ -118,8 +135,28 @@ def check_pathway_texts(knowledge_dir: Path, pathways: list[Pathway]) -> list[st
                 continue
             for n in range(1, count + 1):
                 problems += [f"{path}: Step {n}: {problem}"
-                             for problem in step_problems(entry.sections[f"Step {n}"])]
+                             for problem in step_problems(entry.sections[f"Step {n}"],
+                                                           pathway.texts)]
             for section, body in entry.sections.items():
-                problems += [f"{path}: {section}: unknown side word {{{word}}}"
-                             for word in unknown_side_words(body)]
+                if pathway.sides == "both":
+                    problems += [f"{path}: {section}: side word {{{word}}} in a both-sides route"
+                                 for word in side_words(body)]
+                else:
+                    problems += [f"{path}: {section}: unknown side word {{{word}}}"
+                                 for word in unknown_side_words(body)]
     return problems
+
+
+def for_package(pathways: list[Pathway], names: dict[int, str],
+                left_out: set[int]) -> list[Pathway]:
+    out = []
+    for pathway in pathways:
+        steps = []
+        for step in pathway.steps:
+            if isinstance(step, Station) and left_out & set(step.structures):
+                kept = tuple(i for i in step.structures if i not in left_out)
+                step = (Station(kept, step.side) if kept else
+                        Relay(" and ".join(names[i] for i in step.structures), step.side))
+            steps.append(step)
+        out.append(replace(pathway, steps=tuple(steps)))
+    return out

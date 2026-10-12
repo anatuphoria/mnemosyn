@@ -213,6 +213,7 @@ TOY_PATHWAYS = """\
 key = "loop"
 name = "Toy loop"
 start = "alpha gyrus"
+group = "Sensory and motor"
 steps = [
   { structures = [100] },
   { cross = "Toy crossing" },
@@ -226,6 +227,7 @@ steps = [
 key = "short"
 name = "Short path"
 start = "beta nucleus"
+group = "Sensory and motor"
 steps = [{ structures = [110] }]
 """
 
@@ -275,6 +277,103 @@ Role: Sits in the {same} beta nucleus.
 Lesion: Loss on the {opposite} side [ref2020].
 """,
 }
+
+TOY_BEHAVIOUR_PATHWAYS = """
+[[pathways]]
+key = "mood"
+name = "Toy mood circuit"
+start = "beta nucleus"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [110] },
+  { relay = "Toy relay" },
+  { structures = [100] },
+  { structures = [120] },
+]
+"""
+
+TOY_BEHAVIOUR_TEXTS = {"pathway-mood": """\
++++
+key = "pathway-mood"
+status = "draft"
++++
+## Overview
+A toy mood loop [ref2020].
+
+## Step 1
+Role: Starts in the beta nucleus [ref2020].
+Disorders: Toy low mood.
+Drugs: Toy pill [ref2020].
+
+## Step 2
+Role: Relays.
+Disorders: None known.
+
+## Step 3
+Role: Reaches the alpha gyrus.
+Disorders: Toy worry.
+
+## Step 4
+Role: Ends in the gamma body.
+Disorders: Toy sleep loss.
+Drugs: Toy tea.
+"""}
+
+TOY_TIMELINE = """\
+route = "mood"
+duration = 60
+unit = "min"
+play_seconds = 6
+status = "draft"
+note = "Toy curves [ref2020]."
+
+[[curves]]
+name = "Toy hormone"
+color = [235, 200, 90]
+points = [[0, 0.1], [20, 1.0], [60, 0.2]]
+
+[[marks]]
+time = 0
+step = 1
+
+[[marks]]
+time = 20
+step = 3
+
+[[marks]]
+time = 40
+step = 4
+"""
+
+TOY_GLAND_PATHWAY = """
+[[pathways]]
+key = "gland"
+name = "Toy gland axis"
+start = "beta nucleus"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [{ structures = [110] }, { structures = [170] }]
+"""
+
+TOY_GLAND_TEXT = """\
++++
+key = "pathway-gland"
+status = "draft"
++++
+## Overview
+A toy gland axis [ref2020].
+
+## Step 1
+Role: Starts in the beta nucleus [ref2020].
+Disorders: None known.
+
+## Step 2
+Role: Releases a toy hormone.
+Disorders: Toy gland disease.
+"""
 
 TOY_LOCAL_SOURCE = """
 [[sources]]
@@ -332,7 +431,7 @@ def hyp_volume() -> np.ndarray:
 
 
 def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
-                               local: bool = False) -> Path:
+                               local: bool = False, behaviour: bool = False) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -366,12 +465,22 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
         (src / "pathways.toml").write_text(TOY_PATHWAYS)
         for key, text in TOY_PATHWAY_TEXTS.items():
             (src / "knowledge" / "en" / f"{key}.md").write_text(text)
+    if behaviour:
+        routes = src / "pathways.toml"
+        extra = TOY_BEHAVIOUR_PATHWAYS + (TOY_GLAND_PATHWAY if local else "")
+        routes.write_text((routes.read_text() if routes.exists() else "") + extra)
+        for key, text in TOY_BEHAVIOUR_TEXTS.items():
+            (src / "knowledge" / "en" / f"{key}.md").write_text(text)
+        if local:
+            (src / "knowledge" / "en" / "pathway-gland.md").write_text(TOY_GLAND_TEXT)
+        (src / "timelines").mkdir(exist_ok=True)
+        (src / "timelines" / "mood.toml").write_text(TOY_TIMELINE)
     return src
 
 
 def build_extended_toy_atlas(root: Path, tracts: bool = True, pathways: bool = False,
-                             local: bool = False) -> Path:
+                             local: bool = False, behaviour: bool = False) -> Path:
     from tools.build_atlas.build import build
 
-    src = write_extended_source_tree(root, tracts, pathways, local)
+    src = write_extended_source_tree(root, tracts, pathways, local, behaviour)
     return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)

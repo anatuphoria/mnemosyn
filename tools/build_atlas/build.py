@@ -18,9 +18,10 @@ from .idlock import IdLock, load_lock, write_lock
 from .labels import (crop, load_label_image, mapping_for, merge, read_label_names, relabel,
                      source_values)
 from .meshing import levels, surface
-from .pathways import check_pathway_texts, check_pathways, load_pathways
+from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
 from .templates import covers, on_grid, to_uint8
+from .timelines import load_timelines
 from .tracts import place
 from .validate import (check_hierarchy, check_ids, check_knowledge, check_sources,
                        check_templates, check_voxels)
@@ -94,6 +95,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         references = load_references(references_path)
     except KnowledgeError as exc:
         raise BuildError([str(exc)]) from exc
+    timelines = load_timelines(src / "timelines", pathways, references)
     problems = check_hierarchy(raws) + check_ids(raws, lock) + check_sources(raws, recipe, src)
     problems += check_templates(recipe, src)
     problems += check_knowledge(src / "knowledge", references, {r.id: r.concept for r in raws},
@@ -104,8 +106,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     skipped = set() if local else {s.source.id for s in recipe.sources if s.local_only}
     sources = [s for s in recipe.sources if s.source.id not in skipped]
     planned = build_tree(without_sources(raws, skipped))
+    left_out = {r.id for r in raws} - {p.structure.id for p in planned}
     problems = check_pathways(pathways, [p.structure for p in planned],
-                              {p.structure.id for p in planned if p.labels})
+                              {p.structure.id for p in planned if p.labels}, left_out)
     if problems:
         raise BuildError(problems)
 
@@ -207,7 +210,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         package = staging / "package"
         write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
                       src / "knowledge", licence_files, report, templates, tracts,
-                      pathways, included)
+                      for_package(pathways, {r.id: r.name for r in raws}, left_out), included,
+                      timelines=timelines)
         previous = staging / "previous"
         if out.exists():
             out.replace(previous)

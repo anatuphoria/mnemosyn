@@ -11,6 +11,7 @@ if not importlib.util.find_spec("pyvistaqt"):
     collect_ignore.append("test_desktop_tracts.py")
     collect_ignore.append("test_desktop_pathways.py")
     collect_ignore.append("test_desktop_focus.py")
+    collect_ignore.append("test_desktop_behaviour.py")
 if not importlib.util.find_spec("pyvista"):
     collect_ignore.append("test_build_atlas.py")
 
@@ -38,3 +39,12 @@ def toy_pathway_atlas(tmp_path_factory):
 
     return build_extended_toy_atlas(tmp_path_factory.mktemp("toypathways"), tracts=True,
                                     pathways=True)
+
+
+@pytest.fixture(scope="session")
+def toy_behaviour_atlas(tmp_path_factory):
+    pytest.importorskip("pyvista")
+    from atlas_fixtures import build_extended_toy_atlas
+
+    return build_extended_toy_atlas(tmp_path_factory.mktemp("toybehaviour"), tracts=True,
+                                    pathways=True, behaviour=True)
