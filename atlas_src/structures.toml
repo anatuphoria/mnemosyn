@@ -26,6 +26,7 @@ groups = [
   { id = 19, parent = 11, acronym = "BF", name = "Basal forebrain", color = [200, 170, 230] },
   { id = 22, parent = 20, acronym = "HYP", name = "Hypothalamus", color = [240, 200, 90] },
   { id = 23, parent = 20, acronym = "SUBTH", name = "Subthalamus", color = [210, 140, 90] },
+  { id = 24, parent = 20, acronym = "EPI", name = "Epithalamus" },
   { id = 70, parent = 1, acronym = "TRACTS", name = "Tracts", color = [200, 200, 210] },
   { id = 71, parent = 70, acronym = "PROJ", name = "Projection tracts", color = [80, 160, 255] },
   { id = 72, parent = 70, acronym = "ASSOC", name = "Association tracts", color = [120, 220, 120] },
@@ -188,4 +189,6 @@ concepts = [
   { id = 3230, parent = 73, acronym = "PC", name = "Posterior commissure", kind = "tract", source = "hcp1065", midline = "Posterior_Commissure" },
   { id = 3320, parent = 75, acronym = "MCP", name = "Middle cerebellar peduncle", kind = "tract", source = "hcp1065", midline = "Middle_Cerebellar_Peduncle", synonyms = ["brachium pontis"] },
   { id = 3330, parent = 75, acronym = "SCP", name = "Superior cerebellar peduncle", kind = "tract", source = "hcp1065", midline = "Superior_Cerebellar_Peduncle", synonyms = ["brachium conjunctivum"] },
+  { id = 2700, parent = 20, acronym = "PIT", name = "Pituitary gland", source = "tang2024", midline = 1, color = [235, 150, 200], synonyms = ["hypophysis"] },
+  { id = 2710, parent = 24, acronym = "PIN", name = "Pineal gland", source = "razavi2021", midline = 1, color = [200, 160, 240], synonyms = ["pineal body", "epiphysis cerebri"] },
 ]

@@ -16,6 +16,7 @@ stored: an atlas of the brain that helps you remember it.
 python -m venv .venv
 .venv/bin/pip install -e ".[desktop,atlas-build,dev]"
 .venv/bin/python -m tools.build_atlas    # downloads AAL3 (1.5 MB) and builds atlases/cns (about 15 s)
+.venv/bin/python -m tools.build_atlas --local    # also adds the pituitary and pineal glands (not for sharing)
 .venv/bin/mnemosyn                       # desktop app
 .venv/bin/brain-tui                      # terminal viewer
 ```
@@ -106,6 +107,8 @@ procedural brain when no atlas is built. Letters are lowercase unless written wi
 | Brain geometry, 166 structures | AAL3: Rolls ET, Huang CC, Lin CP, Feng J, Joliot M (2020), NeuroImage 206: 116189, doi:10.1016/j.neuroimage.2019.116189 | GNU General Public License (text in `atlas_src/LICENSES/GPL-3.0.txt`) |
 | Hypothalamic region, 21 structures | Neudorfer C, Germann J, Elias GJB, Gramer R, Boutet A, Lozano AM (2020), Scientific Data 7: 305, doi:10.1038/s41597-020-00644-6 | CC BY 4.0 (notice in `atlas_src/LICENSES/CC-BY-4.0.txt`) |
 | Tracts, 41 | HCP-1065 tractography atlas: Yeh FC et al. (2018), NeuroImage 178: 57-68, doi:10.1016/j.neuroimage.2018.05.027 | CC BY-SA 4.0 (notice in `atlas_src/LICENSES/CC-BY-SA-4.0.txt`) |
+| Pituitary gland (local builds only) | Tang K (2024), pituitary mask on the MNI ICBM152 2009a template, github.com/kvttt/Pituitary_Segmentation | No licence stated; used only in local builds until the author allows sharing |
+| Pineal gland (local builds only) | Razavi F, Raminfard S, Kalantar Hormozi H, Sisakhti M, Batouli SAH (2021), Frontiers in Neuroinformatics 15: 554229, doi:10.3389/fninf.2021.554229 | No licence stated for the atlas files; used only in local builds until the authors allow sharing |
 | MRI template for slices | Colin 27 Average Brain (1998): Holmes CJ, Hoge R, Collins L, Woods R, Toga AW, Evans AC (1998), J Comput Assist Tomogr 22(2): 324-333, doi:10.1097/00004728-199803000-00032 | Permissive notice (text in `atlas_src/LICENSES/Colin27.txt`) |
 | Descriptions | Written for this project; every claim cites a reference | CC BY 4.0 |
 | Code | This repository | GNU General Public License v3.0 or later (`LICENSE`) |
@@ -132,6 +135,11 @@ The build refuses to package a source without a redistribution licence, a descri
 cites a missing reference, a reference without a DOI, URL or ISBN, a changed or reused id,
 a labelled structure without voxels, or a pathway with an unknown structure, a station with
 no shape on a side, or a description that does not match its route.
+
+A source whose authors have not yet allowed sharing can be marked `local_only = true` in
+`recipe.toml`. A normal build leaves it out, so the result can be shared; `--local` includes it,
+and the app then shows "local build, not for sharing" in its title and About box. Such a
+package must never be published or bundled into an installer.
 
 ## Performance
 

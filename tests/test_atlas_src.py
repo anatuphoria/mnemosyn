@@ -36,7 +36,8 @@ def test_every_aal3_label_maps_to_exactly_one_structure():
     raws = load_structures(SRC / "structures.toml")
     values = [ref.value for r in raws for ref in r.labels if ref.source == "aal3"]
     assert sorted(values) == sorted(set(range(1, 171)) - AAL3_EMPTY_LABELS)
-    assert {ref.source for r in raws for ref in r.labels} == {"aal3", "neudorfer2020", "hcp1065"}
+    assert {ref.source for r in raws for ref in r.labels} == {
+        "aal3", "neudorfer2020", "hcp1065", "tang2024", "razavi2021"}
 
 
 NEUDORFER_LABELS = set(range(1, 11)) | set(range(13, 39)) | set(range(41, 55))
@@ -78,7 +79,7 @@ def test_acronyms_are_unique():
 
 def test_every_description_cites_a_reference():
     paths = sorted((SRC / "knowledge").glob("*/*.md"))
-    assert len(paths) == 13
+    assert len(paths) == 15
     for path in paths:
         assert parse_entry(path.read_text(encoding="utf-8"), str(path)).citations, path
 
@@ -90,6 +91,7 @@ def test_real_build(tmp_path):
     src = shutil.copytree(SRC, tmp_path / "src")
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None))
     assert [p.key for p in atlas.pathways] == PATHWAY_KEYS
+    assert 2700 not in atlas and atlas.local_only == ()
     geometry = [s for s in atlas.structures if atlas.has_mesh(s.id)]
     assert len(geometry) == 285
     assert atlas.tracts is not None and len(atlas.tracts.ids) == 77
@@ -157,3 +159,31 @@ def test_the_built_atlas_pathways_light_and_read_on_both_sides():
             assert len(text.steps) == len(pathway.steps)
             words = [text.overview, *(t.role for t in text.steps), *(t.lesion for t in text.steps)]
             assert all(word and "{" not in word for word in words), pathway.key
+
+
+def test_the_glands_are_local_only_midline_structures():
+    local = {s.source.id: s for s in load_recipe(SRC / "recipe.toml").sources if s.local_only}
+    assert list(local) == ["tang2024", "razavi2021"]
+    for spec in local.values():
+        assert not spec.source.redistribution and spec.mesh_grid == "native"
+        assert spec.priority == -1 and spec.volume == "brain"
+    assert local["razavi2021"].mask and not local["tang2024"].mask
+    raws = {r.id: r for r in load_structures(SRC / "structures.toml")}
+    assert raws[2700].side == raws[2710].side == "midline"
+    assert (raws[24].parent, raws[2700].parent, raws[2710].parent) == (20, 20, 24)
+    assert raws[24].kind == "group"
+
+
+@pytest.mark.slow
+def test_a_local_build_adds_the_two_glands(tmp_path):
+    from tools.build_atlas.build import build
+
+    src = shutil.copytree(SRC, tmp_path / "src")
+    atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None, local=True))
+    assert atlas.local_only == ("tang2024", "razavi2021")
+    assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 287
+    labels = np.asarray(atlas.volumes[0].data)
+    for structure_id, centre in ((2700, (0.0, 3.0, -32.0)), (2710, (0.0, -30.0, 4.0))):
+        mean = np.asarray(atlas.mesh(structure_id).vertices).mean(axis=0)
+        assert np.allclose(mean, centre, atol=3.0), (structure_id, mean)
+        assert (labels == structure_id).any(), structure_id

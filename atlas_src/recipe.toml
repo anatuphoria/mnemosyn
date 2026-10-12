@@ -68,6 +68,41 @@ priority = 0
 drop = [1, 2, 5, 6, 15, 16, 17, 18]
 mesh_grid = "native"
 
+[[sources]]
+id = "tang2024"
+title = "Pituitary mask on the MNI ICBM152 2009a nonlinear asymmetric template"
+authors = "Tang K"
+year = 2024
+version = "GitHub kvttt/Pituitary_Segmentation, commit c52689f"
+url = "https://github.com/kvttt/Pituitary_Segmentation"
+licence = "No licence stated; local use only until the author allows sharing"
+redistribution = false
+local_only = true
+download = "https://raw.githubusercontent.com/kvttt/Pituitary_Segmentation/c52689f49c0a60332fd5874f96a7a521196b3280/pituitary_mask_2009a.nii.gz"
+sha256 = "f0797cee86f24a5a24e920185d9bc3d11a350be2021768603ebd467deb27cbc7"
+volume = "brain"
+priority = -1
+mesh_grid = "native"
+
+[[sources]]
+id = "razavi2021"
+title = "A probabilistic atlas of the pineal gland in the standard space"
+authors = "Razavi F, Raminfard S, Kalantar Hormozi H, Sisakhti M, Batouli SAH"
+year = 2021
+version = "MNI atlas thresholded at 0.25 (brainee.ir, 2021-03)"
+doi = "10.3389/fninf.2021.554229"
+url = "http://brainee.ir/pineal-gland-atlas/"
+licence = "No licence stated for the atlas files; local use only until the authors allow sharing"
+redistribution = false
+local_only = true
+download = "https://brainee.ir/wp-content/uploads/2021/03/Pineal_MNI_Atlas_th0.25.zip"
+sha256 = "8b7371f0b94546b2e4e5f39660125db49492d352045437fc09562493e2a9ba34"
+member = "3. Pineal_MNI_Atlas_th0.25.nii"
+volume = "brain"
+priority = -1
+mesh_grid = "native"
+mask = true
+
 [[tracts]]
 id = "hcp1065"
 title = "Population-averaged atlas of the macroscale human structural connectome and its network topology"
