@@ -9,3 +9,4 @@ dist/
 *.spec
 views.json
 atlases/
+.pytest_cache/

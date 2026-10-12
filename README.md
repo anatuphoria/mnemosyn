@@ -97,7 +97,7 @@ procedural brain when no atlas is built. Letters are lowercase unless written wi
 | Tracts, 41 | HCP-1065 tractography atlas: Yeh FC et al. (2018), NeuroImage 178: 57-68, doi:10.1016/j.neuroimage.2018.05.027 | CC BY-SA 4.0 (notice in `atlas_src/LICENSES/CC-BY-SA-4.0.txt`) |
 | MRI template for slices | Colin 27 Average Brain (1998): Holmes CJ, Hoge R, Collins L, Woods R, Toga AW, Evans AC (1998), J Comput Assist Tomogr 22(2): 324-333, doi:10.1097/00004728-199803000-00032 | Permissive notice (text in `atlas_src/LICENSES/Colin27.txt`) |
 | Descriptions | Written for this project; every claim cites a reference | CC BY 4.0 |
-| Code | This repository | Not chosen yet |
+| Code | This repository | GNU General Public License v3.0 or later (`LICENSE`) |
 
 The atlas package (`atlases/cns/`, built locally, not committed) contains `metadata.json`,
 `structures.json`, `sources.json`, `collections.json`, `pathways.json`, a labelled volume in
