@@ -1,3 +1,4 @@
+import json
 import random
 import shutil
 import sqlite3
@@ -12,8 +13,8 @@ from PySide6.QtGui import QAction
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialogButtonBox
 
-from atlas_package import tetra, tiny_structures, write_package
-from cns_atlas import DISCLAIMER, Atlas
+from atlas_package import TOY_SOURCE, tetra, tiny_structures, write_package
+from cns_atlas import DISCLAIMER, Atlas, Source
 from cns_desktop.app import (disclaimer_due, main, offer_disclaimer, own_memory_mb,
                              peak_memory_mb)
 from cns_desktop.main_window import (MainWindow, about_text, default_progress_path,
@@ -833,3 +834,29 @@ def test_own_memory_leaves_out_shared_library_pages():
     own, peak = own_memory_mb(), peak_memory_mb()
     assert own is not None and peak is not None
     assert 0 < own < peak
+
+
+LOCAL_SOURCE = Source("toylocal", "Toy gland", "Test E", 2024, "1", "No licence stated", False)
+
+
+def local_atlas(tmp_path):
+    root = write_package(tmp_path / "local", tiny_structures(), meshes={101: tetra()},
+                         sources=[TOY_SOURCE, LOCAL_SOURCE])
+    metadata = json.loads((root / "metadata.json").read_text())
+    metadata["local_only"] = ["toylocal"]
+    (root / "metadata.json").write_text(json.dumps(metadata))
+    return Atlas.open(root)
+
+
+def test_a_local_build_says_it_is_not_for_sharing(qapp, tmp_path):
+    atlas = local_atlas(tmp_path)
+    text = about_text(atlas)
+    assert "may not be shared yet" in text and LOCAL_SOURCE.citation() in text
+    w = MainWindow(atlas, progress_path=tmp_path / "progress.sqlite")
+    assert w.windowTitle().endswith("(local build, not for sharing)")
+    w.close()
+
+
+def test_a_shareable_build_has_no_local_notice(window, atlas):
+    assert "not for sharing" not in window.windowTitle()
+    assert "may not be shared" not in about_text(atlas)

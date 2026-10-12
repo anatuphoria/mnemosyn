@@ -81,15 +81,24 @@ def about_text(atlas: Atlas) -> str:
                    for s in sources)
     name = escape(str(atlas.metadata.get("name", "")))
     version = escape(str(atlas.metadata.get("version", "")))
+    notice = ""
+    if atlas.local_only:
+        items = "".join(f"<li>{escape(atlas.sources[i].citation())}</li>"
+                        for i in atlas.local_only if i in atlas.sources)
+        notice = ("<p><b>Local build, not for sharing.</b> This atlas includes data that may "
+                  f"not be shared yet:</p><ul>{items}</ul>")
     return (f"<h3>{APP_NAME}</h3><p>{escape(DISCLAIMER)}</p>"
-            f"<p>Atlas package: {name} {version}</p>"
+            f"<p>Atlas package: {name} {version}</p>{notice}"
             f"<h4>Data sources</h4><ul>{rows}</ul>")
 
 
 class MainWindow(QMainWindow):
     def __init__(self, atlas: Atlas, progress_path: Path | None = None) -> None:
         super().__init__()
-        self.setWindowTitle(f"{APP_NAME} - {atlas.metadata.get('name', 'atlas')}")
+        title = f"{APP_NAME} - {atlas.metadata.get('name', 'atlas')}"
+        if atlas.local_only:
+            title += " (local build, not for sharing)"
+        self.setWindowTitle(title)
         self.resize(1500, 900)
         self.state = AppState(atlas)
         self.progress_path = progress_path or default_progress_path()
