@@ -10,6 +10,7 @@ from tools.build_atlas.build import build
 from tools.build_atlas.hierarchy import load_structures, without_sources
 from tools.build_atlas.idlock import load_lock
 from tools.build_atlas.labels import load_label_image
+from tools.build_atlas.meshing import repair_normals
 from tools.build_atlas.recipe import BuildError, load_recipe
 from tools.build_atlas.validate import check_sources
 
@@ -154,3 +155,60 @@ def test_cli_passes_local_to_the_build(monkeypatch, tmp_path):
     monkeypatch.setattr(cli, "build", fake)
     assert cli.main(["--out", str(tmp_path / "o"), "--local"]) == 0 and seen == {"local": True}
     assert cli.main(["--out", str(tmp_path / "o")]) == 0 and seen == {"local": False}
+
+
+def test_zero_normals_are_repaired_outward():
+    points = np.array([[0, 0, 0], [2, 0, 0], [0, 2, 0], [1, 1, 5]], dtype=np.float32)
+    normals = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1e-6]], dtype=np.float32)
+    assert repair_normals(points, normals) == 2
+    assert np.allclose(np.linalg.norm(normals, axis=1), 1.0)
+    assert normals[3][2] > 0.9
+
+
+def test_leaving_out_a_structure_leaves_out_all_its_descendants(tmp_path):
+    path = tmp_path / "s.toml"
+    path.write_text("""\
+default_source = "a"
+groups = [{ id = 1, acronym = "R", name = "Root" }]
+concepts = [
+  { id = 10, parent = 1, acronym = "M", name = "Mid", source = "x", midline = 3 },
+  { id = 20, parent = 10, acronym = "S", name = "Sided", left = 1, right = 2 },
+]
+""")
+    assert [r.id for r in without_sources(load_structures(path), {"x"})] == [1]
+
+
+def test_local_only_on_tracts_or_templates_is_refused(local_src):
+    edit_recipe(local_src, 'labels = "brain"\n', 'labels = "brain"\nlocal_only = true\n')
+    with pytest.raises(BuildError) as error:
+        load_recipe(local_src / "recipe.toml")
+    assert error.value.problems == ["tracts toytracts: only label sources can be local-only"]
+
+
+def test_a_skipped_source_leaves_no_drop_line(local_src, tmp_path):
+    edit_recipe(local_src, "mask = true\n", "mask = true\ndrop = [5]\n")
+    out = quiet_build(local_src, tmp_path / "out", tmp_path / "cache")
+    report = (out / "build-report.md").read_text()
+    assert "dropped from toylocal" not in report
+
+
+def test_a_normal_build_equals_a_build_without_the_local_source(tmp_path):
+    with_local = write_extended_source_tree(tmp_path / "a", tracts=True, local=True)
+    without = write_extended_source_tree(tmp_path / "b", tracts=True)
+    a = quiet_build(with_local, tmp_path / "a" / "out", tmp_path / "ca")
+    b = quiet_build(without, tmp_path / "b" / "out", tmp_path / "cb")
+
+    def files(root):
+        return {p.relative_to(root).as_posix(): p.read_bytes() for p in sorted(root.rglob("*"))
+                if p.is_file() and p.name != "build-report.md"
+                and not p.relative_to(root).as_posix().startswith("knowledge/")}
+
+    assert files(a) == files(b)
+
+
+def test_the_report_has_warnings_size_and_plurals(local_src, tmp_path):
+    out = quiet_build(local_src, tmp_path / "out", tmp_path / "cache", local=True)
+    report = (out / "build-report.md").read_text()
+    assert "- source toylocal: 1 structure\n" in report
+    assert "- warnings:" in report
+    assert report.rstrip().splitlines()[-1].startswith("- package size: ")

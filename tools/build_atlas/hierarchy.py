@@ -113,9 +113,14 @@ def without_sources(raws: list[RawStructure], skipped: set[str]) -> list[RawStru
     children: dict[int | None, list[int]] = {}
     for r in raws:
         children.setdefault(r.parent, []).append(r.id)
-    gone |= {r.id for r in raws if r.kind != "group" and not r.labels and children.get(r.id)
-             and all(child in gone for child in children[r.id])}
-    return [r for r in raws if r.id not in gone and r.parent not in gone]
+    changed = True
+    while changed:
+        before = len(gone)
+        gone |= {r.id for r in raws if r.parent in gone}
+        gone |= {r.id for r in raws if r.kind != "group" and not r.labels and children.get(r.id)
+                 and all(child in gone for child in children[r.id])}
+        changed = len(gone) != before
+    return [r for r in raws if r.id not in gone]
 
 
 def shade(rgb: tuple[int, int, int], factor: float) -> tuple[int, int, int]:

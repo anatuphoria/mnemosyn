@@ -154,3 +154,28 @@ def test_a_normal_build_turns_gland_stations_into_text_steps(tmp_path):
     gland = {p.key: p for p in normal.pathways}["gland"]
     assert gland.steps == (Station((110,)), Relay("Toy gland"))
     assert {p.key: p for p in local.pathways}["gland"].steps == (Station((110,)), Station((170,)))
+
+
+def test_a_station_whose_shape_is_not_meshed_stops_the_build(tmp_path, monkeypatch):
+    import tools.build_atlas.build as build_module
+
+    real_surface, real_levels = build_module.surface, build_module.levels
+
+    def surface(data, affine, label, *rest):
+        mesh = real_surface(data, affine, label, *rest)
+        mesh.field_data["label"] = [label]
+        return mesh
+
+    def levels(mesh, *rest):
+        if mesh.field_data["label"][0] == 120:
+            return [], 0
+        return real_levels(mesh, *rest)
+
+    monkeypatch.setattr(build_module, "surface", surface)
+    monkeypatch.setattr(build_module, "levels", levels)
+    src = write_extended_source_tree(tmp_path, tracts=True, pathways=True)
+    with pytest.raises(BuildError) as error:
+        build(src, tmp_path / "out", cache=tmp_path / "c", log=lambda *_: None)
+    assert error.value.problems == [
+        "pathway loop step 6: 120 has no shape to light for a left start",
+        "pathway loop step 6: 120 has no shape to light for a right start"]

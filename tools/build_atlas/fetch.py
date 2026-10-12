@@ -31,9 +31,9 @@ def _download(spec: SourceSpec, target: Path) -> None:
     if not spec.verify_tls:
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(spec.download, context=context, timeout=60) as response:
-        with target.open("wb") as out:
-            shutil.copyfileobj(response, out)
+    with (urllib.request.urlopen(spec.download, context=context, timeout=60) as response,
+          target.open("wb") as out):
+        shutil.copyfileobj(response, out)
 
 
 def fetch(spec: SourceSpec, cache: Path = DEFAULT_CACHE) -> Path:
