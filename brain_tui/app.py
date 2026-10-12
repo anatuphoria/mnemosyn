@@ -4,7 +4,9 @@ import gc
 import json
 import os
 import random
+import sys
 import time
+from pathlib import Path
 
 from rich.markup import escape
 from textual import events
@@ -22,6 +24,8 @@ from cns_atlas import DISCLAIMER
 
 from .atlas import build_procedural_regions, open_atlas, regions_from_atlas
 from .knowledge import KnowledgeBase
+
+DEFAULT_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
 from .pipeline import Frame, RenderRequest, RenderWorker
 from .renderer import pick_region, _FULL_BUDGET, _DRAG_BUDGET
 from .scene import Region, SceneState
@@ -191,7 +195,7 @@ class BrainApp(App):
     def __init__(self, atlas: str | None = None, views_file: str | None = None):
         super().__init__()
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.atlas = open_atlas(atlas or os.path.join(base, "atlases", "cns"))
+        self.atlas = open_atlas(atlas or DEFAULT_ATLAS)
         regions = regions_from_atlas(self.atlas) if self.atlas else build_procedural_regions()
         self.scene = SceneState(regions=regions)
         self.kb = KnowledgeBase(self.atlas)
@@ -304,13 +308,16 @@ class BrainApp(App):
             return
         k = self.kb.get(r.id)
         iso = " (ISOLATED)" if self.scene.isolated_id == r.id else ""
+        draft = "[yellow]Draft: not yet reviewed[/]\n" if k["draft"] else ""
+        references = f"[dim]{escape(k['references'])}[/]\n\n" if k["references"] else ""
         box.update(
-            f"[bold]{r.name}[/]{iso}\n"
+            f"[bold]{r.name}[/]{iso}\n{draft}"
             f"system: {r.system}   color: #{r.color[0]:02x}{r.color[1]:02x}{r.color[2]:02x}\n"
             f"visible: {r.visible}   move: ({r.move[0]:+.2f},{r.move[1]:+.2f},{r.move[2]:+.2f})\n\n"
             f"[bold]Function:[/] {escape(k['function'])}\n\n"
             f"[bold]Connections:[/] {escape(k['connections'])}\n\n"
             f"[bold]Clinical:[/] {escape(k['disorders'])}\n\n"
+            f"{references}"
             f"[dim]I isolate · H hide · U unhide · M move-mode + arrows · X explode[/]\n"
             f"[dim red]{DISCLAIMER}[/]"
         )
@@ -611,12 +618,25 @@ class BrainApp(App):
             self._move_selected(0, 0, -MOVE_STEP)
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     import argparse
+
+    from cns_atlas import AtlasError
+
     p = argparse.ArgumentParser(description="3D TUI Brain Model")
     p.add_argument("--atlas", default=None, help="atlas package directory (default: atlases/cns)")
-    args = p.parse_args()
-    BrainApp(atlas=args.atlas).run()
+    args = p.parse_args(argv)
+    if args.atlas is not None and not Path(args.atlas).is_dir():
+        print(f"{args.atlas}: atlas package not found", file=sys.stderr)
+        return 1
+    try:
+        app = BrainApp(atlas=args.atlas)
+    except AtlasError as exc:
+        print(f"{exc}\nBuild the atlas first: python -m tools.build_atlas", file=sys.stderr)
+        return 1
+    app.run()
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

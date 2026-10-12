@@ -14,11 +14,16 @@ class KnowledgeBase:
         if self.atlas is not None and region_id.isdigit():
             entry = self.atlas.knowledge(int(region_id))
         sections = entry.sections if entry else {}
-        return {
-            "function": sections.get("Function", NO_DESCRIPTION),
-            "connections": sections.get("Connections", NO_DESCRIPTION),
-            "disorders": sections.get("Clinical", NO_DESCRIPTION),
-        }
+
+        def section(name: str) -> str:
+            return entry.numbered(sections[name]) if name in sections else NO_DESCRIPTION
+
+        references = "\n".join(f"[{n}] {ref.citation()}"
+                               for n, ref in enumerate(entry.references if entry else (), 1))
+        return {"function": section("Function"), "connections": section("Connections"),
+                "disorders": section("Clinical"),
+                "draft": "yes" if entry is not None and entry.status == "draft" else "",
+                "references": references}
 
     def search(self, query: str, names: list[str], limit: int = 12) -> list[str]:
         q = query.strip().lower()

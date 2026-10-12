@@ -6,7 +6,9 @@ import numpy as np
 
 from textual.widgets import Input
 
-from brain_tui.app import BrainApp, Viewport
+from brain_tui.app import BrainApp, Viewport, main
+from brain_tui.knowledge import KnowledgeBase
+from cns_atlas import Atlas
 
 
 def run(coro):
@@ -174,7 +176,7 @@ def test_atlas_regions_and_descriptions(tmp_path, toy_atlas):
             assert set(app.scene.regions) == {"101", "102", "111", "112", "120"}
             assert app.scene.regions["101"].system == "Brain"
             app._select("101")
-            assert "Does alpha things [ref2020]." in inspector_text(app)
+            assert "Does alpha things [1]." in inspector_text(app)
             app._select("111")
             assert "No description yet." in inspector_text(app)
     run(go())
@@ -190,3 +192,33 @@ def test_search_uses_atlas_labels_acronyms_and_concepts(tmp_path, toy_atlas):
                 await pilot.pause()
                 assert app.scene.selected_id == expected, text
     run(go())
+
+
+def test_descriptions_number_citations_and_flag_drafts(toy_atlas):
+    entry = KnowledgeBase(Atlas.open(toy_atlas)).get("101")
+    assert entry["function"] == "Does alpha things [1]."
+    assert entry["draft"] == "yes"
+    assert entry["references"].startswith("[1] Author A (2020). A reference.")
+
+
+def test_cli_rejects_a_missing_atlas_path(tmp_path, capsys):
+    assert main(["--atlas", str(tmp_path / "missing")]) == 1
+    assert "not found" in capsys.readouterr().err
+
+
+def test_cli_reports_a_broken_atlas(tmp_path, capsys):
+    root = tmp_path / "broken"
+    root.mkdir()
+    (root / "structures.json").write_text("[]")
+    (root / "metadata.json").write_text("{}")
+    assert main(["--atlas", str(root)]) == 1
+    assert "format_version" in capsys.readouterr().err
+
+
+def test_cli_without_atlas_uses_the_built_in_shapes(monkeypatch, tmp_path):
+    import brain_tui.app as app_module
+
+    started = {}
+    monkeypatch.setattr(app_module, "DEFAULT_ATLAS", tmp_path / "none")
+    monkeypatch.setattr(app_module.BrainApp, "run", lambda self: started.setdefault("ok", self.atlas))
+    assert main([]) == 0 and started == {"ok": None}
