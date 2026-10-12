@@ -28,6 +28,8 @@ class SourceSpec:
     licence_file: str = ""
     drop: tuple = ()
     mesh_grid: str = "label"
+    local_only: bool = False
+    mask: bool = False
 
 
 @dataclass(frozen=True)
@@ -98,7 +100,8 @@ def _source_spec(s: dict) -> SourceSpec:
                       volume=s["volume"], priority=int(s.get("priority", 0)),
                       verify_tls=s.get("verify_tls", True) is not False,
                       licence_file=s.get("licence_file", ""), drop=tuple(s.get("drop", ())),
-                      mesh_grid=str(s.get("mesh_grid", "label")))
+                      mesh_grid=str(s.get("mesh_grid", "label")),
+                      local_only=s.get("local_only") is True, mask=s.get("mask") is True)
 
 
 def _tract_spec(t: dict) -> TractSpec:

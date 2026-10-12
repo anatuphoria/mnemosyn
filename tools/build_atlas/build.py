@@ -107,7 +107,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print) -> Path:
     for spec in recipe.sources:
         log(f"fetching {spec.source.id}")
         archive = fetch(spec, cache)
-        images[spec.source.id] = load_label_image(member_path(spec, archive, spec.member))
+        images[spec.source.id] = load_label_image(member_path(spec, archive, spec.member),
+                                                   spec.mask)
         if spec.label_names:
             names[spec.source.id] = read_label_names(member_path(spec, archive, spec.label_names))
     for spec in recipe.sources:

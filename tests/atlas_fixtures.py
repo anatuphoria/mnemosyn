@@ -276,6 +276,47 @@ Lesion: Loss on the {opposite} side [ref2020].
 """,
 }
 
+TOY_LOCAL_SOURCE = """
+[[sources]]
+id = "toylocal"
+title = "Toy gland"
+authors = "Test E"
+year = 2024
+version = "1"
+licence = "No licence stated"
+redistribution = false
+local_only = true
+download = "{download}"
+sha256 = "{sha256}"
+volume = "brain"
+priority = -1
+mesh_grid = "native"
+mask = true
+"""
+
+TOY_LOCAL_STRUCTURES = """\
+  { id = 170, parent = 2, acronym = "GLA", name = "Toy gland", source = "toylocal", midline = 1 },
+"""
+
+TOY_LOCAL_ENTRY = """\
++++
+id = 170
+status = "draft"
++++
+## Function
+Makes toy hormones [ref2020].
+"""
+
+LOCAL_SHAPE = (20, 20, 20)
+LOCAL_AFFINE = np.array([[-2.0, 0, 0, 20.0], [0, 2.0, 0, 40.0], [0, 0, 2.0, -40.0],
+                         [0, 0, 0, 1.0]])
+
+
+def local_volume() -> np.ndarray:
+    grid = np.indices(LOCAL_SHAPE).transpose(1, 2, 3, 0)
+    distance = np.linalg.norm(grid - 10, axis=-1)
+    return np.where(distance <= 3, 0.9 - 0.1 * distance, 0.0).astype(np.float32)
+
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -290,7 +331,8 @@ def hyp_volume() -> np.ndarray:
     return volume
 
 
-def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False) -> Path:
+def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
+                               local: bool = False) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -311,6 +353,12 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False)
         recipe += TOY_TRACT_SOURCE.format(download=folder / "{name}.nii.gz",
                                           files="\n".join(lines))
         concepts += TOY_TRACT_STRUCTURES
+    if local:
+        gland = root / "upstream" / "toy_local.nii.gz"
+        nib.save(nib.Nifti1Image(local_volume(), LOCAL_AFFINE), gland)
+        recipe += TOY_LOCAL_SOURCE.format(download=gland, sha256=sha256_file(gland))
+        concepts += TOY_LOCAL_STRUCTURES
+        (src / "knowledge" / "en" / "170.md").write_text(TOY_LOCAL_ENTRY)
     (src / "recipe.toml").write_text(recipe)
     structures = TOY_STRUCTURES.rstrip().removesuffix("]") + concepts + "]\n"
     (src / "structures.toml").write_text(structures)
@@ -321,8 +369,9 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False)
     return src
 
 
-def build_extended_toy_atlas(root: Path, tracts: bool = True, pathways: bool = False) -> Path:
+def build_extended_toy_atlas(root: Path, tracts: bool = True, pathways: bool = False,
+                             local: bool = False) -> Path:
     from tools.build_atlas.build import build
 
-    src = write_extended_source_tree(root, tracts, pathways)
+    src = write_extended_source_tree(root, tracts, pathways, local)
     return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)

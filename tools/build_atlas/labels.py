@@ -18,9 +18,10 @@ def read_label_names(path: Path) -> dict[int, str]:
     return names
 
 
-def load_label_image(path: Path) -> nib.Nifti1Image:
+def load_label_image(path: Path, mask: bool = False) -> nib.Nifti1Image:
     image = nib.load(path)
-    return nib.Nifti1Image(np.asarray(image.dataobj).astype(np.int32), image.affine)
+    data = np.asarray(image.dataobj)
+    return nib.Nifti1Image((data != 0 if mask else data).astype(np.int32), image.affine)
 
 
 def source_values(image: nib.Nifti1Image) -> set[int]:

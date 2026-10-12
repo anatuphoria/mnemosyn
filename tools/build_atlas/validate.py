@@ -63,7 +63,9 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
         name = spec.source.id
         if not spec.source.licence:
             problems.append(f"source {name}: licence is missing")
-        if not spec.source.redistribution:
+        if spec.local_only and spec.source.redistribution:
+            problems.append(f"source {name}: a shareable source must not be local-only")
+        elif not spec.source.redistribution and not spec.local_only:
             problems.append(f"source {name}: redistribution is not allowed")
         if spec.licence_file and not (src / spec.licence_file).exists():
             problems.append(f"source {name}: licence file {spec.licence_file} is missing")
@@ -95,6 +97,8 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
     for v in recipe.volumes:
         if v.grid_source not in labels:
             problems.append(f"volume {v.name}: unknown grid source {v.grid_source!r}")
+        elif labels[v.grid_source].local_only:
+            problems.append(f"volume {v.name}: grid source {v.grid_source!r} is local-only")
     mapped: dict[str, set[str]] = {name: set() for name in tracts}
     numbers: dict[str, set[int]] = {name: set() for name in labels}
     for r in raws:
