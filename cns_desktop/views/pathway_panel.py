@@ -8,7 +8,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
                                QPushButton, QStackedWidget, QTextBrowser, QVBoxLayout, QWidget)
 
-from cns_atlas import DISCLAIMER, Crossing, Pathway, Relay, Timeline
+from cns_atlas import DISCLAIMER, Crossing, Pathway, Relay, Station, Timeline
 from cns_atlas.pathways import PathwayText, lights, side_of
 
 from ..state import AppState
@@ -177,9 +177,10 @@ class PathwayPanel(QWidget):
             return f"{n} ✕ {step.name}"
         name = step.name if isinstance(step, Relay) else " and ".join(
             self.state.atlas.get(i).name for i in step.structures)
+        mark = "✕ " if isinstance(step, Station) and step.crossing else ""
         if self.pathway.sides == "both":
-            return f"{n} {name}"
-        return f"{n} {name} ({side_of(step.side, self.side)})"
+            return f"{n} {mark}{name}"
+        return f"{n} {mark}{name} ({side_of(step.side, self.side)})"
 
     def go(self, index: int, chosen: int | None = None) -> None:
         self.pause()

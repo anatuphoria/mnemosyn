@@ -23,11 +23,18 @@ def _step_problems(step, where: str) -> list[str]:
     if len(kinds) != 1:
         return [f"{where}: needs exactly one of structures, cross or relay"]
     kind = kinds[0]
-    allowed = {kind} if kind == "cross" else {kind, "side"}
+    if kind == "cross":
+        allowed = {kind}
+    elif kind == "structures":
+        allowed = {kind, "side", "crossing"}
+    else:
+        allowed = {kind, "side"}
     problems = []
     unknown = set(step) - allowed
     if unknown:
         problems.append(f"{where}: unknown keys {sorted(unknown)}")
+    if kind == "structures" and "crossing" in step and not isinstance(step["crossing"], bool):
+        problems.append(f"{where}: crossing must be true or false")
     side = step.get("side", "same")
     if side not in STEP_SIDES:
         problems.append(f"{where}: unknown side {side!r}")
@@ -47,7 +54,11 @@ def load_pathways(path: Path) -> list[Pathway]:
     problems: list[str] = []
     pathways: list[Pathway] = []
     seen: set[str] = set()
-    for n, record in enumerate(read_toml(path).get("pathways", []), 1):
+    data = read_toml(path)
+    unknown_top = set(data) - {"pathways"}
+    if unknown_top:
+        raise BuildError([f"{path}: unknown top-level keys {sorted(unknown_top)}"])
+    for n, record in enumerate(data.get("pathways", []), 1):
         if not isinstance(record, dict):
             problems.append(f"pathway {n}: must be a table")
             continue

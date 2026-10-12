@@ -65,6 +65,10 @@ def test_pathways_parse_into_steps(tmp_path):
     (HEAD + "steps = [{ structures = [] }]\n",
      "pathway p step 1: structures must be a non-empty list of ids"),
     (HEAD + 'steps = [{ relay = "" }]\n', "pathway p step 1: relay needs a name"),
+    (HEAD + "steps = [{ structures = [100], crossing = 1 }]\n",
+     "pathway p step 1: crossing must be true or false"),
+    (HEAD + 'steps = [{ cross = "X", crossing = true }]\n',
+     "pathway p step 1: unknown keys ['crossing']"),
     (HEAD + 'steps = [{ cross = "X" }]\n' + HEAD + 'steps = [{ cross = "X" }]\n',
      "pathway p: duplicate key"),
 ])
@@ -151,3 +155,16 @@ def test_an_unknown_station_stops_the_build(tmp_path):
     with pytest.raises(BuildError) as error:
         build(src, tmp_path / "out", cache=tmp_path / "cache", log=lambda *_: None)
     assert error.value.problems == ["pathway loop step 6: unknown structure id 999"]
+
+
+def test_crossing_stations_parse(tmp_path):
+    (pathway,) = load_pathways(write(tmp_path, HEAD + (
+        'steps = [{ structures = [100], side = "midline", crossing = true }]\n')))
+    assert pathway.steps == (Station((100,), "midline", crossing=True),)
+
+
+def test_unknown_top_level_keys_stop_the_build(tmp_path):
+    with pytest.raises(BuildError) as error:
+        load_pathways(write(tmp_path, '[[pathway]]\nkey = "p"\n'))
+    assert error.value.problems == [
+        f"{tmp_path / 'pathways.toml'}: unknown top-level keys ['pathway']"]

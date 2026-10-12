@@ -97,7 +97,7 @@ def test_real_build(tmp_path):
     assert [p.key for p in atlas.pathways] == PATHWAY_KEYS
     assert 2700 not in atlas and atlas.local_only == ()
     stress = {p.key: p for p in atlas.pathways}["stress"]
-    assert stress.steps[1] == Relay("Pituitary gland")
+    assert stress.steps[2] == Relay("Pituitary gland")
     assert {p.key: p for p in atlas.pathways}["body-clock"].steps[3] == Relay("Pineal gland")
     geometry = [s for s in atlas.structures if atlas.has_mesh(s.id)]
     assert len(geometry) == 285
@@ -207,3 +207,11 @@ def test_behaviour_routes_and_timelines_are_valid():
     timelines = load_timelines(SRC / "timelines", pathways, references)
     assert sorted(t.route for t in timelines) == ["body-clock", "hunger", "stress"]
     assert all(t.status == "draft" and t.note for t in timelines)
+
+
+def test_the_stress_route_starts_at_the_amygdala_and_the_peduncles_cross():
+    routes = {p.key: p for p in load_pathways(SRC / "pathways.toml")}
+    assert [s.structures for s in routes["stress"].steps if isinstance(s, Station)] == [
+        (1400,), (2510,), (2700,), (1350,), (1090, 1300)]
+    cerebellar = routes["cerebellar"].steps
+    assert cerebellar[3].crossing and cerebellar[6].crossing

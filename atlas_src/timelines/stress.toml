@@ -25,17 +25,21 @@ time = 0
 step = 1
 
 [[marks]]
-time = 8
+time = 2
 step = 2
 
 [[marks]]
-time = 25
+time = 8
 step = 3
 
 [[marks]]
-time = 50
+time = 25
 step = 4
 
 [[marks]]
-time = 70
+time = 50
 step = 5
+
+[[marks]]
+time = 70
+step = 6

@@ -339,3 +339,11 @@ def test_entering_redraws_the_slices_once(window):
     before = window.slices.redraw_count
     window.pathways.open("mood")
     assert window.slices.redraw_count == before + 1
+
+
+def test_a_crossing_station_is_labelled_with_a_cross(window):
+    from cns_atlas import Station
+
+    panel = window.pathways
+    panel.open("loop")
+    assert panel.label(9, Station((110,), "opposite", crossing=True)) == "9 ✕ Beta nucleus (right)"

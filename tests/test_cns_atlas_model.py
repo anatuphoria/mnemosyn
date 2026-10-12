@@ -1,7 +1,8 @@
 import numpy as np
 
 from cns_atlas.meshes import MeshData, MeshLod, write_lod
-from cns_atlas.model import Collection, Crossing, Pathway, Relay, Source, Station, Structure
+from cns_atlas.model import (Collection, Crossing, Pathway, Relay, Source, Station, Structure,
+                             step_from_json, step_to_json)
 
 
 def test_structure_round_trips_through_json():
@@ -70,3 +71,9 @@ def test_empty_mesh_lod(tmp_path):
     write_lod(tmp_path / "lod0", {})
     lod = MeshLod(tmp_path / "lod0")
     assert lod.ids() == () and lod.get(1) is None
+
+
+def test_a_crossing_station_round_trips():
+    station = Station((3320,), "midline", crossing=True)
+    assert step_from_json(step_to_json(station)) == station
+    assert "crossing" not in step_to_json(Station((3320,), "midline"))

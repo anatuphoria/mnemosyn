@@ -115,6 +115,11 @@ def test_toy_timeline_loads(tmp_path):
     ("time = 40\nstep = 4", "time = 10\nstep = 4", "marks must be in time order"),
     ("time = 40\nstep = 4", "time = 40\nstep = 9", "mark 3: no step 9 in route 'mood'"),
     ("Toy curves [ref2020].", "Toy curves [nobody].", "cites missing reference [nobody]"),
+    ("time = 20\nstep = 3", "time = 0\nstep = 3", "marks must be in time order"),
+    ('route = "mood"', 'route = ["mood"]', "unknown route ['mood']"),
+    ("time = 40\nstep = 4", "time = 70\nstep = 4", "marks must be within 0 and the duration"),
+    ('[[curves]]\nname = "Toy hormone"\ncolor = [235, 200, 90]\n'
+     'points = [[0, 0.1], [20, 1.0], [60, 0.2]]\n', "", "needs at least one curve"),
 ])
 def test_timeline_errors(tmp_path, old, new, message):
     folder = tmp_path / "timelines"

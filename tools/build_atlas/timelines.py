@@ -45,7 +45,7 @@ def _problems(data: dict, where: str, steps: dict[str, int], references) -> list
     if unknown:
         problems.append(f"{where}: unknown keys {sorted(unknown)}")
     route = data.get("route")
-    if route not in steps:
+    if not isinstance(route, str) or route not in steps:
         problems.append(f"{where}: unknown route {route!r}")
     duration, play = data.get("duration"), data.get("play_seconds", 30)
     if not (_number(duration) and duration > 0):
@@ -75,11 +75,11 @@ def _problems(data: dict, where: str, steps: dict[str, int], references) -> list
                     and isinstance(m.get("step"), int) for m in marks)):
         return problems + [f"{where}: marks must be tables with a time and a step"]
     times = [m["time"] for m in marks]
-    if any(b < a for a, b in zip(times, times[1:])):
+    if any(b <= a for a, b in zip(times, times[1:])):
         problems.append(f"{where}: marks must be in time order")
     if duration is not None and any(t < 0 or t > duration for t in times):
         problems.append(f"{where}: marks must be within 0 and the duration")
-    if route in steps:
+    if isinstance(route, str) and route in steps:
         problems += [f"{where}: mark {n}: no step {m['step']} in route {route!r}"
                      for n, m in enumerate(marks, 1) if not 1 <= m["step"] <= steps[route]]
     return problems

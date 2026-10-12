@@ -107,10 +107,10 @@ steps = [
   { structures = [1000] },
   { structures = [3010] },
   { relay = "Pontine nuclei" },
-  { structures = [3320], side = "midline" },
+  { structures = [3320], side = "midline", crossing = true },
   { structures = [41], side = "opposite" },
   { relay = "Dentate nucleus", side = "opposite" },
-  { structures = [3330], side = "midline" },
+  { structures = [3330], side = "midline", crossing = true },
   { structures = [2030] },
   { structures = [1830] },
   { structures = [1000] },
@@ -207,12 +207,12 @@ group = "Behaviour"
 sides = "both"
 texts = "behaviour"
 steps = [
+  { structures = [1400] },
   { structures = [2510] },
   { structures = [2700] },
   { relay = "Adrenal cortex" },
   { structures = [1350] },
   { structures = [1090, 1300] },
-  { structures = [1400] },
 ]
 
 [[pathways]]
