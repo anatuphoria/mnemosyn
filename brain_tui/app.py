@@ -621,15 +621,14 @@ class BrainApp(App):
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
-    from cns_atlas import AtlasError
+    from cns_atlas import Atlas, AtlasError
 
     p = argparse.ArgumentParser(description="3D TUI Brain Model")
     p.add_argument("--atlas", default=None, help="atlas package directory (default: atlases/cns)")
     args = p.parse_args(argv)
-    if args.atlas is not None and not Path(args.atlas).is_dir():
-        print(f"{args.atlas}: atlas package not found", file=sys.stderr)
-        return 1
     try:
+        if args.atlas is not None:
+            Atlas.open(args.atlas)
         app = BrainApp(atlas=args.atlas)
     except AtlasError as exc:
         print(f"{exc}\nBuild the atlas first: python -m tools.build_atlas", file=sys.stderr)

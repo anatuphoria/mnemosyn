@@ -208,8 +208,14 @@ def test_malformed_packages_fail_with_a_clear_message(tmp_path, name, change, me
         Atlas.open(root)
 
 
-def test_unreadable_meshes_fail_with_a_clear_message(tmp_path):
+@pytest.mark.parametrize(("name", "content"), [
+    ("index.npy", b"not numpy"), ("vertices.npy", b""), ("index.npy", None)])
+def test_unreadable_meshes_fail_with_a_clear_message(tmp_path, name, content):
     root = write_package(tmp_path / "pkg", tiny_structures(), meshes={101: tetra()})
-    (root / "meshes" / "lod0" / "index.npy").write_bytes(b"not numpy")
+    path = root / "meshes" / "lod0" / name
+    if content is None:
+        np.save(path, np.int64(7))
+    else:
+        path.write_bytes(content)
     with pytest.raises(AtlasError, match="meshes"):
         Atlas.open(root)

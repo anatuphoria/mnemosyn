@@ -222,3 +222,10 @@ def test_cli_without_atlas_uses_the_built_in_shapes(monkeypatch, tmp_path):
     monkeypatch.setattr(app_module, "DEFAULT_ATLAS", tmp_path / "none")
     monkeypatch.setattr(app_module.BrainApp, "run", lambda self: started.setdefault("ok", self.atlas))
     assert main([]) == 0 and started == {"ok": None}
+
+def test_cli_rejects_a_folder_that_is_not_an_atlas(tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(BrainApp, "run", lambda self: None)
+    folder = tmp_path / "not-an-atlas"
+    folder.mkdir()
+    assert main(["--atlas", str(folder)]) == 1
+    assert "metadata.json" in capsys.readouterr().err

@@ -66,8 +66,8 @@ class Atlas:
         try:
             self._lods = {level: MeshLod(meshes / name) for level, name in enumerate(LODS)
                           if (meshes / name / "index.npy").exists()}
-        except (OSError, ValueError) as exc:
-            raise AtlasError(f"{meshes}: mesh files cannot be read ({exc})") from exc
+        except (OSError, ValueError, EOFError, IndexError, KeyError, TypeError) as exc:
+            raise AtlasError(f"{meshes}: mesh files cannot be read ({exc!r})") from exc
         records = metadata.get("volumes", [])
         self.volumes = tuple(
             LabelVolume(root / v["file"], v["space"], np.array(v["affine_to_world"]))
