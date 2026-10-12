@@ -148,3 +148,43 @@ def test_stepping_moves_the_time_and_seeking_moves_the_step(window):
     assert panel.time == 40.0
     panel.seek(25.0)
     assert panel.index == 2 and panel.time == 25.0 and not panel.playing
+
+
+def test_a_route_with_a_timeline_shows_its_curves(window):
+    chart = window.chart
+    window.pathways.open("mood")
+    assert chart.timeline is window.state.atlas.timelines["mood"]
+    assert len(chart.timeline_items) == 1 and chart.cursor.value() == 0.0
+    note = chart.note.text()
+    assert "Schematic shapes, not measured data" in note and "Toy curves [1]." in note
+    assert "Author A (2020)" in note and not chart.note.isHidden()
+
+
+def test_play_moves_the_cursor_and_chart_clicks_seek(window):
+    chart, panel = window.chart, window.pathways
+    panel.open("mood")
+    panel.play()
+    panel.advance(2.0)
+    assert chart.cursor.value() == pytest.approx(20.0)
+    chart.seek_requested.emit(45.0)
+    assert panel.index == 3 and panel.time == 45.0 and chart.cursor.value() == 45.0
+
+
+def test_seeking_outside_the_timeline_clamps(window):
+    chart, panel = window.chart, window.pathways
+    panel.open("mood")
+    chart.seek_requested.emit(-5.0)
+    assert panel.time == 0.0 and chart.cursor.value() == 0.0
+    chart.seek_requested.emit(999.0)
+    assert panel.time == 60.0 and panel.index == 3
+
+
+def test_leaving_or_a_route_without_a_timeline_restores_the_chart(window):
+    chart, panel = window.chart, window.pathways
+    panel.open("mood")
+    panel.open("loop")
+    assert chart.timeline is None and chart.timeline_items == [] and chart.note.isHidden()
+    panel.open("mood")
+    panel.leave()
+    assert chart.timeline is None and chart.curve.isVisible() and chart.note.isHidden()
+    assert chart.plot.plotItem.titleLabel.text == "Select a structure"

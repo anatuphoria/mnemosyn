@@ -148,6 +148,11 @@ class MainWindow(QMainWindow):
         self.pathways.entered.connect(self.enter_pathway)
         self.pathways.left.connect(self.leave_pathway)
         self.pathways.centre_requested.connect(self.slices.centre_on_selection)
+        self.pathways.timeline_changed.connect(
+            lambda timeline: self.chart.show_timeline(
+                timeline, self.pathways.pathway.name if self.pathways.pathway else ""))
+        self.pathways.time_changed.connect(self.chart.set_time)
+        self.chart.seek_requested.connect(self.pathways.seek)
         self.pathway_dock.visibilityChanged.connect(self._prepare_pathways)
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())

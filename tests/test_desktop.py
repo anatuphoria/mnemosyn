@@ -88,7 +88,7 @@ def test_tree_selection_updates_every_view(window):
     window.tree.tree.setCurrentItem(window.tree.items[111])
     assert window.state.selected == 111
     assert "Beta nucleus (left)" in window.info.toPlainText()
-    assert "Beta nucleus (left)" in window.chart.plotItem.titleLabel.text
+    assert "Beta nucleus (left)" in window.chart.plot.plotItem.titleLabel.text
     assert window.view.highlighted == [111]
 
 
