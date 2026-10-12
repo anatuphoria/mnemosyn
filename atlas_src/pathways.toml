@@ -115,3 +115,173 @@ steps = [
   { structures = [1830] },
   { structures = [1000] },
 ]
+
+[[pathways]]
+key = "dopamine"
+name = "Dopamine: reward and movement"
+start = "ventral tegmental area"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [2000] },
+  { relay = "Medial forebrain bundle" },
+  { structures = [1440] },
+  { structures = [1090, 1100, 1300, 1310] },
+  { structures = [1400, 1350] },
+  { structures = [2010] },
+  { structures = [1410, 1420] },
+]
+
+[[pathways]]
+key = "serotonin"
+name = "Serotonin: mood and impulse"
+start = "raphe nuclei"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [2200, 2210] },
+  { structures = [1350] },
+  { structures = [1400] },
+  { structures = [1300, 1310, 1090] },
+  { structures = [1410, 1420, 1440] },
+  { structures = [2590] },
+]
+
+[[pathways]]
+key = "noradrenaline"
+name = "Noradrenaline: arousal and attention"
+start = "locus coeruleus"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [2100] },
+  { relay = "Dorsal noradrenergic bundle" },
+  { structures = [21] },
+  { structures = [13, 14] },
+  { structures = [1350, 1400] },
+  { structures = [2510] },
+  { structures = [41] },
+]
+
+[[pathways]]
+key = "acetylcholine"
+name = "Acetylcholine: attention and memory"
+start = "basal forebrain"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [2660] },
+  { structures = [12] },
+  { relay = "Medial septal nucleus" },
+  { structures = [1350] },
+  { relay = "Pedunculopontine and laterodorsal tegmental nuclei" },
+  { structures = [21] },
+]
+
+[[pathways]]
+key = "fear"
+name = "Fear circuit"
+start = "sound of danger"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [1900] },
+  { structures = [1400] },
+  { structures = [2540, 2510] },
+  { relay = "Periaqueductal grey" },
+  { structures = [2100] },
+  { structures = [1350] },
+  { structures = [1300, 1090] },
+]
+
+[[pathways]]
+key = "stress"
+name = "Stress axis (HPA)"
+start = "stressor"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [2510] },
+  { structures = [2700] },
+  { relay = "Adrenal cortex" },
+  { structures = [1350] },
+  { structures = [1090, 1300] },
+  { structures = [1400] },
+]
+
+[[pathways]]
+key = "body-clock"
+name = "Body clock, sleep and waking"
+start = "light on the retina"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { relay = "Retinohypothalamic tract" },
+  { structures = [2590] },
+  { structures = [2510] },
+  { structures = [2710] },
+  { structures = [2540] },
+  { structures = [2600, 2100, 2200, 2210] },
+  { structures = [21, 12] },
+  { relay = "Ventrolateral preoptic nucleus" },
+]
+
+[[pathways]]
+key = "hunger"
+name = "Hunger and satiety"
+start = "gut and fat signals"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { relay = "Ghrelin, leptin and insulin" },
+  { structures = [2570] },
+  { structures = [2510] },
+  { structures = [2540] },
+  { structures = [2550] },
+  { relay = "Nucleus of the solitary tract" },
+  { structures = [2000, 1440] },
+  { structures = [1200, 1120, 1130, 1140, 1150] },
+]
+
+[[pathways]]
+key = "memory"
+name = "Memory"
+start = "an experience"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [1600, 1640, 1660] },
+  { structures = [1360] },
+  { structures = [1350] },
+  { structures = [3340, 2630] },
+  { structures = [1090] },
+  { structures = [1400] },
+  { structures = [2660] },
+  { structures = [1410, 1420, 41] },
+]
+
+[[pathways]]
+key = "decision"
+name = "Decision and self-control"
+start = "a choice"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { structures = [1010, 1020] },
+  { structures = [1120, 1130, 1140, 1150] },
+  { structures = [1090, 1100] },
+  { structures = [1310, 1320] },
+  { structures = [1030, 1040] },
+  { structures = [1870, 1880] },
+  { structures = [1410, 1440] },
+]

@@ -49,3 +49,138 @@ volume = "38(4)"
 pages = "725-743"
 year = 1937
 doi = "10.1001/archneurpsyc.1937.02260220069003"
+
+[schultz1997]
+authors = "Schultz W, Dayan P, Montague PR"
+title = "A neural substrate of prediction and reward"
+journal = "Science"
+volume = "275(5306)"
+pages = "1593-1599"
+year = 1997
+doi = "10.1126/science.275.5306.1593"
+
+[berger2009]
+authors = "Berger M, Gray JA, Roth BL"
+title = "The expanded biology of serotonin"
+journal = "Annual Review of Medicine"
+volume = "60"
+pages = "355-366"
+year = 2009
+doi = "10.1146/annurev.med.60.042307.110802"
+
+[astonjones2005]
+authors = "Aston-Jones G, Cohen JD"
+title = "An integrative theory of locus coeruleus-norepinephrine function: adaptive gain and optimal performance"
+journal = "Annual Review of Neuroscience"
+volume = "28"
+pages = "403-450"
+year = 2005
+doi = "10.1146/annurev.neuro.28.061604.135709"
+
+[hasselmo2006]
+authors = "Hasselmo ME"
+title = "The role of acetylcholine in learning and memory"
+journal = "Current Opinion in Neurobiology"
+volume = "16(6)"
+pages = "710-715"
+year = 2006
+doi = "10.1016/j.conb.2006.09.002"
+
+[ledoux2000]
+authors = "LeDoux JE"
+title = "Emotion circuits in the brain"
+journal = "Annual Review of Neuroscience"
+volume = "23"
+pages = "155-184"
+year = 2000
+doi = "10.1146/annurev.neuro.23.1.155"
+
+[ulrichlai2009]
+authors = "Ulrich-Lai YM, Herman JP"
+title = "Neural regulation of endocrine and autonomic stress responses"
+journal = "Nature Reviews Neuroscience"
+volume = "10(6)"
+pages = "397-409"
+year = 2009
+doi = "10.1038/nrn2647"
+
+[dickerson2004]
+authors = "Dickerson SS, Kemeny ME"
+title = "Acute stressors and cortisol responses: a theoretical integration and synthesis of laboratory research"
+journal = "Psychological Bulletin"
+volume = "130(3)"
+pages = "355-391"
+year = 2004
+doi = "10.1037/0033-2909.130.3.355"
+
+[saper2005]
+authors = "Saper CB, Scammell TE, Lu J"
+title = "Hypothalamic regulation of sleep and circadian rhythms"
+journal = "Nature"
+volume = "437(7063)"
+pages = "1257-1263"
+year = 2005
+doi = "10.1038/nature04284"
+
+[weitzman1971]
+authors = "Weitzman ED, Fukushima D, Nogeire C, Roffwarg H, Gallagher TF, Hellman L"
+title = "Twenty-four hour pattern of the episodic secretion of cortisol in normal subjects"
+journal = "The Journal of Clinical Endocrinology and Metabolism"
+volume = "33(1)"
+pages = "14-22"
+year = 1971
+doi = "10.1210/jcem-33-1-14"
+
+[thannickal2000]
+authors = "Thannickal TC, Moore RY, Nienhuis R, Ramanathan L, Gulyani S, Aldrich M, et al."
+title = "Reduced number of hypocretin neurons in human narcolepsy"
+journal = "Neuron"
+volume = "27(3)"
+pages = "469-474"
+year = 2000
+doi = "10.1016/S0896-6273(00)00058-1"
+
+[morton2006]
+authors = "Morton GJ, Cummings DE, Baskin DG, Barsh GS, Schwartz MW"
+title = "Central nervous system control of food intake and body weight"
+journal = "Nature"
+volume = "443(7109)"
+pages = "289-295"
+year = 2006
+doi = "10.1038/nature05026"
+
+[cummings2001]
+authors = "Cummings DE, Purnell JQ, Frayo RS, Schmidova K, Wisse BE, Weigle DS"
+title = "A preprandial rise in plasma ghrelin levels suggests a role in meal initiation in humans"
+journal = "Diabetes"
+volume = "50(8)"
+pages = "1714-1719"
+year = 2001
+doi = "10.2337/diabetes.50.8.1714"
+
+[squire2004]
+authors = "Squire LR"
+title = "Memory systems of the brain: a brief history and current perspective"
+journal = "Neurobiology of Learning and Memory"
+volume = "82(3)"
+pages = "171-177"
+year = 2004
+doi = "10.1016/j.nlm.2004.06.005"
+
+[miller2001]
+authors = "Miller EK, Cohen JD"
+title = "An integrative theory of prefrontal cortex function"
+journal = "Annual Review of Neuroscience"
+volume = "24"
+pages = "167-202"
+year = 2001
+doi = "10.1146/annurev.neuro.24.1.167"
+
+[damasio1994]
+authors = "Damasio H, Grabowski T, Frank R, Galaburda AM, Damasio AR"
+title = "The return of Phineas Gage: clues about the brain from the skull of a famous patient"
+journal = "Science"
+volume = "264(5162)"
+pages = "1102-1105"
+year = 1994
+doi = "10.1126/science.8178168"

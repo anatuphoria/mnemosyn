@@ -1,0 +1,41 @@
+route = "stress"
+duration = 120
+unit = "min"
+play_seconds = 30
+status = "draft"
+note = "Schematic levels after a short stressor at time 0, each scaled to its own peak: CRH acts within minutes, ACTH peaks after about 10 minutes and cortisol after 20 to 40 minutes, then feedback returns them to baseline [dickerson2004] [ulrichlai2009]."
+
+[[curves]]
+name = "CRH"
+color = [120, 200, 255]
+points = [[0, 0.1], [2, 0.8], [5, 1.0], [15, 0.4], [40, 0.15], [120, 0.1]]
+
+[[curves]]
+name = "ACTH"
+color = [235, 150, 200]
+points = [[0, 0.15], [5, 0.7], [10, 1.0], [20, 0.6], [45, 0.25], [120, 0.15]]
+
+[[curves]]
+name = "Cortisol"
+color = [235, 200, 90]
+points = [[0, 0.2], [10, 0.35], [20, 0.8], [30, 1.0], [45, 0.8], [60, 0.55], [90, 0.3], [120, 0.22]]
+
+[[marks]]
+time = 0
+step = 1
+
+[[marks]]
+time = 8
+step = 2
+
+[[marks]]
+time = 25
+step = 3
+
+[[marks]]
+time = 50
+step = 4
+
+[[marks]]
+time = 70
+step = 5

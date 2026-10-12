@@ -1,0 +1,64 @@
+route = "hunger"
+duration = 24
+unit = "h"
+play_seconds = 30
+status = "draft"
+note = "Schematic levels over a day with meals at 7, 13 and 19 h, each scaled to its own peak: ghrelin rises before each meal and falls after it, while insulin rises with each meal [cummings2001] [morton2006]."
+
+[[curves]]
+name = "Ghrelin"
+color = [120, 200, 255]
+points = [[0, 0.5], [5, 0.6], [6.8, 0.9], [7.5, 0.4], [11, 0.6], [12.8, 0.95], [13.5, 0.4], [17, 0.6], [18.8, 1.0], [19.5, 0.4], [24, 0.6]]
+
+[[curves]]
+name = "Insulin"
+color = [235, 200, 90]
+points = [[0, 0.1], [6.9, 0.1], [7.5, 0.9], [9, 0.3], [12.9, 0.1], [13.5, 1.0], [15, 0.3], [18.9, 0.15], [19.5, 0.9], [21, 0.3], [24, 0.1]]
+
+[[marks]]
+time = 0
+step = 1
+
+[[marks]]
+time = 6.5
+step = 2
+
+[[marks]]
+time = 6.8
+step = 4
+
+[[marks]]
+time = 7
+step = 7
+
+[[marks]]
+time = 7.2
+step = 8
+
+[[marks]]
+time = 7.5
+step = 6
+
+[[marks]]
+time = 8
+step = 3
+
+[[marks]]
+time = 8.5
+step = 5
+
+[[marks]]
+time = 12.5
+step = 2
+
+[[marks]]
+time = 13.5
+step = 6
+
+[[marks]]
+time = 18.5
+step = 2
+
+[[marks]]
+time = 19.5
+step = 6

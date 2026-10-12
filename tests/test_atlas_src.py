@@ -6,10 +6,11 @@ import pytest
 
 from cns_atlas import Atlas
 from cns_atlas.knowledge import CITATION, load_references, parse_entry
-from cns_atlas.model import Station
-from cns_atlas.pathways import resolve
+from cns_atlas.model import Relay, Station
+from cns_atlas.pathways import lights
 from tools.build_atlas.hierarchy import build_tree, load_structures
 from tools.build_atlas.pathways import check_pathway_texts, check_pathways, load_pathways
+from tools.build_atlas.timelines import load_timelines
 from tools.build_atlas.recipe import load_recipe
 from tools.build_atlas.validate import (check_hierarchy, check_knowledge, check_sources,
                                         check_templates)
@@ -17,7 +18,10 @@ from tools.build_atlas.validate import (check_hierarchy, check_knowledge, check_
 SRC = Path(__file__).resolve().parent.parent / "atlas_src"
 AAL3_EMPTY_LABELS = {35, 36, 81, 82}
 PATHWAY_KEYS = ["visual", "auditory", "papez", "motor", "touch", "pain", "basal-ganglia",
-                "cerebellar"]
+                "cerebellar", "dopamine", "serotonin", "noradrenaline", "acetylcholine", "fear",
+                "stress", "body-clock", "hunger", "memory", "decision"]
+BEHAVIOUR = ["dopamine", "serotonin", "noradrenaline", "acetylcholine", "fear", "stress",
+             "body-clock", "hunger", "memory", "decision"]
 REAL_ATLAS = SRC.parent / "atlases" / "cns"
 
 
@@ -79,7 +83,7 @@ def test_acronyms_are_unique():
 
 def test_every_description_cites_a_reference():
     paths = sorted((SRC / "knowledge").glob("*/*.md"))
-    assert len(paths) == 15
+    assert len(paths) == 25
     for path in paths:
         assert parse_entry(path.read_text(encoding="utf-8"), str(path)).citations, path
 
@@ -92,6 +96,9 @@ def test_real_build(tmp_path):
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None))
     assert [p.key for p in atlas.pathways] == PATHWAY_KEYS
     assert 2700 not in atlas and atlas.local_only == ()
+    stress = {p.key: p for p in atlas.pathways}["stress"]
+    assert stress.steps[1] == Relay("Pituitary gland")
+    assert {p.key: p for p in atlas.pathways}["body-clock"].steps[3] == Relay("Pineal gland")
     geometry = [s for s in atlas.structures if atlas.has_mesh(s.id)]
     assert len(geometry) == 285
     assert atlas.tracts is not None and len(atlas.tracts.ids) == 77
@@ -136,7 +143,7 @@ def test_pathways_light_shapes_on_both_sides_and_match_their_texts():
 
 def test_pathway_texts_are_drafts_citing_a_reference_in_every_section():
     paths = sorted((SRC / "knowledge" / "en").glob("pathway-*.md"))
-    assert len(paths) == 8
+    assert len(paths) == 18
     for path in paths:
         entry = parse_entry(path.read_text(encoding="utf-8"), str(path))
         assert entry.status == "draft", path
@@ -152,13 +159,15 @@ def test_the_built_atlas_pathways_light_and_read_on_both_sides():
     assert [p.key for p in atlas.pathways] == PATHWAY_KEYS
     for pathway in atlas.pathways:
         for side in ("left", "right"):
-            for step in pathway.steps:
+            for step, ids in zip(pathway.steps, lights(atlas, pathway, side)):
                 if isinstance(step, Station):
-                    assert resolve(atlas, step, side), (pathway.key, step, side)
+                    assert ids, (pathway.key, step, side)
             text = atlas.pathway_text(pathway.key, side)
             assert len(text.steps) == len(pathway.steps)
-            words = [text.overview, *(t.role for t in text.steps), *(t.lesion for t in text.steps)]
+            words = [text.overview, *(t.role for t in text.steps),
+                     *(t.lesion or t.disorders for t in text.steps)]
             assert all(word and "{" not in word for word in words), pathway.key
+    assert set(atlas.timelines) == {"stress", "body-clock", "hunger"}
 
 
 def test_the_glands_are_local_only_midline_structures():
@@ -187,3 +196,14 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
         mean = np.asarray(atlas.mesh(structure_id).vertices).mean(axis=0)
         assert np.allclose(mean, centre, atol=3.0), (structure_id, mean)
         assert (labels == structure_id).any(), structure_id
+
+
+def test_behaviour_routes_and_timelines_are_valid():
+    pathways = load_pathways(SRC / "pathways.toml")
+    behaviour = [p for p in pathways if p.group == "Behaviour"]
+    assert [p.key for p in behaviour] == BEHAVIOUR
+    assert all(p.sides == "both" and p.texts == "behaviour" for p in behaviour)
+    references = load_references(SRC / "knowledge" / "references.toml")
+    timelines = load_timelines(SRC / "timelines", pathways, references)
+    assert sorted(t.route for t in timelines) == ["body-clock", "hunger", "stress"]
+    assert all(t.status == "draft" and t.note for t in timelines)

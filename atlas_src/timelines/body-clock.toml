@@ -1,0 +1,52 @@
+route = "body-clock"
+duration = 24
+unit = "h"
+play_seconds = 30
+status = "draft"
+note = "Schematic 24-hour levels from midnight in a day-active adult, each scaled to its own peak: melatonin is high at night and cortisol peaks soon after waking [weitzman1971] [saper2005]."
+
+[[curves]]
+name = "Melatonin"
+color = [200, 160, 240]
+points = [[0, 0.8], [3, 1.0], [6, 0.5], [8, 0.1], [12, 0.05], [18, 0.05], [21, 0.3], [23, 0.7], [24, 0.8]]
+
+[[curves]]
+name = "Cortisol"
+color = [235, 200, 90]
+points = [[0, 0.1], [3, 0.25], [6, 0.8], [8, 1.0], [12, 0.55], [18, 0.3], [22, 0.12], [24, 0.1]]
+
+[[marks]]
+time = 0
+step = 4
+
+[[marks]]
+time = 6
+step = 1
+
+[[marks]]
+time = 6.5
+step = 2
+
+[[marks]]
+time = 7
+step = 3
+
+[[marks]]
+time = 9
+step = 5
+
+[[marks]]
+time = 10
+step = 6
+
+[[marks]]
+time = 12
+step = 7
+
+[[marks]]
+time = 22
+step = 8
+
+[[marks]]
+time = 23
+step = 4
