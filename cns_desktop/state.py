@@ -12,6 +12,7 @@ from .slices import AXES
 
 class AppState(QObject):
     selection_changed = Signal(object)
+    slice_volume_changed = Signal(str)
     visibility_changed = Signal(object)
     slice_changed = Signal(str, float)
     focus_changed = Signal(object)
@@ -28,6 +29,7 @@ class AppState(QObject):
         self._hidden: set[int] = set(self.tract_ids)
         self.slice_axis = "axial"
         self.slice_mm = 0.0
+        self.slice_volume = atlas.volumes[0].name if atlas.volumes else ""
         self.focus: frozenset[int] | None = None
         self.emphasis: tuple[int, ...] = ()
 
@@ -94,6 +96,13 @@ class AppState(QObject):
         keep = set(self.geometry_in(structure_id))
         self.set_hidden(keep, False)
         self.set_hidden([i for i in self.geometry_ids if i not in keep], True)
+
+    def set_slice_volume(self, name: str) -> None:
+        if name not in {v.name for v in self.atlas.volumes}:
+            raise ValueError(f"unknown slice volume {name!r}")
+        if name != self.slice_volume:
+            self.slice_volume = name
+            self.slice_volume_changed.emit(name)
 
     def set_slice(self, axis: str, mm: float) -> None:
         if axis not in AXES:

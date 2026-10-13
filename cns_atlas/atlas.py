@@ -76,8 +76,9 @@ class Atlas:
             TemplateVolume(root / v["file"], v["space"], np.array(v["affine_to_world"]),
                            str(v.get("labels", "")))
             for v in records if v.get("role") == "template"]
-        self.template = next((t for t in templates if any(
-            v.name == t.labels and v.shape == t.shape for v in self.volumes)), None)
+        self.templates = {v.name: t for v in self.volumes for t in templates
+                          if t.labels == v.name and t.shape == v.shape}
+        self.template = self.templates.get(self.volumes[0].name) if self.volumes else None
         self.tracts: TractLayer | None = None
         for record in records:
             if record.get("role") != "tracts":

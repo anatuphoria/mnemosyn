@@ -226,7 +226,7 @@ def test_a_pathway_without_a_description_still_steps(qapp, tmp_path):
 def test_showing_the_dock_prepares_the_slice_centres(window, qapp):
     window.pathway_dock.raise_()
     qapp.processEvents()
-    assert window.slices._centres is not None
+    assert window.slices.labels.name in window.slices._centre_tables
 
 
 def test_entering_switching_side_and_stepping_draw_the_3d_view_once(window):

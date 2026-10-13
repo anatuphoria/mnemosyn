@@ -13,6 +13,7 @@ from .. import slices
 from ..state import AppState
 
 NO_TEMPLATE = "No template in this atlas"
+VOLUME_TITLES = {"brain": "Brain", "spine": "Spinal cord"}
 NO_LABELS = "No labelled volume in this atlas"
 NOT_RAS = "Slices need a volume stored in RAS orientation"
 COORDINATE = {"axial": "z", "coronal": "y", "sagittal": "x"}
@@ -34,13 +35,27 @@ class SlicePanel(QWidget):
         self.opacity = slices.DEFAULT_OPACITY
         self.image: np.ndarray | None = None
         self.index = 0
-        self._centres = None
         self.tracts = atlas.tracts
         self.preferred: frozenset[int] = frozenset()
         self._tract_coords: dict[int, tuple[np.ndarray, ...]] = {}
         self._holds = 0
         self._redraw_wanted = False
         self.redraw_count = 0
+        self._centre_tables: dict[str, object] = {}
+        self.volume_buttons: dict[str, QPushButton] = {}
+
+        regions = QHBoxLayout()
+        if len(atlas.volumes) > 1:
+            region_group = QButtonGroup(self)
+            for volume in atlas.volumes:
+                button = QPushButton(VOLUME_TITLES.get(volume.name, volume.name.capitalize()))
+                button.setCheckable(True)
+                button.clicked.connect(
+                    lambda _checked=False, n=volume.name: self.state.set_slice_volume(n))
+                region_group.addButton(button)
+                regions.addWidget(button)
+                self.volume_buttons[volume.name] = button
+            self.volume_buttons[atlas.volumes[0].name].setChecked(True)
 
         bar = QHBoxLayout()
         group = QButtonGroup(self)
@@ -80,6 +95,7 @@ class SlicePanel(QWidget):
         controls.addWidget(self.opacity_slider, 1)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(regions)
         layout.addLayout(bar)
         layout.addWidget(self.view, 1)
         layout.addLayout(controls)
@@ -92,6 +108,7 @@ class SlicePanel(QWidget):
         state.selection_changed.connect(lambda _id: self.redraw())
         state.visibility_changed.connect(lambda _ids: self.redraw())
         state.slice_changed.connect(self._on_slice_changed)
+        state.slice_volume_changed.connect(self._on_volume_changed)
         state.focus_changed.connect(lambda _focus: self.redraw())
 
         if self.labels is not None and not slices.is_ras(self.labels.affine):
@@ -126,6 +143,27 @@ class SlicePanel(QWidget):
         self.buttons[axis].setChecked(True)
         self.position.setText(f"{COORDINATE[axis]} = {snapped:+.0f} mm")
         self.redraw()
+
+    def _on_volume_changed(self, name: str) -> None:
+        volume = next(v for v in self.state.atlas.volumes if v.name == name)
+        if not slices.is_ras(volume.affine):
+            return
+        self.labels = volume
+        self.template = self.state.atlas.templates.get(name)
+        if name in self.volume_buttons:
+            self.volume_buttons[name].setChecked(True)
+        axis = self.state.slice_axis
+        middle = volume.shape[slices.AXIS_INDEX[axis]] // 2
+        mm = slices.mm_for_index(volume.affine, axis, middle)
+        if mm == self.state.slice_mm:
+            self._on_slice_changed(axis, mm)
+        else:
+            self.state.set_slice(axis, mm)
+
+    def _centres_of(self, volume):
+        if volume.name not in self._centre_tables:
+            self._centre_tables[volume.name] = slices.label_centres(volume.data)
+        return self._centre_tables[volume.name]
 
     def _on_slider(self, value: int) -> None:
         axis = self.state.slice_axis
@@ -216,7 +254,8 @@ class SlicePanel(QWidget):
             preferred = [i for i in visible if i in self.preferred]
             if preferred or visible:
                 return (preferred or visible)[0]
-        structure_id = self.state.atlas.label_at(point)
+        label = self.labels.label_at(point)
+        structure_id = label if label and label in self.state.atlas else None
         if structure_id is None or not self._shown(structure_id):
             return None
         return structure_id
@@ -231,25 +270,31 @@ class SlicePanel(QWidget):
             self.state.select(structure_id)
 
     def label_centres(self):
-        if self._centres is None and self.labels is not None:
-            self._centres = slices.label_centres(self.labels.data)
-        return self._centres
+        return None if self.labels is None else self._centres_of(self.labels)
 
     def centre_on_selection(self) -> None:
         ids = self.state.highlighted_ids()
         if self.labels is None or not ids:
             return
-        centre = slices.centre_from_table(self.label_centres(), self.labels.affine, ids)
-        if centre is None and self._tracts_ready():
-            coords = [self._coords(i) for i in ids if self.tracts.size(i)]
-            if coords:
-                voxel = [float(np.concatenate([c[a] for c in coords]).mean()) for a in range(3)]
-                centre = slices.world_for_voxel(self.labels.affine, voxel)
-        if centre is not None:
+        order = [self.labels] + [v for v in self.state.atlas.volumes
+                                 if v is not self.labels and slices.is_ras(v.affine)]
+        for volume in order:
+            centre = slices.centre_from_table(self._centres_of(volume), volume.affine, ids)
+            if centre is None and volume is self.labels and self._tracts_ready():
+                coords = [self._coords(i) for i in ids if self.tracts.size(i)]
+                if coords:
+                    voxel = [float(np.concatenate([c[a] for c in coords]).mean())
+                             for a in range(3)]
+                    centre = slices.world_for_voxel(volume.affine, voxel)
+            if centre is None:
+                continue
+            if volume is not self.labels:
+                self.state.set_slice_volume(volume.name)
             axis = self.state.slice_axis
-            shape, affine = self.labels.shape, self.labels.affine
-            index = slices.index_for_mm(affine, shape, axis, centre[slices.AXIS_INDEX[axis]])
-            self.state.set_slice(axis, slices.mm_for_index(affine, axis, index))
+            index = slices.index_for_mm(volume.affine, volume.shape, axis,
+                                        centre[slices.AXIS_INDEX[axis]])
+            self.state.set_slice(axis, slices.mm_for_index(volume.affine, axis, index))
+            return
 
     def _pixel(self, scene_pos) -> tuple[int, int]:
         point = self.item.mapFromScene(scene_pos)

@@ -288,7 +288,7 @@ class MainWindow(QMainWindow):
         for action in self._quiz_locked():
             action.setEnabled(False)
         state.set_hidden([i for i in state.geometry_ids if not state.is_tract(i)], False)
-        for widget, _ in self._saved[5]:
+        for widget, _ in self._saved[6]:
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.tree_dock.hide()
         self.pathway_dock.hide()
@@ -301,26 +301,28 @@ class MainWindow(QMainWindow):
     def leave_quiz(self) -> None:
         if not self.quiz_active:
             return
-        layout, hidden, selected, axis, mm, focus = self._saved
+        layout, hidden, selected, axis, mm, volume, focus = self._saved
         self.quiz_active = False
         for action in self._quiz_locked():
             action.setEnabled(True)
         for widget, policy in focus:
             widget.setFocusPolicy(policy)
         self.restoreState(layout)
-        self._restore(hidden, selected, axis, mm)
+        self._restore(hidden, selected, axis, mm, volume)
         self._update_status()
 
     def _snapshot(self) -> tuple:
         state = self.state
         hidden = [i for i in state.geometry_ids if state.is_hidden(i)]
-        return hidden, state.selected, state.slice_axis, state.slice_mm
+        return hidden, state.selected, state.slice_axis, state.slice_mm, state.slice_volume
 
-    def _restore(self, hidden, selected, axis, mm) -> None:
+    def _restore(self, hidden, selected, axis, mm, volume="") -> None:
         self.state.select(selected)
         kept = set(hidden)
         self.state.set_hidden([i for i in self.state.geometry_ids if i not in kept], False)
         self.state.set_hidden(hidden, True)
+        if volume:
+            self.state.set_slice_volume(volume)
         self.state.set_slice(axis, mm)
 
     def _prepare_pathways(self, shown: bool) -> None:
