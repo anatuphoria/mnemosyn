@@ -1,0 +1,9 @@
+Creative Commons CC0 1.0 Universal (public domain dedication)
+
+Used for: Harvard Ascending Arousal Network Atlas, version 2.0. Edlow BL, Kinney HC (2023),
+Dryad Digital Repository, https://doi.org/10.5061/dryad.zw3r228d2
+
+Changes: the nucleus masks were merged into one label image, resampled to the 1 mm atlas grid
+and converted to 3D surfaces; nuclei already in the atlas were left out.
+
+Full text: https://creativecommons.org/publicdomain/zero/1.0/legalcode

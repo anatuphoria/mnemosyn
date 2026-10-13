@@ -103,6 +103,113 @@ priority = -1
 mesh_grid = "native"
 mask = true
 
+[[sources]]
+id = "edlow2023"
+title = "Harvard Ascending Arousal Network Atlas, version 2.0"
+authors = "Edlow BL, Kinney HC"
+year = 2023
+version = "Dryad version of 2023-07-18, 1 mm MNI152 masks"
+doi = "10.5061/dryad.zw3r228d2"
+url = "https://datadryad.org/dataset/doi:10.5061/dryad.zw3r228d2"
+licence = "CC0 1.0 Universal (public domain dedication)"
+licence_file = "LICENSES/CC0-1.0.txt"
+redistribution = true
+manual = true
+download = "doi_10_5061_dryad_zw3r228d2__v20230718.zip"
+sha256 = "a6918e370241f5128ce06c2b26820c85d731295056c901540ad547bd652efbfb"
+volume = "brain"
+priority = -1
+mesh_grid = "native"
+
+[sources.members]
+AAN_PAG = "AAN_PAG_MNI152_1mm_v2p0.nii"
+AAN_mRt_L = "AAN_mRt_L_MNI152_1mm_v2p0.nii"
+AAN_mRt_R = "AAN_mRt_R_MNI152_1mm_v2p0.nii"
+AAN_PTg_L = "AAN_PTg_L_MNI152_1mm_v2p0.nii"
+AAN_PTg_R = "AAN_PTg_R_MNI152_1mm_v2p0.nii"
+AAN_LDTg_L = "AAN_LDTg_L_MNI152_1mm_v2p0.nii"
+AAN_LDTg_R = "AAN_LDTg_R_MNI152_1mm_v2p0.nii"
+AAN_PBC_L = "AAN_PBC_L_MNI152_1mm_v2p0.nii"
+AAN_PBC_R = "AAN_PBC_R_MNI152_1mm_v2p0.nii"
+AAN_PnO_L = "AAN_PnO_L_MNI152_1mm_v2p0.nii"
+AAN_PnO_R = "AAN_PnO_R_MNI152_1mm_v2p0.nii"
+
+[[sources]]
+id = "diedrichsen2009"
+title = "A probabilistic MR atlas of the human cerebellum (deep nuclei)"
+authors = "Diedrichsen J, Balsters JH, Flavell J, Cussans E, Ramnani N"
+year = 2009
+version = "DiedrichsenLab/cerebellar_atlases commit 6857dfa, atl-Anatom_space-MNI_dseg.nii"
+doi = "10.1016/j.neuroimage.2009.01.045"
+url = "https://github.com/DiedrichsenLab/cerebellar_atlases"
+licence = "Creative Commons Attribution (CC BY, version not stated)"
+licence_file = "LICENSES/CC-BY-Diedrichsen.txt"
+redistribution = true
+download = "https://raw.githubusercontent.com/DiedrichsenLab/cerebellar_atlases/6857dfa732de6dd60c94da2f84d0b15ccf316618/Diedrichsen_2009/atl-Anatom_space-MNI_dseg.nii"
+sha256 = "434471d89ff329e6e14cdecb66998018fe0dcadbbe47781429148d0017598b72"
+volume = "brain"
+priority = -1
+mesh_grid = "native"
+drop = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 33, 34]
+
+[[sources]]
+id = "sitek2019"
+title = "Mapping the human subcortical auditory system using histology, postmortem MRI and in vivo MRI at 7T"
+authors = "Sitek KR, Gulban OF, Calabrese E, Johnson GA, Lage-Castellanos A, Moerel M, Ghosh SS, De Martino F"
+year = 2019
+version = "sitek/subcortical-auditory-atlas commit 2b73fb3, BigBrain histology atlas (0.1 mm MNI)"
+doi = "10.7554/eLife.48932"
+url = "https://github.com/sitek/subcortical-auditory-atlas"
+licence = "BSD 3-Clause License"
+licence_file = "LICENSES/BSD-3-Clause-Sitek.txt"
+redistribution = true
+download = "https://raw.githubusercontent.com/sitek/subcortical-auditory-atlas/2b73fb3e1f0afef8c3c487bf86c9bf61f6b04d51/atlases/sub-bigbrain_MNI_conjunction_rois.nii.gz"
+sha256 = "4327588dc0d2beae92a4f47d48af674235bfcd8742ca71a2592a91aa46994e91"
+volume = "brain"
+priority = -1
+mesh_grid = "native"
+crop = true
+drop = [7, 8]
+
+[[sources]]
+id = "bianciardi2024"
+title = "Brainstem Navigator: an atlas of brainstem nuclei in living humans from 7 tesla MRI"
+authors = "Bianciardi M, Singh K, Garcia-Gomar MG, et al."
+year = 2024
+version = "v1.0, MNI labels thresholded and binarised at 0.35"
+doi = "10.25790/bml0cm.96"
+url = "https://www.nitrc.org/projects/brainstemnavig"
+licence = "Brainstem Navigator License: non-commercial research only, no distribution outside the organisation; local use only until the authors allow sharing"
+licence_file = "LICENSES/BrainstemNavigator.txt"
+redistribution = false
+local_only = true
+manual = true
+download = "BrainstemNavigatorv1.0.zip"
+sha256 = "0ac9af5ab6e7fe1237f8f84be237cf6077111fb7ebd31899bee9b97bbfc88fc4"
+volume = "brain"
+priority = -2
+mesh_grid = "native"
+
+[sources.members]
+SC_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/SC_l.nii.gz"
+SC_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/SC_r.nii.gz"
+CnF_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/CnF_l.nii.gz"
+CnF_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/CnF_r.nii.gz"
+SubC_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/SubC_l.nii.gz"
+SubC_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/SubC_r.nii.gz"
+ROb = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/ROb.nii.gz"
+RPa = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/RPa.nii.gz"
+ION_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/ION_l.nii.gz"
+ION_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/ION_r.nii.gz"
+Ve_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/Ve_l.nii.gz"
+Ve_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/Ve_r.nii.gz"
+VSM_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/VSM_l.nii.gz"
+VSM_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/VSM_r.nii.gz"
+sMRt_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/sMRt_l.nii.gz"
+sMRt_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/sMRt_r.nii.gz"
+iMRt_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/iMRt_l.nii.gz"
+iMRt_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/iMRt_r.nii.gz"
+
 [[tracts]]
 id = "hcp1065"
 title = "Population-averaged atlas of the macroscale human structural connectome and its network topology"

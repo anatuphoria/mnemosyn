@@ -18,10 +18,10 @@ start = "ear"
 group = "Sensory and motor"
 steps = [
   { structures = [3440] },
-  { relay = "Cochlear nuclei" },
+  { structures = [2800] },
   { cross = "Trapezoid body" },
   { structures = [3250], side = "opposite" },
-  { relay = "Inferior colliculus", side = "opposite" },
+  { structures = [2050], side = "opposite" },
   { structures = [1900], side = "opposite" },
   { structures = [3360], side = "opposite" },
   { structures = [1610], side = "opposite" },
@@ -109,7 +109,7 @@ steps = [
   { relay = "Pontine nuclei" },
   { structures = [3320], side = "midline", crossing = true },
   { structures = [41], side = "opposite" },
-  { relay = "Dentate nucleus", side = "opposite" },
+  { structures = [2900], side = "opposite" },
   { structures = [3330], side = "midline", crossing = true },
   { structures = [2030] },
   { structures = [1830] },
@@ -178,7 +178,7 @@ steps = [
   { structures = [12] },
   { relay = "Medial septal nucleus" },
   { structures = [1350] },
-  { relay = "Pedunculopontine and laterodorsal tegmental nuclei" },
+  { structures = [2070, 2110] },
   { structures = [21] },
 ]
 
@@ -193,7 +193,7 @@ steps = [
   { structures = [1900] },
   { structures = [1400] },
   { structures = [2540, 2510] },
-  { relay = "Periaqueductal grey" },
+  { structures = [2040] },
   { structures = [2100] },
   { structures = [1350] },
   { structures = [1300, 1090] },
@@ -246,7 +246,7 @@ steps = [
   { structures = [2510] },
   { structures = [2540] },
   { structures = [2550] },
-  { relay = "Nucleus of the solitary tract" },
+  { structures = [2830], fallback = "Nucleus of the solitary tract" },
   { structures = [2000, 1440] },
   { structures = [1200, 1120, 1130, 1140, 1150] },
 ]

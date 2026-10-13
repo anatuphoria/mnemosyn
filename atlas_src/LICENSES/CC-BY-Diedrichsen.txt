@@ -1,0 +1,12 @@
+Creative Commons Attribution (CC BY; version not stated by the source, CC BY 4.0 assumed)
+
+Used for: the deep cerebellar nuclei of the probabilistic atlas of the human cerebellum.
+Diedrichsen J, Balsters JH, Flavell J, Cussans E, Ramnani N (2009), NeuroImage 46: 39-46,
+https://doi.org/10.1016/j.neuroimage.2009.01.045; nuclei from Diedrichsen J et al. (2011),
+NeuroImage 54: 1786-1794, https://doi.org/10.1016/j.neuroimage.2010.10.035; data at
+https://github.com/DiedrichsenLab/cerebellar_atlases
+
+Changes: only the dentate and interposed labels were used; they were resampled to the 1 mm
+atlas grid and converted to 3D surfaces.
+
+Full licence text: https://creativecommons.org/licenses/by/4.0/legalcode

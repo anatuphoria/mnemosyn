@@ -41,7 +41,8 @@ def test_every_aal3_label_maps_to_exactly_one_structure():
     values = [ref.value for r in raws for ref in r.labels if ref.source == "aal3"]
     assert sorted(values) == sorted(set(range(1, 171)) - AAL3_EMPTY_LABELS)
     assert {ref.source for r in raws for ref in r.labels} == {
-        "aal3", "neudorfer2020", "hcp1065", "tang2024", "razavi2021"}
+        "aal3", "neudorfer2020", "hcp1065", "tang2024", "razavi2021", "edlow2023",
+        "diedrichsen2009", "sitek2019", "bianciardi2024"}
 
 
 NEUDORFER_LABELS = set(range(1, 11)) | set(range(13, 39)) | set(range(41, 55))
@@ -176,8 +177,8 @@ def test_the_built_atlas_pathways_light_and_read_on_both_sides():
 
 def test_the_glands_are_local_only_midline_structures():
     local = {s.source.id: s for s in load_recipe(SRC / "recipe.toml").sources if s.local_only}
-    assert list(local) == ["tang2024", "razavi2021"]
-    for spec in local.values():
+    assert list(local) == ["tang2024", "razavi2021", "bianciardi2024"]
+    for spec in (local["tang2024"], local["razavi2021"]):
         assert not spec.source.redistribution and spec.mesh_grid == "native"
         assert spec.priority == -1 and spec.volume == "brain"
     assert local["razavi2021"].mask and not local["tang2024"].mask
@@ -219,3 +220,56 @@ def test_the_stress_route_starts_at_the_amygdala_and_the_peduncles_cross():
         (1400,), (2510,), (2700,), (1350,), (1090, 1300)]
     cerebellar = routes["cerebellar"].steps
     assert cerebellar[3].crossing and cerebellar[6].crossing
+
+
+NEW_NUCLEI = {2040: ("edlow2023", 31), 2050: ("sitek2019", 31), 2060: ("edlow2023", 31),
+              2070: ("edlow2023", 31), 2080: ("bianciardi2024", 31),
+              2090: ("bianciardi2024", 31), 2110: ("edlow2023", 32), 2120: ("edlow2023", 32),
+              2130: ("edlow2023", 32), 2140: ("sitek2019", 32), 2150: ("bianciardi2024", 32),
+              2230: ("bianciardi2024", 33), 2240: ("bianciardi2024", 33),
+              2800: ("sitek2019", 34), 2810: ("bianciardi2024", 34),
+              2820: ("bianciardi2024", 34), 2830: ("bianciardi2024", 34),
+              2840: ("bianciardi2024", 34), 2850: ("bianciardi2024", 34),
+              2900: ("diedrichsen2009", 43), 2910: ("diedrichsen2009", 43)}
+NUCLEUS_STATIONS = {"auditory": Station((2800,)), "cerebellar": Station((2900,), "opposite"),
+                    "acetylcholine": Station((2070, 2110)), "fear": Station((2040,)),
+                    "hunger": Station((2830,), fallback="Nucleus of the solitary tract")}
+
+
+def test_brainstem_nuclei_come_from_one_source_each():
+    raws = {r.id: r for r in load_structures(SRC / "structures.toml")}
+    assert (raws[34].parent, raws[43].parent) == (30, 40)
+    assert raws[34].kind == raws[43].kind == "group"
+    for structure_id, (source, parent) in NEW_NUCLEI.items():
+        raw = raws[structure_id]
+        assert raw.parent == parent and raw.kind == "nucleus", structure_id
+        kids = [r for r in raws.values() if r.concept == structure_id] or [raw]
+        assert {ref.source for r in kids for ref in r.labels} == {source}, structure_id
+    assert {raws[i].side for i in (2040, 2230, 2240)} == {"midline"}
+
+
+def test_the_new_sources_rank_below_the_old_and_mesh_natively():
+    specs = {s.source.id: s for s in load_recipe(SRC / "recipe.toml").sources}
+    for name in ("edlow2023", "diedrichsen2009", "sitek2019"):
+        spec = specs[name]
+        assert spec.priority == -1 and spec.mesh_grid == "native", name
+        assert spec.source.redistribution and not spec.local_only, name
+    navigator = specs["bianciardi2024"]
+    assert navigator.priority == -2 and navigator.mesh_grid == "native"
+    assert navigator.local_only and navigator.manual and not navigator.source.redistribution
+    assert specs["edlow2023"].manual and specs["sitek2019"].crop
+    assert set(specs["diedrichsen2009"].drop) == set(range(1, 29)) | {33, 34}
+    assert set(specs["sitek2019"].drop) == {7, 8}
+
+
+def test_the_words_only_stations_now_name_their_nuclei():
+    routes = {p.key: p for p in load_pathways(SRC / "pathways.toml")}
+    stations = {key: [s for s in routes[key].steps if isinstance(s, Station)
+                      and set(s.structures) & set(NEW_NUCLEI)] for key in NUCLEUS_STATIONS}
+    for key, station in NUCLEUS_STATIONS.items():
+        assert station in stations[key], key
+    assert Station((2050,), "opposite") in stations["auditory"]
+    gone = {"Cochlear nuclei", "Inferior colliculus", "Dentate nucleus", "Periaqueductal grey",
+            "Pedunculopontine and laterodorsal tegmental nuclei", "Nucleus of the solitary tract"}
+    assert not [s for p in routes.values() for s in p.steps
+                if isinstance(s, Relay) and s.name in gone]
