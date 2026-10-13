@@ -23,6 +23,8 @@ PATHWAY_KEYS = ["visual", "auditory", "papez", "motor", "touch", "pain", "basal-
 BEHAVIOUR = ["dopamine", "serotonin", "noradrenaline", "acetylcholine", "fear", "stress",
              "body-clock", "hunger", "memory", "decision"]
 REAL_ATLAS = SRC.parent / "atlases" / "cns"
+OPEN_CENTRES = {2051: (-5.0, -35.0, -10.0), 2801: (-13.0, -41.0, -44.0),
+                2901: (-14.0, -60.0, -34.0), 2040: (0.0, -30.0, -8.0)}
 
 
 def test_hierarchy_sources_and_knowledge_are_valid():
@@ -101,7 +103,16 @@ def test_real_build(tmp_path):
     assert stress.steps[2] == Relay("Pituitary gland")
     assert {p.key: p for p in atlas.pathways}["body-clock"].steps[3] == Relay("Pineal gland")
     geometry = [s for s in atlas.structures if atlas.has_mesh(s.id)]
-    assert len(geometry) == 285
+    assert len(geometry) == 306
+    routes = {p.key: p for p in atlas.pathways}
+    assert Relay("Nucleus of the solitary tract") in routes["hunger"].steps
+    assert Station((2800,)) in routes["auditory"].steps
+    assert 2830 not in atlas and 2810 not in atlas
+    labels = np.asarray(atlas.volumes[0].data)
+    for structure_id, centre in OPEN_CENTRES.items():
+        mean = np.asarray(atlas.mesh(structure_id).vertices).mean(axis=0)
+        assert np.allclose(mean, centre, atol=6.0), (structure_id, mean)
+        assert (labels == structure_id).any(), structure_id
     assert atlas.tracts is not None and len(atlas.tracts.ids) == 77
     assert atlas.get(3001).xrefs == {"hcp1065": "Cortico_Spinal_Tract_L"}
     assert atlas.get(1351).xrefs == {"aal3": "Hippocampus_L"}
@@ -194,10 +205,13 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
 
     src = shutil.copytree(SRC, tmp_path / "src")
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None, local=True))
-    assert atlas.local_only == ("tang2024", "razavi2021")
-    assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 287
+    assert atlas.local_only == ("tang2024", "razavi2021", "bianciardi2024")
+    assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 326
+    hunger = {p.key: p for p in atlas.pathways}["hunger"]
+    assert Station((2830,), fallback="Nucleus of the solitary tract") in hunger.steps
     labels = np.asarray(atlas.volumes[0].data)
-    for structure_id, centre in ((2700, (0.0, 3.0, -32.0)), (2710, (0.0, -30.0, 4.0))):
+    for structure_id, centre in ((2700, (0.0, 3.0, -32.0)), (2710, (0.0, -30.0, 4.0)),
+                                 (2811, (-5.0, -37.0, -52.0))):
         mean = np.asarray(atlas.mesh(structure_id).vertices).mean(axis=0)
         assert np.allclose(mean, centre, atol=3.0), (structure_id, mean)
         assert (labels == structure_id).any(), structure_id
@@ -273,3 +287,20 @@ def test_the_words_only_stations_now_name_their_nuclei():
             "Pedunculopontine and laterodorsal tegmental nuclei", "Nucleus of the solitary tract"}
     assert not [s for p in routes.values() for s in p.steps
                 if isinstance(s, Relay) and s.name in gone]
+
+
+@pytest.mark.slow
+def test_reading_the_auditory_atlas_stays_under_1_gb():
+    import subprocess
+    import sys
+
+    from tools.build_atlas.fetch import DEFAULT_CACHE, fetch
+
+    spec = next(s for s in load_recipe(SRC / "recipe.toml").sources if s.source.id == "sitek2019")
+    path = fetch(spec, DEFAULT_CACHE)
+    code = ("import sys; from tools.build_atlas.labels import load_label_image; "
+            "load_label_image(sys.argv[1], name='sitek2019', cropped=True); "
+            "print(open('/proc/self/status').read().split('VmHWM:')[1].split()[0])")
+    run = subprocess.run([sys.executable, "-c", code, str(path)], check=True, cwd=SRC.parent,
+                         capture_output=True, text=True)
+    assert int(run.stdout.split()[-1]) < 1024 * 1024

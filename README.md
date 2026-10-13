@@ -15,8 +15,8 @@ stored: an atlas of the brain that helps you remember it.
 ```bash
 python -m venv .venv
 .venv/bin/pip install -e ".[desktop,atlas-build,dev]"
-.venv/bin/python -m tools.build_atlas    # downloads AAL3 (1.5 MB) and builds atlases/cns (about 15 s)
-.venv/bin/python -m tools.build_atlas --local    # also adds the pituitary and pineal glands (not for sharing)
+.venv/bin/python -m tools.build_atlas    # downloads the open atlases and builds atlases/cns (about 70 s)
+.venv/bin/python -m tools.build_atlas --local    # also adds sources not yet allowed to be shared
 .venv/bin/mnemosyn                       # desktop app
 .venv/bin/brain-tui                      # terminal viewer
 ```
@@ -122,6 +122,10 @@ Descriptions show numbered citations with their references, and drafts are marke
 | Tracts, 41 | HCP-1065 tractography atlas: Yeh FC et al. (2018), NeuroImage 178: 57-68, doi:10.1016/j.neuroimage.2018.05.027 | CC BY-SA 4.0 (notice in `atlas_src/LICENSES/CC-BY-SA-4.0.txt`) |
 | Pituitary gland (local builds only) | Tang K (2024), pituitary mask on the MNI ICBM152 2009a template, github.com/kvttt/Pituitary_Segmentation | No licence stated; used only in local builds until the author allows sharing |
 | Pineal gland (local builds only) | Razavi F, Raminfard S, Kalantar Hormozi H, Sisakhti M, Batouli SAH (2021), Frontiers in Neuroinformatics 15: 554229, doi:10.3389/fninf.2021.554229 | No licence stated for the atlas files; used only in local builds until the authors allow sharing |
+| Brainstem arousal nuclei, 6 structures | Harvard Ascending Arousal Network Atlas 2.0: Edlow BL, Kinney HC (2023), Dryad, doi:10.5061/dryad.zw3r228d2 (downloaded by hand) | CC0 1.0 (notice in `atlas_src/LICENSES/CC0-1.0.txt`) |
+| Dentate and interposed nuclei | Diedrichsen J, Balsters JH, Flavell J, Cussans E, Ramnani N (2009), NeuroImage 46: 39-46, doi:10.1016/j.neuroimage.2009.01.045 | CC BY (notice in `atlas_src/LICENSES/CC-BY-Diedrichsen.txt`) |
+| Cochlear nuclei, superior olivary complex, inferior colliculus | Sitek KR, Gulban OF et al. (2019), eLife 8: e48932, doi:10.7554/eLife.48932 | BSD 3-Clause (text in `atlas_src/LICENSES/BSD-3-Clause-Sitek.txt`) |
+| Ten brainstem nuclei (local builds only) | Brainstem Navigator v1.0, Bianciardi lab, doi:10.25790/bml0cm.96 (downloaded by hand) | Non-commercial, no sharing outside the organisation; used only in local builds until the authors allow sharing |
 | MRI template for slices | Colin 27 Average Brain (1998): Holmes CJ, Hoge R, Collins L, Woods R, Toga AW, Evans AC (1998), J Comput Assist Tomogr 22(2): 324-333, doi:10.1097/00004728-199803000-00032 | Permissive notice (text in `atlas_src/LICENSES/Colin27.txt`) |
 | Descriptions | Written for this project; every claim cites a reference | CC BY 4.0 |
 | Code | This repository | GNU General Public License v3.0 or later (`LICENSE`) |
@@ -156,6 +160,12 @@ A source whose authors have not yet allowed sharing can be marked `local_only = 
 `recipe.toml`. A normal build leaves it out, so the result can be shared; `--local` includes it,
 and the app then shows "local build, not for sharing" in its title and About box. Such a
 package must never be published or bundled into an installer.
+
+Some sources cannot be downloaded by a script and are marked `manual = true`. The build then
+stops and names the page to download each file from and the folder to put it in
+(`~/.cache/cns-atlas/sources/<checksum>/`); `--manual-dir <folder>` takes them from a folder
+instead. Every build needs the Harvard Ascending Arousal Network Atlas (CC0, from Dryad); only
+`--local` needs the Brainstem Navigator (from NITRC, after accepting its licence).
 
 ## Performance
 
