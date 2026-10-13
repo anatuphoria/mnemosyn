@@ -130,6 +130,7 @@ class Station:
     structures: tuple[int, ...]
     side: str = "same"
     crossing: bool = False
+    fallback: str = ""
 
 
 @dataclass(frozen=True)
@@ -151,6 +152,8 @@ def step_to_json(step: Step) -> dict:
         data = {"structures": list(step.structures), "side": step.side}
         if step.crossing:
             data["crossing"] = True
+        if step.fallback:
+            data["fallback"] = step.fallback
         return data
     if isinstance(step, Crossing):
         return {"cross": step.name}
@@ -166,7 +169,7 @@ def step_from_json(data: dict) -> Step:
         raise ValueError(f"unknown step side {side!r}")
     if kinds == ["structures"]:
         return Station(tuple(int(i) for i in data["structures"]), side,
-                       data.get("crossing") is True)
+                       data.get("crossing") is True, str(data.get("fallback", "")))
     if kinds == ["cross"]:
         return Crossing(str(data["cross"]))
     return Relay(str(data["relay"]), side)

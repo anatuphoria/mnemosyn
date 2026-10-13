@@ -26,7 +26,7 @@ def _step_problems(step, where: str) -> list[str]:
     if kind == "cross":
         allowed = {kind}
     elif kind == "structures":
-        allowed = {kind, "side", "crossing"}
+        allowed = {kind, "side", "crossing", "fallback"}
     else:
         allowed = {kind, "side"}
     problems = []
@@ -35,6 +35,9 @@ def _step_problems(step, where: str) -> list[str]:
         problems.append(f"{where}: unknown keys {sorted(unknown)}")
     if kind == "structures" and "crossing" in step and not isinstance(step["crossing"], bool):
         problems.append(f"{where}: crossing must be true or false")
+    if kind == "structures" and "fallback" in step and not (
+            isinstance(step["fallback"], str) and step["fallback"].strip()):
+        problems.append(f"{where}: fallback needs a name")
     side = step.get("side", "same")
     if side not in STEP_SIDES:
         problems.append(f"{where}: unknown side {side!r}")
@@ -167,7 +170,8 @@ def for_package(pathways: list[Pathway], names: dict[int, str],
             if isinstance(step, Station) and left_out & set(step.structures):
                 kept = tuple(i for i in step.structures if i not in left_out)
                 step = (Station(kept, step.side) if kept else
-                        Relay(" and ".join(names[i] for i in step.structures), step.side))
+                        Relay(step.fallback or " and ".join(names[i] for i in step.structures),
+                              step.side))
             steps.append(step)
         out.append(replace(pathway, steps=tuple(steps)))
     return out
