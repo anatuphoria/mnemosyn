@@ -13,10 +13,11 @@ from cns_atlas.meshes import LODS, MeshData
 from cns_atlas.model import Structure
 
 from .fetch import DEFAULT_CACHE, fetch, member_path
-from .hierarchy import build_tree, load_structures, with_xrefs, without_sources
+from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
+                        without_sources)
 from .idlock import IdLock, load_lock, write_lock
-from .labels import (crop, load_label_image, mapping_for, merge, read_label_names, relabel,
-                     source_values)
+from .labels import (crop, load_label_image, load_members, mapping_for, merge,
+                     read_label_names, relabel, source_values)
 from .meshing import levels, surface
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
@@ -39,7 +40,8 @@ def plural(n: int, word: str) -> str:
 def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[int, MeshData]],
                  volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=(),
                  tracts=None, shape_only=(), per_source=None, pathways: int = 0,
-                 local_note: str = "", sources=None, repaired: int = 0) -> str:
+                 local_note: str = "", sources=None, repaired: int = 0,
+                 overlaps: dict[str, int] | None = None) -> str:
     kinds: dict[str, int] = {}
     for s in structures:
         kinds[s.kind] = kinds.get(s.kind, 0) + 1
@@ -63,6 +65,8 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
         if spec.drop:
             lines.append(f"- dropped from {spec.source.id}: "
                          f"{', '.join(str(value) for value in spec.drop)}")
+    lines += [f"- overlapping voxels in {name}: {count}"
+              for name, count in (overlaps or {}).items()]
     warnings = []
     if repaired:
         warnings.append(f"{plural(repaired, 'vertex normal')} repaired")
@@ -113,6 +117,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     problems += check_pathway_texts(src / "knowledge", pathways)
     if problems:
         raise BuildError(problems)
+    raws = resolve_members(raws, {s.source.id: s.member_values
+                                  for s in recipe.sources if s.members})
     skipped = set() if local else {s.source.id for s in recipe.sources if s.local_only}
     sources = [s for s in recipe.sources if s.source.id not in skipped]
     planned = build_tree(without_sources(raws, skipped))
@@ -122,12 +128,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     if problems:
         raise BuildError(problems)
 
-    images, names = {}, {}
+    images, names, overlaps = {}, {}, {}
     for spec in sources:
         log(f"fetching {spec.source.id}")
         archive = fetch(spec, cache)
-        images[spec.source.id] = load_label_image(member_path(spec, archive, spec.member),
-                                                   spec.mask, spec.source.id)
+        if spec.members:
+            images[spec.source.id], overlaps[spec.source.id] = load_members(spec, archive)
+        else:
+            images[spec.source.id] = load_label_image(member_path(spec, archive, spec.member),
+                                                       spec.mask, spec.source.id)
         if spec.label_names:
             names[spec.source.id] = read_label_names(member_path(spec, archive, spec.label_names))
     for spec in sources:
@@ -218,7 +227,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     else:
         local_note = ""
     report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
-                          per_source, len(pathways), local_note, sources, repaired)
+                          per_source, len(pathways), local_note, sources, repaired,
+                          overlaps=overlaps)
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:

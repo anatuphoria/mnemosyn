@@ -73,6 +73,10 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: unknown volume {spec.volume!r}")
         if spec.mesh_grid not in MESH_GRIDS:
             problems.append(f"source {name}: mesh_grid must be one of {MESH_GRIDS}")
+        if spec.members and (spec.member or spec.label_names):
+            problems.append(f"source {name}: give member or members, not both")
+        if spec.manual and not spec.source.url:
+            problems.append(f"source {name}: a manual source needs a url to download it from")
         problems += [f"source {name}: drop value {value!r} is not a label number"
                      for value in spec.drop
                      if not isinstance(value, int) or isinstance(value, bool)]
@@ -101,6 +105,7 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"volume {v.name}: grid source {v.grid_source!r} is local-only")
     mapped: dict[str, set[str]] = {name: set() for name in tracts}
     numbers: dict[str, set[int]] = {name: set() for name in labels}
+    used: dict[str, set[str]] = {name: set() for name in labels}
     for r in raws:
         if r.labels and not r.sources:
             problems.append(f"structure {r.id}: has geometry but lists no source")
@@ -108,6 +113,17 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             if name not in known:
                 problems.append(f"structure {r.id}: unknown source {name!r}")
         for ref in r.labels:
+            member_spec = labels.get(ref.source)
+            if member_spec is not None and member_spec.members:
+                if not isinstance(ref.value, str):
+                    problems.append(f"structure {r.id}: source {ref.source} needs a member "
+                                    f"name, not {ref.value!r}")
+                elif ref.value not in member_spec.member_values:
+                    problems.append(f"structure {r.id}: source {ref.source} has no member "
+                                    f"{ref.value!r}")
+                else:
+                    used[ref.source].add(ref.value)
+                continue
             if isinstance(ref.value, str):
                 spec = tracts.get(ref.source)
                 if spec is None:
@@ -131,6 +147,9 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
     for name, spec in labels.items():
         problems += [f"source {name}: label {value} is both dropped and mapped"
                      for value in spec.drop if value in numbers[name]]
+    for name, spec in labels.items():
+        problems += [f"source {name}: member {member!r} has no structure"
+                     for member in spec.member_values if member not in used[name]]
     return problems
 
 

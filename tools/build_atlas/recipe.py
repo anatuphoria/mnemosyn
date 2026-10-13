@@ -30,6 +30,13 @@ class SourceSpec:
     mesh_grid: str = "label"
     local_only: bool = False
     mask: bool = False
+    members: tuple[tuple[str, str], ...] = ()
+    manual: bool = False
+    crop: bool = False
+
+    @property
+    def member_values(self) -> dict[str, int]:
+        return {name: value for value, (name, _) in enumerate(self.members, 1)}
 
 
 @dataclass(frozen=True)
@@ -101,7 +108,9 @@ def _source_spec(s: dict) -> SourceSpec:
                       verify_tls=s.get("verify_tls", True) is not False,
                       licence_file=s.get("licence_file", ""), drop=tuple(s.get("drop", ())),
                       mesh_grid=str(s.get("mesh_grid", "label")),
-                      local_only=s.get("local_only") is True, mask=s.get("mask") is True)
+                      local_only=s.get("local_only") is True, mask=s.get("mask") is True,
+                      members=tuple((str(k), str(v)) for k, v in s.get("members", {}).items()),
+                      manual=s.get("manual") is True, crop=s.get("crop") is True)
 
 
 def _tract_spec(t: dict) -> TractSpec:

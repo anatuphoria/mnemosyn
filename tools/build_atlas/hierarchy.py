@@ -123,6 +123,14 @@ def without_sources(raws: list[RawStructure], skipped: set[str]) -> list[RawStru
     return [r for r in raws if r.id not in gone]
 
 
+def resolve_members(raws: list[RawStructure], values: dict[str, dict[str, int]]
+                    ) -> list[RawStructure]:
+    def resolved(ref: LabelRef) -> LabelRef:
+        table = values.get(ref.source, {})
+        return LabelRef(ref.source, table[ref.value]) if ref.value in table else ref
+    return [replace(r, labels=tuple(resolved(ref) for ref in r.labels)) for r in raws]
+
+
 def shade(rgb: tuple[int, int, int], factor: float) -> tuple[int, int, int]:
     if factor >= 0:
         return tuple(int(round(c + (255 - c) * factor)) for c in rgb)

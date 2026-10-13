@@ -1,6 +1,7 @@
 import hashlib
 import io
 import tarfile
+import zipfile
 from pathlib import Path
 
 import nibabel as nib
@@ -406,6 +407,51 @@ status = "draft"
 Makes toy hormones [ref2020].
 """
 
+TOY_MEMBERS_SOURCE = """
+[[sources]]
+id = "toymembers"
+title = "Toy masks"
+authors = "Test F"
+year = 2024
+version = "1"
+licence = "CC0 1.0"
+redistribution = true
+url = "https://example.org/toy-masks"
+{fetch}
+sha256 = "{sha256}"
+volume = "brain"
+priority = -1
+mesh_grid = "native"
+
+[sources.members]
+Pair_L = "MEM/Pair_L.nii"
+Pair_R = "MEM/Pair_R.nii"
+Mid = "MEM/Mid.nii"
+"""
+
+TOY_MEMBER_STRUCTURES = """\
+  { id = 180, parent = 2, acronym = "PR", name = "Toy pair", kind = "nucleus", source = "toymembers", left = "Pair_L", right = "Pair_R" },
+  { id = 190, parent = 2, acronym = "MID", name = "Toy middle", kind = "nucleus", source = "toymembers", midline = "Mid" },
+"""
+
+MEMBER_SHAPE = (20, 20, 20)
+MEMBER_AFFINE = np.array([[2.0, 0, 0, -20.0], [0, 2.0, 0, -60.0], [0, 0, 2.0, 0.0],
+                          [0, 0, 0, 1.0]])
+MEMBER_BOXES = {"Pair_L": (2, 9), "Pair_R": (12, 19), "Mid": (8, 13)}
+
+
+def write_member_archive(folder: Path, affines: dict | None = None) -> Path:
+    folder.mkdir(parents=True, exist_ok=True)
+    archive = folder / "toy_members.zip"
+    with zipfile.ZipFile(archive, "w") as zipped:
+        for name, (lo, hi) in MEMBER_BOXES.items():
+            mask = np.zeros(MEMBER_SHAPE, dtype=np.uint8)
+            mask[lo:hi, 5:15, 5:15] = 1
+            affine = (affines or {}).get(name, MEMBER_AFFINE)
+            zipped.writestr(f"MEM/{name}.nii", nib.Nifti1Image(mask, affine).to_bytes())
+    return archive
+
+
 LOCAL_SHAPE = (20, 20, 20)
 LOCAL_AFFINE = np.array([[-2.0, 0, 0, 20.0], [0, 2.0, 0, 40.0], [0, 0, 2.0, -40.0],
                          [0, 0, 0, 1.0]])
@@ -431,7 +477,8 @@ def hyp_volume() -> np.ndarray:
 
 
 def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
-                               local: bool = False, behaviour: bool = False) -> Path:
+                               local: bool = False, behaviour: bool = False,
+                               members: str = "") -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -439,6 +486,12 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
     recipe = (src / "recipe.toml").read_text()
     recipe += TOY_HYP_SOURCE.format(download=hyp, sha256=sha256_file(hyp))
     concepts = TOY_HYP_STRUCTURES
+    if members:
+        archive = write_member_archive(root / "upstream" / "members")
+        fetch = ('manual = true\ndownload = "toy_members.zip"' if members == "manual"
+                 else f'download = "{archive}"')
+        recipe += TOY_MEMBERS_SOURCE.format(fetch=fetch, sha256=sha256_file(archive))
+        concepts += TOY_MEMBER_STRUCTURES
     if tracts:
         folder = root / "upstream" / "tracts"
         folder.mkdir()

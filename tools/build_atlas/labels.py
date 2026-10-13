@@ -6,8 +6,9 @@ import nibabel as nib
 import numpy as np
 from nibabel.processing import resample_from_to
 
+from .fetch import member_path
 from .hierarchy import PlannedStructure
-from .recipe import BuildError
+from .recipe import BuildError, SourceSpec
 
 
 def read_label_names(path: Path) -> dict[int, str]:
@@ -27,6 +28,20 @@ def load_label_image(path: Path, mask: bool = False, name: str = "") -> nib.Nift
     elif not np.issubdtype(data.dtype, np.integer) and np.any(data != np.rint(data)):
         raise BuildError([f"source {name}: label values are not whole numbers; set mask = true"])
     return nib.Nifti1Image(data.astype(np.int32), image.affine)
+
+
+def load_members(spec: SourceSpec, archive: Path) -> tuple[nib.Nifti1Image, int]:
+    out, affine, lost = None, None, 0
+    for value, (name, member) in enumerate(spec.members, 1):
+        image = nib.load(member_path(spec, archive, member))
+        if out is None:
+            out, affine = np.zeros(image.shape[:3], dtype=np.int32), image.affine
+        elif image.shape[:3] != out.shape or not np.allclose(image.affine, affine):
+            raise BuildError([f"source {spec.source.id}: member {name} is on another grid"])
+        inside = np.nan_to_num(np.asarray(image.dataobj)).reshape(out.shape) != 0
+        lost += int((inside & (out != 0)).sum())
+        out[inside & (out == 0)] = value
+    return nib.Nifti1Image(out, affine), lost
 
 
 def source_values(image: nib.Nifti1Image) -> set[int]:
