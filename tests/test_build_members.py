@@ -147,3 +147,53 @@ def test_the_command_line_takes_a_manual_dir(tmp_path):
     assert main(["--src", str(src), "--out", str(tmp_path / "out"), "--cache",
                  str(tmp_path / "cache"), "--manual-dir",
                  str(tmp_path / "upstream" / "members")]) == 0
+
+
+def blobs_file(tmp_path):
+    data = np.zeros((40, 30, 80), dtype=np.float32)
+    data[10:14, 5:9, 20:25] = 2.0
+    data[20:22, 12:15, 60:63] = 5.0
+    affine = np.array([[0.5, 0, 0, -10.0], [0, 0.5, 0, -7.0], [0, 0, 0.5, -20.0],
+                       [0, 0, 0, 1.0]])
+    path = tmp_path / "fine.nii.gz"
+    nib.save(nib.Nifti1Image(data, affine), path)
+    return path, data, affine
+
+
+def world(image, value):
+    index = np.argwhere(np.asarray(image.dataobj) == value)
+    return np.sort(nib.affines.apply_affine(image.affine, index), axis=0)
+
+
+def test_a_cropped_read_keeps_the_box_and_the_positions(tmp_path, monkeypatch):
+    import tools.build_atlas.labels as labels
+
+    monkeypatch.setattr(labels, "CROP_SLAB", 8)
+    path, data, affine = blobs_file(tmp_path)
+    full = labels.load_label_image(path)
+    cut = labels.load_label_image(path, cropped=True)
+    assert cut.shape == (14, 12, 45)
+    for value in (2, 5):
+        assert np.allclose(world(cut, value), world(full, value))
+
+
+def test_a_source_without_labels_cannot_be_cropped(tmp_path):
+    from tools.build_atlas.labels import load_label_image
+
+    path = tmp_path / "empty.nii.gz"
+    nib.save(nib.Nifti1Image(np.zeros((4, 4, 4), dtype=np.float32), np.eye(4)), path)
+    with pytest.raises(BuildError) as error:
+        load_label_image(path, name="empty", cropped=True)
+    assert error.value.problems == ["source empty: has no labels"]
+
+
+def test_a_cropped_build_gives_the_same_shapes(tmp_path):
+    plain = write_extended_source_tree(tmp_path / "a", tracts=False)
+    cut = write_extended_source_tree(tmp_path / "b", tracts=False)
+    edit(cut / "recipe.toml", 'mesh_grid = "native"\n', 'mesh_grid = "native"\ncrop = true\n')
+    first = Atlas.open(quiet_build(plain, tmp_path / "a" / "out", tmp_path / "cache"))
+    second = Atlas.open(quiet_build(cut, tmp_path / "b" / "out", tmp_path / "cache"))
+    for structure_id in (131, 132):
+        assert np.allclose(np.asarray(first.mesh(structure_id).vertices),
+                           np.asarray(second.mesh(structure_id).vertices), atol=1e-4)
+    assert np.array_equal(np.asarray(first.volumes[0].data), np.asarray(second.volumes[0].data))

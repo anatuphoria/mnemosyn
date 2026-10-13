@@ -20,14 +20,41 @@ def read_label_names(path: Path) -> dict[int, str]:
     return names
 
 
-def load_label_image(path: Path, mask: bool = False, name: str = "") -> nib.Nifti1Image:
+CROP_SLAB = 32
+
+
+def _box(proxy) -> tuple[np.ndarray, np.ndarray] | None:
+    lo = hi = None
+    for z in range(0, proxy.shape[2], CROP_SLAB):
+        index = np.argwhere(np.nan_to_num(np.asarray(proxy[:, :, z:z + CROP_SLAB])) != 0)
+        if len(index):
+            index[:, 2] += z
+            lo = index.min(axis=0) if lo is None else np.minimum(lo, index.min(axis=0))
+            hi = index.max(axis=0) if hi is None else np.maximum(hi, index.max(axis=0))
+    return None if lo is None else (lo, hi)
+
+
+def load_label_image(path: Path, mask: bool = False, name: str = "",
+                     cropped: bool = False) -> nib.Nifti1Image:
     image = nib.load(path)
-    data = np.asarray(image.dataobj)
+    affine = image.affine
+    if cropped:
+        box = _box(image.dataobj)
+        if box is None:
+            raise BuildError([f"source {name}: has no labels"])
+        lo = np.maximum(box[0] - 1, 0)
+        hi = np.minimum(box[1] + 2, image.shape[:3])
+        data = np.asarray(image.dataobj[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]])
+        shift = np.eye(4)
+        shift[:3, 3] = lo
+        affine = np.asarray(affine) @ shift
+    else:
+        data = np.asarray(image.dataobj)
     if mask:
         data = np.nan_to_num(data) != 0
     elif not np.issubdtype(data.dtype, np.integer) and np.any(data != np.rint(data)):
         raise BuildError([f"source {name}: label values are not whole numbers; set mask = true"])
-    return nib.Nifti1Image(data.astype(np.int32), image.affine)
+    return nib.Nifti1Image(data.astype(np.int32), affine)
 
 
 def load_members(spec: SourceSpec, archive: Path) -> tuple[nib.Nifti1Image, int]:
