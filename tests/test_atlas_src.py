@@ -264,12 +264,15 @@ def test_brainstem_nuclei_come_from_one_source_each():
 
 def test_the_new_sources_rank_below_the_old_and_mesh_natively():
     specs = {s.source.id: s for s in load_recipe(SRC / "recipe.toml").sources}
-    for name in ("edlow2023", "diedrichsen2009", "sitek2019"):
+    new = ("edlow2023", "diedrichsen2009", "sitek2019", "bianciardi2024")
+    assert max(specs[n].priority for n in new) < min(
+        s.priority for n, s in specs.items() if n not in new)
+    for name in new[:3]:
         spec = specs[name]
-        assert spec.priority == -1 and spec.mesh_grid == "native", name
+        assert spec.priority == -2 and spec.mesh_grid == "native", name
         assert spec.source.redistribution and not spec.local_only, name
     navigator = specs["bianciardi2024"]
-    assert navigator.priority == -2 and navigator.mesh_grid == "native"
+    assert navigator.priority == -3 and navigator.mesh_grid == "native"
     assert navigator.local_only and navigator.manual and not navigator.source.redistribution
     assert specs["edlow2023"].manual and specs["sitek2019"].crop
     assert set(specs["diedrichsen2009"].drop) == set(range(1, 29)) | {33, 34}

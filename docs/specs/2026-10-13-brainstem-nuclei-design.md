@@ -37,7 +37,7 @@ Decisions made in discussion:
 - Diedrichsen labels 29 to 34: dentate, interposed, fastigial (left, right). Labels 1 to 28
   (lobules, already drawn by AAL3) and 33, 34 are dropped: the fastigial label has 3 and 4 voxels
   and its probability never exceeds 0.23.
-- Every new source ranks below all existing sources (priority -1; the Navigator -2) and is meshed on
+- Every new source ranks below all existing sources (priority -2; the Navigator -3) and is meshed on
   its own grid (`mesh_grid = "native"`), so it never overwrites an existing label in the slice view
   and still keeps its full shape in 3D.
 - Licence notices for CC0, CC BY and BSD-3 are added to `atlas_src/LICENSES/`. The Navigator's

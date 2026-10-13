@@ -36,7 +36,7 @@ def _box(proxy) -> tuple[np.ndarray, np.ndarray] | None:
 
 def load_label_image(path: Path, mask: bool = False, name: str = "",
                      cropped: bool = False) -> nib.Nifti1Image:
-    image = nib.load(path)
+    image = nib.load(path, keep_file_open=True) if cropped else nib.load(path)
     affine = image.affine
     if cropped:
         box = _box(image.dataobj)

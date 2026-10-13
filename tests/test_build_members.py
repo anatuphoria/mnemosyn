@@ -197,3 +197,42 @@ def test_a_cropped_build_gives_the_same_shapes(tmp_path):
         assert np.allclose(np.asarray(first.mesh(structure_id).vertices),
                            np.asarray(second.mesh(structure_id).vertices), atol=1e-4)
     assert np.array_equal(np.asarray(first.volumes[0].data), np.asarray(second.volumes[0].data))
+
+
+def bad_cache(src, cache):
+    target = cache / members_spec(src).sha256 / "toy_members.zip"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"half a download")
+    return target
+
+
+def test_a_bad_cached_manual_file_names_the_file_to_delete(tmp_path):
+    src = manual_tree(tmp_path)
+    target = bad_cache(src, tmp_path / "cache")
+    with pytest.raises(BuildError) as error:
+        quiet_build(src, tmp_path / "out", tmp_path / "cache")
+    assert error.value.problems == [
+        f"source toymembers: {target} does not match its checksum; delete it and download "
+        f"toy_members.zip again from https://example.org/toy-masks"]
+
+
+def test_a_manual_dir_replaces_a_bad_cached_file(tmp_path):
+    from tools.build_atlas.fetch import sha256_of
+
+    src = manual_tree(tmp_path)
+    target = bad_cache(src, tmp_path / "cache")
+    out = quiet_build(src, tmp_path / "out", tmp_path / "cache",
+                      manual_dir=tmp_path / "upstream" / "members")
+    assert Atlas.open(out).has_mesh(190)
+    assert sha256_of(target) == members_spec(src).sha256
+
+
+def test_a_cropped_read_keeps_the_gzip_open_between_slabs(tmp_path, monkeypatch):
+    import tools.build_atlas.labels as labels
+
+    seen = []
+    real = labels.nib.load
+    monkeypatch.setattr(labels.nib, "load", lambda path, **kw: seen.append(kw) or real(path, **kw))
+    path, _, _ = blobs_file(tmp_path)
+    labels.load_label_image(path, cropped=True)
+    assert seen == [{"keep_file_open": True}]

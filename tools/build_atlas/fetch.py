@@ -63,17 +63,21 @@ def _checked(spec: SourceSpec, path: Path) -> None:
 def fetch(spec: SourceSpec, cache: Path = DEFAULT_CACHE, manual_dir: Path | None = None) -> Path:
     if spec.manual:
         target = manual_target(spec, cache)
-        if target.exists():
-            _checked(spec, target)
+        given = Path(manual_dir) / target.name if manual_dir else None
+        if target.exists() and sha256_of(target) == spec.sha256:
             return target
-        missing = missing_manual([spec], cache, manual_dir)
-        if missing:
-            raise BuildError(missing)
-        given = Path(manual_dir) / target.name
-        _checked(spec, given)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(given, target)
-        return target
+        if given is not None and given.exists():
+            _checked(spec, given)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            partial = target.with_name(target.name + ".part")
+            shutil.copyfile(given, partial)
+            partial.replace(target)
+            return target
+        if target.exists():
+            raise BuildError([f"source {spec.source.id}: {target} does not match its checksum; "
+                              f"delete it and download {target.name} again from "
+                              f"{spec.source.url}"])
+        raise BuildError(missing_manual([spec], cache, manual_dir))
     folder = Path(cache) / spec.sha256
     archive = folder / Path(urlparse(spec.download).path).name
     if archive.exists() and sha256_of(archive) == spec.sha256:
