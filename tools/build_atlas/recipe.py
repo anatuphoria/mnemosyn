@@ -127,8 +127,8 @@ def _tract_spec(t: dict) -> TractSpec:
 
 def load_recipe(path: Path) -> Recipe:
     data = read_toml(path)
-    misplaced = [f"{kind} {t.get('id')}: only label sources can be local-only"
-                 for kind in ("tracts", "templates") for t in data.get(kind, [])
+    misplaced = [f"{kind} {t.get('id')}: only label sources and templates can be local-only"
+                 for kind in ("tracts",) for t in data.get(kind, [])
                  if isinstance(t, dict) and "local_only" in t]
     if misplaced:
         raise BuildError(misplaced)

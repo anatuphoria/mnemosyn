@@ -1,15 +1,18 @@
 import dataclasses
+import json
 import zipfile
 
 import nibabel as nib
 import numpy as np
 import pytest
 
-from atlas_fixtures import write_extended_source_tree
+from atlas_fixtures import SPINE_AFFINE, spine_volume, write_extended_source_tree
+from cns_atlas import Atlas
+from tools.build_atlas.build import build
 from tools.build_atlas.hierarchy import load_structures
 from tools.build_atlas.labels import load_label_image, load_members
 from tools.build_atlas.recipe import BuildError, load_recipe
-from tools.build_atlas.validate import check_sources
+from tools.build_atlas.validate import check_sources, check_templates
 
 
 def problems_for(src):
@@ -92,3 +95,67 @@ def test_a_threshold_needs_mask_or_members(tmp_path):
     src = write_extended_source_tree(tmp_path, tracts=False)
     edit(src / "recipe.toml", 'mesh_grid = "native"\n', 'mesh_grid = "native"\nthreshold = 0.5\n')
     assert "source toyhyp: threshold needs mask = true or members" in problems_for(src)
+
+
+def quiet_build(src, out, cache, **kwargs):
+    return build(src, out, cache=cache, log=lambda *_: None, **kwargs)
+
+
+def spine_tree(tmp_path):
+    return write_extended_source_tree(tmp_path, tracts=False, spine=True)
+
+
+def test_a_spine_tree_passes_every_check(tmp_path):
+    src = spine_tree(tmp_path)
+    recipe = load_recipe(src / "recipe.toml")
+    assert problems_for(src) == [] and check_templates(recipe, src) == []
+    assert [t.source.id for t in recipe.templates if t.local_only] == ["toyspine-t2"]
+
+
+def test_a_shared_source_on_a_local_only_volume_is_refused(tmp_path):
+    src = spine_tree(tmp_path)
+    edit(src / "recipe.toml", 'volume = "brain"\npriority = 0\ndrop = [4]',
+         'volume = "spine"\npriority = 0\ndrop = [4]')
+    assert ("volume spine: grid source 'toyspine' is local-only, so every source and template "
+            "of the volume must be local-only") in problems_for(src)
+
+
+def test_a_shareable_template_cannot_be_local_only(tmp_path):
+    src = spine_tree(tmp_path)
+    edit(src / "recipe.toml", 'title = "Toy spinal template"\nauthors = "Test G"\nyear = 2024\n'
+         'version = "1"\nlicence = "No licence stated"\nredistribution = false',
+         'title = "Toy spinal template"\nauthors = "Test G"\nyear = 2024\n'
+         'version = "1"\nlicence = "No licence stated"\nredistribution = true')
+    assert ("template toyspine-t2: a shareable template must not be local-only"
+            in check_templates(load_recipe(src / "recipe.toml"), src))
+
+
+def test_a_normal_build_leaves_the_spine_volume_out(tmp_path):
+    with_spine = quiet_build(spine_tree(tmp_path / "a"), tmp_path / "a" / "out", tmp_path / "c")
+    plain = quiet_build(write_extended_source_tree(tmp_path / "b", tracts=False),
+                        tmp_path / "b" / "out", tmp_path / "c")
+    for name in ("structures.json", "sources.json", "volumes/brain.nii.gz"):
+        assert (with_spine / name).read_bytes() == (plain / name).read_bytes(), name
+    metadata = json.loads((with_spine / "metadata.json").read_text())
+    assert [v["file"] for v in metadata["volumes"]] == [v["file"] for v in json.loads(
+        (plain / "metadata.json").read_text())["volumes"]]
+    assert not (with_spine / "volumes" / "spine.nii.gz").exists()
+    report = (with_spine / "build-report.md").read_text()
+    assert "- local-only sources left out: toyspine, toyspine-t2\n" in report
+
+
+def test_a_local_build_adds_a_ras_spine_volume_and_template(toy_spine_atlas):
+    atlas = Atlas.open(toy_spine_atlas)
+    assert [v.name for v in atlas.volumes] == ["brain", "spine"]
+    spine = atlas.volumes[1]
+    assert nib.aff2axcodes(spine.affine) == ("R", "A", "S") and spine.shape == (10, 10, 56)
+    for value, structure_id in ((1, 200), (2, 210)):
+        want = nib.affines.apply_affine(SPINE_AFFINE, np.argwhere(spine_volume() == value))
+        got = nib.affines.apply_affine(spine.affine,
+                                       np.argwhere(np.asarray(spine.data) == structure_id))
+        assert np.allclose(np.sort(want, axis=0), np.sort(got, axis=0))
+    records = json.loads((toy_spine_atlas / "metadata.json").read_text())["volumes"]
+    assert {"file": "volumes/spine-template.nii.gz", "labels": "spine"}.items() <= next(
+        r for r in records if r.get("labels") == "spine").items()
+    assert atlas.local_only == ("toyspine", "toyspine-t2")
+    assert atlas.has_mesh(200) and atlas.has_mesh(210)

@@ -103,8 +103,11 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
     for v in recipe.volumes:
         if v.grid_source not in labels:
             problems.append(f"volume {v.name}: unknown grid source {v.grid_source!r}")
-        elif labels[v.grid_source].local_only:
-            problems.append(f"volume {v.name}: grid source {v.grid_source!r} is local-only")
+        elif labels[v.grid_source].local_only and any(
+                s.volume == v.name and not s.local_only
+                for s in (*recipe.sources, *recipe.templates)):
+            problems.append(f"volume {v.name}: grid source {v.grid_source!r} is local-only, so "
+                            f"every source and template of the volume must be local-only")
     mapped: dict[str, set[str]] = {name: set() for name in tracts}
     numbers: dict[str, set[int]] = {name: set() for name in labels}
     used: dict[str, set[str]] = {name: set() for name in labels}
@@ -197,7 +200,9 @@ def check_templates(recipe: Recipe, src: Path) -> list[str]:
         name = spec.source.id
         if not spec.source.licence:
             problems.append(f"template {name}: licence is missing")
-        if not spec.source.redistribution:
+        if spec.local_only and spec.source.redistribution:
+            problems.append(f"template {name}: a shareable template must not be local-only")
+        elif not spec.source.redistribution and not spec.local_only:
             problems.append(f"template {name}: redistribution is not allowed")
         if spec.licence_file and not (src / spec.licence_file).exists():
             problems.append(f"template {name}: licence file {spec.licence_file} is missing")

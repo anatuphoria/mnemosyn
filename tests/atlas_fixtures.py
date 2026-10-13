@@ -452,6 +452,60 @@ def write_member_archive(folder: Path, affines: dict | None = None) -> Path:
     return archive
 
 
+TOY_SPINE_SOURCES = """
+[[volumes]]
+name = "spine"
+space = "TOYSPINE"
+grid_source = "toyspine"
+
+[[sources]]
+id = "toyspine"
+title = "Toy spinal cord"
+authors = "Test G"
+year = 2024
+version = "1"
+licence = "No licence stated"
+redistribution = false
+local_only = true
+download = "{labels}"
+sha256 = "{labels_sha}"
+volume = "spine"
+priority = 0
+mesh_grid = "native"
+crop = true
+margin = 2
+
+[[templates]]
+id = "toyspine-t2"
+title = "Toy spinal template"
+authors = "Test G"
+year = 2024
+version = "1"
+licence = "No licence stated"
+redistribution = false
+local_only = true
+download = "{template}"
+sha256 = "{template_sha}"
+volume = "spine"
+"""
+
+TOY_SPINE_STRUCTURES = """\
+  { id = 200, parent = 2, acronym = "UPS", name = "Upper segment", source = "toyspine", midline = 1 },
+  { id = 210, parent = 2, acronym = "LOS", name = "Lower segment", source = "toyspine", midline = 2 },
+"""
+
+SPINE_SHAPE = (16, 16, 70)
+SPINE_AFFINE = np.array([[-1.0, 0, 0, 8.0], [0, 1.0, 0, -52.0], [0, 0, 1.0, -230.0],
+                         [0, 0, 0, 1.0]])
+
+
+def spine_volume() -> np.ndarray:
+    volume = np.zeros(SPINE_SHAPE, dtype=np.uint8)
+    volume[6:10, 6:10, 40:60] = 1
+    volume[6:10, 6:10, 10:35] = 2
+    return volume
+
+
 LOCAL_SHAPE = (20, 20, 20)
 LOCAL_AFFINE = np.array([[-2.0, 0, 0, 20.0], [0, 2.0, 0, 40.0], [0, 0, 2.0, -40.0],
                          [0, 0, 0, 1.0]])
@@ -478,7 +532,7 @@ def hyp_volume() -> np.ndarray:
 
 def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
                                local: bool = False, behaviour: bool = False,
-                               members: str = "") -> Path:
+                               members: str = "", spine: bool = False) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -492,6 +546,16 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
                  else f'download = "{archive}"')
         recipe += TOY_MEMBERS_SOURCE.format(fetch=fetch, sha256=sha256_file(archive))
         concepts += TOY_MEMBER_STRUCTURES
+    if spine:
+        labels = root / "upstream" / "toy_spine.nii.gz"
+        nib.save(nib.Nifti1Image(spine_volume(), SPINE_AFFINE), labels)
+        template = root / "upstream" / "toy_spine_t2.nii.gz"
+        grid = np.indices(SPINE_SHAPE)
+        nib.save(nib.Nifti1Image((50 + 10 * grid[0] + grid[2]).astype(np.float32), SPINE_AFFINE),
+                 template)
+        recipe += TOY_SPINE_SOURCES.format(labels=labels, labels_sha=sha256_file(labels),
+                                           template=template, template_sha=sha256_file(template))
+        concepts += TOY_SPINE_STRUCTURES
     if tracts:
         folder = root / "upstream" / "tracts"
         folder.mkdir()

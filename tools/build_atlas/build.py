@@ -121,6 +121,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                                   for s in recipe.sources if s.members})
     skipped = set() if local else {s.source.id for s in recipe.sources if s.local_only}
     sources = [s for s in recipe.sources if s.source.id not in skipped]
+    skipped_volumes = {v.name for v in recipe.volumes if v.grid_source in skipped}
+    templates_used = [t for t in recipe.templates
+                      if t.volume not in skipped_volumes and (local or not t.local_only)]
     problems = missing_manual(sources, cache, manual_dir)
     if problems:
         raise BuildError(problems)
@@ -156,9 +159,11 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     planned = with_xrefs(planned, names)
     volumes = []
     for vspec in recipe.volumes:
+        if vspec.name in skipped_volumes:
+            continue
         layers = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
                   for s in sources if s.volume == vspec.name]
-        grid = images[vspec.grid_source]
+        grid = nib.as_closest_canonical(images[vspec.grid_source])
         volumes.append((vspec, merge(grid, layers), grid.affine))
     grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
     natives = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
@@ -183,7 +188,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     if problems:
         raise BuildError(problems)
     templates = []
-    for spec in recipe.templates:
+    for spec in templates_used:
         log(f"fetching {spec.source.id}")
         image = nib.load(member_path(spec, fetch(spec, cache), spec.member))
         shape, affine = grids[spec.volume]
@@ -220,16 +225,17 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     problems = check_pathways(pathways, structures, set(meshes[0]), left_out)
     if problems:
         raise BuildError(problems)
-    specs = (*sources, *recipe.templates, *recipe.tracts)
+    specs = (*sources, *templates_used, *recipe.tracts)
     licence_files = [src / s.licence_file for s in specs if s.licence_file]
     per_source = {spec.source.id: sum(any(ref.source == spec.source.id for ref in p.labels)
                                       for p in planned)
                   for spec in (*sources, *recipe.tracts)}
-    included = [s.source.id for s in sources if s.local_only]
+    included = [s.source.id for s in (*sources, *templates_used) if s.local_only]
+    left = skipped | {t.source.id for t in recipe.templates if t not in templates_used}
     if included:
         local_note = f"- local-only sources included: {', '.join(included)}"
-    elif skipped:
-        local_note = f"- local-only sources left out: {', '.join(sorted(skipped))}"
+    elif left:
+        local_note = f"- local-only sources left out: {', '.join(sorted(left))}"
     else:
         local_note = ""
     report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,

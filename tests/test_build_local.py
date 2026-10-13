@@ -77,7 +77,8 @@ def test_a_local_only_source_passes_the_source_checks(local_src):
     ("redistribution = false\nlocal_only = true", "redistribution = true\nlocal_only = true",
      "source toylocal: a shareable source must not be local-only"),
     ('grid_source = "toy"', 'grid_source = "toylocal"',
-     "volume brain: grid source 'toylocal' is local-only"),
+     "volume brain: grid source 'toylocal' is local-only, so every source and template "
+     "of the volume must be local-only"),
 ])
 def test_local_only_recipe_rules(local_src, old, new, message):
     edit_recipe(local_src, old, new)
@@ -178,11 +179,11 @@ concepts = [
     assert [r.id for r in without_sources(load_structures(path), {"x"})] == [1]
 
 
-def test_local_only_on_tracts_or_templates_is_refused(local_src):
+def test_local_only_on_tracts_is_refused(local_src):
     edit_recipe(local_src, 'labels = "brain"\n', 'labels = "brain"\nlocal_only = true\n')
     with pytest.raises(BuildError) as error:
         load_recipe(local_src / "recipe.toml")
-    assert error.value.problems == ["tracts toytracts: only label sources can be local-only"]
+    assert error.value.problems == ["tracts toytracts: only label sources and templates can be local-only"]
 
 
 def test_a_skipped_source_leaves_no_drop_line(local_src, tmp_path):

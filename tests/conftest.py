@@ -48,3 +48,15 @@ def toy_behaviour_atlas(tmp_path_factory):
 
     return build_extended_toy_atlas(tmp_path_factory.mktemp("toybehaviour"), tracts=True,
                                     pathways=True, behaviour=True)
+
+
+@pytest.fixture(scope="session")
+def toy_spine_atlas(tmp_path_factory):
+    pytest.importorskip("pyvista")
+    from atlas_fixtures import write_extended_source_tree
+    from tools.build_atlas.build import build
+
+    root = tmp_path_factory.mktemp("toyspine")
+    src = write_extended_source_tree(root, tracts=False, spine=True)
+    return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None,
+                 local=True)
