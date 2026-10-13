@@ -77,6 +77,8 @@ class BrainView(QtInteractor):
         self.tract_attributes = None
         self.tract_lod: int | None = None
         self.tract_builds = 0
+        self._extents: dict[int, tuple] = {}
+        self.framing_outside = False
         self.scene_bounds = self._scene_bounds()
         self.highlighted: list[int] = []
         self.overlay: vtkActor | None = None
@@ -100,6 +102,8 @@ class BrainView(QtInteractor):
         state.selection_changed.connect(self._on_selection_changed)
         state.visibility_changed.connect(self._on_visibility_changed)
         state.slice_changed.connect(self._on_slice_changed)
+        state.slice_volume_changed.connect(
+            lambda _name: self._on_slice_changed(state.slice_axis, state.slice_mm))
         state.focus_changed.connect(self._on_focus_changed)
         self.reset_view()
         self._on_slice_changed(state.slice_axis, state.slice_mm)
@@ -107,7 +111,11 @@ class BrainView(QtInteractor):
     def reset_view(self) -> None:
         """World frame is MNI millimetres: x right, y anterior, z superior."""
         self.camera_position = [(-400.0, 250.0, 150.0), (0.0, -18.0, 10.0), (0.0, 0.0, 1.0)]
-        self.reset_camera()
+        self.framing_outside = False
+        if len(self.state.atlas.volumes) > 1:
+            self.reset_camera(render=False, bounds=self.scene_bounds)
+        else:
+            self.reset_camera()
         self.render()
 
     @contextmanager
@@ -227,7 +235,30 @@ class BrainView(QtInteractor):
     def _on_selection_changed(self, structure_id: int | None) -> None:
         self.highlighted = self.state.highlighted_ids()
         self._refresh_overlay()
+        self._frame_selection()
         self._request_render()
+
+    def _extent(self, structure_id: int) -> tuple[np.ndarray, np.ndarray]:
+        if structure_id not in self._extents:
+            vertices = np.asarray(self.state.atlas.mesh(structure_id, self.lod).vertices)
+            self._extents[structure_id] = (vertices.min(axis=0), vertices.max(axis=0))
+        return self._extents[structure_id]
+
+    def _frame_selection(self) -> None:
+        if len(self.state.atlas.volumes) < 2 or not self.highlighted:
+            return
+        extents = [self._extent(i) for i in self.highlighted]
+        low = np.min([e[0] for e in extents], axis=0)
+        high = np.max([e[1] for e in extents], axis=0)
+        brain = self.scene_bounds
+        centre = (low + high) / 2
+        if not all(brain[2 * a] <= centre[a] <= brain[2 * a + 1] for a in range(3)):
+            self.framing_outside = True
+            self.reset_camera(render=False, bounds=(low[0], high[0], low[1], high[1],
+                                                    low[2], high[2]))
+        elif self.framing_outside:
+            self.framing_outside = False
+            self.reset_camera(render=False, bounds=brain)
 
     def _on_visibility_changed(self, ids: frozenset[int]) -> None:
         if any(i in self._tract_set and not self.state.is_hidden(i) for i in ids):
@@ -241,19 +272,25 @@ class BrainView(QtInteractor):
             self._refresh_overlay()
         self._request_render()
 
-    def _scene_bounds(self) -> tuple[float, ...]:
-        volumes = self.state.atlas.volumes
-        if not volumes:
-            return tuple(self.actor.GetBounds())
-        shape, affine = volumes[0].shape, volumes[0].affine
+    def _volume_bounds(self, volume) -> tuple[float, ...]:
+        shape, affine = volume.shape, volume.affine
         corners = np.array([[i, j, k, 1.0] for i in (0, shape[0] - 1) for j in (0, shape[1] - 1)
                             for k in (0, shape[2] - 1)])
         world = (np.asarray(affine) @ corners.T)[:3]
         low, high = world.min(axis=1), world.max(axis=1)
         return (low[0], high[0], low[1], high[1], low[2], high[2])
 
+    def _scene_bounds(self) -> tuple[float, ...]:
+        volumes = self.state.atlas.volumes
+        return tuple(self.actor.GetBounds()) if not volumes else self._volume_bounds(volumes[0])
+
+    def _slice_bounds(self) -> tuple[float, ...]:
+        volume = next((v for v in self.state.atlas.volumes if v.name == self.state.slice_volume),
+                      None)
+        return self.scene_bounds if volume is None else self._volume_bounds(volume)
+
     def _on_slice_changed(self, axis: str, mm: float) -> None:
-        bounds = self.scene_bounds
+        bounds = self._slice_bounds()
         if not self.state.atlas.volumes or bounds[0] > bounds[1]:
             self.plane.SetVisibility(False)
             return

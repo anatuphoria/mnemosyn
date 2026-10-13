@@ -96,3 +96,36 @@ def test_one_volume_atlases_show_no_volume_buttons(qapp, toy_atlas, tmp_path):
     w = MainWindow(Atlas.open(toy_atlas), progress_path=tmp_path / "p.sqlite")
     assert w.slices.volume_buttons == {} and w.state.slice_volume == "brain"
     w.close()
+
+
+def focal_z(window):
+    return window.view.camera.focal_point[2]
+
+
+def test_reset_frames_the_brain_not_the_cord(window):
+    window.view.reset_view()
+    assert focal_z(window) > -60.0
+    assert not window.view.framing_outside
+
+
+def test_selecting_outside_the_brain_frames_it_and_back(window):
+    window.view.reset_view()
+    window.state.select(210)
+    assert focal_z(window) < -150.0 and window.view.framing_outside
+    window.state.select(101)
+    assert focal_z(window) > -60.0 and not window.view.framing_outside
+
+
+def test_the_plane_follows_the_spinal_volume(window):
+    window.slices.volume_buttons["spine"].click()
+    bounds = window.view.plane.GetBounds()
+    assert bounds[4] < -150.0 and bounds[5] < -150.0
+    assert bounds[3] - bounds[2] < 100.0
+
+
+def test_one_volume_selection_keeps_the_camera(qapp, toy_atlas, tmp_path):
+    w = MainWindow(Atlas.open(toy_atlas), progress_path=tmp_path / "p.sqlite")
+    before = w.view.camera_position
+    w.state.select(101)
+    assert w.view.camera_position == before
+    w.close()
