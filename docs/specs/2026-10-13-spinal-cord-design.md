@@ -76,7 +76,7 @@ Tracts (left and right, `kind = "tract"`, parent 80, `pam50-atlas`):
 | 5530 | VSCT | Ventral spinocerebellar tract | 06, 07 |
 | 5540 | RuST | Rubrospinal tract | 08, 09 |
 | 5550 | LReST | Lateral reticulospinal tract | 10, 11 |
-| 5560 | STT | Spinothalamic tract (spinal lemniscus) | 12, 13 |
+| 5560 | sSTT | Spinothalamic tract (spinal lemniscus) | 12, 13 |
 | 5570 | SOT | Spino-olivary tract | 14, 15 |
 | 5580 | VLReST | Ventrolateral reticulospinal tract | 16, 17 |
 | 5590 | LVST | Lateral vestibulospinal tract | 18, 19 |
