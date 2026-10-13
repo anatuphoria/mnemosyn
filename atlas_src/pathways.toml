@@ -53,7 +53,7 @@ steps = [
   { structures = [1000] },
   { structures = [3000] },
   { cross = "Pyramidal decussation" },
-  { relay = "Lateral corticospinal tract in the spinal cord", side = "opposite" },
+  { structures = [5520], side = "opposite", fallback = "Lateral corticospinal tract in the spinal cord" },
 ]
 
 [[pathways]]
@@ -62,7 +62,7 @@ name = "Touch and position (dorsal column, medial lemniscus)"
 start = "side of the body"
 group = "Sensory and motor"
 steps = [
-  { relay = "Dorsal column and gracile and cuneate nuclei" },
+  { structures = [5500, 5510], fallback = "Dorsal column and gracile and cuneate nuclei" },
   { cross = "Internal arcuate fibres" },
   { structures = [3240], side = "opposite" },
   { structures = [1840], side = "opposite" },
@@ -75,7 +75,7 @@ name = "Pain and temperature (spinothalamic)"
 start = "side of the body"
 group = "Sensory and motor"
 steps = [
-  { relay = "Dorsal horn" },
+  { structures = [5420], fallback = "Dorsal horn" },
   { cross = "Anterior white commissure" },
   { structures = [3260], side = "opposite" },
   { structures = [1840], side = "opposite" },

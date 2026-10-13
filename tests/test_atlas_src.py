@@ -44,7 +44,7 @@ def test_every_aal3_label_maps_to_exactly_one_structure():
     assert sorted(values) == sorted(set(range(1, 171)) - AAL3_EMPTY_LABELS)
     assert {ref.source for r in raws for ref in r.labels} == {
         "aal3", "neudorfer2020", "hcp1065", "tang2024", "razavi2021", "edlow2023",
-        "diedrichsen2009", "sitek2019", "bianciardi2024"}
+        "diedrichsen2009", "sitek2019", "bianciardi2024", "pam50", "pam50-atlas"}
 
 
 NEUDORFER_LABELS = set(range(1, 11)) | set(range(13, 39)) | set(range(41, 55))
@@ -72,7 +72,8 @@ def test_every_tract_file_is_mapped_or_dropped():
 def test_new_regions_have_the_planned_concepts():
     raws = load_structures(SRC / "structures.toml")
     tracts = [r for r in raws if r.kind == "tract" and r.concept is None]
-    assert len(tracts) == 43
+    spinal = [r for r in tracts if 5500 <= r.id < 5700]
+    assert len(tracts) - len(spinal) == 43 and len(spinal) == 15
     from_neudorfer = {r.concept or r.id for r in raws if "neudorfer2020" in r.sources}
     assert len(from_neudorfer) == 21
     assert all(2500 <= i < 2700 or 3000 <= i < 3500 for i in from_neudorfer)
@@ -140,7 +141,7 @@ def test_frontal_concepts_have_distinct_shades_and_sides_match():
 
 def test_colin27_template_is_declared_and_valid():
     recipe = load_recipe(SRC / "recipe.toml")
-    assert [t.source.id for t in recipe.templates] == ["colin27"]
+    assert [t.source.id for t in recipe.templates] == ["colin27", "pam50-t2"]
     assert check_templates(recipe, SRC) == []
 
 
@@ -188,7 +189,7 @@ def test_the_built_atlas_pathways_light_and_read_on_both_sides():
 
 def test_the_glands_are_local_only_midline_structures():
     local = {s.source.id: s for s in load_recipe(SRC / "recipe.toml").sources if s.local_only}
-    assert list(local) == ["tang2024", "razavi2021", "bianciardi2024"]
+    assert list(local) == ["tang2024", "razavi2021", "bianciardi2024", "pam50", "pam50-atlas"]
     for spec in (local["tang2024"], local["razavi2021"]):
         assert not spec.source.redistribution and spec.mesh_grid == "native"
         assert spec.priority == -1 and spec.volume == "brain"
@@ -307,3 +308,41 @@ def test_reading_the_auditory_atlas_stays_under_1_gb():
     run = subprocess.run([sys.executable, "-c", code, str(path)], check=True, cwd=SRC.parent,
                          capture_output=True, text=True)
     assert int(run.stdout.split()[-1]) < 1024 * 1024
+
+
+SPINAL_STATIONS = {
+    "motor": Station((5520,), "opposite", fallback="Lateral corticospinal tract in the spinal cord"),
+    "touch": Station((5500, 5510), fallback="Dorsal column and gracile and cuneate nuclei"),
+    "pain": Station((5420,), fallback="Dorsal horn")}
+
+
+def test_the_spinal_cord_is_local_only_on_its_own_volume():
+    recipe = load_recipe(SRC / "recipe.toml")
+    spine = next(v for v in recipe.volumes if v.name == "spine")
+    assert (spine.space, spine.grid_source) == ("PAM50", "pam50")
+    specs = {s.source.id: s for s in (*recipe.sources, *recipe.templates)}
+    for name in ("pam50", "pam50-atlas", "pam50-t2"):
+        assert specs[name].local_only and specs[name].volume == "spine", name
+    assert specs["pam50"].crop and specs["pam50"].margin == 10.0
+    assert specs["pam50-atlas"].threshold == 0.5
+    assert [n for n, _ in specs["pam50-atlas"].members] == [f"A{i:02d}" for i in range(36)]
+
+
+def test_the_spinal_tree_has_30_segments_6_horns_and_30_tracts():
+    raws = {r.id: r for r in load_structures(SRC / "structures.toml")}
+    assert raws[3].parent == 1 and raws[80].parent == 3
+    segments = [r for r in raws.values() if r.labels and r.labels[0].source == "pam50"]
+    assert [r.acronym for r in segments] == (
+        [f"C{i}" for i in range(1, 9)] + [f"T{i}" for i in range(1, 13)]
+        + [f"L{i}" for i in range(1, 6)] + [f"S{i}" for i in range(1, 6)])
+    atlas_kids = [r for r in raws.values() if r.labels and r.labels[0].source == "pam50-atlas"]
+    assert len([r for r in atlas_kids if r.kind == "nucleus"]) == 6
+    assert len([r for r in atlas_kids if r.kind == "tract"]) == 30
+    assert all(r.labels[0].value == f"A{int(r.labels[0].value[1:]):02d}" for r in atlas_kids)
+    assert all(int(r.labels[0].value[1:]) % 2 == (r.side == "right") for r in atlas_kids)
+
+
+def test_the_spinal_stations_are_drawn_with_their_old_names():
+    routes = {p.key: p for p in load_pathways(SRC / "pathways.toml")}
+    for key, station in SPINAL_STATIONS.items():
+        assert station in routes[key].steps, key
