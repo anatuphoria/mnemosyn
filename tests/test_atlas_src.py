@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 
+import nibabel as nib
 import numpy as np
 import pytest
 
@@ -105,6 +106,8 @@ def test_real_build(tmp_path):
     assert {p.key: p for p in atlas.pathways}["body-clock"].steps[3] == Relay("Pineal gland")
     geometry = [s for s in atlas.structures if atlas.has_mesh(s.id)]
     assert len(geometry) == 306
+    assert [v.name for v in atlas.volumes] == ["brain"]
+    assert Relay("Dorsal horn") in {p.key: p for p in atlas.pathways}["pain"].steps
     routes = {p.key: p for p in atlas.pathways}
     assert Relay("Nucleus of the solitary tract") in routes["hunger"].steps
     assert Station((2800,)) in routes["auditory"].steps
@@ -206,8 +209,22 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
 
     src = shutil.copytree(SRC, tmp_path / "src")
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None, local=True))
-    assert atlas.local_only == ("tang2024", "razavi2021", "bianciardi2024")
-    assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 326
+    assert atlas.local_only == ("tang2024", "razavi2021", "bianciardi2024", "pam50",
+                                "pam50-atlas", "pam50-t2")
+    assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 392
+    spine = next(v for v in atlas.volumes if v.name == "spine")
+    assert nib.aff2axcodes(spine.affine) == ("R", "A", "S")
+    assert 55 <= spine.shape[0] <= 75 and 950 <= spine.shape[2] <= 991
+    assert "spine" in atlas.templates
+    for structure_id, z in ((5010, -73.0), (5300, -540.0)):
+        mean = np.asarray(atlas.mesh(structure_id).vertices).mean(axis=0)
+        assert abs(mean[2] - z) < 4.0, (structure_id, mean)
+    for s in atlas.structures:
+        if s.side == "left" and atlas.has_mesh(s.id) and s.id >= 5000:
+            assert np.asarray(atlas.mesh(s.id).vertices)[:, 0].mean() < 0, s.name
+    routes = {p.key: p for p in atlas.pathways}
+    for key, station in SPINAL_STATIONS.items():
+        assert station in routes[key].steps, key
     hunger = {p.key: p for p in atlas.pathways}["hunger"]
     assert Station((2830,), fallback="Nucleus of the solitary tract") in hunger.steps
     labels = np.asarray(atlas.volumes[0].data)
@@ -324,8 +341,9 @@ def test_the_spinal_cord_is_local_only_on_its_own_volume():
     for name in ("pam50", "pam50-atlas", "pam50-t2"):
         assert specs[name].local_only and specs[name].volume == "spine", name
     assert specs["pam50"].crop and specs["pam50"].margin == 10.0
-    assert specs["pam50-atlas"].threshold == 0.5
-    assert [n for n, _ in specs["pam50-atlas"].members] == [f"A{i:02d}" for i in range(36)]
+    assert specs["pam50-atlas"].threshold == 0.3 and specs["pam50-atlas"].separate
+    names = [n for n, _ in specs["pam50-atlas"].members]
+    assert sorted(names) == [f"A{i:02d}" for i in range(36)] and names[:2] == ["A10", "A11"]
 
 
 def test_the_spinal_tree_has_30_segments_6_horns_and_30_tracts():

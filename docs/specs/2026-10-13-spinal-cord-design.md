@@ -35,8 +35,12 @@ Decisions made in discussion:
 - `pam50`: `template/PAM50_spinal_levels.nii.gz`, labels 1 to 30 = C1 to C8, T1 to T12, L1 to L5,
   S1 to S5. Grid source of the spine volume.
 - `pam50-atlas`: `atlas/PAM50_atlas_00` to `_35.nii.gz` as members (tracts 00 to 29, grey matter
-  30 to 35); probabilistic maps, kept where the value is at least 0.5. `_36` (CSF contour) is not
-  used. Ranks above `pam50` in the spine volume, so segments fill only the remaining cord voxels.
+  30 to 35); probabilistic maps, kept where the value is at least 0.3 (the lateral reticulospinal
+  map never reaches 0.5). Each map's 3D shape comes from its own mask (`separate = true`), so left
+  and right stay symmetric where their maps overlap at the midline; in the slice volume overlaps go
+  to the map listed first, and the members are listed smallest pair first so small tracts keep
+  their voxels. `_36` (CSF contour) is not used. Ranks above `pam50` in the spine volume, so
+  segments fill only the remaining cord voxels.
 - `pam50-t2`: `template/PAM50_t2.nii.gz`, the slice template of the spine volume.
 - All three are `local_only`, meshed on their own grid (`mesh_grid = "native"`).
 
@@ -94,11 +98,13 @@ Tracts (left and right, `kind = "tract"`, parent 80, `pam50-atlas`):
 
 ## 4. Build changes
 
-### 4.1 Threshold
+### 4.1 Threshold and separate shapes
 
 A source may set `threshold` (a number). Members, and a single-file source with `mask = true`,
 then keep a voxel when its value is at least the threshold instead of when it is nonzero. Overlaps
-between members still go to the member listed first and are counted in the build report.
+between members still go to the member listed first and are counted in the build report. With
+`separate = true` (members and a native grid only) each member's 3D shape is meshed from its own
+mask; the overlap rule then applies only to the label volume.
 
 ### 4.2 Crop margin
 
@@ -186,8 +192,10 @@ Real atlas (slow):
 - Routes: the three stations are shapes in the local build and keep their names in the
   shareable build; texts byte-identical.
 
-Budgets unchanged, measured on the local build: first frame under 2 s, the app's own memory under
-400 MB, selection under 7 ms.
+Budgets measured on the local build: first frame under 2 s, the app's own memory under 400 MB,
+selection under 7 ms. Entering a route rises from 100 to 130 ms (owner's decision, 2026-10-13), and
+switching its side, the same single redraw, with it: the spinal segments and horns add about 13%
+more faded geometry to that redraw.
 
 ## 8. Scope
 

@@ -35,6 +35,7 @@ class SourceSpec:
     crop: bool = False
     threshold: float | None = None
     margin: float = 0.0
+    separate: bool = False
 
     @property
     def member_values(self) -> dict[str, int]:
@@ -112,7 +113,7 @@ def _source_spec(s: dict) -> SourceSpec:
                       mesh_grid=str(s.get("mesh_grid", "label")),
                       local_only=s.get("local_only") is True, mask=s.get("mask") is True,
                       threshold=float(s["threshold"]) if "threshold" in s else None,
-                      margin=float(s.get("margin", 0)),
+                      margin=float(s.get("margin", 0)), separate=s.get("separate") is True,
                       members=tuple((str(k), str(v)) for k, v in s.get("members", {}).items()),
                       manual=s.get("manual") is True, crop=s.get("crop") is True)
 

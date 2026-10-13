@@ -159,3 +159,21 @@ def test_a_local_build_adds_a_ras_spine_volume_and_template(toy_spine_atlas):
         r for r in records if r.get("labels") == "spine").items()
     assert atlas.local_only == ("toyspine", "toyspine-t2")
     assert atlas.has_mesh(200) and atlas.has_mesh(210)
+
+
+def test_separate_members_keep_their_own_shapes(tmp_path):
+    src = write_extended_source_tree(tmp_path, tracts=False, members="download")
+    edit(src / "recipe.toml", 'url = "https://example.org/toy-masks"\n',
+         'url = "https://example.org/toy-masks"\nseparate = true\n')
+    assert spec_of(src, "toymembers").separate and problems_for(src) == []
+    out = quiet_build(src, tmp_path / "out", tmp_path / "cache")
+    atlas = Atlas.open(out)
+    x = np.asarray(atlas.mesh(190).vertices)[:, 0]
+    assert x.min() < -4.0 and x.max() > 4.0
+    assert "- overlapping voxels in toymembers: 200\n" in (out / "build-report.md").read_text()
+
+
+def test_separate_needs_members_and_a_native_grid(tmp_path):
+    src = write_extended_source_tree(tmp_path, tracts=False)
+    edit(src / "recipe.toml", 'mesh_grid = "native"\n', 'mesh_grid = "native"\nseparate = true\n')
+    assert "source toyhyp: separate needs members" in problems_for(src)

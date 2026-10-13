@@ -16,7 +16,7 @@ from .fetch import DEFAULT_CACHE, fetch, member_path, missing_manual
 from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
                         without_sources)
 from .idlock import IdLock, load_lock, write_lock
-from .labels import (crop, load_label_image, load_members, mapping_for, merge,
+from .labels import (crop, load_label_image, load_members, mapping_for, member_masks, merge,
                      read_label_names, relabel, source_values)
 from .meshing import levels, surface
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
@@ -134,10 +134,10 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     if problems:
         raise BuildError(problems)
 
-    images, names, overlaps = {}, {}, {}
+    images, names, overlaps, archives = {}, {}, {}, {}
     for spec in sources:
         log(f"fetching {spec.source.id}")
-        archive = fetch(spec, cache, manual_dir)
+        archive = archives[spec.source.id] = fetch(spec, cache, manual_dir)
         if spec.members:
             images[spec.source.id], overlaps[spec.source.id] = load_members(spec, archive)
         else:
@@ -168,7 +168,12 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
     natives = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
                     images[s.source.id].affine)
-               for s in sources if s.mesh_grid == "native"]
+               for s in sources if s.mesh_grid == "native" and not s.separate]
+    for s in (s for s in sources if s.separate):
+        mapping = mapping_for(s.source.id, planned)
+        natives += [crop(inside.astype(np.uint16) * mapping[value], affine)
+                    for value, inside, affine in member_masks(s, archives[s.source.id])
+                    if value in mapping]
     native_ids = set().union(*(present(data) for data, _ in natives))
     tract_rows: list[tuple[int, np.ndarray]] = []
     for spec in recipe.tracts:

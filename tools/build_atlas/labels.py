@@ -59,16 +59,24 @@ def load_label_image(path: Path, mask: bool = False, name: str = "", cropped: bo
     return nib.Nifti1Image(data.astype(np.int32), affine)
 
 
-def load_members(spec: SourceSpec, archive: Path) -> tuple[nib.Nifti1Image, int]:
-    out, affine, lost = None, None, 0
+def member_masks(spec: SourceSpec, archive: Path):
+    shape, affine = None, None
     for value, (name, member) in enumerate(spec.members, 1):
         image = nib.load(member_path(spec, archive, member))
-        if out is None:
-            out, affine = np.zeros(image.shape[:3], dtype=np.int32), image.affine
-        elif image.shape[:3] != out.shape or not np.allclose(image.affine, affine):
+        if shape is None:
+            shape, affine = image.shape[:3], image.affine
+        elif image.shape[:3] != shape or not np.allclose(image.affine, affine):
             raise BuildError([f"source {spec.source.id}: member {name} is on another grid"])
-        values = np.nan_to_num(np.asarray(image.dataobj)).reshape(out.shape)
+        values = np.nan_to_num(np.asarray(image.dataobj)).reshape(shape)
         inside = values >= spec.threshold if spec.threshold is not None else values != 0
+        yield value, inside, affine
+
+
+def load_members(spec: SourceSpec, archive: Path) -> tuple[nib.Nifti1Image, int]:
+    out, affine, lost = None, None, 0
+    for value, inside, affine in member_masks(spec, archive):
+        if out is None:
+            out = np.zeros(inside.shape, dtype=np.int32)
         lost += int((inside & (out != 0)).sum())
         out[inside & (out == 0)] = value
     return nib.Nifti1Image(out, affine), lost

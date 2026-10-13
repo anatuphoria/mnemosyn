@@ -185,8 +185,8 @@ depends on what the system has cached), selection under 7 ms, a generated 3,500-
 quiz starts under 100 ms, moves to the next question under 50 ms and checks a typed answer
 under 1 ms. Tracts are built the first time they are shown (under 500 ms), then show or hide
 in under 50 ms; a slice with every tract outlined redraws in under 10 ms. Entering a pathway
-or switching its side takes under 100 ms, a step under 30 ms, and a playing timeline updates
-in under 5 ms per tick.
+or switching its side takes under 130 ms (on a local build with the spinal cord), a step under
+30 ms, and a playing timeline updates in under 5 ms per tick.
 
 ## Tests
 

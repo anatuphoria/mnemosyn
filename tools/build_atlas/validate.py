@@ -77,6 +77,10 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: give member or members, not both")
         if spec.manual and not spec.source.url:
             problems.append(f"source {name}: a manual source needs a url to download it from")
+        if spec.separate and not spec.members:
+            problems.append(f"source {name}: separate needs members")
+        elif spec.separate and spec.mesh_grid != "native":
+            problems.append(f"source {name}: separate needs mesh_grid = \"native\"")
         if spec.threshold is not None and not (spec.mask or spec.members):
             problems.append(f"source {name}: threshold needs mask = true or members")
         problems += [f"source {name}: drop value {value!r} is not a label number"
