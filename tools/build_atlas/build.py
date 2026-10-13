@@ -12,7 +12,7 @@ from cns_atlas.knowledge import KnowledgeError, load_references
 from cns_atlas.meshes import LODS, MeshData
 from cns_atlas.model import Structure
 
-from .fetch import DEFAULT_CACHE, fetch, member_path
+from .fetch import DEFAULT_CACHE, fetch, member_path, missing_manual
 from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
                         without_sources)
 from .idlock import IdLock, load_lock, write_lock
@@ -94,7 +94,7 @@ def _replaceable(out: Path) -> bool:
 
 
 def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
-          local: bool = False) -> Path:
+          local: bool = False, manual_dir: Path | None = None) -> Path:
     src, out = Path(src), Path(out)
     if not _replaceable(out):
         raise BuildError([f"{out}: exists and is not an atlas package; refusing to replace it"])
@@ -121,6 +121,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                                   for s in recipe.sources if s.members})
     skipped = set() if local else {s.source.id for s in recipe.sources if s.local_only}
     sources = [s for s in recipe.sources if s.source.id not in skipped]
+    problems = missing_manual(sources, cache, manual_dir)
+    if problems:
+        raise BuildError(problems)
     planned = build_tree(without_sources(raws, skipped))
     left_out = {r.id for r in raws} - {p.structure.id for p in planned}
     problems = check_pathways(pathways, [p.structure for p in planned],
@@ -131,7 +134,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     images, names, overlaps = {}, {}, {}
     for spec in sources:
         log(f"fetching {spec.source.id}")
-        archive = fetch(spec, cache)
+        archive = fetch(spec, cache, manual_dir)
         if spec.members:
             images[spec.source.id], overlaps[spec.source.id] = load_members(spec, archive)
         else:

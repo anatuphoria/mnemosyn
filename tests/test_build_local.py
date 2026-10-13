@@ -148,7 +148,7 @@ def test_cli_passes_local_to_the_build(monkeypatch, tmp_path):
 
     seen = {}
 
-    def fake(src, out, cache, local=False):
+    def fake(src, out, cache, local=False, manual_dir=None):
         seen["local"] = local
         return out
 

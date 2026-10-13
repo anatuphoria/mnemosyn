@@ -36,7 +36,44 @@ def _download(spec: SourceSpec, target: Path) -> None:
         shutil.copyfileobj(response, out)
 
 
-def fetch(spec: SourceSpec, cache: Path = DEFAULT_CACHE) -> Path:
+def manual_target(spec: SourceSpec, cache: Path) -> Path:
+    return Path(cache) / spec.sha256 / Path(spec.download).name
+
+
+def missing_manual(specs, cache: Path, manual_dir: Path | None = None) -> list[str]:
+    problems = []
+    for spec in specs:
+        if not spec.manual:
+            continue
+        target = manual_target(spec, cache)
+        given = Path(manual_dir) / target.name if manual_dir else None
+        if not target.exists() and not (given and given.exists()):
+            problems.append(f"source {spec.source.id}: download {target.name} from "
+                            f"{spec.source.url} and put it in {target.parent}")
+    return problems
+
+
+def _checked(spec: SourceSpec, path: Path) -> None:
+    actual = sha256_of(path)
+    if actual != spec.sha256:
+        raise BuildError([f"source {spec.source.id}: checksum mismatch "
+                          f"(expected {spec.sha256}, got {actual})"])
+
+
+def fetch(spec: SourceSpec, cache: Path = DEFAULT_CACHE, manual_dir: Path | None = None) -> Path:
+    if spec.manual:
+        target = manual_target(spec, cache)
+        if target.exists():
+            _checked(spec, target)
+            return target
+        missing = missing_manual([spec], cache, manual_dir)
+        if missing:
+            raise BuildError(missing)
+        given = Path(manual_dir) / target.name
+        _checked(spec, given)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(given, target)
+        return target
     folder = Path(cache) / spec.sha256
     archive = folder / Path(urlparse(spec.download).path).name
     if archive.exists() and sha256_of(archive) == spec.sha256:

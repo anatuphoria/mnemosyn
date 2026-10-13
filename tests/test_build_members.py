@@ -95,3 +95,55 @@ def test_a_build_shapes_every_member_and_reports_overlaps(tmp_path):
     x = np.asarray(atlas.mesh(190).vertices)[:, 0]
     assert x.min() > -4.0 and x.max() < 4.0
     assert "- overlapping voxels in toymembers: 200\n" in (out / "build-report.md").read_text()
+
+
+def manual_tree(tmp_path):
+    return write_extended_source_tree(tmp_path, tracts=False, members="manual")
+
+
+def test_a_missing_manual_source_stops_the_build_before_any_download(tmp_path):
+    src = manual_tree(tmp_path)
+    cache = tmp_path / "cache"
+    with pytest.raises(BuildError) as error:
+        quiet_build(src, tmp_path / "out", cache)
+    sha = members_spec(src).sha256
+    assert error.value.problems == [
+        f"source toymembers: download toy_members.zip from https://example.org/toy-masks "
+        f"and put it in {cache / sha}"]
+    assert not cache.exists()
+
+
+def test_a_manual_dir_is_used_and_cached(tmp_path):
+    src = manual_tree(tmp_path)
+    cache = tmp_path / "cache"
+    quiet_build(src, tmp_path / "out", cache, manual_dir=tmp_path / "upstream" / "members")
+    assert (cache / members_spec(src).sha256 / "toy_members.zip").exists()
+    out = quiet_build(src, tmp_path / "again", cache)
+    assert Atlas.open(out).has_mesh(190)
+
+
+def test_a_wrong_manual_file_is_refused(tmp_path):
+    src = manual_tree(tmp_path)
+    wrong = tmp_path / "wrong"
+    wrong.mkdir()
+    (wrong / "toy_members.zip").write_bytes(b"not the file")
+    with pytest.raises(BuildError) as error:
+        quiet_build(src, tmp_path / "out", tmp_path / "cache", manual_dir=wrong)
+    assert error.value.problems[0].startswith("source toymembers: checksum mismatch (expected ")
+
+
+def test_a_normal_build_does_not_ask_for_a_local_only_manual_source(tmp_path):
+    src = manual_tree(tmp_path)
+    edit(src / "recipe.toml", 'redistribution = true\nurl = "https://example.org/toy-masks"',
+         'redistribution = false\nlocal_only = true\nurl = "https://example.org/toy-masks"')
+    atlas = Atlas.open(quiet_build(src, tmp_path / "out", tmp_path / "cache"))
+    assert 190 not in atlas
+
+
+def test_the_command_line_takes_a_manual_dir(tmp_path):
+    from tools.build_atlas.__main__ import main
+
+    src = manual_tree(tmp_path)
+    assert main(["--src", str(src), "--out", str(tmp_path / "out"), "--cache",
+                 str(tmp_path / "cache"), "--manual-dir",
+                 str(tmp_path / "upstream" / "members")]) == 0
