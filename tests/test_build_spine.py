@@ -141,7 +141,7 @@ def test_a_normal_build_leaves_the_spine_volume_out(tmp_path):
         (plain / "metadata.json").read_text())["volumes"]]
     assert not (with_spine / "volumes" / "spine.nii.gz").exists()
     report = (with_spine / "build-report.md").read_text()
-    assert "- local-only sources left out: toyspine, toyspine-t2\n" in report
+    assert "- local-only sources left out: toyspine, toyspine-t2, toyspine-wm\n" in report
 
 
 def test_a_local_build_adds_a_ras_spine_volume_and_template(toy_spine_atlas):
@@ -149,15 +149,18 @@ def test_a_local_build_adds_a_ras_spine_volume_and_template(toy_spine_atlas):
     assert [v.name for v in atlas.volumes] == ["brain", "spine"]
     spine = atlas.volumes[1]
     assert nib.aff2axcodes(spine.affine) == ("R", "A", "S") and spine.shape == (10, 10, 56)
+    fill = atlas.fills["spine"]
+    assert fill.shape == spine.shape and np.allclose(fill.affine, spine.affine)
+    assert (np.asarray(spine.data) == 220).any() and set(atlas.fills) == {"spine"}
     for value, structure_id in ((1, 200), (2, 210)):
         want = nib.affines.apply_affine(SPINE_AFFINE, np.argwhere(spine_volume() == value))
-        got = nib.affines.apply_affine(spine.affine,
-                                       np.argwhere(np.asarray(spine.data) == structure_id))
+        got = nib.affines.apply_affine(fill.affine,
+                                       np.argwhere(np.asarray(fill.data) == structure_id))
         assert np.allclose(np.sort(want, axis=0), np.sort(got, axis=0))
     records = json.loads((toy_spine_atlas / "metadata.json").read_text())["volumes"]
     assert {"file": "volumes/spine-template.nii.gz", "labels": "spine"}.items() <= next(
         r for r in records if r.get("labels") == "spine").items()
-    assert atlas.local_only == ("toyspine", "toyspine-t2")
+    assert atlas.local_only == ("toyspine", "toyspine-wm", "toyspine-t2")
     assert atlas.has_mesh(200) and atlas.has_mesh(210)
 
 
@@ -177,3 +180,15 @@ def test_separate_needs_members_and_a_native_grid(tmp_path):
     src = write_extended_source_tree(tmp_path, tracts=False)
     edit(src / "recipe.toml", 'mesh_grid = "native"\n', 'mesh_grid = "native"\nseparate = true\n')
     assert "source toyhyp: separate needs members" in problems_for(src)
+
+
+def test_separate_shapes_do_not_keep_full_grids_alive(tmp_path):
+    from tools.build_atlas.labels import separate_natives
+
+    src = write_extended_source_tree(tmp_path / "t", tracts=False, members="download")
+    spec = dataclasses.replace(spec_of(src, "toymembers"), separate=True)
+    archive = next((tmp_path / "t" / "upstream" / "members").glob("*.zip"))
+    natives = separate_natives(spec, archive, {1: 181, 2: 182, 3: 190})
+    assert [int(data.max()) for data, _ in natives] == [181, 182, 190]
+    assert all(data.base is None for data, _ in natives)
+    assert all(data.shape == (7, 10, 10) or data.shape == (5, 10, 10) for data, _ in natives)

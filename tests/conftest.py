@@ -58,6 +58,6 @@ def toy_spine_atlas(tmp_path_factory):
     from tools.build_atlas.build import build
 
     root = tmp_path_factory.mktemp("toyspine")
-    src = write_extended_source_tree(root, tracts=False, spine=True)
+    src = write_extended_source_tree(root, tracts=True, spine=True)
     return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None,
                  local=True)

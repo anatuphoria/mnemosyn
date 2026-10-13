@@ -39,7 +39,7 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
                   volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]],
                   meshes: list[dict[int, MeshData]], knowledge_src: Path,
                   licence_files: list[Path], report: str, templates=(), tracts=None,
-                  pathways=(), local_only=(), timelines=()) -> None:
+                  pathways=(), local_only=(), timelines=(), fills=()) -> None:
     (out / "volumes").mkdir(parents=True)
     volume_records = []
     spaces = {spec.name: spec.space for spec, _, _ in volumes}
@@ -51,6 +51,11 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
         write_volume(out / "volumes" / f"{name}-template.nii.gz", data, affine, dtype=np.uint8)
         volume_records.append({"file": f"volumes/{name}-template.nii.gz", "space": spaces[name],
                                "role": "template", "labels": name,
+                               "affine_to_world": np.eye(4).tolist()})
+    for name, data, affine in fills:
+        write_volume(out / "volumes" / f"{name}-fill.nii.gz", data, affine)
+        volume_records.append({"file": f"volumes/{name}-fill.nii.gz", "space": spaces[name],
+                               "role": "fill", "labels": name,
                                "affine_to_world": np.eye(4).tolist()})
     if tracts is not None:
         labels, rows = tracts

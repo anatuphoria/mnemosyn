@@ -215,7 +215,10 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
     spine = next(v for v in atlas.volumes if v.name == "spine")
     assert nib.aff2axcodes(spine.affine) == ("R", "A", "S")
     assert 55 <= spine.shape[0] <= 75 and 950 <= spine.shape[2] <= 991
-    assert "spine" in atlas.templates
+    assert "spine" in atlas.templates and atlas.fills["spine"].shape == spine.shape
+    fill = np.asarray(atlas.fills["spine"].data)
+    assert all((fill == 5000 + 10 * n).sum() >= 40 for n in range(1, 31))
+    assert (fill == 5010).sum() == 4105
     for structure_id, z in ((5010, -73.0), (5300, -540.0)):
         mean = np.asarray(atlas.mesh(structure_id).vertices).mean(axis=0)
         assert abs(mean[2] - z) < 4.0, (structure_id, mean)
@@ -340,7 +343,7 @@ def test_the_spinal_cord_is_local_only_on_its_own_volume():
     specs = {s.source.id: s for s in (*recipe.sources, *recipe.templates)}
     for name in ("pam50", "pam50-atlas", "pam50-t2"):
         assert specs[name].local_only and specs[name].volume == "spine", name
-    assert specs["pam50"].crop and specs["pam50"].margin == 10.0
+    assert specs["pam50"].crop and specs["pam50"].margin == 10.0 and specs["pam50"].fill
     assert specs["pam50-atlas"].threshold == 0.3 and specs["pam50-atlas"].separate
     names = [n for n, _ in specs["pam50-atlas"].members]
     assert sorted(names) == [f"A{i:02d}" for i in range(36)] and names[:2] == ["A10", "A11"]

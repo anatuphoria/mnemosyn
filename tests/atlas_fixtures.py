@@ -474,6 +474,23 @@ priority = 0
 mesh_grid = "native"
 crop = true
 margin = 2
+fill = true
+
+[[sources]]
+id = "toyspine-wm"
+title = "Toy spinal tract"
+authors = "Test G"
+year = 2024
+version = "1"
+licence = "No licence stated"
+redistribution = false
+local_only = true
+download = "{tract}"
+sha256 = "{tract_sha}"
+volume = "spine"
+priority = 1
+mesh_grid = "native"
+mask = true
 
 [[templates]]
 id = "toyspine-t2"
@@ -492,6 +509,7 @@ volume = "spine"
 TOY_SPINE_STRUCTURES = """\
   { id = 200, parent = 2, acronym = "UPS", name = "Upper segment", source = "toyspine", midline = 1 },
   { id = 210, parent = 2, acronym = "LOS", name = "Lower segment", source = "toyspine", midline = 2 },
+  { id = 220, parent = 2, acronym = "SPT", name = "Toy spinal tract", kind = "tract", source = "toyspine-wm", midline = 1 },
 """
 
 SPINE_SHAPE = (16, 16, 70)
@@ -553,8 +571,13 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
         grid = np.indices(SPINE_SHAPE)
         nib.save(nib.Nifti1Image((50 + 10 * grid[0] + grid[2]).astype(np.float32), SPINE_AFFINE),
                  template)
+        tract = root / "upstream" / "toy_spine_wm.nii.gz"
+        mask = np.zeros(SPINE_SHAPE, dtype=np.uint8)
+        mask[6:8, 6:10, 40:60] = 1
+        nib.save(nib.Nifti1Image(mask, SPINE_AFFINE), tract)
         recipe += TOY_SPINE_SOURCES.format(labels=labels, labels_sha=sha256_file(labels),
-                                           template=template, template_sha=sha256_file(template))
+                                           template=template, template_sha=sha256_file(template),
+                                           tract=tract, tract_sha=sha256_file(tract))
         concepts += TOY_SPINE_STRUCTURES
     if tracts:
         folder = root / "upstream" / "tracts"

@@ -240,14 +240,21 @@ class BrainView(QtInteractor):
 
     def _extent(self, structure_id: int) -> tuple[np.ndarray, np.ndarray]:
         if structure_id not in self._extents:
-            vertices = np.asarray(self.state.atlas.mesh(structure_id, self.lod).vertices)
-            self._extents[structure_id] = (vertices.min(axis=0), vertices.max(axis=0))
+            block = self.blocks.get(structure_id)
+            if block is not None:
+                b = block.GetBounds()
+                low, high = np.array(b[0::2]), np.array(b[1::2])
+            else:
+                vertices = np.asarray(self.state.atlas.mesh(structure_id, self.lod).vertices)
+                low, high = vertices.min(axis=0), vertices.max(axis=0)
+            self._extents[structure_id] = (low, high)
         return self._extents[structure_id]
 
     def _frame_selection(self) -> None:
         if len(self.state.atlas.volumes) < 2 or not self.highlighted:
             return
-        extents = [self._extent(i) for i in self.highlighted]
+        shaped = [i for i in self.highlighted if i in self.blocks]
+        extents = [self._extent(i) for i in shaped or self.highlighted]
         low = np.min([e[0] for e in extents], axis=0)
         high = np.max([e[1] for e in extents], axis=0)
         brain = self.scene_bounds

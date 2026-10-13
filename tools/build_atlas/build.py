@@ -16,8 +16,8 @@ from .fetch import DEFAULT_CACHE, fetch, member_path, missing_manual
 from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
                         without_sources)
 from .idlock import IdLock, load_lock, write_lock
-from .labels import (crop, load_label_image, load_members, mapping_for, member_masks, merge,
-                     read_label_names, relabel, source_values)
+from .labels import (crop, load_label_image, load_members, mapping_for, merge,
+                     read_label_names, relabel, separate_natives, source_values)
 from .meshing import levels, surface
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
@@ -157,7 +157,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         problems += [f"source {spec.source.id}: drop value {value} is not in the source"
                      for value in sorted(dropped - values)]
     planned = with_xrefs(planned, names)
-    volumes = []
+    volumes, fills = [], []
     for vspec in recipe.volumes:
         if vspec.name in skipped_volumes:
             continue
@@ -165,15 +165,16 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                   for s in sources if s.volume == vspec.name]
         grid = nib.as_closest_canonical(images[vspec.grid_source])
         volumes.append((vspec, merge(grid, layers), grid.affine))
+        fill = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
+                for s in sources if s.volume == vspec.name and s.fill]
+        if fill:
+            fills.append((vspec.name, merge(grid, fill), grid.affine))
     grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
     natives = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
                     images[s.source.id].affine)
                for s in sources if s.mesh_grid == "native" and not s.separate]
     for s in (s for s in sources if s.separate):
-        mapping = mapping_for(s.source.id, planned)
-        natives += [crop(inside.astype(np.uint16) * mapping[value], affine)
-                    for value, inside, affine in member_masks(s, archives[s.source.id])
-                    if value in mapping]
+        natives += separate_natives(s, archives[s.source.id], mapping_for(s.source.id, planned))
     native_ids = set().union(*(present(data) for data, _ in natives))
     tract_rows: list[tuple[int, np.ndarray]] = []
     for spec in recipe.tracts:
@@ -253,7 +254,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
                       src / "knowledge", licence_files, report, templates, tracts,
                       for_package(pathways, {r.id: r.name for r in raws}, left_out), included,
-                      timelines=timelines)
+                      timelines=timelines, fills=fills)
         size = sum(p.stat().st_size for p in package.rglob("*") if p.is_file())
         with (package / "build-report.md").open("a", encoding="utf-8") as report_file:
             report_file.write(f"- package size: {size / 1e6:.1f} MB\n")

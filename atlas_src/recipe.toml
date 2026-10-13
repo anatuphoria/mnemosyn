@@ -332,6 +332,7 @@ priority = 0
 mesh_grid = "native"
 crop = true
 margin = 10
+fill = true
 
 [[sources]]
 id = "pam50-atlas"

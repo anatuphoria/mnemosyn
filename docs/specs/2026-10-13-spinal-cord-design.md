@@ -106,19 +106,26 @@ between members still go to the member listed first and are counted in the build
 `separate = true` (members and a native grid only) each member's 3D shape is meshed from its own
 mask; the overlap rule then applies only to the label volume.
 
-### 4.2 Crop margin
+### 4.2 Fill layer
+
+A source with `fill = true` is also merged on its own into a second label layer of its volume,
+written as `volumes/<name>-fill.nii.gz` (role `fill`). `pam50` sets it, so the segments survive
+under the tracts that cover almost all white matter at threshold 0.3 (owner's decision,
+2026-10-13).
+
+### 4.3 Crop margin
 
 A source with `crop = true` may set `margin` in millimetres; the read box grows by that much on
 every side, clamped to the image. `pam50` uses `margin = 10`.
 
-### 4.3 The spine volume
+### 4.4 The spine volume
 
 - `recipe.toml` gains `[[volumes]] name = "spine", space = "PAM50", grid_source = "pam50"`.
 - A volume's grid is stored in RAS orientation: when its grid source is not RAS, the build turns
   the grid to the closest RAS orientation before merging labels and resampling the template.
 - With the 10 mm margin the spine grid is about 64 x 60 x 952 voxels of 0.5 mm.
 
-### 4.4 Local-only volumes and templates
+### 4.5 Local-only volumes and templates
 
 - Templates may be `local_only`, with the same rules as label sources.
 - A volume whose grid source is local-only is allowed when every source and template of that
@@ -132,7 +139,7 @@ every side, clamped to the image. `pam50` uses `margin = 10`.
 ### 5.1 Loader
 
 - `Atlas.templates` maps a label volume's name to its template; `Atlas.template` stays the
-  template of the first volume.
+  template of the first volume. `Atlas.fills` maps a label volume's name to its fill layer.
 - Packages with one volume behave as today.
 
 ### 5.2 Slice panel
@@ -140,7 +147,10 @@ every side, clamped to the image. `pam50` uses `margin = 10`.
 - When the atlas has more than one label volume, the panel shows one button per volume, named
   `Brain` (brain) and `Spinal cord` (spine); otherwise nothing changes.
 - The chosen volume gives the slices, slider range, template, hover names and clicks; switching
-  keeps the axis and moves to the middle of the new volume.
+  keeps the axis and returns to the last position used in that volume (its middle the first
+  time).
+- Where a voxel's label is hidden (for example a spinal tract before T) or empty, the slice shows
+  and names the fill label instead, so cord white matter shows its segment.
 - `Centre on selection (C)` switches to the volume that holds the selection's voxels.
 - The axial view is the useful cord view; coronal and sagittal show the full cord as a narrow
   strip. Slice zoom is out of scope.

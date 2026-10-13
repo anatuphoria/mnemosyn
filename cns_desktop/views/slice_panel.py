@@ -31,6 +31,8 @@ class SlicePanel(QWidget):
         atlas = state.atlas
         self.labels = atlas.volumes[0] if atlas.volumes else None
         self.template = atlas.template
+        self.fill = atlas.fills.get(self.labels.name) if self.labels is not None else None
+        self._last_mm: dict[tuple[str, str], float] = {}
         self.colors = slices.color_table(atlas.structures)
         self.opacity = slices.DEFAULT_OPACITY
         self.image: np.ndarray | None = None
@@ -137,6 +139,7 @@ class SlicePanel(QWidget):
             self.state.set_slice(axis, snapped)
             return
         self.index = index
+        self._last_mm[(self.labels.name, axis)] = snapped
         with QSignalBlocker(self.slider):
             self.slider.setRange(0, slices.slice_count(shape, axis) - 1)
             self.slider.setValue(index)
@@ -150,11 +153,12 @@ class SlicePanel(QWidget):
             return
         self.labels = volume
         self.template = self.state.atlas.templates.get(name)
+        self.fill = self.state.atlas.fills.get(name)
         if name in self.volume_buttons:
             self.volume_buttons[name].setChecked(True)
         axis = self.state.slice_axis
         middle = volume.shape[slices.AXIS_INDEX[axis]] // 2
-        mm = slices.mm_for_index(volume.affine, axis, middle)
+        mm = self._last_mm.get((name, axis), slices.mm_for_index(volume.affine, axis, middle))
         if mm == self.state.slice_mm:
             self._on_slice_changed(axis, mm)
         else:
@@ -193,13 +197,16 @@ class SlicePanel(QWidget):
         self.redraw_count += 1
         axis = self.state.slice_axis
         labels_2d = slices.extract(self.labels.data, self.labels.affine, axis, self.index)
+        size = len(self.colors)
+        hidden = slices.mask_table(size, [i for i in self.state.geometry_ids
+                                          if not self._shown(i)])
+        if self.fill is not None:
+            fill_2d = slices.extract(self.fill.data, self.fill.affine, axis, self.index)
+            labels_2d = np.where(hidden[labels_2d] | (labels_2d == 0), fill_2d, labels_2d)
         template_2d = None
         if self.template is not None:
             template_2d = slices.extract(self.template.data, self.template.affine, axis,
                                          self.index)
-        size = len(self.colors)
-        hidden = slices.mask_table(size, [i for i in self.state.geometry_ids
-                                          if not self._shown(i)])
         chosen = self.state.highlighted_ids()
         selected = slices.mask_table(size, chosen)
         self.image = slices.compose(labels_2d, template_2d, self.colors, hidden, selected,
@@ -216,9 +223,11 @@ class SlicePanel(QWidget):
         return not self.state.is_hidden(structure_id) and self.state.in_focus(structure_id)
 
     def _tracts_ready(self) -> bool:
-        return (self.tracts is not None and self.labels is not None
-                and self.tracts.shape == tuple(self.labels.shape)
-                and np.allclose(self.tracts.affine, self.labels.affine))
+        return self.labels is not None and self._tracts_on(self.labels)
+
+    def _tracts_on(self, volume) -> bool:
+        return (self.tracts is not None and self.tracts.shape == tuple(volume.shape)
+                and np.allclose(self.tracts.affine, volume.affine))
 
     def _coords(self, structure_id: int) -> tuple[np.ndarray, ...]:
         if structure_id not in self._tract_coords:
@@ -255,6 +264,9 @@ class SlicePanel(QWidget):
             if preferred or visible:
                 return (preferred or visible)[0]
         label = self.labels.label_at(point)
+        if self.fill is not None and not (label and label in self.state.atlas
+                                          and self._shown(label)):
+            label = self.fill.label_at(point) or label
         structure_id = label if label and label in self.state.atlas else None
         if structure_id is None or not self._shown(structure_id):
             return None
@@ -280,7 +292,7 @@ class SlicePanel(QWidget):
                                  if v is not self.labels and slices.is_ras(v.affine)]
         for volume in order:
             centre = slices.centre_from_table(self._centres_of(volume), volume.affine, ids)
-            if centre is None and volume is self.labels and self._tracts_ready():
+            if centre is None and self._tracts_on(volume):
                 coords = [self._coords(i) for i in ids if self.tracts.size(i)]
                 if coords:
                     voxel = [float(np.concatenate([c[a] for c in coords]).mean())

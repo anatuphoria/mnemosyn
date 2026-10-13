@@ -129,3 +129,44 @@ def test_one_volume_selection_keeps_the_camera(qapp, toy_atlas, tmp_path):
     w.state.select(101)
     assert w.view.camera_position == before
     w.close()
+
+
+def test_hidden_spinal_tracts_show_the_segment_beneath(window):
+    panel = window.slices
+    panel.volume_buttons["spine"].click()
+    window.state.set_slice("axial", -180.0)
+
+    def names():
+        return [panel.structure_at_pixel(r, c) for r in range(panel.image.shape[0])
+                for c in range(panel.image.shape[1])]
+
+    hidden = names()
+    window.state.set_hidden([220], False)
+    shown = names()
+    assert shown.count(220) > 0 and set(hidden) - {None} == {200}
+    assert hidden.count(200) == shown.count(200) + shown.count(220)
+
+
+def test_centre_on_a_brain_tract_returns_to_the_brain(window):
+    window.state.set_slice_volume("spine")
+    window.state.select(151)
+    window.slices.centre_on_selection()
+    assert window.state.slice_volume == "brain"
+
+
+def test_each_volume_remembers_its_slice(window):
+    window.state.set_slice("axial", 20.0)
+    brain_mm = window.state.slice_mm
+    window.slices.volume_buttons["spine"].click()
+    window.slices.volume_buttons["brain"].click()
+    assert window.state.slice_mm == brain_mm
+
+
+def test_selecting_a_group_reads_no_meshes(window, monkeypatch):
+    reads = []
+    real = window.state.atlas.mesh
+    monkeypatch.setattr(window.state.atlas, "mesh",
+                        lambda *a, **k: reads.append(a) or real(*a, **k))
+    window.state.select(2)
+    window.state.select(200)
+    assert reads == []

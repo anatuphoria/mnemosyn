@@ -72,6 +72,16 @@ def member_masks(spec: SourceSpec, archive: Path):
         yield value, inside, affine
 
 
+def separate_natives(spec: SourceSpec, archive: Path, mapping: dict[int, int]
+                     ) -> list[tuple[np.ndarray, np.ndarray]]:
+    natives = []
+    for value, inside, affine in member_masks(spec, archive):
+        if value in mapping:
+            data, cropped_affine = crop(inside, affine)
+            natives.append((data.astype(np.uint16) * mapping[value], cropped_affine))
+    return natives
+
+
 def load_members(spec: SourceSpec, archive: Path) -> tuple[nib.Nifti1Image, int]:
     out, affine, lost = None, None, 0
     for value, inside, affine in member_masks(spec, archive):
