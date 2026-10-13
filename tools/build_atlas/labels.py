@@ -34,16 +34,17 @@ def _box(proxy) -> tuple[np.ndarray, np.ndarray] | None:
     return None if lo is None else (lo, hi)
 
 
-def load_label_image(path: Path, mask: bool = False, name: str = "",
-                     cropped: bool = False) -> nib.Nifti1Image:
+def load_label_image(path: Path, mask: bool = False, name: str = "", cropped: bool = False,
+                     threshold: float | None = None, margin: float = 0.0) -> nib.Nifti1Image:
     image = nib.load(path, keep_file_open=True) if cropped else nib.load(path)
     affine = image.affine
     if cropped:
         box = _box(image.dataobj)
         if box is None:
             raise BuildError([f"source {name}: has no labels"])
-        lo = np.maximum(box[0] - 1, 0)
-        hi = np.minimum(box[1] + 2, image.shape[:3])
+        pad = np.ceil(margin / np.asarray(image.header.get_zooms()[:3], dtype=float)).astype(int)
+        lo = np.maximum(box[0] - 1 - pad, 0)
+        hi = np.minimum(box[1] + 2 + pad, image.shape[:3])
         data = np.asarray(image.dataobj[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]])
         shift = np.eye(4)
         shift[:3, 3] = lo
@@ -51,7 +52,8 @@ def load_label_image(path: Path, mask: bool = False, name: str = "",
     else:
         data = np.asarray(image.dataobj)
     if mask:
-        data = np.nan_to_num(data) != 0
+        data = np.nan_to_num(data)
+        data = data >= threshold if threshold is not None else data != 0
     elif not np.issubdtype(data.dtype, np.integer) and np.any(data != np.rint(data)):
         raise BuildError([f"source {name}: label values are not whole numbers; set mask = true"])
     return nib.Nifti1Image(data.astype(np.int32), affine)
@@ -65,7 +67,8 @@ def load_members(spec: SourceSpec, archive: Path) -> tuple[nib.Nifti1Image, int]
             out, affine = np.zeros(image.shape[:3], dtype=np.int32), image.affine
         elif image.shape[:3] != out.shape or not np.allclose(image.affine, affine):
             raise BuildError([f"source {spec.source.id}: member {name} is on another grid"])
-        inside = np.nan_to_num(np.asarray(image.dataobj)).reshape(out.shape) != 0
+        values = np.nan_to_num(np.asarray(image.dataobj)).reshape(out.shape)
+        inside = values >= spec.threshold if spec.threshold is not None else values != 0
         lost += int((inside & (out != 0)).sum())
         out[inside & (out == 0)] = value
     return nib.Nifti1Image(out, affine), lost

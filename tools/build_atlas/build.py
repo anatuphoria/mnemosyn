@@ -140,7 +140,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         else:
             images[spec.source.id] = load_label_image(member_path(spec, archive, spec.member),
                                                        spec.mask, spec.source.id,
-                                                       cropped=spec.crop)
+                                                       cropped=spec.crop,
+                                                       threshold=spec.threshold,
+                                                       margin=spec.margin)
         if spec.label_names:
             names[spec.source.id] = read_label_names(member_path(spec, archive, spec.label_names))
     for spec in sources:
