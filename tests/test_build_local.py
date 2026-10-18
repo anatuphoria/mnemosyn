@@ -212,4 +212,6 @@ def test_the_report_has_warnings_size_and_plurals(local_src, tmp_path):
     report = (out / "build-report.md").read_text()
     assert "- source toylocal: 1 structure\n" in report
     assert "- warnings:" in report
-    assert report.rstrip().splitlines()[-1].startswith("- package size: ")
+    lines = report.rstrip().splitlines()
+    assert lines[-3].startswith("- package size: ") and lines[-2].startswith("- build time: ")
+    assert lines[-1].startswith("- peak build memory: ") and lines[-1].endswith(" MB")

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import shutil
+import sys
 import tempfile
+import time
 from pathlib import Path
 
 import nibabel as nib
@@ -32,6 +34,15 @@ from .writer import write_package
 
 
 SMALL_VOXELS = 100
+
+
+def peak_memory_mb() -> float | None:
+    try:
+        import resource
+    except ImportError:
+        return None
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return peak / 1e6 if sys.platform == "darwin" else peak / 1024
 
 
 def present(data: np.ndarray) -> set[int]:
@@ -102,6 +113,7 @@ def _replaceable(out: Path) -> bool:
 
 def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
           local: bool = False, manual_dir: Path | None = None) -> Path:
+    started = time.perf_counter()
     src, out = Path(src), Path(out)
     if not _replaceable(out):
         raise BuildError([f"{out}: exists and is not an atlas package; refusing to replace it"])
@@ -333,6 +345,10 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         size = sum(p.stat().st_size for p in package.rglob("*") if p.is_file())
         with (package / "build-report.md").open("a", encoding="utf-8") as report_file:
             report_file.write(f"- package size: {size / 1e6:.1f} MB\n")
+            report_file.write(f"- build time: {time.perf_counter() - started:.0f} s\n")
+            peak = peak_memory_mb()
+            if peak is not None:
+                report_file.write(f"- peak build memory: {peak:.0f} MB\n")
         previous = staging / "previous"
         if out.exists():
             out.replace(previous)

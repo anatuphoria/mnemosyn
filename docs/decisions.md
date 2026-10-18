@@ -48,6 +48,7 @@ entry replaces it and the old one says so.
 | 40 | 2026-10-18 | Spinal tracts tile the white matter | in force |
 | 41 | 2026-10-18 | Colours that neighbours can tell apart | in force |
 | 42 | 2026-10-18 | Tiny spinal tracts stay in the atlas and the quizzes | in force |
+| 43 | 2026-10-18 | Speed limits for first use, groups, hiding and the slider | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -361,3 +362,14 @@ Design: [the cord's look and colours, section 6](specs/2026-10-18-cord-colours-d
 longitudinal fasciculus (69 voxels a side) come out very small once the tracts tile, but they stay
 in the atlas and in the tract quizzes like every other tract.
 Why: they are real tracts students meet in textbooks; the build report lists them as small shapes.
+
+## 43. Speed limits for first use, groups, hiding and the slider
+
+2026-10-18. Every route step, the first step into the cord included, stays under 30 ms; the first
+selection of the CNS, Brain or Spinal cord stays under 20 ms with its redraw, like later ones; the
+Tracts group under 40 ms (was 50); hiding, showing or isolating any group under 30 ms; one step of
+the slice slider under 16 ms. First-use work happens in idle steps right after the first frame.
+Timing tests run in fresh processes and judge medians, so only a real slowdown fails them.
+Why: the owner cannot measure the app; every action a person takes must feel instant and be
+guarded by a test that does not cry wolf.
+Design: [speed](specs/2026-10-18-speed-design.md).

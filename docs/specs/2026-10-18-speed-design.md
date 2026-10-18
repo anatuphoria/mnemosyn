@@ -1,7 +1,7 @@
 # Speed (audit fix, project 4 of 6)
 
 Date: 2026-10-18
-Status: described in discussion; builder check done; awaiting the owner's review
+Status: approved by the owner on 2026-10-18; built on `spinal-cord`
 Branch: `spinal-cord` (C2 stays unmerged until every audit item is fixed)
 Audit: `.superpowers/audit-2026-10-18.md` section 2 (old audit items 17, 21 and 23)
 

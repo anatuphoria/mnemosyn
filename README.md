@@ -155,18 +155,24 @@ instead. Every build needs the Harvard Ascending Arousal Network Atlas (CC0, fro
 |---|---|
 | Desktop, 166 structures, integrated GPU | display refresh rate (144 Hz) |
 
-The 3D view draws every structure with one composite object and picks with the GPU, so it
-scales to thousands of structures; it switches to a lighter level of detail when the scene
-exceeds 3 million triangles. Budgets enforced by `pytest -m perf`: opening a 5,000-structure
-atlas under 200 ms, search under 10 ms per keystroke, a slice under 5 ms. With the real atlas
-built, `pytest -m slow` checks start to first frame under 2 s, the app's own memory under
-400 MB (shared libraries such as Qt and VTK not counted, since how much of them is resident
-depends on what the system has cached), selection under 7 ms, a generated 3,500-structure scene at 60 fps or more, and quiz timing: a
-quiz starts under 100 ms, moves to the next question under 50 ms and checks a typed answer
-under 1 ms. Tracts are built the first time they are shown (under 500 ms), then show or hide
-in under 50 ms; a slice with every tract outlined redraws in under 10 ms. Entering a pathway
-or switching its side takes under 100 ms, a step under
-30 ms, and a playing timeline updates in under 5 ms per tick.
+The 3D view draws the grey matter as a few composite objects of neighbouring structures, so
+showing or hiding shapes rebuilds only the pieces that changed, and picks with the GPU; it
+switches to a lighter level of detail when the scene exceeds 3 million triangles. Right after the
+first frame the app loads the slice volumes, their label centres and the outlines in small idle
+steps, so nothing is loaded the first time it is used. Budgets enforced by `pytest -m perf`:
+opening a 5,000-structure atlas under 200 ms, search under 10 ms per keystroke, a slice under
+5 ms. With the real atlas built, `pytest -m slow` checks, each in a fresh process on the median
+of repeated runs: first frame under 2 s; the app's own memory under 400 MB, also once everything
+is loaded (shared libraries such as Qt and VTK not counted, since how much of them is resident
+depends on what the system has cached); selecting a structure under 7 ms and under 16 ms with its
+redraw; the CNS, Brain or Spinal cord under 20 ms with its redraw, the first time too; the Tracts
+group under 40 ms; hiding, showing or isolating any group under 30 ms; one step of the slice
+slider under 16 ms; a generated 3,500-structure scene at 60 fps or more; a quiz starting under
+100 ms, moving on under 50 ms and checking a typed answer under 1 ms; tracts built the first time
+they are shown under 500 ms, then shown or hidden in under 50 ms, a slice with every tract
+outlined redrawn in under 10 ms; entering a pathway or switching its side under 100 ms, every
+step of every pathway under 30 ms, and a playing timeline updated in under 5 ms per tick. The
+build report records the build time and peak memory.
 
 ## Tests
 
