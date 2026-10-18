@@ -50,7 +50,7 @@ def test_tracts_start_hidden_and_unbuilt(window):
     assert window.state.tract_ids == TRACT_LEAVES
     assert all(window.state.is_hidden(i) for i in TRACT_LEAVES)
     assert not any(window.state.is_hidden(i) for i in GREY)
-    assert window.view.tract_actor is None and window.view.tract_builds == 0
+    assert window.view.tract_actors == {} and window.view.tract_builds == 0
     assert window.tree.items[150].checkState(0) == Qt.CheckState.Unchecked
     assert window.tree.items[2].checkState(0) == Qt.CheckState.PartiallyChecked
 
@@ -102,7 +102,7 @@ def test_a_shown_tract_can_be_picked_in_3d(window):
 def test_the_tracts_action_is_harmless_without_a_tract_layer(qapp, toy_atlas, tmp_path):
     w = open_window(qapp, toy_atlas, tmp_path)
     w.shortcuts["Tracts"].trigger()
-    assert w.state.tract_ids == () and w.view.tract_actor is None
+    assert w.state.tract_ids == () and w.view.tract_actors == {}
     w.close()
 
 
@@ -285,16 +285,14 @@ def test_a_tract_shown_from_the_tree_checkbox_stays(window):
     assert shown(state, (160,)) == [True]
 
 
-def test_hiding_never_switches_blocks_off(window):
+def test_each_tract_is_its_own_object_and_hidden_ones_are_not_drawn(window):
     view = window.view
     window.shortcuts["Tracts"].trigger()
-    window.shortcuts["Tracts"].trigger()
-    for structure_id in (151, 160):
-        block = view.blocks[structure_id]
-        assert view.tract_attributes.GetBlockVisibility(block)
-        assert view.tract_attributes.GetBlockOpacity(block) == 0.0
-        assert not view.tract_attributes.GetBlockPickability(block)
-        assert not view.is_drawn(structure_id)
+    assert set(view.tract_actors) == set(window.state.tract_ids)
+    assert len({id(a) for a in view.tract_actors.values()}) == len(view.tract_actors)
+    window.state.set_hidden([151], True)
+    assert not view.tract_actors[151].GetVisibility() and not view.is_drawn(151)
+    assert view.tract_actors[160].GetVisibility() and view.is_drawn(160)
     window.state.set_hidden([101], True)
-    assert view.attributes.GetBlockVisibility(view.blocks[101])
+    assert not view.attributes.GetBlockVisibility(view.blocks[101])
     assert not view.is_drawn(101)

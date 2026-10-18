@@ -59,7 +59,7 @@ def test_selection_adds_no_geometry(qapp, toy_atlas, tmp_path):
 
 def test_a_first_tract_selection_is_outlined(qapp, toy_tract_atlas, tmp_path):
     w = open_window(qapp, toy_tract_atlas, tmp_path)
-    assert w.view.tract_actor is None
+    assert w.view.tract_actors == {}
     w.state.select(151)
     assert 151 in w.view.overlay_ids and 151 in w.view.outline.shown
     w.close()

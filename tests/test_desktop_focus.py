@@ -76,8 +76,8 @@ def test_tracts_built_after_the_focus_take_it(window):
     view = window.view
     window.state.set_focus(ROUTE)
     window.state.set_hidden([151, 152], False)
-    assert view.tract_attributes.GetBlockOpacity(view.blocks[151]) == pytest.approx(FAINT)
-    assert view.tract_attributes.GetBlockOpacity(view.blocks[152]) == 1.0
+    assert view.tract_actors[151].GetProperty().GetOpacity() == pytest.approx(FAINT)
+    assert view.tract_actors[152].GetProperty().GetOpacity() == 1.0
 
 
 def test_the_overlay_follows_the_emphasis(window):

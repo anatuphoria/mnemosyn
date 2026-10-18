@@ -9,7 +9,8 @@ from pyvistaqt import QtInteractor
 from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkCommonDataModel import vtkMultiBlockDataSet
 from vtkmodules.vtkRenderingCore import (vtkActor, vtkCompositeDataDisplayAttributes,
-                                         vtkCompositePolyDataMapper, vtkHardwarePicker)
+                                         vtkCompositePolyDataMapper, vtkHardwarePicker,
+                                         vtkPolyDataMapper)
 
 from ..lod import choose_lod, face_totals
 from ..slices import AXIS_INDEX
@@ -68,12 +69,13 @@ class BrainView(QtInteractor):
         for structure_id in self.ids:
             block = self.blocks[structure_id]
             self.attributes.SetBlockColor(block, _rgb(state.atlas.get(structure_id).rgb_triplet))
+            self.attributes.SetBlockVisibility(block, not state.is_hidden(structure_id))
         self.renderer.AddActor(self.actor)
         self._apply_focus(self.attributes, self.ids)
         self.outline = OutlineLayer(self.ren_win, self.renderer)
         self.outline.add_blocks(self.ids, [self.blocks[i] for i in self.ids])
-        self.tract_actor: vtkActor | None = None
-        self.tract_attributes = None
+        self.tract_actors: dict[int, vtkActor] = {}
+        self._tract_of: dict[vtkActor, int] = {}
         self.tract_lod: int | None = None
         self.tract_builds = 0
         self._extents: dict[int, tuple] = {}
@@ -133,56 +135,65 @@ class BrainView(QtInteractor):
             self.render()
 
     def is_drawn(self, structure_id: int) -> bool:
+        if structure_id in self.tract_actors:
+            return bool(self.tract_actors[structure_id].GetVisibility())
         block = self.blocks.get(structure_id)
-        attributes = self._attributes_for(structure_id)
-        return (block is not None and attributes is not None
-                and not (attributes.HasBlockOpacity(block)
-                         and attributes.GetBlockOpacity(block) == 0.0))
+        return (block is not None and structure_id not in self._tract_set
+                and bool(self.attributes.GetBlockVisibility(block)))
 
     def set_grey_opacity(self, opacity: float) -> None:
         self.actor.GetProperty().SetOpacity(opacity)
         self._request_render()
 
-    def _attributes_for(self, structure_id: int):
-        return self.tract_attributes if structure_id in self._tract_set else self.attributes
-
     def _apply_focus(self, attributes, ids) -> None:
         focus = self.state.focus
+        if focus is None:
+            attributes.RemoveBlockOpacities()
+            attributes.RemoveBlockPickabilities()
+            return
         for structure_id in ids:
             block = self.blocks[structure_id]
-            shown = not self.state.is_hidden(structure_id)
-            if shown and focus is None:
-                attributes.RemoveBlockOpacity(block)
-                attributes.RemoveBlockPickability(block)
-                continue
-            in_focus = focus is None or structure_id in focus
-            attributes.SetBlockOpacity(block, (1.0 if in_focus else FAINT) if shown else 0.0)
-            attributes.SetBlockPickability(block, shown and in_focus)
+            attributes.SetBlockOpacity(block, 1.0 if structure_id in focus else FAINT)
+            attributes.SetBlockPickability(block, structure_id in focus)
+
+    def _style_tract(self, structure_id: int) -> None:
+        actor = self.tract_actors[structure_id]
+        shown = not self.state.is_hidden(structure_id)
+        in_focus = self.state.in_focus(structure_id)
+        actor.SetVisibility(shown)
+        actor.GetProperty().SetOpacity(1.0 if in_focus else FAINT)
+        actor.SetPickable(shown and in_focus)
 
     def _on_focus_changed(self, _focus) -> None:
         self._apply_focus(self.attributes, self.ids)
-        if self.tract_attributes is not None:
-            self._apply_focus(self.tract_attributes, self.tract_ids)
+        for structure_id in self.tract_actors:
+            self._style_tract(structure_id)
         self._request_render()
 
     def prepare_tracts(self) -> None:
         self._ensure_tracts()
 
     def _ensure_tracts(self) -> None:
-        if self.tract_actor is not None or not self.tract_ids:
+        if self.tract_actors or not self.tract_ids:
             return
         atlas = self.state.atlas
         self.tract_lod = choose_lod(face_totals(atlas, self.tract_ids))
         for structure_id in self.tract_ids:
-            self.blocks[structure_id] = _polydata(atlas.mesh(structure_id, self.tract_lod))
-        actor, _, attributes = _composite([self.blocks[i] for i in self.tract_ids])
-        for structure_id in self.tract_ids:
-            block = self.blocks[structure_id]
-            attributes.SetBlockColor(block, _rgb(atlas.get(structure_id).rgb_triplet))
-        self._apply_focus(attributes, self.tract_ids)
-        self.tract_actor, self.tract_attributes = actor, attributes
+            block = self.blocks[structure_id] = _polydata(atlas.mesh(structure_id, self.tract_lod))
+            mapper = vtkPolyDataMapper()
+            mapper.SetInputData(block)
+            mapper.ScalarVisibilityOff()
+            actor = vtkActor()
+            actor.SetMapper(mapper)
+            prop = actor.GetProperty()
+            prop.SetColor(*_rgb(atlas.get(structure_id).rgb_triplet))
+            prop.SetInterpolationToGouraud()
+            prop.SetSpecular(0.15)
+            self.renderer.AddActor(actor)
+            self.tract_actors[structure_id] = actor
+            self._tract_of[actor] = structure_id
+            self._style_tract(structure_id)
         self.tract_builds += 1
-        self.renderer.AddActor(actor)
         self.outline.add_blocks(self.tract_ids, [self.blocks[i] for i in self.tract_ids])
 
     def _event_pos(self) -> tuple[int, int]:
@@ -203,11 +214,12 @@ class BrainView(QtInteractor):
         """VTK display coords: origin is bottom-left."""
         self._picker.Pick(x, y, 0, self.renderer)
         actor = self._picker.GetActor()
-        index = self._picker.GetFlatBlockIndex() - 1
-        for candidate, ids in ((self.actor, self.ids), (self.tract_actor, self.tract_ids)):
-            if candidate is not None and actor is candidate:
-                return ids[index] if 0 <= index < len(ids) else None
-        return None
+        if actor is None:
+            return None
+        if actor is self.actor:
+            index = self._picker.GetFlatBlockIndex() - 1
+            return self.ids[index] if 0 <= index < len(self.ids) else None
+        return self._tract_of.get(actor)
 
     def zoom_at(self, x: int, y: int, factor: float) -> None:
         camera = self.renderer.GetActiveCamera()
@@ -261,9 +273,11 @@ class BrainView(QtInteractor):
         if any(i in self._tract_set and not self.state.is_hidden(i) for i in ids):
             self._ensure_tracts()
         for structure_id in ids:
-            attributes = self._attributes_for(structure_id)
-            if structure_id in self.blocks and attributes is not None:
-                self._apply_focus(attributes, [structure_id])
+            if structure_id in self.tract_actors:
+                self._style_tract(structure_id)
+            elif structure_id in self.blocks and structure_id not in self._tract_set:
+                self.attributes.SetBlockVisibility(self.blocks[structure_id],
+                                                   not self.state.is_hidden(structure_id))
         if any(i in ids for i in self.highlighted):
             self._refresh_overlay()
         self._request_render()
