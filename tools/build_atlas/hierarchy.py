@@ -9,9 +9,11 @@ from .recipe import BuildError, read_toml
 
 DEFAULT_COLOR = (170, 170, 180)
 SHADE_SPAN = 0.15
+ALTERNATE = 0.18
+PALETTES = ("alternate", "distinct")
 SIDED = ("left", "right")
-GROUP_KEYS = {"id", "parent", "acronym", "name", "color", "synonyms", "xrefs"}
-CONCEPT_KEYS = GROUP_KEYS | {"kind", "left", "right", "midline", "source"}
+GROUP_KEYS = {"id", "parent", "acronym", "name", "color", "synonyms", "xrefs", "palette"}
+CONCEPT_KEYS = GROUP_KEYS - {"palette"} | {"kind", "left", "right", "midline", "source"}
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,7 @@ class RawStructure:
     xrefs: dict
     sources: tuple[str, ...]
     labels: tuple[LabelRef, ...]
+    palette: str | None = None
 
 
 @dataclass(frozen=True)
@@ -97,7 +100,7 @@ def load_structures(path: Path) -> list[RawStructure]:
         problems += found
         if not found:
             raws.append(_raw(record, kind="group", side="none", concept=None, sources=(),
-                             labels=()))
+                             labels=(), palette=record.get("palette")))
     for record in data.get("concepts", []):
         found = _record_problems(record, CONCEPT_KEYS, "concept")
         problems += found
@@ -164,7 +167,11 @@ def build_tree(raws: list[RawStructure]) -> list[PlannedStructure]:
         kids = children.get(structure_id, [])
         shaded = [c for c in kids if by_id[c].color is None and by_id[c].side not in SIDED
                   and by_id[c].kind != "group"]
-        factors = sibling_factors(shaded) if shaded else {}
+        if r.palette == "alternate":
+            factors = {c: ALTERNATE if k % 2 == 0 else -ALTERNATE
+                       for k, c in enumerate(sorted(shaded))}
+        else:
+            factors = sibling_factors(shaded) if shaded else {}
         for child in sorted(kids, reverse=True):
             tone = shade(color, factors[child]) if child in factors else color
             stack.append((child, path, tone))

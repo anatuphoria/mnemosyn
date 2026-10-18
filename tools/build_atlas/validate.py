@@ -7,7 +7,7 @@ import numpy as np
 from cns_atlas.knowledge import KnowledgeError, Reference, parse_entry
 from cns_atlas.model import KINDS, SIDES
 
-from .hierarchy import PlannedStructure, RawStructure
+from .hierarchy import PALETTES, PlannedStructure, RawStructure
 from .idlock import IdLock
 from .recipe import MESH_GRIDS, Recipe
 
@@ -27,6 +27,8 @@ def check_hierarchy(raws: list[RawStructure]) -> list[str]:
             problems.append(f"structure {r.id}: unknown kind {r.kind!r}")
         if r.side not in SIDES:
             problems.append(f"structure {r.id}: unknown side {r.side!r}")
+        if r.palette is not None and r.palette not in PALETTES:
+            problems.append(f"group {r.id}: unknown palette {r.palette!r}")
     roots = [r.id for r in raws if r.parent is None]
     if len(roots) != 1:
         problems.append(f"expected exactly one root, found {len(roots)}: {roots}")

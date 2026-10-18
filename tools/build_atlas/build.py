@@ -12,6 +12,7 @@ from cns_atlas.knowledge import KnowledgeError, load_references
 from cns_atlas.meshes import LODS, MeshData
 from cns_atlas.model import Structure
 
+from .colours import recolour
 from .fetch import DEFAULT_CACHE, fetch, member_path, missing_manual
 from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
                         without_sources)
@@ -237,7 +238,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                 for level, mesh_data in zip(meshes, built):
                     level[p.structure.id] = mesh_data
 
-    structures = [p.structure for p in planned]
+    structures = recolour([p.structure for p in planned],
+                          {r.id for r in raws if r.palette == "distinct"},
+                          {r.id for r in raws if r.color is not None}, meshes[0])
     problems = check_pathways(pathways, structures, set(meshes[0]), left_out)
     if problems:
         raise BuildError(problems)
