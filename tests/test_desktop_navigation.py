@@ -189,3 +189,36 @@ def test_dragging_up_tilts_the_model_like_grabbing_it(window):
     assert elevation(view) == pytest.approx(before - 50 * 0.4, abs=1e-3)
     drag(view, "Left", x, y, 0, -50)
     assert elevation(view) == pytest.approx(before, abs=1e-3)
+
+
+def on_screen(view, point):
+    view.renderer.SetWorldPoint(*point, 1.0)
+    view.renderer.WorldToDisplay()
+    return np.array(view.renderer.GetDisplayPoint()[:2])
+
+
+def panned(view):
+    width, height = view.ren_win.GetSize()
+    drag(view, "Right", width // 2, height // 2, 120, 40)
+
+
+def test_turning_keeps_the_grabbed_point_in_place(window):
+    view = window.view
+    panned(view)
+    x, y = structure_pixel(view)
+    view.structure_at(x, y)
+    point = np.array(view._picker.GetPickPosition())
+    before = on_screen(view, point)
+    drag(view, "Left", x, y, 60, 35)
+    assert np.allclose(on_screen(view, point), before, atol=0.5)
+
+
+def test_turning_on_empty_space_keeps_the_brain_centre_in_place(window):
+    view = window.view
+    panned(view)
+    b = view.scene_bounds
+    centre = np.array([(b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2])
+    assert view.structure_at(2, 2) is None
+    before = on_screen(view, centre)
+    drag(view, "Left", 2, 2, 60, 35)
+    assert np.allclose(on_screen(view, centre), before, atol=0.5)
