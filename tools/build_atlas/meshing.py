@@ -33,6 +33,13 @@ def _contour(crop: np.ndarray, lo: np.ndarray, affine: np.ndarray, sigma: np.nda
     return mesh
 
 
+def _centroid(mesh: pv.PolyData) -> np.ndarray:
+    points = np.asarray(mesh.points, dtype=float)
+    a, b, c = (points[np.asarray(mesh.regular_faces)[:, k]] for k in range(3))
+    volumes = np.einsum("ij,ij->i", a, np.cross(b, c))
+    return (volumes[:, None] * (a + b + c)).sum(axis=0) / (4.0 * volumes.sum())
+
+
 def _pieces(mesh: pv.PolyData) -> int:
     return len(np.unique(mesh.connectivity().point_data["RegionId"]))
 
@@ -55,7 +62,7 @@ def surface(volume: np.ndarray, affine: np.ndarray, label: int, iterations: int,
         if not mesh.n_points or _pieces(mesh) > allowed:
             continue
         error = abs(mesh.volume / voxels - 1)
-        close = np.linalg.norm(np.asarray(mesh.points).mean(axis=0) - centre)
+        close = np.linalg.norm(_centroid(mesh) - centre)
         if error < VOLUME_TOLERANCE and close < CENTRE_TOLERANCE_MM:
             return mesh
         if close < CENTRE_TOLERANCE_MM and error < best_error:

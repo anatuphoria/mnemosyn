@@ -43,6 +43,12 @@ def test_blur_removes_the_staircase():
     assert terraces(mesh_of(volume, blur_mm=1.0)) < 0.6 * terraces(mesh_of(volume, blur_mm=0.0))
 
 
+def test_shapes_with_much_more_surface_on_one_side_are_still_smoothed():
+    volume = tilted()
+    volume[2:38, 1:3, 3:38] = 1
+    assert terraces(mesh_of(volume, blur_mm=1.0)) < 0.6 * terraces(mesh_of(volume, blur_mm=0.0))
+
+
 @pytest.mark.parametrize("radius", [8, 3])
 def test_spheres_keep_their_volume(radius):
     volume = sphere(radius)
