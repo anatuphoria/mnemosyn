@@ -172,10 +172,7 @@ def test_leaving_restores_visibility_selection_slice_and_opacity(window):
     assert state.focus is None and state.emphasis == ()
     assert hidden_ids(state) == hidden
     assert state.selected == 132 and (state.slice_axis, state.slice_mm) == ("coronal", 8.0)
-    for structure_id in view.ids:
-        block = view.blocks[structure_id]
-        if view.attributes.HasBlockOpacity(block):
-            assert view.attributes.GetBlockOpacity(block) == 0.0 and state.is_hidden(structure_id)
+    assert not view.attributes.HasBlockOpacities()
     assert window.shortcuts["Hide"].isEnabled()
     assert not window.shortcuts["Leave pathway"].isEnabled()
 

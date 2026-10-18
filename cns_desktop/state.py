@@ -46,9 +46,10 @@ class AppState(QObject):
         all_tracts = bool(inside) and all(i in self._tracts for i in inside)
         wanted = frozenset(inside) if all_tracts else frozenset()
         if not self.tracts_on:
-            self.set_hidden(self._shown_by_selection - wanted, True)
-            self._shown_by_selection = wanted
-        self.set_hidden(wanted, False)
+            newly = wanted & self._hidden
+            self._apply_hidden(self._shown_by_selection - wanted, True)
+            self._shown_by_selection = (self._shown_by_selection & wanted) | newly
+        self._apply_hidden(wanted, False)
         emphasis = tuple(i for i in emphasis if i in self._geometry)
         if (structure_id, emphasis) != (self._selected, self.emphasis):
             self._selected, self.emphasis = structure_id, emphasis
@@ -84,6 +85,12 @@ class AppState(QObject):
         self.set_hidden(self.tract_ids, not self.tracts_on)
 
     def set_hidden(self, ids: Iterable[int], hidden: bool) -> bool:
+        ids = set(ids)
+        if not hidden:
+            self._shown_by_selection -= ids
+        return self._apply_hidden(ids, hidden)
+
+    def _apply_hidden(self, ids: Iterable[int], hidden: bool) -> bool:
         ids = set(ids) & self._geometry
         changed = ids - self._hidden if hidden else ids & self._hidden
         if not changed:

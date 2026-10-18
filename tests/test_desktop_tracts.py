@@ -296,3 +296,27 @@ def test_each_tract_is_its_own_object_and_hidden_ones_are_not_drawn(window):
     window.state.set_hidden([101], True)
     assert not view.attributes.GetBlockVisibility(view.blocks[101])
     assert not view.is_drawn(101)
+
+
+def test_a_tract_shown_elsewhere_survives_a_selection_passing_through(window):
+    state = window.state
+    state.set_hidden([152], False)
+    state.select(152)
+    state.select(101)
+    assert shown(state, (152,)) == [True]
+
+
+def test_tracts_shown_for_a_quiz_stay_after_the_selection_clears(window):
+    state = window.state
+    state.select(151)
+    state.set_hidden(state.tract_ids, False)
+    state.select(None)
+    assert all(shown(state, state.tract_ids))
+
+
+def test_a_ticked_tract_stays_after_selecting_it_and_moving_on(window):
+    state = window.state
+    state.set_hidden([160], False)
+    state.select(160)
+    state.select(101)
+    assert shown(state, (160,)) == [True]

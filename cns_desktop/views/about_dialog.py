@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from html import escape
+from importlib.metadata import PackageNotFoundError, version
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QListWidget, QTabWidget,
@@ -13,6 +14,13 @@ APP_NAME = "Mnemosyn"
 SIZE = (720, 520)
 
 
+def app_version() -> str:
+    try:
+        return version("mnemosyn")
+    except PackageNotFoundError:
+        return "development"
+
+
 def about_text(atlas: Atlas) -> str:
     name = escape(str(atlas.metadata.get("name", "")))
     version = escape(str(atlas.metadata.get("version", "")))
@@ -22,7 +30,8 @@ def about_text(atlas: Atlas) -> str:
                           for i in atlas.local_only)
         notice = ("<p><b>Local build, not for sharing.</b> It contains data that may not be "
                   f"shared yet: {names}.</p>")
-    return (f"<h3>{APP_NAME}</h3><p>{escape(DISCLAIMER)}</p>"
+    return (f"<h3>{APP_NAME}</h3><p>Version {escape(app_version())}</p>"
+            f"<p>{escape(DISCLAIMER)}</p>"
             f"<p>Atlas package: {name} {version}</p>{notice}")
 
 
@@ -32,13 +41,13 @@ def source_label(source: Source) -> str:
 
 def short_authors(source: Source) -> str:
     names = [part.strip() for part in source.authors.split(",") if part.strip()]
-    first = names[0].split(" ")[0] if names else source.id
+    first = names[0].rsplit(" ", 1)[0] if names else source.id
     return f"{first} et al." if len(names) > 1 else first
 
 
 def source_row(source: Source, local: bool) -> str:
-    row = f"{source_label(source)} - {short_authors(source)} {source.year} - {source.licence}"
-    return row + (" - local only" if local else "")
+    tag = " - local only" if local else ""
+    return f"{source_label(source)} - {short_authors(source)} {source.year}{tag} - {source.licence}"
 
 
 class AboutDialog(QDialog):

@@ -868,7 +868,7 @@ def local_atlas(tmp_path):
 def test_a_local_build_says_it_is_not_for_sharing(qapp, tmp_path):
     atlas = local_atlas(tmp_path)
     assert "may not be shared yet" in about_text(atlas)
-    assert any(row.endswith(" - local only") for row in about_rows(atlas))
+    assert any(" - local only - " in row for row in about_rows(atlas))
     w = MainWindow(atlas, progress_path=tmp_path / "progress.sqlite")
     assert w.windowTitle().endswith("(local build, not for sharing)")
     w.close()
@@ -906,3 +906,21 @@ def test_hiding_one_structure_updates_only_its_branch_of_the_tree(window, monkey
     assert set(calls) <= set(state.atlas.ancestors(101)) | {101}
     assert window.tree.items[101].checkState(0) == Qt.CheckState.Unchecked
     assert window.tree.items[100].checkState(0) == Qt.CheckState.PartiallyChecked
+
+
+def test_about_rows_keep_full_surnames_and_show_local_tags_early():
+    from cns_atlas.model import Source
+    from cns_desktop.views.about_dialog import source_row
+
+    source = Source("pam50", "PAM50", "De Leener B, Fonov VS", 2018, "1",
+                    "No licence stated; local use only until the authors allow sharing",
+                    False, provides="Spinal cord segments")
+    assert source_row(source, True).startswith("Spinal cord segments - De Leener et al. 2018"
+                                               " - local only - ")
+
+
+def test_the_about_tab_shows_the_app_version(atlas):
+    from cns_desktop.views.about_dialog import app_version
+
+    assert f"Version {app_version()}" in about_text(atlas)
+
