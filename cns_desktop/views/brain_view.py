@@ -14,6 +14,7 @@ from vtkmodules.vtkRenderingCore import (vtkActor, vtkCompositeDataDisplayAttrib
 from ..lod import choose_lod, face_totals
 from ..slices import AXIS_INDEX
 from ..state import AppState
+from .navigation import install_navigation
 
 BACKGROUND = "#0a0a10"
 CLICK_TOLERANCE_PX = 3
@@ -107,6 +108,7 @@ class BrainView(QtInteractor):
         state.focus_changed.connect(self._on_focus_changed)
         self.reset_view()
         self._on_slice_changed(state.slice_axis, state.slice_mm)
+        install_navigation(self)
 
     def reset_view(self) -> None:
         """World frame is MNI millimetres: x right, y anterior, z superior."""
@@ -208,6 +210,15 @@ class BrainView(QtInteractor):
             if candidate is not None and actor is candidate:
                 return ids[index] if 0 <= index < len(ids) else None
         return None
+
+    def zoom_at(self, x: int, y: int, factor: float) -> None:
+        camera = self.renderer.GetActiveCamera()
+        position, focal = np.array(camera.GetPosition()), np.array(camera.GetFocalPoint())
+        anchor = (np.array(self._picker.GetPickPosition())
+                  if self.structure_at(x, y) is not None else focal)
+        camera.SetPosition(*(anchor + (position - anchor) / factor))
+        camera.SetFocalPoint(*(anchor + (focal - anchor) / factor))
+        self.renderer.ResetCameraClippingRange()
 
     def pick_at(self, x: int, y: int) -> None:
         structure_id = self.structure_at(x, y)

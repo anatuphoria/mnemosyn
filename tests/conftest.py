@@ -13,6 +13,8 @@ if not importlib.util.find_spec("pyvistaqt"):
     collect_ignore.append("test_desktop_focus.py")
     collect_ignore.append("test_desktop_behaviour.py")
     collect_ignore.append("test_desktop_spine.py")
+    collect_ignore.append("test_desktop_navigation.py")
+    collect_ignore.append("test_desktop_outline.py")
 if not importlib.util.find_spec("pyvista"):
     collect_ignore.append("test_build_atlas.py")
 
