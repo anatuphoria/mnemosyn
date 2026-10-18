@@ -249,3 +249,37 @@ def test_the_summary_is_not_dimmed(window):
         quiz.go_on(Rating.Easy)
     assert quiz.phase == "summary"
     assert window.view.actor.GetProperty().GetOpacity() == pytest.approx(1.0)
+
+
+def shown(state, ids):
+    return [not state.is_hidden(i) for i in ids]
+
+
+def test_a_selected_tract_hides_again_when_the_selection_moves_on(window):
+    state = window.state
+    state.select(151)
+    assert shown(state, (151, 160)) == [True, False]
+    state.select(160)
+    assert shown(state, (151, 160)) == [False, True]
+    state.select(101)
+    assert shown(state, (151, 152, 160)) == [False, False, False]
+
+
+def test_t_after_a_selected_tract_keeps_every_tract_on(window):
+    state = window.state
+    state.select(151)
+    window.shortcuts["Tracts"].trigger()
+    state.select(101)
+    assert all(shown(state, state.tract_ids)) and state.tracts_on
+
+
+def test_mixed_groups_show_no_tracts(window):
+    window.state.select(2)
+    assert not any(shown(window.state, window.state.tract_ids))
+
+
+def test_a_tract_shown_from_the_tree_checkbox_stays(window):
+    state = window.state
+    state.set_hidden([160], False)
+    state.select(101)
+    assert shown(state, (160,)) == [True]

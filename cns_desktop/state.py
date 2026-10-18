@@ -27,6 +27,8 @@ class AppState(QObject):
         self.tract_ids = tuple(i for i in self.geometry_ids if i in tracts)
         self._tracts = frozenset(self.tract_ids)
         self._hidden: set[int] = set(self.tract_ids)
+        self.tracts_on = False
+        self._shown_by_selection: frozenset[int] = frozenset()
         self.slice_axis = "axial"
         self.slice_mm = 0.0
         self.slice_volume = atlas.volumes[0].name if atlas.volumes else ""
@@ -40,10 +42,13 @@ class AppState(QObject):
     def select(self, structure_id: int | None, emphasis: Iterable[int] = ()) -> None:
         if structure_id is not None and structure_id not in self.atlas:
             raise KeyError(structure_id)
-        if structure_id is not None:
-            inside = self.geometry_in(structure_id)
-            if inside and all(i in self._tracts for i in inside):
-                self.set_hidden(inside, False)
+        inside = self.geometry_in(structure_id) if structure_id is not None else []
+        all_tracts = bool(inside) and all(i in self._tracts for i in inside)
+        wanted = frozenset(inside) if all_tracts else frozenset()
+        if not self.tracts_on:
+            self.set_hidden(self._shown_by_selection - wanted, True)
+            self._shown_by_selection = wanted
+        self.set_hidden(wanted, False)
         emphasis = tuple(i for i in emphasis if i in self._geometry)
         if (structure_id, emphasis) != (self._selected, self.emphasis):
             self._selected, self.emphasis = structure_id, emphasis
@@ -74,8 +79,9 @@ class AppState(QObject):
         return structure_id in self._tracts
 
     def toggle_tracts(self) -> None:
-        any_hidden = any(i in self._hidden for i in self.tract_ids)
-        self.set_hidden(self.tract_ids, not any_hidden)
+        self.tracts_on = any(i in self._hidden for i in self.tract_ids)
+        self._shown_by_selection = frozenset()
+        self.set_hidden(self.tract_ids, not self.tracts_on)
 
     def set_hidden(self, ids: Iterable[int], hidden: bool) -> bool:
         ids = set(ids) & self._geometry

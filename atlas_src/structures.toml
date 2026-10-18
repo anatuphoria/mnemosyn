@@ -37,7 +37,7 @@ groups = [
   { id = 22, parent = 20, acronym = "HYP", name = "Hypothalamus", color = [240, 200, 90] },
   { id = 23, parent = 20, acronym = "SUBTH", name = "Subthalamus", color = [210, 140, 90] },
   { id = 24, parent = 20, acronym = "EPI", name = "Epithalamus" },
-  { id = 70, parent = 1, acronym = "TRACTS", name = "Tracts", color = [200, 200, 210] },
+  { id = 70, parent = 2, acronym = "TRACTS", name = "Tracts", color = [200, 200, 210] },
   { id = 71, parent = 70, acronym = "PROJ", name = "Projection tracts", color = [80, 160, 255] },
   { id = 72, parent = 70, acronym = "ASSOC", name = "Association tracts", color = [120, 220, 120] },
   { id = 73, parent = 70, acronym = "COMM", name = "Commissural tracts", color = [240, 120, 200] },

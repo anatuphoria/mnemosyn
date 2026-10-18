@@ -367,3 +367,12 @@ def test_the_spinal_stations_are_drawn_with_their_old_names():
     routes = {p.key: p for p in load_pathways(SRC / "pathways.toml")}
     for key, station in SPINAL_STATIONS.items():
         assert station in routes[key].steps, key
+
+
+def test_brain_tracts_sit_inside_brain():
+    raws = load_structures(SRC / "structures.toml")
+    by_id = {r.id: r for r in raws}
+    assert by_id[70].parent == 2
+    paths = {p.structure.id: p.structure.structure_id_path for p in build_tree(raws)}
+    tracts = [r.id for r in raws if r.kind == "tract" and 3000 <= r.id < 3500]
+    assert tracts and all(2 in paths[i] for i in tracts)
