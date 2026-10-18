@@ -1,3 +1,4 @@
+import itertools
 import shutil
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from cns_atlas import Atlas
 from cns_atlas.knowledge import CITATION, load_references, parse_entry
 from cns_atlas.model import Relay, Station
 from cns_atlas.pathways import lights
+from tools.build_atlas.colours import NEAR_MM, delta_e
 from tools.build_atlas.hierarchy import build_tree, load_structures
 from tools.build_atlas.pathways import check_pathway_texts, check_pathways, load_pathways
 from tools.build_atlas.timelines import load_timelines
@@ -45,7 +47,8 @@ def test_every_aal3_label_maps_to_exactly_one_structure():
     assert sorted(values) == sorted(set(range(1, 171)) - AAL3_EMPTY_LABELS)
     assert {ref.source for r in raws for ref in r.labels} == {
         "aal3", "neudorfer2020", "hcp1065", "tang2024", "razavi2021", "edlow2023",
-        "diedrichsen2009", "sitek2019", "bianciardi2024", "iglesias2015", "pam50", "pam50-atlas"}
+        "diedrichsen2009", "sitek2019", "bianciardi2024", "iglesias2015", "pam50", "pam50-atlas",
+        "pam50-gm"}
 
 
 NEUDORFER_LABELS = set(range(1, 11)) | set(range(13, 39)) | set(range(41, 55))
@@ -193,7 +196,7 @@ def test_the_built_atlas_pathways_light_and_read_on_both_sides():
 def test_the_glands_are_local_only_midline_structures():
     local = {s.source.id: s for s in load_recipe(SRC / "recipe.toml").sources if s.local_only}
     assert list(local) == ["tang2024", "razavi2021", "bianciardi2024", "iglesias2015", "pam50",
-                           "pam50-atlas"]
+                           "pam50-atlas", "pam50-gm", "pam50-cord"]
     for spec in (local["tang2024"], local["razavi2021"]):
         assert not spec.source.redistribution and spec.mesh_grid == "native"
         assert spec.priority == -1 and spec.volume == "brain"
@@ -211,7 +214,7 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
     src = shutil.copytree(SRC, tmp_path / "src")
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None, local=True))
     assert atlas.local_only == ("tang2024", "razavi2021", "bianciardi2024", "iglesias2015",
-                                "pam50", "pam50-atlas", "pam50-t2")
+                                "pam50", "pam50-atlas", "pam50-gm", "pam50-cord", "pam50-t2")
     assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 395
     for structure_id, centre in ((2250, (0.0, -23.0, -13.0)), (2260, (0.0, -28.0, -33.0)),
                                  (2270, (0.0, -41.0, -55.0))):
@@ -231,6 +234,29 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
     for s in atlas.structures:
         if s.side == "left" and atlas.has_mesh(s.id) and s.id >= 5000:
             assert np.asarray(atlas.mesh(s.id).vertices)[:, 0].mean() < 0, s.name
+    z = {i: np.asarray(atlas.mesh(i).vertices)[:, 2] for i in range(5010, 5310, 10)}
+    assert all(atlas.get(i).kind == "cover" for i in z)
+    assert all(abs(z[i].min() - z[i + 10].max()) < 1e-3 for i in range(5010, 5300, 10))
+    for s in atlas.structures:
+        if s.id >= 5400 and atlas.has_mesh(s.id):
+            assert np.asarray(atlas.mesh(s.id).vertices)[:, 2].max() < z[5010].max() + 1.0, s.name
+    voxels = np.asarray(spine.data)
+    for concept in range(5500, 5650, 10):
+        assert atlas.has_mesh(concept + 1) and atlas.has_mesh(concept + 2), concept
+        left, right = (voxels == concept + 1).sum(), (voxels == concept + 2).sum()
+        assert abs(int(left) - int(right)) <= 0.05 * max(left, right), (concept, left, right)
+    members = [s for s in atlas.structures if 30 in s.structure_id_path[:-1]
+               and s.kind not in ("group", "shell") and s.concept is None]
+    centres = {}
+    for s in members:
+        own = [s.id] + [t.id for t in atlas.structures if t.concept == s.id]
+        points = [np.asarray(atlas.mesh(i).vertices).mean(axis=0) for i in own if atlas.has_mesh(i)]
+        if points:
+            centres[s.id] = np.array(points)
+    near = [(a, b) for a, b in itertools.combinations(sorted(centres), 2)
+            if np.linalg.norm(centres[a][:, None] - centres[b][None], axis=-1).min() < NEAR_MM]
+    assert all(delta_e(atlas.get(a).rgb_triplet, atlas.get(b).rgb_triplet) >= 15
+               for a, b in near), near
     routes = {p.key: p for p in atlas.pathways}
     for key, station in SPINAL_STATIONS.items():
         assert station in routes[key].steps, key
@@ -347,12 +373,19 @@ def test_the_spinal_cord_is_local_only_on_its_own_volume():
     spine = next(v for v in recipe.volumes if v.name == "spine")
     assert (spine.space, spine.grid_source) == ("PAM50", "pam50")
     specs = {s.source.id: s for s in (*recipe.sources, *recipe.templates)}
-    for name in ("pam50", "pam50-atlas", "pam50-t2"):
+    for name in ("pam50", "pam50-atlas", "pam50-gm", "pam50-cord", "pam50-t2"):
         assert specs[name].local_only and specs[name].volume == "spine", name
     assert specs["pam50"].crop and specs["pam50"].margin == 10.0 and specs["pam50"].fill
-    assert specs["pam50-atlas"].threshold == 0.3 and specs["pam50-atlas"].separate
-    names = [n for n, _ in specs["pam50-atlas"].members]
-    assert sorted(names) == [f"A{i:02d}" for i in range(36)] and names[:2] == ["A10", "A11"]
+    tracts, grey, cord = specs["pam50-atlas"], specs["pam50-gm"], specs["pam50-cord"]
+    assert tracts.tiles == 0.5 and tracts.within == "pam50" and tracts.threshold is None
+    assert not tracts.separate and tracts.mesh_grid == "native"
+    assert sorted(n for n, _ in tracts.members) == [f"A{i:02d}" for i in range(30)]
+    assert grey.threshold == 0.3 and grey.separate and grey.within == "pam50"
+    assert grey.priority == 2 and grey.mesh_grid == "native"
+    assert sorted(n for n, _ in grey.members) == [f"A{i:02d}" for i in range(30, 36)]
+    assert cord.outline_of == "pam50" and cord.member.endswith("template/PAM50_cord.nii.gz")
+    assert (cord.download, cord.sha256) == (specs["pam50"].download, specs["pam50"].sha256)
+    assert cord.crop and cord.margin == 10.0 and cord.mesh_grid == "native"
 
 
 def test_the_spinal_tree_has_30_segments_6_horns_and_30_tracts():
@@ -362,9 +395,12 @@ def test_the_spinal_tree_has_30_segments_6_horns_and_30_tracts():
     assert [r.acronym for r in segments] == (
         [f"C{i}" for i in range(1, 9)] + [f"T{i}" for i in range(1, 13)]
         + [f"L{i}" for i in range(1, 6)] + [f"S{i}" for i in range(1, 6)])
-    atlas_kids = [r for r in raws.values() if r.labels and r.labels[0].source == "pam50-atlas"]
-    assert len([r for r in atlas_kids if r.kind == "nucleus"]) == 6
-    assert len([r for r in atlas_kids if r.kind == "tract"]) == 30
+    assert all(r.kind == "cover" for r in segments)
+    tracts = [r for r in raws.values() if r.labels and r.labels[0].source == "pam50-atlas"]
+    grey = [r for r in raws.values() if r.labels and r.labels[0].source == "pam50-gm"]
+    assert len(grey) == 6 and all(r.kind == "nucleus" for r in grey)
+    assert len(tracts) == 30 and all(r.kind == "tract" for r in tracts)
+    atlas_kids = tracts + grey
     assert all(r.labels[0].value == f"A{int(r.labels[0].value[1:]):02d}" for r in atlas_kids)
     assert all(int(r.labels[0].value[1:]) % 2 == (r.side == "right") for r in atlas_kids)
 
@@ -389,7 +425,8 @@ PROVIDES = {"aal3": "Brain regions", "colin27": "MRI template for brain slices",
             "tang2024": "Pituitary gland", "razavi2021": "Pineal gland",
             "edlow2023": "Brainstem arousal nuclei", "diedrichsen2009": "Deep cerebellar nuclei",
             "sitek2019": "Auditory brainstem nuclei", "bianciardi2024": "Brainstem nuclei",
-            "pam50": "Spinal cord segments", "pam50-atlas": "Spinal grey matter and tracts",
+            "pam50": "Spinal cord segments", "pam50-atlas": "Spinal tracts",
+            "pam50-gm": "Spinal grey matter", "pam50-cord": "Spinal cord surface",
             "pam50-t2": "MRI template for spinal cord slices",
             "iglesias2015": "Brainstem body"}
 
@@ -415,3 +452,26 @@ def test_the_brainstem_bodies_are_local_shells():
         r = raws[structure_id]
         assert (r.parent, r.kind, r.side, r.name) == (parent, "shell", "midline", name)
         assert [(ref.source, ref.value) for ref in r.labels] == [("iglesias2015", value)]
+
+
+ASCENDING = {5500, 5510, 5530, 5560, 5570}
+DESCENDING = {5520, 5540, 5550, 5580, 5590, 5600, 5610, 5620, 5630, 5640}
+
+
+def test_spinal_tracts_are_blue_going_up_and_red_going_down():
+    raws = {r.id: r for r in load_structures(SRC / "structures.toml")}
+    assert {i for i, r in raws.items() if r.parent == 80} == ASCENDING | DESCENDING
+    for structure_id in ASCENDING:
+        red, green, blue = raws[structure_id].color
+        assert blue > max(red, green), raws[structure_id].name
+    for structure_id in DESCENDING:
+        red, green, blue = raws[structure_id].color
+        assert red > max(green, blue), raws[structure_id].name
+    assert len({raws[i].color for i in ASCENDING | DESCENDING}) == 15
+
+
+def test_segment_regions_alternate_and_crowded_groups_get_distinct_colours():
+    raws = {r.id: r for r in load_structures(SRC / "structures.toml")}
+    assert all(raws[g].palette == "alternate" and raws[g].color for g in (5, 6, 7, 8))
+    assert len({raws[g].color for g in (5, 6, 7, 8)}) == 4
+    assert all(raws[g].palette == "distinct" for g in (21, 22, 30, 43))

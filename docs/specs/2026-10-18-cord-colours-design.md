@@ -1,7 +1,7 @@
 # The Spinal Cord's Look and Colours (audit fix, project 3 of 6)
 
 Date: 2026-10-18
-Status: described in discussion; builder check done; awaiting the owner's review
+Status: approved by the owner on 2026-10-18; built on `spinal-cord`
 Branch: `spinal-cord` (C2 stays unmerged until every audit item is fixed)
 Audit: `.superpowers/audit-2026-10-13.md` items 3, 4, 5, 7 and 8, plus the ridged spinal tracts seen
 on the project 2 renders

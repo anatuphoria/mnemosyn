@@ -294,3 +294,58 @@ def test_a_tiled_build_reports_small_shapes(tmp_path, monkeypatch):
     report = (out / "build-report.md").read_text()
     assert "  - small shapes: Toy middle (300 voxels)\n" in report
     assert Atlas.open(out).has_mesh(181) and Atlas.open(out).has_mesh(190)
+
+
+def test_a_midline_voxel_tied_between_sides_goes_to_neither(tmp_path):
+    from tools.build_atlas.labels import load_tiles
+
+    src = write_extended_source_tree(tmp_path / "t", tracts=False, members="download")
+    shape = (21, 6, 6)
+    maps = {name: np.zeros(shape, dtype=np.float32) for name in ("Pair_L", "Pair_R", "Mid")}
+    maps["Pair_L"][9:11], maps["Pair_R"][10:12] = 0.6, 0.6
+    affine = np.diag([1.0, 1.0, 1.0, 1.0])
+    affine[0, 3] = -10.0
+    archive = probability_zip(tmp_path / "p.zip", maps, affine)
+    spec = dataclasses.replace(spec_of(src, "toymembers"), tiles=0.5)
+    data = np.asarray(load_tiles(spec, archive, TILE_SIDES).dataobj)
+    assert (data[9] == 1).all() and (data[11] == 2).all() and (data[10] == 0).all()
+
+
+def field_meshes(tmp_path, maps, affine):
+    from tools.build_atlas.labels import load_tiles, tile_fields
+    from tools.build_atlas.meshing import field_surface
+
+    src = write_extended_source_tree(tmp_path / "t", tracts=False, members="download")
+    archive = probability_zip(tmp_path / "p.zip", maps, affine)
+    spec = dataclasses.replace(spec_of(src, "toymembers"), tiles=0.5)
+    tiles = load_tiles(spec, archive, TILE_SIDES)
+    return {value: field_surface(field, field_affine)
+            for value, field, field_affine in tile_fields(spec, archive, tiles, {1, 2, 3})}
+
+
+def test_tile_borders_follow_the_probabilities_not_the_voxels(tmp_path):
+    shape = (30, 30, 10)
+    g = np.indices(shape).astype(np.float32)
+    first = 0.5 + 0.5 * np.tanh((g[0] - 15 + 0.3 * (g[1] - 15)) / 3)
+    maps = {"Pair_L": first, "Mid": 1 - first, "Pair_R": np.zeros(shape, np.float32)}
+    meshes = field_meshes(tmp_path, maps, np.eye(4))
+    points = np.asarray(meshes[1].points)
+    inner = points[(points[:, 1] > 3) & (points[:, 1] < 26) & (points[:, 2] > 2)
+                   & (points[:, 2] < 7) & (points[:, 0] > 3) & (points[:, 0] < 26)]
+    distance = (inner[:, 0] - 15 + 0.3 * (inner[:, 1] - 15)) / np.hypot(1, 0.3)
+    assert len(inner) > 20 and np.abs(distance).max() < 0.1
+    assert set(meshes) == {1, 3}
+
+
+def test_mirrored_tiles_give_mirrored_shapes(tmp_path):
+    shape = (21, 12, 12)
+    g = np.indices(shape).astype(np.float32)
+    bump = np.exp(-((g[1] - 6) ** 2 + (g[2] - 6) ** 2) / 8)
+    left = bump * np.clip(1 - np.abs(g[0] - 8) / 4, 0, 1)
+    affine = np.diag([1.0, 1.0, 1.0, 1.0])
+    affine[0, 3] = -10.0
+    maps = {"Pair_L": left, "Pair_R": left[::-1].copy(), "Mid": np.zeros(shape, np.float32)}
+    meshes = field_meshes(tmp_path, maps, affine)
+    a, b = meshes[1], meshes[2]
+    assert a.volume == pytest.approx(b.volume, rel=0.01)
+    assert np.asarray(a.points)[:, 0].max() <= 1e-3 and np.asarray(b.points)[:, 0].min() >= -1e-3

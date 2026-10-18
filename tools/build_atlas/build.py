@@ -19,8 +19,8 @@ from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs
 from .idlock import IdLock, load_lock, write_lock
 from .labels import (clip_z, crop, load_label_image, load_members, load_parts, load_tiles,
                      mapping_for, merge, read_label_names, relabel, separate_natives, source_values,
-                     trim_against, z_extent)
-from .meshing import bands, cut_levels, levels, surface
+                     tile_fields, trim_against, z_extent)
+from .meshing import bands, cut_levels, field_surface, levels, surface
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
 from .templates import covers, on_grid, to_uint8
@@ -206,11 +206,18 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     natives = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
                     images[s.source.id].affine)
                for s in sources if s.mesh_grid == "native" and not s.separate
-               and not s.outline_of and s.source.id not in cut]
+               and not s.outline_of and s.source.id not in cut and s.tiles is None]
     for s in (s for s in sources if s.separate):
         natives += separate_natives(s, archives[s.source.id], mapping_for(s.source.id, planned),
                                     extents.get(s.source.id))
+    fields = []
+    for s in (s for s in sources if s.tiles is not None):
+        mapping = mapping_for(s.source.id, planned)
+        fields += [(mapping[value], field, affine) for value, field, affine in
+                   tile_fields(s, archives[s.source.id], images[s.source.id], set(mapping),
+                               extents.get(s.source.id))]
     native_ids = set().union(*(present(data) for data, _ in natives))
+    native_ids |= {structure_id for structure_id, _, _ in fields}
     native_ids |= {sid for s in outlines for sid in mapping_for(s.outline_of, planned).values()}
     tract_rows: list[tuple[int, np.ndarray]] = []
     for spec in recipe.tracts:
@@ -263,6 +270,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                 for level, mesh_data in zip(meshes, built):
                     level[p.structure.id] = mesh_data
 
+    planned_ids = {p.structure.id for p in planned}
+    for structure_id, field, affine in fields:
+        mesh = field_surface(field, affine)
+        if structure_id in planned_ids and mesh.n_points:
+            built, count = levels(mesh, recipe.lod0_max_faces, recipe.lod_fractions,
+                                  recipe.min_faces)
+            repaired += count
+            for level, mesh_data in zip(meshes, built):
+                level[structure_id] = mesh_data
     for s in outlines:
         outline = (np.asarray(images[s.source.id].dataobj) > 0).astype(np.uint8)
         if not outline.any():

@@ -140,6 +140,13 @@ def levels(mesh: pv.PolyData, max_faces: int, fractions: tuple[float, ...],
     return out, repaired[0] if repaired else 0
 
 
+def field_surface(field: np.ndarray, affine: np.ndarray) -> pv.PolyData:
+    mesh = isosurface(np.pad(field, 2, constant_values=-1.0), (-2.0, -2.0, -2.0), 0.0)
+    if mesh.n_points:
+        mesh.points = (np.c_[mesh.points, np.ones(mesh.n_points)] @ np.asarray(affine).T)[:, :3]
+    return mesh
+
+
 def bands(image, mapping: dict[int, int]) -> list[tuple[int, float, float]]:
     values = np.asarray(image.dataobj)
     affine = np.asarray(image.affine)

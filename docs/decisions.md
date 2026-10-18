@@ -44,6 +44,9 @@ entry replaces it and the old one says so.
 | 36 | 2026-10-18 | Entering a route takes under 100 ms | in force |
 | 37 | 2026-10-18 | Questions and feedback go to GitHub Discussions | in force |
 | 38 | 2026-10-18 | The website is built from the repository with MkDocs at mnemo.saeed.cool | in force |
+| 39 | 2026-10-18 | One continuous banded cord, solid until you look inside | in force |
+| 40 | 2026-10-18 | Spinal tracts tile the white matter | in force |
+| 41 | 2026-10-18 | Colours that neighbours can tell apart | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -323,3 +326,30 @@ sources, decisions and design documents are generated from the repository, never
 earlier plain HTML test site was set aside. MkDocs stays below version 2, which drops Material's
 themes; its successor can read the same pages later.
 Why: one source for every fact, so the site cannot fall out of date with the atlas.
+
+## 39. One continuous banded cord, solid until you look inside
+
+2026-10-18. The spinal cord is one smooth surface from PAM50's cord mask, cut into one open piece per
+segment, so no ring shows between segments; clicking it selects the segment at that height. It is
+solid by default and turns see-through while spinal grey matter or a spinal tract is selected, shown
+with T or asked for in a Find quiz. Grey matter and tracts stop where the segments stop.
+Why: the 30 closed segment slabs looked like stacked bamboo, and a real cord has no visible joins.
+Design: [the cord's look and colours, sections 2 to 4](specs/2026-10-18-cord-colours-design.md).
+
+## 40. Spinal tracts tile the white matter
+
+2026-10-18. A white matter voxel belongs to the tracts when the summed probability of the 30 PAM50
+tract maps is at least 0.5, and then to its single most likely tract, with ties split by side so
+left and right stay mirror images. Tracts never overlap.
+Why: at probability 0.3 a quarter of tract voxels sat in two or three tracts, which drew one ridged
+column and flickered with T on.
+Design: [the cord's look and colours, section 5](specs/2026-10-18-cord-colours-design.md).
+
+## 41. Colours that neighbours can tell apart
+
+2026-10-18. Spinal segments use one hue per region with neighbours alternating light and dark;
+ascending spinal tracts are blue and descending ones red or orange; in the brainstem, thalamus,
+hypothalamus and deep cerebellar nuclei every member gets a clearly different colour, nearest
+neighbours differing most. Left and right share a colour.
+Why: shading one colour by 15% made neighbours look the same in 3D, in slices and in quizzes.
+Design: [the cord's look and colours, section 6](specs/2026-10-18-cord-colours-design.md).
