@@ -56,13 +56,13 @@ def test_emphasis_rides_on_the_selection_and_a_plain_select_clears_it(window):
 def test_focus_fades_and_unpicks_everything_else_in_3d(window):
     view = window.view
     window.state.set_focus(ROUTE)
-    assert view.attributes.GetBlockOpacity(view.blocks[101]) == 1.0
-    assert view.attributes.GetBlockOpacity(view.blocks[102]) == pytest.approx(FAINT)
-    assert view.attributes.GetBlockPickability(view.blocks[101])
-    assert not view.attributes.GetBlockPickability(view.blocks[102])
+    assert view.chunks.attributes_for(101).GetBlockOpacity(view.blocks[101]) == 1.0
+    assert view.chunks.attributes_for(102).GetBlockOpacity(view.blocks[102]) == pytest.approx(FAINT)
+    assert view.chunks.attributes_for(101).GetBlockPickability(view.blocks[101])
+    assert not view.chunks.attributes_for(102).GetBlockPickability(view.blocks[102])
     window.state.set_focus(None)
-    assert not view.attributes.HasBlockOpacities()
-    assert not view.attributes.HasBlockPickabilities()
+    assert not view.chunks.has_opacities()
+    assert not view.chunks.has_pickabilities()
 
 
 def test_picking_never_returns_a_structure_outside_the_focus(window):

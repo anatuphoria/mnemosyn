@@ -7,15 +7,13 @@ import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
 from vtkmodules.util.numpy_support import numpy_to_vtk
-from vtkmodules.vtkCommonDataModel import vtkMultiBlockDataSet
 from vtkmodules.vtkFiltersCore import vtkImplicitPolyDataDistance
-from vtkmodules.vtkRenderingCore import (vtkActor, vtkCompositeDataDisplayAttributes,
-                                         vtkCompositePolyDataMapper, vtkHardwarePicker,
-                                         vtkPolyDataMapper)
+from vtkmodules.vtkRenderingCore import vtkActor, vtkHardwarePicker, vtkPolyDataMapper
 
 from ..lod import choose_lod, face_totals
 from ..slices import AXIS_INDEX
 from ..state import AppState
+from .chunks import Chunks
 from .navigation import install_navigation
 from .outline import OutlineLayer
 
@@ -36,24 +34,6 @@ def _polydata(mesh) -> pv.PolyData:
     normals = numpy_to_vtk(np.asarray(mesh.normals, dtype=np.float32), deep=True)
     poly.GetPointData().SetNormals(normals)
     return poly
-
-
-def _composite(blocks: list[pv.PolyData]):
-    data = vtkMultiBlockDataSet()
-    data.SetNumberOfBlocks(len(blocks))
-    for index, block in enumerate(blocks):
-        data.SetBlock(index, block)
-    mapper = vtkCompositePolyDataMapper()
-    mapper.SetInputDataObject(data)
-    mapper.ScalarVisibilityOff()
-    attributes = vtkCompositeDataDisplayAttributes()
-    mapper.SetCompositeDataDisplayAttributes(attributes)
-    actor = vtkActor()
-    actor.SetMapper(mapper)
-    prop = actor.GetProperty()
-    prop.SetInterpolationToGouraud()
-    prop.SetSpecular(0.15)
-    return actor, mapper, attributes
 
 
 def _surface_actor(block: pv.PolyData, color) -> vtkActor:
@@ -87,14 +67,12 @@ class BrainView(QtInteractor):
         self._tract_set = frozenset(self.tract_ids)
         self.lod = choose_lod(face_totals(state.atlas, self.ids + self.shell_ids))
         self.blocks = {i: _polydata(state.atlas.mesh(i, self.lod)) for i in self.ids}
-        blocks = [self.blocks[i] for i in self.ids]
-        self.actor, self.composite_mapper, self.attributes = _composite(blocks)
-        for structure_id in self.ids:
-            block = self.blocks[structure_id]
-            self.attributes.SetBlockColor(block, _rgb(state.atlas.get(structure_id).rgb_triplet))
-            self.attributes.SetBlockVisibility(block, not state.is_hidden(structure_id))
-        self.renderer.AddActor(self.actor)
-        self._apply_focus(self.attributes, self.ids)
+        self.chunks = Chunks(self.ids, self.blocks,
+                             {i: _rgb(state.atlas.get(i).rgb_triplet) for i in self.ids},
+                             {i for i in self.ids if state.is_hidden(i)})
+        for actor in self.chunks.actors:
+            self.renderer.AddActor(actor)
+        self.chunks.apply_focus(state.focus, FAINT)
         self.outline = OutlineLayer(self.ren_win, self.renderer)
         self.outline.add_blocks(self.ids, [self.blocks[i] for i in self.ids])
         self.shell_actors: dict[int, vtkActor] = {}
@@ -173,24 +151,12 @@ class BrainView(QtInteractor):
         actor = self.tract_actors.get(structure_id) or self.shell_actors.get(structure_id)
         if actor is not None:
             return bool(actor.GetVisibility())
-        block = self.blocks.get(structure_id)
-        return (block is not None and structure_id not in self._tract_set
-                and bool(self.attributes.GetBlockVisibility(block)))
+        return (structure_id in self.blocks and structure_id not in self._tract_set
+                and self.chunks.is_visible(structure_id))
 
     def set_grey_opacity(self, opacity: float) -> None:
-        self.actor.GetProperty().SetOpacity(opacity)
+        self.chunks.set_opacity(opacity)
         self._request_render()
-
-    def _apply_focus(self, attributes, ids) -> None:
-        focus = self.state.focus
-        if focus is None:
-            attributes.RemoveBlockOpacities()
-            attributes.RemoveBlockPickabilities()
-            return
-        for structure_id in ids:
-            block = self.blocks[structure_id]
-            attributes.SetBlockOpacity(block, 1.0 if structure_id in focus else FAINT)
-            attributes.SetBlockPickability(block, structure_id in focus)
 
     def _style_tract(self, structure_id: int) -> None:
         actor = self.tract_actors[structure_id]
@@ -240,7 +206,7 @@ class BrainView(QtInteractor):
         actor.SetPickable(shown and in_focus)
 
     def _on_focus_changed(self, _focus) -> None:
-        self._apply_focus(self.attributes, self.ids)
+        self.chunks.apply_focus(self.state.focus, FAINT)
         for structure_id in self.tract_actors:
             self._style_tract(structure_id)
         for structure_id in self.shell_actors:
@@ -289,9 +255,8 @@ class BrainView(QtInteractor):
         actor = self._picker.GetActor()
         if actor is None:
             return None
-        if actor is self.actor:
-            index = self._picker.GetFlatBlockIndex() - 1
-            return self.ids[index] if 0 <= index < len(self.ids) else None
+        if actor in self.chunks.actors:
+            return self.chunks.pick(actor, self._picker.GetFlatBlockIndex())
         return self._tract_of.get(actor, self._shell_of.get(actor))
 
     def _inside(self, shell_id: int, point: np.ndarray) -> bool:
@@ -373,14 +338,15 @@ class BrainView(QtInteractor):
     def _on_visibility_changed(self, ids: frozenset[int]) -> None:
         if any(i in self._tract_set and not self.state.is_hidden(i) for i in ids):
             self._ensure_tracts()
+        grey = {}
         for structure_id in ids:
             if structure_id in self.tract_actors:
                 self._style_tract(structure_id)
             elif structure_id in self.shell_actors:
                 self._style_shell(structure_id)
             elif structure_id in self.blocks and structure_id not in self._tract_set:
-                self.attributes.SetBlockVisibility(self.blocks[structure_id],
-                                                   not self.state.is_hidden(structure_id))
+                grey[structure_id] = self.state.is_hidden(structure_id)
+        self.chunks.set_hidden(grey)
         if any(i in ids for i in self.highlighted):
             self._refresh_overlay()
         if self.cover_ids:
@@ -397,7 +363,7 @@ class BrainView(QtInteractor):
 
     def _scene_bounds(self) -> tuple[float, ...]:
         volumes = self.state.atlas.volumes
-        return tuple(self.actor.GetBounds()) if not volumes else self._volume_bounds(volumes[0])
+        return self.chunks.bounds() if not volumes else self._volume_bounds(volumes[0])
 
     def _slice_bounds(self) -> tuple[float, ...]:
         volume = next((v for v in self.state.atlas.volumes if v.name == self.state.slice_volume),

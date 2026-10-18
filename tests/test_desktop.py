@@ -205,7 +205,7 @@ def test_view_uses_the_packages_stored_normals(window, atlas):
     normals = window.view.blocks[101].GetPointData().GetNormals()
     assert normals is not None
     assert normals.GetNumberOfTuples() == len(atlas.mesh(101).normals)
-    assert window.view.actor.GetProperty().GetInterpolationAsString() == "Gouraud"
+    assert window.view.chunks.actors[0].GetProperty().GetInterpolationAsString() == "Gouraud"
 
 
 def test_selecting_a_concept_highlights_all_of_its_geometry(window):
@@ -247,8 +247,7 @@ def test_slice_state_emits_once_and_validates(atlas):
 
 
 def test_one_composite_block_per_structure_with_geometry(window):
-    data = window.view.composite_mapper.GetInputDataObject(0, 0)
-    assert data.GetNumberOfBlocks() == len(window.state.geometry_ids) == 5
+    assert window.view.chunks.block_count() == len(window.state.geometry_ids) == 5
     assert window.view.lod == 0
 
 

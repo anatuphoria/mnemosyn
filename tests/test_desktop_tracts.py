@@ -57,8 +57,7 @@ def test_tracts_start_hidden_and_unbuilt(window):
 
 def test_grey_matter_keeps_its_own_composite(window):
     assert tuple(window.view.ids) == GREY
-    data = window.view.composite_mapper.GetInputDataObject(0, 0)
-    assert data.GetNumberOfBlocks() == len(GREY)
+    assert window.view.chunks.block_count() == len(GREY)
 
 
 def test_the_tracts_action_shows_and_hides_every_tract(window):
@@ -216,7 +215,7 @@ def test_show_all_restores_grey_matter_but_leaves_tracts_to_t(window):
 
 
 def test_grey_matter_is_dimmed_only_while_a_tract_is_named(window):
-    opacity = window.view.actor.GetProperty().GetOpacity
+    opacity = window.view.chunks.actors[0].GetProperty().GetOpacity
     quiz = start_quiz(window, "name-typed", "tracts")
     assert opacity() == pytest.approx(0.15)
     quiz.stop()
@@ -248,7 +247,7 @@ def test_the_summary_is_not_dimmed(window):
         quiz.submit_text(quiz.item.name)
         quiz.go_on(Rating.Easy)
     assert quiz.phase == "summary"
-    assert window.view.actor.GetProperty().GetOpacity() == pytest.approx(1.0)
+    assert window.view.chunks.actors[0].GetProperty().GetOpacity() == pytest.approx(1.0)
 
 
 def shown(state, ids):
@@ -294,7 +293,7 @@ def test_each_tract_is_its_own_object_and_hidden_ones_are_not_drawn(window):
     assert not view.tract_actors[151].GetVisibility() and not view.is_drawn(151)
     assert view.tract_actors[160].GetVisibility() and view.is_drawn(160)
     window.state.set_hidden([101], True)
-    assert not view.attributes.GetBlockVisibility(view.blocks[101])
+    assert not view.is_drawn(101)
     assert not view.is_drawn(101)
 
 

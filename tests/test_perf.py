@@ -234,6 +234,9 @@ window.resize(1500, 900)
 window.show()
 app.processEvents()
 window.view.render()
+deadline = time.perf_counter() + 10
+while not getattr(window, "warm_up_done", True) and time.perf_counter() < deadline:
+    app.processEvents()
 window.slices.label_centres()
 window.progress_store()
 start = time.perf_counter()
@@ -279,6 +282,9 @@ window.resize(1500, 900)
 window.show()
 app.processEvents()
 window.view.render()
+deadline = time.perf_counter() + 10
+while not getattr(window, "warm_up_done", True) and time.perf_counter() < deadline:
+    app.processEvents()
 toggle = window.shortcuts["Tracts"]
 start = time.perf_counter()
 toggle.trigger()
@@ -334,6 +340,9 @@ window.resize(1500, 900)
 window.show()
 app.processEvents()
 window.view.render()
+deadline = time.perf_counter() + 10
+while not getattr(window, "warm_up_done", True) and time.perf_counter() < deadline:
+    app.processEvents()
 window.pathway_dock.raise_()
 app.processEvents()
 panel = window.pathways

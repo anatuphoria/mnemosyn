@@ -70,8 +70,8 @@ def test_entering_fades_everything_off_the_route_on_the_chosen_side(window):
     enter(window)
     state, view = window.state, window.view
     assert state.focus == LEFT_ROUTE
-    assert view.attributes.GetBlockOpacity(view.blocks[102]) == pytest.approx(FAINT)
-    assert view.attributes.GetBlockOpacity(view.blocks[101]) == 1.0
+    assert view.chunks.attributes_for(102).GetBlockOpacity(view.blocks[102]) == pytest.approx(FAINT)
+    assert view.chunks.attributes_for(101).GetBlockOpacity(view.blocks[101]) == 1.0
     assert not state.is_hidden(152) and state.is_hidden(151) and state.is_hidden(160)
     assert state.selected == 101 and state.emphasis == (101,) and view.overlay_ids == [101]
     for name in ("Hide", "Isolate", "Show all", "Tracts"):
@@ -172,7 +172,7 @@ def test_leaving_restores_visibility_selection_slice_and_opacity(window):
     assert state.focus is None and state.emphasis == ()
     assert hidden_ids(state) == hidden
     assert state.selected == 132 and (state.slice_axis, state.slice_mm) == ("coronal", 8.0)
-    assert not view.attributes.HasBlockOpacities()
+    assert not view.chunks.has_opacities()
     assert window.shortcuts["Hide"].isEnabled()
     assert not window.shortcuts["Leave pathway"].isEnabled()
 
