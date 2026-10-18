@@ -3,7 +3,7 @@ import pytest
 
 pytest.importorskip("pyvista")
 
-from tools.build_atlas.meshing import surface
+from tools.build_atlas.meshing import isosurface, surface
 
 ITERATIONS, PASS_BAND = 30, 0.05
 
@@ -74,3 +74,11 @@ def test_touching_structures_stay_apart():
     points = np.asarray(mesh.points)
     assert points[:, 0].max() <= 15.5
     assert np.linalg.norm(points.mean(axis=0) - centre_of(volume, 1)) < 1.0
+
+
+def test_points_too_close_to_tell_apart_leave_only_triangles():
+    field = np.zeros((12, 12, 12), dtype=np.float32)
+    field[3:8, 3:8, 3:8] = 1.0
+    field[9, 9, 9] = 0.5 + 1e-6
+    mesh = isosurface(field, (100.0, 100.0, 60.0))
+    assert mesh.n_cells and mesh.is_all_triangles

@@ -13,16 +13,20 @@ VOLUME_TOLERANCE = 0.10
 CENTRE_TOLERANCE_MM = 1.0
 
 
+def isosurface(field: np.ndarray, origin: tuple[float, float, float]) -> pv.PolyData:
+    grid = pv.ImageData(dimensions=field.shape, origin=origin, spacing=(1.0, 1.0, 1.0))
+    grid.point_data["mask"] = field.ravel(order="F")
+    mesh = grid.contour([0.5], scalars="mask", method="marching_cubes").triangulate()
+    return mesh.clean(polys_to_lines=False, lines_to_points=False)
+
+
 def _contour(crop: np.ndarray, lo: np.ndarray, affine: np.ndarray, sigma: np.ndarray,
              iterations: int, pass_band: float) -> pv.PolyData:
     pad = int(np.ceil(3 * sigma.max())) + 2
     mask = np.pad(crop.astype(np.float32), pad)
     if sigma.max() > 0:
         mask = gaussian_filter(mask, sigma)
-    grid = pv.ImageData(dimensions=mask.shape, origin=tuple(float(v) for v in lo - pad),
-                        spacing=(1.0, 1.0, 1.0))
-    grid.point_data["mask"] = mask.ravel(order="F")
-    mesh = grid.contour([0.5], scalars="mask", method="marching_cubes").triangulate().clean()
+    mesh = isosurface(mask, tuple(float(v) for v in lo - pad))
     if mesh.n_points:
         mesh = mesh.smooth_taubin(n_iter=iterations, pass_band=pass_band)
         mesh.points = (np.c_[mesh.points, np.ones(mesh.n_points)] @ np.asarray(affine).T)[:, :3]
