@@ -117,6 +117,31 @@ def member_masks(spec: SourceSpec, archive: Path):
         yield value, inside, affine
 
 
+def load_tiles(spec: SourceSpec, archive: Path, sides: dict[int, str]) -> nib.Nifti1Image:
+    shape = affine = total = best = arg = None
+    for value, (name, member) in enumerate(spec.members, 1):
+        image = nib.load(member_path(spec, archive, member))
+        if shape is None:
+            shape, affine = image.shape[:3], image.affine
+            total, best = np.zeros(shape, np.float32), np.zeros(shape, np.float32)
+            arg = np.zeros(shape, np.int32)
+        elif image.shape[:3] != shape or not np.allclose(image.affine, affine):
+            raise BuildError([f"source {spec.source.id}: member {name} is on another grid"])
+        values = np.nan_to_num(np.asarray(image.dataobj, dtype=np.float32)).reshape(shape)
+        total += values
+        higher = values > best
+        best[higher], arg[higher] = values[higher], value
+        tied = np.argwhere((values == best) & (values > 0) & ~higher)
+        if len(tied) and sides.get(value) in ("left", "right"):
+            x = (np.c_[tied, np.ones(len(tied))] @ np.asarray(affine).T)[:, 0]
+            side = np.where(x < 0, "left", np.where(x > 0, "right", ""))
+            held = np.array([sides.get(int(v), "") for v in arg[tuple(tied.T)]])
+            take = tied[(side == sides[value]) & (held != side)]
+            arg[tuple(take.T)] = value
+    return nib.Nifti1Image(np.where((total >= spec.tiles) & (best > 0), arg, 0).astype(np.int32),
+                           affine)
+
+
 def separate_natives(spec: SourceSpec, archive: Path, mapping: dict[int, int],
                      extent: tuple[float, float] | None = None
                      ) -> list[tuple[np.ndarray, np.ndarray]]:

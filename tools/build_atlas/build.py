@@ -17,8 +17,8 @@ from .fetch import DEFAULT_CACHE, fetch, member_path, missing_manual
 from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
                         without_sources)
 from .idlock import IdLock, load_lock, write_lock
-from .labels import (clip_z, crop, load_label_image, load_members, load_parts, mapping_for,
-                     merge, read_label_names, relabel, separate_natives, source_values,
+from .labels import (clip_z, crop, load_label_image, load_members, load_parts, load_tiles,
+                     mapping_for, merge, read_label_names, relabel, separate_natives, source_values,
                      trim_against, z_extent)
 from .meshing import levels, surface
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
@@ -29,6 +29,9 @@ from .tracts import place
 from .validate import (check_hierarchy, check_ids, check_knowledge, check_sources,
                        check_templates, check_voxels)
 from .writer import write_package
+
+
+SMALL_VOXELS = 100
 
 
 def present(data: np.ndarray) -> set[int]:
@@ -43,7 +46,7 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
                  volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=(),
                  tracts=None, shape_only=(), per_source=None, pathways: int = 0,
                  local_note: str = "", sources=None, repaired: int = 0,
-                 overlaps: dict[str, int] | None = None) -> str:
+                 overlaps: dict[str, int] | None = None, small=()) -> str:
     kinds: dict[str, int] = {}
     for s in structures:
         kinds[s.kind] = kinds.get(s.kind, 0) + 1
@@ -72,6 +75,8 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
     warnings = []
     if repaired:
         warnings.append(f"{plural(repaired, 'vertex normal')} repaired")
+    if small:
+        warnings.append(f"small shapes: {', '.join(small)}")
     if shape_only:
         warnings.append(f"3D shape only, no voxels at label resolution: {', '.join(shape_only)}")
     lines.append("- warnings:" if warnings else "- warnings: none")
@@ -137,10 +142,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         raise BuildError(problems)
 
     images, names, overlaps, archives = {}, {}, {}, {}
+    by_id = {p.structure.id: p.structure for p in planned}
     for spec in sources:
         log(f"fetching {spec.source.id}")
         archive = archives[spec.source.id] = fetch(spec, cache, manual_dir)
-        if spec.members:
+        if spec.members and spec.tiles is not None:
+            sides = {value: by_id[sid].side
+                     for value, sid in mapping_for(spec.source.id, planned).items()}
+            images[spec.source.id] = load_tiles(spec, archive, sides)
+        elif spec.members:
             images[spec.source.id], overlaps[spec.source.id] = load_members(spec, archive)
         elif spec.parts:
             images[spec.source.id] = load_parts(member_path(spec, archive, spec.member),
@@ -156,6 +166,12 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     extents = {s.source.id: z_extent(images[s.within]) for s in sources if s.within}
     for name, extent in extents.items():
         images[name] = clip_z(images[name], *extent)
+    small = []
+    for s in (s for s in sources if s.tiles is not None):
+        ids, counts = np.unique(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
+                                return_counts=True)
+        small += [f"{by_id[int(i)].name} ({n} voxels)" for i, n in zip(ids, counts)
+                  if i and n < SMALL_VOXELS]
     for spec in sources:
         values = source_values(images[spec.source.id])
         mapped = set(mapping_for(spec.source.id, planned))
@@ -263,7 +279,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         local_note = ""
     report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
                           per_source, len(pathways), local_note, sources, repaired,
-                          overlaps=overlaps)
+                          overlaps=overlaps, small=small)
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:

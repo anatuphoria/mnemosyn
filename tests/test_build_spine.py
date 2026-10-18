@@ -229,3 +229,68 @@ def test_within_must_name_a_label_source_on_the_same_volume(tmp_path):
     edit(src / "recipe.toml", "mask = true\n", 'mask = true\nwithin = "toyhyp"\n')
     assert "source toyspine-wm: within 'toyhyp' is not a label source of volume spine" in (
         problems_for(src))
+
+
+def probability_zip(path, maps, affine):
+    with zipfile.ZipFile(path, "w") as zipped:
+        for name, data in maps.items():
+            zipped.writestr(f"MEM/{name}.nii", nib.Nifti1Image(data, affine).to_bytes())
+    return path
+
+
+TILE_SIDES = {1: "left", 2: "right", 3: "midline"}
+
+
+def test_tiles_give_each_voxel_to_the_most_likely_member(tmp_path):
+    from tools.build_atlas.labels import load_tiles
+
+    src = write_extended_source_tree(tmp_path / "t", tracts=False, members="download")
+    shape = (10, 10, 10)
+    maps = {name: np.zeros(shape, dtype=np.float32) for name in ("Pair_L", "Pair_R", "Mid")}
+    maps["Pair_L"][2:4, 2:4, 2:4], maps["Mid"][2:4, 2:4, 2:4] = 0.4, 0.3
+    maps["Pair_L"][6:8, 6:8, 6:8], maps["Mid"][6:8, 6:8, 6:8] = 0.2, 0.2
+    archive = probability_zip(tmp_path / "p.zip", maps, np.diag([1.0, 1.0, 1.0, 1.0]))
+    spec = dataclasses.replace(spec_of(src, "toymembers"), tiles=0.5)
+    data = np.asarray(load_tiles(spec, archive, TILE_SIDES).dataobj)
+    assert (data[2:4, 2:4, 2:4] == 1).all() and (data[6:8, 6:8, 6:8] == 0).all()
+    assert set(np.unique(data)) == {0, 1}
+
+
+def test_tiles_split_ties_by_side(tmp_path):
+    from tools.build_atlas.labels import load_tiles
+
+    src = write_extended_source_tree(tmp_path / "t", tracts=False, members="download")
+    shape = (20, 6, 6)
+    maps = {name: np.zeros(shape, dtype=np.float32) for name in ("Pair_L", "Pair_R", "Mid")}
+    maps["Pair_L"][8:14], maps["Pair_R"][8:14] = 0.6, 0.6
+    affine = np.diag([1.0, 1.0, 1.0, 1.0])
+    affine[0, 3] = -10.5
+    archive = probability_zip(tmp_path / "p.zip", maps, affine)
+    spec = dataclasses.replace(spec_of(src, "toymembers"), tiles=0.5)
+    data = np.asarray(load_tiles(spec, archive, TILE_SIDES).dataobj)
+    assert (data[8:11] == 1).all() and (data[11:14] == 2).all()
+    assert (data == 1).sum() == (data == 2).sum()
+
+
+def test_tiles_need_members_and_rule_out_separate(tmp_path):
+    src = write_extended_source_tree(tmp_path / "a", tracts=False)
+    edit(src / "recipe.toml", 'mesh_grid = "native"\n', 'mesh_grid = "native"\ntiles = 0.5\n')
+    assert "source toyhyp: tiles needs members" in problems_for(src)
+    src = write_extended_source_tree(tmp_path / "b", tracts=False, members="download")
+    edit(src / "recipe.toml", 'url = "https://example.org/toy-masks"\n',
+         'url = "https://example.org/toy-masks"\ntiles = 0.5\nseparate = true\n')
+    assert "source toymembers: tiles and separate do not mix" in problems_for(src)
+
+
+def test_a_tiled_build_reports_small_shapes(tmp_path, monkeypatch):
+    import tools.build_atlas.build as build_module
+
+    monkeypatch.setattr(build_module, "SMALL_VOXELS", 400)
+    src = write_extended_source_tree(tmp_path, tracts=False, members="download")
+    edit(src / "recipe.toml", 'url = "https://example.org/toy-masks"\n',
+         'url = "https://example.org/toy-masks"\ntiles = 0.5\n')
+    assert problems_for(src) == []
+    out = quiet_build(src, tmp_path / "out", tmp_path / "cache")
+    report = (out / "build-report.md").read_text()
+    assert "  - small shapes: Toy middle (300 voxels)\n" in report
+    assert Atlas.open(out).has_mesh(181) and Atlas.open(out).has_mesh(190)

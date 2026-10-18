@@ -84,6 +84,10 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: separate needs members")
         elif spec.separate and spec.mesh_grid != "native":
             problems.append(f"source {name}: separate needs mesh_grid = \"native\"")
+        if spec.tiles is not None and not spec.members:
+            problems.append(f"source {name}: tiles needs members")
+        elif spec.tiles is not None and spec.separate:
+            problems.append(f"source {name}: tiles and separate do not mix")
         if spec.parts and spec.threshold is None:
             problems.append(f"source {name}: parts need a threshold")
         if spec.trim_outside is not None and spec.trim_outside not in groups:
