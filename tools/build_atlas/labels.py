@@ -59,6 +59,33 @@ def load_label_image(path: Path, mask: bool = False, name: str = "", cropped: bo
     return nib.Nifti1Image(data.astype(np.int32), affine)
 
 
+def load_parts(path: Path, parts: tuple[int, ...], threshold: float, name: str = ""
+               ) -> nib.Nifti1Image:
+    image = nib.load(path)
+    if len(image.shape) != 4:
+        raise BuildError([f"source {name}: parts need a 4D probability image"])
+    data = np.nan_to_num(np.asarray(image.dataobj, dtype=np.float32))
+    inside = data[..., 1:].sum(axis=-1) >= threshold
+    best = np.asarray(parts)[data[..., list(parts)].argmax(axis=-1)]
+    return nib.Nifti1Image(np.where(inside, best, 0).astype(np.int32), image.affine)
+
+
+def trim_against(image: nib.Nifti1Image, data: np.ndarray, affine: np.ndarray,
+                 allowed: set[int] | None) -> nib.Nifti1Image:
+    values = np.asarray(image.dataobj).copy()
+    index = np.argwhere(values > 0)
+    world = np.c_[index, np.ones(len(index))] @ np.asarray(image.affine).T
+    other = np.rint(world @ np.linalg.inv(affine).T)[:, :3].astype(int)
+    inside = ((other >= 0) & (other < data.shape)).all(axis=1)
+    labels = np.zeros(len(index), dtype=data.dtype)
+    labels[inside] = data[tuple(other[inside].T)]
+    clear = labels > 0
+    if allowed is not None:
+        clear &= ~np.isin(labels, sorted(allowed))
+    values[tuple(index[clear].T)] = 0
+    return nib.Nifti1Image(values, image.affine)
+
+
 def member_masks(spec: SourceSpec, archive: Path):
     shape, affine = None, None
     for value, (name, member) in enumerate(spec.members, 1):

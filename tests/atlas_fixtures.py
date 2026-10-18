@@ -534,6 +534,53 @@ def local_volume() -> np.ndarray:
     distance = np.linalg.norm(grid - 10, axis=-1)
     return np.where(distance <= 3, 0.9 - 0.1 * distance, 0.0).astype(np.float32)
 
+TOY_BODY_SOURCE = """
+[[sources]]
+id = "toybody"
+title = "Toy body"
+authors = "Test H"
+year = 2024
+version = "1"
+licence = "No licence stated"
+redistribution = false
+local_only = true
+download = "{download}"
+sha256 = "{sha256}"
+volume = "brain"
+priority = -5
+mesh_grid = "native"
+parts = [1, 2]
+threshold = 0.5
+trim_outside = 6
+"""
+
+TOY_BODY_GROUP = """\
+  { id = 6, parent = 2, acronym = "STEM", name = "Toy stem" },
+"""
+
+TOY_BODY_STRUCTURES = """\
+  { id = 230, parent = 6, acronym = "BDA", name = "Toy upper body", kind = "shell", source = "toybody", midline = 1 },
+  { id = 240, parent = 6, acronym = "BDB", name = "Toy lower body", kind = "shell", source = "toybody", midline = 2 },
+"""
+
+BODY_SHAPE = (29, 43, 97)
+BODY_AFFINE = np.array([[2.0, 0, 0, -50.0], [0, 2.0, 0, -50.0], [0, 0, 2.0, -182.0],
+                        [0, 0, 0, 1.0]])
+BODY_BOXES = {1: ((-50, 0, -20), (-14, 32, 8)), 2: ((-4, -48, -180), (6, -40, -160))}
+
+
+def body_volume() -> np.ndarray:
+    world = np.indices(BODY_SHAPE).transpose(1, 2, 3, 0) * 2.0 + BODY_AFFINE[:3, 3]
+    data = np.zeros(BODY_SHAPE + (4,), dtype=np.float32)
+    data[..., 0] = 1.0
+    for channel, (lo, hi) in BODY_BOXES.items():
+        inside = ((world >= lo) & (world <= hi)).all(axis=-1)
+        data[inside] = 0.1 * np.eye(4)[0] + 0.9 * np.eye(4)[channel]
+        if channel == 1:
+            data[inside & (world[..., 2] >= -8) & (world[..., 2] <= -4)] = (0.1, 0.25, 0.05, 0.6)
+    return data
+
+
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -550,7 +597,8 @@ def hyp_volume() -> np.ndarray:
 
 def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
                                local: bool = False, behaviour: bool = False,
-                               members: str = "", spine: bool = False) -> Path:
+                               members: str = "", spine: bool = False,
+                               shells: bool = False) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -598,8 +646,16 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
         recipe += TOY_LOCAL_SOURCE.format(download=gland, sha256=sha256_file(gland))
         concepts += TOY_LOCAL_STRUCTURES
         (src / "knowledge" / "en" / "170.md").write_text(TOY_LOCAL_ENTRY)
+    groups = ""
+    if shells:
+        body = root / "upstream" / "toy_body.nii.gz"
+        nib.save(nib.Nifti1Image(body_volume(), BODY_AFFINE), body)
+        recipe += TOY_BODY_SOURCE.format(download=body, sha256=sha256_file(body))
+        concepts += TOY_BODY_STRUCTURES
+        groups = TOY_BODY_GROUP
     (src / "recipe.toml").write_text(recipe)
-    structures = TOY_STRUCTURES.rstrip().removesuffix("]") + concepts + "]\n"
+    structures = TOY_STRUCTURES.replace("]\n\nconcepts", groups + "]\n\nconcepts", 1)
+    structures = structures.rstrip().removesuffix("]") + concepts + "]\n"
     (src / "structures.toml").write_text(structures)
     if pathways:
         (src / "pathways.toml").write_text(TOY_PATHWAYS)

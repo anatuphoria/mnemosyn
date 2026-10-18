@@ -58,6 +58,7 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
     tracts = {spec.source.id: spec for spec in recipe.tracts}
     known = set(labels) | set(tracts)
     volumes = {v.name for v in recipe.volumes}
+    groups = {r.id for r in raws if r.kind == "group"}
     problems = []
     for spec in recipe.sources:
         name = spec.source.id
@@ -81,7 +82,11 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: separate needs members")
         elif spec.separate and spec.mesh_grid != "native":
             problems.append(f"source {name}: separate needs mesh_grid = \"native\"")
-        if spec.threshold is not None and not (spec.mask or spec.members):
+        if spec.parts and spec.threshold is None:
+            problems.append(f"source {name}: parts need a threshold")
+        if spec.trim_outside is not None and spec.trim_outside not in groups:
+            problems.append(f"source {name}: trim_outside {spec.trim_outside} is not a group")
+        if spec.threshold is not None and not (spec.mask or spec.members or spec.parts):
             problems.append(f"source {name}: threshold needs mask = true or members")
         problems += [f"source {name}: drop value {value!r} is not a label number"
                      for value in spec.drop

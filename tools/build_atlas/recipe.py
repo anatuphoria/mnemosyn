@@ -37,6 +37,8 @@ class SourceSpec:
     margin: float = 0.0
     separate: bool = False
     fill: bool = False
+    parts: tuple[int, ...] = ()
+    trim_outside: int | None = None
 
     @property
     def member_values(self) -> dict[str, int]:
@@ -118,6 +120,8 @@ def _source_spec(s: dict) -> SourceSpec:
                       threshold=float(s["threshold"]) if "threshold" in s else None,
                       margin=float(s.get("margin", 0)), separate=s.get("separate") is True,
                       fill=s.get("fill") is True,
+                      parts=tuple(int(v) for v in s.get("parts", ())),
+                      trim_outside=int(s["trim_outside"]) if "trim_outside" in s else None,
                       members=tuple((str(k), str(v)) for k, v in s.get("members", {}).items()),
                       manual=s.get("manual") is True, crop=s.get("crop") is True)
 
