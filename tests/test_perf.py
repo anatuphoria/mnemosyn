@@ -31,6 +31,52 @@ def large_structures(groups: int = 50, per_group: int = 99) -> list[Structure]:
     return out
 
 
+def run_timing(script: str, atlas_path, tmp_path, runs: int = 3) -> list[float]:
+    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
+    rows = []
+    for run in range(runs):
+        result = subprocess.run([sys.executable, "-c", script, str(atlas_path),
+                                 str(tmp_path / f"progress{run}.sqlite")], env=env, check=True,
+                                capture_output=True, text=True, timeout=600)
+        rows.append([float(v) for v in result.stdout.split("\n")[-2].split()])
+    return [sorted(column)[len(column) // 2] for column in zip(*rows)]
+
+
+PRELUDE = """
+import sys
+import time
+from pathlib import Path
+
+from PySide6.QtWidgets import QApplication
+
+from cns_atlas import Atlas
+from cns_desktop.main_window import MainWindow
+
+app = QApplication([])
+window = MainWindow(Atlas.open(sys.argv[1]), progress_path=Path(sys.argv[2]))
+window.resize(1500, 900)
+window.show()
+app.processEvents()
+window.view.render()
+deadline = time.perf_counter() + 10
+while not getattr(window, "warm_up_done", True) and time.perf_counter() < deadline:
+    app.processEvents()
+state, view = window.state, window.view
+
+
+def timed(action):
+    start = time.perf_counter()
+    action()
+    app.processEvents()
+    view.ren_win.WaitForCompletion()
+    return time.perf_counter() - start
+
+
+def median(values):
+    return sorted(values)[len(values) // 2]
+"""
+
+
 def best_of(fn, runs: int = 5) -> float:
     times = []
     for _ in range(runs):
@@ -102,48 +148,42 @@ def test_desktop_first_frame_under_2s_and_own_memory_under_400mb():
     assert runs[-1] < 2.0
     own = [line for line in output.splitlines() if line.startswith("own memory:")]
     assert own and float(own[0].split()[2]) < 400
+    warmed = [line for line in output.splitlines()
+              if line.startswith("own memory after warm-up:")]
+    assert warmed and float(warmed[0].split()[4]) < 400
+
+
+SELECTION_TIMING = PRELUDE + """
+def split(structure_id):
+    start = time.perf_counter()
+    state.select(structure_id)
+    step = time.perf_counter() - start
+    app.processEvents()
+    view.ren_win.WaitForCompletion()
+    return step, time.perf_counter() - start
+
+
+singles = [split(i) for i in list(state.geometry_ids)[:60]]
+groups = []
+for group in (1, 2, 3, 70, 80):
+    split(1000)
+    split(group)
+    runs = [split(i) for i in (1000, group) * 7][1::2]
+    groups += [median([r[0] for r in runs]), median([r[1] for r in runs])]
+window.close()
+print(median([s[0] for s in singles]), median([s[1] for s in singles]), *groups)
+"""
 
 
 @pytest.mark.slow
 def test_selection_on_the_real_atlas_under_7ms(tmp_path):
     pytest.importorskip("pyvistaqt")
-    atlas_path = real_atlas_or_skip()
-    from PySide6.QtWidgets import QApplication
-
-    from cns_desktop.main_window import MainWindow
-
-    app = QApplication.instance() or QApplication([])
-    window = MainWindow(Atlas.open(atlas_path), progress_path=tmp_path / "progress.sqlite")
-    window.resize(1500, 900)
-    window.show()
-    app.processEvents()
-    window.view.render()
-    def timed(structure_id):
-        start = time.perf_counter()
-        window.state.select(structure_id)
-        step = time.perf_counter() - start
-        app.processEvents()
-        window.view.ren_win.WaitForCompletion()
-        return step, time.perf_counter() - start
-
-    def median(values):
-        return sorted(values)[len(values) // 2]
-
-    singles = [timed(i) for i in list(window.state.geometry_ids)[:60]]
-    groups = {}
-    for group in (1, 2, 3, 70, 80):
-        if group in window.state.atlas:
-            timed(1000)
-            timed(group)
-            runs = [timed(i) for i in (1000, group, 1000, group, 1000, group)][1::2]
-            groups[group] = (median([r[0] for r in runs]), median([r[1] for r in runs]))
-    window.close()
-    assert median([s[0] for s in singles]) < 0.007
-    assert median([s[1] for s in singles]) < 0.016
-    tract_groups = {70, 80}
-    assert all(step < 0.010 and whole < 0.020 for g, (step, whole) in groups.items()
-               if g not in tract_groups), groups
-    assert all(whole < 0.050 for g, (_, whole) in groups.items() if g in tract_groups), groups
+    values = run_timing(SELECTION_TIMING, real_atlas_or_skip(), tmp_path)
+    single_step, single_whole, *groups = values
+    assert single_step < 0.007 and single_whole < 0.016
+    cns, brain, cord, tracts, spinal_tracts = zip(groups[0::2], groups[1::2])
+    assert all(step < 0.010 and whole < 0.020 for step, whole in (cns, brain, cord)), groups
+    assert tracts[1] < 0.040 and spinal_tracts[1] < 0.050, groups
 
 
 @pytest.mark.slow
@@ -218,11 +258,7 @@ print(started, times[len(times) // 2])
 def test_quiz_on_the_real_atlas_starts_under_100ms_and_moves_on_under_50ms(tmp_path):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
-    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
-    result = subprocess.run([sys.executable, "-c", QUIZ_TIMING, str(atlas_path),
-                             str(tmp_path / "progress.sqlite")], env=env, check=True,
-                            capture_output=True, text=True, timeout=120)
-    started, moved_on = map(float, result.stdout.split()[-2:])
+    started, moved_on = run_timing(QUIZ_TIMING, atlas_path, tmp_path)
     assert started < 0.100
     assert moved_on < 0.050
 
@@ -275,11 +311,7 @@ print(first, median(toggles), median(redraws), median(lookups))
 def test_tracts_on_the_real_atlas_meet_their_budgets(tmp_path):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
-    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
-    result = subprocess.run([sys.executable, "-c", TRACT_TIMING, str(atlas_path),
-                             str(tmp_path / "progress.sqlite")], env=env, check=True,
-                            capture_output=True, text=True, timeout=180)
-    first, toggle, redraw, lookup = map(float, result.stdout.split()[-4:])
+    first, toggle, redraw, lookup = run_timing(TRACT_TIMING, atlas_path, tmp_path)
     assert first < 0.500
     assert toggle < 0.050
     assert redraw < 0.010
@@ -338,11 +370,7 @@ print(entered, switched, sorted(steps)[int(len(steps) * 0.9)], sorted(ticks)[len
 def test_pathways_on_the_real_atlas_meet_their_budgets(tmp_path):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
-    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
-    result = subprocess.run([sys.executable, "-c", PATHWAY_TIMING, str(atlas_path),
-                             str(tmp_path / "progress.sqlite")], env=env, check=True,
-                            capture_output=True, text=True, timeout=180)
-    entered, switched, step, tick = map(float, result.stdout.split()[-4:])
+    entered, switched, step, tick = run_timing(PATHWAY_TIMING, atlas_path, tmp_path)
     assert entered < 0.100
     assert switched < 0.100
     assert step < 0.030
@@ -394,3 +422,111 @@ def test_generated_3500_structure_scene_at_60_fps(tmp_path):
     fps = 30 / (time.perf_counter() - start)
     view.close()
     assert fps >= 60
+
+
+ROUTE_TIMING = PRELUDE + """
+panel = window.pathways
+window.pathway_dock.raise_()
+app.processEvents()
+panel.open("motor")
+app.processEvents()
+for index in range(len(panel.lights) - 1):
+    panel.go(index)
+    app.processEvents()
+first_cord = timed(lambda: panel.go(len(panel.lights) - 1))
+window.leave_pathway()
+steps = []
+for pathway in state.atlas.pathways:
+    for side in (("left", "right") if pathway.sides == "one" else ("left",)):
+        panel.open(pathway.key)
+        panel.set_side(side)
+        app.processEvents()
+        steps += [timed(lambda index=index: panel.go(index)) for index in range(len(panel.lights))]
+        window.leave_pathway()
+        app.processEvents()
+window.close()
+print(first_cord, sorted(steps)[int(len(steps) * 0.9)])
+"""
+
+
+@pytest.mark.slow
+def test_every_route_step_meets_30ms_including_the_first_into_the_cord(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    first_cord, step90 = run_timing(ROUTE_TIMING, real_atlas_or_skip(), tmp_path)
+    assert first_cord < 0.030 and step90 < 0.030
+
+
+GROUP_TIMING = PRELUDE + """
+cns = timed(lambda: state.select(1))
+timed(lambda: state.select(1000))
+brain = timed(lambda: state.select(2))
+timed(lambda: state.select(1000))
+cord = timed(lambda: state.select(3))
+window.close()
+print(cns, brain, cord)
+"""
+
+
+@pytest.mark.slow
+def test_first_large_group_selections_meet_20ms_after_warm_up(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    assert max(run_timing(GROUP_TIMING, real_atlas_or_skip(), tmp_path)) < 0.020
+
+
+VISIBILITY_TIMING = PRELUDE + """
+worst = []
+for group in (2, 3, 70, 30):
+    ids = state.geometry_in(group)
+    hides, shows, isolates = [], [], []
+    for _ in range(7):
+        hides.append(timed(lambda: state.set_hidden(ids, True)))
+        shows.append(timed(lambda: state.set_hidden(ids, False)))
+        isolates.append(timed(lambda: state.isolate(group)))
+        timed(state.show_all)
+    worst += [median(hides), median(shows), median(isolates)]
+window.close()
+print(*worst)
+"""
+
+
+@pytest.mark.slow
+def test_hiding_showing_and_isolating_groups_meet_30ms(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    assert max(run_timing(VISIBILITY_TIMING, real_atlas_or_skip(), tmp_path)) < 0.030
+
+
+SLIDER_TIMING = PRELUDE + """
+results = []
+for volume in [v.name for v in state.atlas.volumes]:
+    state.set_slice_volume(volume)
+    state.set_slice("axial", state.slice_mm)
+    app.processEvents()
+    results.append(median([timed(lambda: state.set_slice("axial", state.slice_mm + 1.0))
+                           for _ in range(15)]))
+window.close()
+print(*results)
+"""
+
+
+@pytest.mark.slow
+def test_one_slider_step_meets_16ms(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    assert max(run_timing(SLIDER_TIMING, real_atlas_or_skip(), tmp_path)) < 0.016
+
+
+TRACTS_GROUP_TIMING = PRELUDE + """
+state.select(70)
+app.processEvents()
+times = []
+for _ in range(7):
+    timed(lambda: state.select(1000))
+    times.append(timed(lambda: state.select(70)))
+window.close()
+print(median(times))
+"""
+
+
+@pytest.mark.slow
+def test_tracts_group_selection_meets_40ms(tmp_path):
+    pytest.importorskip("pyvistaqt")
+    assert run_timing(TRACTS_GROUP_TIMING, real_atlas_or_skip(), tmp_path)[0] < 0.040
