@@ -74,7 +74,13 @@ class BrainView(QtInteractor):
         super().__init__(parent, auto_update=False)
         self.state = state
         self.set_background(BACKGROUND)
-        self.shell_ids = [i for i in state.geometry_ids if state.atlas.get(i).kind == "shell"]
+        self.shell_ids = [i for i in state.geometry_ids
+                          if state.atlas.get(i).kind in ("shell", "cover")]
+        self.cover_ids = frozenset(i for i in self.shell_ids
+                                   if state.atlas.get(i).kind == "cover")
+        self.inside_ids = self._inside_of_covers()
+        self.preferred: frozenset[int] = frozenset()
+        self._looking = False
         shells = frozenset(self.shell_ids)
         self.ids = [i for i in state.geometry_ids if not state.is_tract(i) and i not in shells]
         self.tract_ids = list(state.tract_ids)
@@ -115,7 +121,6 @@ class BrainView(QtInteractor):
 
         self._picker = vtkHardwarePicker()
         self.pick_position = np.zeros(3)
-        self.preferred: frozenset[int] = frozenset()
         self._press_pos: tuple[int, int] | None = None
         self.iren.add_observer("LeftButtonPressEvent", self._on_press)
         self.iren.add_observer("LeftButtonReleaseEvent", self._on_release)
@@ -195,12 +200,43 @@ class BrainView(QtInteractor):
         actor.GetProperty().SetOpacity(1.0 if in_focus else FAINT)
         actor.SetPickable(shown and in_focus)
 
+    def _inside_of_covers(self) -> frozenset[int]:
+        if not self.cover_ids:
+            return frozenset()
+        paths = [self.state.atlas.get(i).structure_id_path for i in self.cover_ids]
+        common = [ids[0] for ids in zip(*paths) if len(set(ids)) == 1]
+        while common:
+            inside = frozenset(self.state.geometry_in(common[-1])) - self.cover_ids
+            if inside:
+                return inside
+            common.pop()
+        return frozenset()
+
+    def looking_inside(self) -> bool:
+        seen = set(self.state.highlighted_ids()) | self.preferred
+        return bool(self.inside_ids & seen) or any(
+            self.state.is_tract(i) and not self.state.is_hidden(i) for i in self.inside_ids)
+
+    def _update_covers(self) -> None:
+        looking = self.looking_inside()
+        if looking != self._looking:
+            self._looking = looking
+            for structure_id in self.cover_ids:
+                self._style_shell(structure_id)
+
+    def set_preferred(self, ids) -> None:
+        self.preferred = frozenset(ids)
+        self._update_covers()
+        self._request_render()
+
     def _style_shell(self, structure_id: int) -> None:
         actor = self.shell_actors[structure_id]
         shown = not self.state.is_hidden(structure_id)
         in_focus = self.state.in_focus(structure_id)
         actor.SetVisibility(shown)
-        actor.GetProperty().SetOpacity(SHELL_OPACITY if in_focus else FAINT)
+        see_through = structure_id not in self.cover_ids or self._looking
+        actor.GetProperty().SetOpacity(
+            FAINT if not in_focus else SHELL_OPACITY if see_through else 1.0)
         actor.SetPickable(shown and in_focus)
 
     def _on_focus_changed(self, _focus) -> None:
@@ -265,13 +301,18 @@ class BrainView(QtInteractor):
         self.pick_position = np.array(self._picker.GetPickPosition())
         if found not in self.shell_actors or found in self.preferred:
             return found
+        if found in self.cover_ids and not self._looking:
+            return found
         for actor in self.shell_actors.values():
             actor.SetPickable(False)
         behind = self._pick(x, y)
         point = np.array(self._picker.GetPickPosition())
         for structure_id in self.shell_actors:
             self._style_shell(structure_id)
-        if behind is None or not self._inside(found, point):
+        if found in self.cover_ids:
+            if behind not in self.inside_ids:
+                return found
+        elif behind is None or not self._inside(found, point):
             return found
         self.pick_position = point
         return behind
@@ -296,6 +337,7 @@ class BrainView(QtInteractor):
 
     def _on_selection_changed(self, structure_id: int | None) -> None:
         self.highlighted = self.state.highlighted_ids()
+        self._update_covers()
         self._refresh_overlay()
         self._request_render()
 
@@ -336,6 +378,8 @@ class BrainView(QtInteractor):
                                                    not self.state.is_hidden(structure_id))
         if any(i in ids for i in self.highlighted):
             self._refresh_overlay()
+        if self.cover_ids:
+            self._update_covers()
         self._request_render()
 
     def _volume_bounds(self, volume) -> tuple[float, ...]:
