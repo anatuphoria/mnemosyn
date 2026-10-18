@@ -203,7 +203,7 @@ Real atlas (slow):
   shareable build; texts byte-identical.
 
 Budgets measured on the local build: first frame under 2 s, the app's own memory under 400 MB,
-selection under 7 ms. Entering a route rises from 100 to 130 ms (owner's decision, 2026-10-13), and
+selection under 7 ms. Entering a route rose from 100 to 130 ms (owner's decision, 2026-10-13) and went back to 100 ms once routes opened in 75 to 85 ms (owner's decision, 2026-10-18), and
 switching its side, the same single redraw, with it: the spinal segments and horns add about 13%
 more faded geometry to that redraw.
 

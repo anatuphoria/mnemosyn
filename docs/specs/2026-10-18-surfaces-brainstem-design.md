@@ -20,8 +20,8 @@ continuous with the cord.
 
 The usual practice in anatomy atlases (owner accepted it as the standard choice):
 
-- Each structure's binary mask is smoothed before its surface is extracted (a Gaussian of about one
-  voxel on a float copy of the mask, contoured at 0.5), then the surface is lightly evened with the
+- Each structure's binary mask is smoothed before its surface is extracted (a Gaussian of 2 mm, see
+  section 6, on a float copy of the mask, contoured at 0.5), then the surface is lightly evened with the
   existing Taubin pass. The 1 mm staircase disappears; gyri and sulci stay.
 - Accuracy beats smoothness for small structures: a small nucleus is blurred less, so its enclosed
   volume stays within 10% of its voxel volume and its centre moves less than 1 mm. Structures that
@@ -110,7 +110,7 @@ The bamboo look of the cord segments and the colours (project 3), speed (project
 
 ## 6. Calls made by the builder of this document (not the owner)
 
-- 2 mm of blur (one voxel left the hand-drawn AAL3 ridges on the cortex; checked on renders), less for
+- 2 mm of blur (one voxel left the hand-drawn AAL3 ridges on the cortex; checked on renders; owner accepted it, 2026-10-18), less for
   small structures, volume within 10%, centre (of the enclosed volume) within 1 mm.
 - Names Midbrain body, Pons body, Medulla body.
 - Highest-probability assignment at 0.5 and dropping the peduncle channel.

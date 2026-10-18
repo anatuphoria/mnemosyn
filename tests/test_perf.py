@@ -343,8 +343,8 @@ def test_pathways_on_the_real_atlas_meet_their_budgets(tmp_path):
                              str(tmp_path / "progress.sqlite")], env=env, check=True,
                             capture_output=True, text=True, timeout=180)
     entered, switched, step, tick = map(float, result.stdout.split()[-4:])
-    assert entered < 0.130
-    assert switched < 0.130
+    assert entered < 0.100
+    assert switched < 0.100
     assert step < 0.030
     assert tick < 0.005
 
