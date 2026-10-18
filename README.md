@@ -175,6 +175,16 @@ or switching its side takes under 100 ms, a step under
 .venv/bin/python -m pytest -m slow    # downloads AAL3, builds the real atlas, checks budgets
 ```
 
+## Website
+
+The website at https://mnemo.saeed.cool is built from this repository by MkDocs with the Material
+theme and published by GitHub Actions on every push to `main`. To preview it:
+
+```bash
+pip install "mkdocs>=1.6,<2" "mkdocs-material>=9.5,<10"
+python -m tools.build_site && mkdocs serve
+```
+
 ## Layout
 
 ```
@@ -183,5 +193,6 @@ cns_desktop/        desktop app: app, main_window, state, views/
 tools/build_atlas/  atlas build tool: recipe, hierarchy, validate, fetch, labels, meshing, writer
 atlas_src/          committed atlas sources: recipe, structures, ids.lock, knowledge, LICENSES
 docs/               design documents (specs/) and the decision log (decisions.md)
+site/               website home page and styles; tools/build_site.py writes the other pages
 tests/
 ```

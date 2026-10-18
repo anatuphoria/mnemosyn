@@ -1,0 +1,57 @@
+site_name: Mnemosyn
+site_description: A free 3D atlas of the human central nervous system for students
+site_url: https://mnemo.saeed.cool/
+repo_url: https://github.com/anatuphoria/mnemosyn
+repo_name: anatuphoria/mnemosyn
+docs_dir: build/site-docs
+site_dir: build/site
+theme:
+  name: material
+  font:
+    text: Inter
+  palette:
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle: {icon: material/weather-sunny, name: Light}
+    - scheme: default
+      primary: indigo
+      toggle: {icon: material/weather-night, name: Dark}
+  icon:
+    logo: material/brain
+  features: [navigation.tabs, navigation.sections, navigation.top, navigation.instant, search.highlight, content.code.copy, toc.follow]
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/saeeedhany
+      name: GitHub
+    - icon: fontawesome/brands/discord
+      link: https://discord.com/users/1098257642356482099
+      name: Discord
+    - icon: material/forum-outline
+      link: https://github.com/anatuphoria/mnemosyn/discussions
+      name: Discussions
+extra_css: [stylesheets/extra.css, "https://fonts.googleapis.com/css2?family=GFS+Didot&display=swap"]
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+nav:
+  - Home: index.md
+  - Get started:
+      - Install: install.md
+      - Using the app: guide.md
+  - The atlas:
+      - Structures: atlas/structures.md
+      - Data sources: atlas/sources.md
+  - How it was made:
+      - Decisions: decisions.md
+      - Performance: performance.md
+      - Design documents: design/index.md

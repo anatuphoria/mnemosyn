@@ -43,6 +43,7 @@ entry replaces it and the old one says so.
 | 35 | 2026-10-18 | The brainstem bodies are see-through | in force |
 | 36 | 2026-10-18 | Entering a route takes under 100 ms | in force |
 | 37 | 2026-10-18 | Questions and feedback go to GitHub Discussions | in force |
+| 38 | 2026-10-18 | The website is built from the repository with MkDocs at mnemo.saeed.cool | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -313,3 +314,12 @@ the website links to it.
 Why: students and reviewers need one public place to ask and correct; the first design already
 planned it for later.
 Design: [atlas foundation, section 1](specs/2026-10-11-atlas-foundation-design.md).
+
+## 38. The website is built from the repository with MkDocs at mnemo.saeed.cool
+
+2026-10-18. The website uses MkDocs with the Material theme in the app's colours and lives at
+mnemo.saeed.cool, published by GitHub Pages on every push to `main`. Its structure list, data
+sources, decisions and design documents are generated from the repository, never copied by hand. An
+earlier plain HTML test site was set aside. MkDocs stays below version 2, which drops Material's
+themes; its successor can read the same pages later.
+Why: one source for every fact, so the site cannot fall out of date with the atlas.
