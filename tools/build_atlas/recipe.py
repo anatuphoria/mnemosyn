@@ -102,7 +102,8 @@ def _source(s: dict) -> Source:
     return Source(id=s["id"], title=s["title"], authors=s["authors"], year=int(s["year"]),
                   version=str(s["version"]), licence=s.get("licence", ""),
                   redistribution=s.get("redistribution") is True,
-                  doi=s.get("doi", ""), url=s.get("url", ""))
+                  doi=s.get("doi", ""), url=s.get("url", ""),
+                  provides=str(s.get("provides", "")))
 
 
 def _source_spec(s: dict) -> SourceSpec:

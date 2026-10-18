@@ -79,6 +79,7 @@ class Source:
     redistribution: bool
     doi: str = ""
     url: str = ""
+    provides: str = ""
 
     def citation(self) -> str:
         return f"{self.authors} ({self.year}). {self.title}, version {self.version}."
@@ -94,6 +95,7 @@ class Source:
             "url": self.url,
             "licence": self.licence,
             "redistribution": self.redistribution,
+            "provides": self.provides,
         }
 
     @classmethod
@@ -108,6 +110,7 @@ class Source:
             redistribution=data.get("redistribution") is True,
             doi=str(data.get("doi", "")),
             url=str(data.get("url", "")),
+            provides=str(data.get("provides", "")),
         )
 
 

@@ -17,6 +17,7 @@ grid_source = "aal3"
 
 [[sources]]
 id = "aal3"
+provides = "Brain regions"
 title = "Automated anatomical labelling atlas 3"
 authors = "Rolls ET, Huang CC, Lin CP, Feng J, Joliot M"
 year = 2020
@@ -36,6 +37,7 @@ priority = 1
 
 [[templates]]
 id = "colin27"
+provides = "MRI template for brain slices"
 title = "Colin 27 Average Brain, Stereotaxic Registration Model"
 authors = "Holmes CJ, Hoge R, Collins L, Woods R, Toga AW, Evans AC"
 year = 1998
@@ -52,6 +54,7 @@ volume = "brain"
 
 [[sources]]
 id = "neudorfer2020"
+provides = "Hypothalamic nuclei"
 title = "A high-resolution in vivo magnetic resonance imaging atlas of the human hypothalamic region"
 authors = "Neudorfer C, Germann J, Elias GJB, Gramer R, Boutet A, Lozano AM"
 year = 2020
@@ -70,6 +73,7 @@ mesh_grid = "native"
 
 [[sources]]
 id = "tang2024"
+provides = "Pituitary gland"
 title = "Pituitary mask on the MNI ICBM152 2009a nonlinear asymmetric template"
 authors = "Tang K"
 year = 2024
@@ -86,6 +90,7 @@ mesh_grid = "native"
 
 [[sources]]
 id = "razavi2021"
+provides = "Pineal gland"
 title = "A probabilistic atlas of the pineal gland in the standard space"
 authors = "Razavi F, Raminfard S, Kalantar Hormozi H, Sisakhti M, Batouli SAH"
 year = 2021
@@ -105,6 +110,7 @@ mask = true
 
 [[sources]]
 id = "edlow2023"
+provides = "Brainstem arousal nuclei"
 title = "Harvard Ascending Arousal Network Atlas, version 2.0"
 authors = "Edlow BL, Kinney HC"
 year = 2023
@@ -137,6 +143,7 @@ AAN_PnO_R = "AAN_PnO_R_MNI152_1mm_v2p0.nii"
 
 [[sources]]
 id = "diedrichsen2009"
+provides = "Deep cerebellar nuclei"
 title = "A probabilistic MR atlas of the human cerebellum (deep nuclei)"
 authors = "Diedrichsen J, Balsters JH, Flavell J, Cussans E, Ramnani N"
 year = 2009
@@ -155,6 +162,7 @@ drop = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 2
 
 [[sources]]
 id = "sitek2019"
+provides = "Auditory brainstem nuclei"
 title = "Mapping the human subcortical auditory system using histology, postmortem MRI and in vivo MRI at 7T"
 authors = "Sitek KR, Gulban OF, Calabrese E, Johnson GA, Lage-Castellanos A, Moerel M, Ghosh SS, De Martino F"
 year = 2019
@@ -174,6 +182,7 @@ drop = [7, 8]
 
 [[sources]]
 id = "bianciardi2024"
+provides = "Brainstem nuclei"
 title = "Brainstem Navigator: an atlas of brainstem nuclei in living humans from 7 tesla MRI"
 authors = "Bianciardi M, Singh K, Garcia-Gomar MG, et al."
 year = 2024
@@ -213,6 +222,7 @@ iMRt_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_threshol
 
 [[tracts]]
 id = "hcp1065"
+provides = "Brain white matter tracts"
 title = "Population-averaged atlas of the macroscale human structural connectome and its network topology"
 authors = "Yeh FC, Panesar S, Fernandes D, Meola A, Yoshino M, Fernandez-Miranda JC, Vettel JM, Verstynen T"
 year = 2018
@@ -315,6 +325,7 @@ grid_source = "pam50"
 
 [[sources]]
 id = "pam50"
+provides = "Spinal cord segments"
 title = "PAM50: Unbiased multimodal template of the brainstem and spinal cord aligned with the ICBM152 space"
 authors = "De Leener B, Fonov VS, Collins DL, Callot V, Stikov N, Cohen-Adad J"
 year = 2018
@@ -336,6 +347,7 @@ fill = true
 
 [[sources]]
 id = "pam50-atlas"
+provides = "Spinal grey matter and tracts"
 title = "PAM50 white and grey matter atlas"
 authors = "De Leener B, Fonov VS, Collins DL, Callot V, Stikov N, Cohen-Adad J"
 year = 2018
@@ -393,6 +405,7 @@ A01 = "spinalcordtoolbox-PAM50-3144364/atlas/PAM50_atlas_01.nii.gz"
 
 [[templates]]
 id = "pam50-t2"
+provides = "MRI template for spinal cord slices"
 title = "PAM50 T2-weighted template"
 authors = "De Leener B, Fonov VS, Collins DL, Callot V, Stikov N, Cohen-Adad J"
 year = 2018

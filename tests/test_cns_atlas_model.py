@@ -77,3 +77,13 @@ def test_a_crossing_station_round_trips():
     station = Station((3320,), "midline", crossing=True)
     assert step_from_json(step_to_json(station)) == station
     assert "crossing" not in step_to_json(Station((3320,), "midline"))
+
+
+def test_source_provides_round_trips():
+    from cns_atlas.model import Source
+
+    source = Source("x", "T", "A B", 2020, "1", "CC0", True, provides="Spinal cord")
+    assert Source.from_json(source.to_json()) == source
+    data = source.to_json()
+    del data["provides"]
+    assert Source.from_json(data).provides == ""

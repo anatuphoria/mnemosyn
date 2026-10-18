@@ -376,3 +376,18 @@ def test_brain_tracts_sit_inside_brain():
     paths = {p.structure.id: p.structure.structure_id_path for p in build_tree(raws)}
     tracts = [r.id for r in raws if r.kind == "tract" and 3000 <= r.id < 3500]
     assert tracts and all(2 in paths[i] for i in tracts)
+
+
+PROVIDES = {"aal3": "Brain regions", "colin27": "MRI template for brain slices",
+            "neudorfer2020": "Hypothalamic nuclei", "hcp1065": "Brain white matter tracts",
+            "tang2024": "Pituitary gland", "razavi2021": "Pineal gland",
+            "edlow2023": "Brainstem arousal nuclei", "diedrichsen2009": "Deep cerebellar nuclei",
+            "sitek2019": "Auditory brainstem nuclei", "bianciardi2024": "Brainstem nuclei",
+            "pam50": "Spinal cord segments", "pam50-atlas": "Spinal grey matter and tracts",
+            "pam50-t2": "MRI template for spinal cord slices"}
+
+
+def test_every_source_says_what_it_provides():
+    recipe = load_recipe(SRC / "recipe.toml")
+    specs = (*recipe.sources, *recipe.templates, *recipe.tracts)
+    assert {s.source.id: s.source.provides for s in specs} == PROVIDES

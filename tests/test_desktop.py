@@ -17,6 +17,7 @@ from atlas_package import TOY_SOURCE, tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas, Source
 from cns_desktop.app import (disclaimer_due, main, offer_disclaimer, own_memory_mb,
                              peak_memory_mb)
+from cns_desktop.views.about_dialog import AboutDialog
 from cns_desktop.main_window import (MainWindow, about_text, default_progress_path,
                                      migrate_progress)
 from cns_desktop.state import AppState
@@ -140,9 +141,25 @@ def test_info_panel_without_entry(window):
     assert "No description yet." in window.info.toPlainText()
 
 
+def about_rows(atlas):
+    dialog = AboutDialog(atlas)
+    return [dialog.sources.item(i).text() for i in range(dialog.sources.count())]
+
+
 def test_about_text_has_disclaimer_and_sources(atlas):
-    text = about_text(atlas)
-    assert DISCLAIMER in text and "Toy labelled atlas" in text
+    assert DISCLAIMER in about_text(atlas)
+    assert any(row.startswith("Toy labelled atlas - Test 2024") for row in about_rows(atlas))
+
+
+def test_about_dialog_fits_and_lists_every_source(window, atlas):
+    dialog = AboutDialog(atlas, window)
+    assert dialog.width() <= 1366 and dialog.height() <= 768
+    assert [dialog.tabs.tabText(i) for i in range(dialog.tabs.count())] == ["About",
+                                                                          "Data sources"]
+    assert dialog.sources.count() == len(atlas.sources)
+    dialog.sources.setCurrentRow(0)
+    first = list(atlas.sources.values())[0]
+    assert first.citation() in dialog.detail.text()
 
 
 def test_disclaimer_shows_at_every_start_until_its_box_is_ticked(window, tmp_path):
@@ -386,7 +403,7 @@ def test_hidden_structures_cannot_be_named_or_selected_in_slices(window):
 
 def test_about_text_credits_the_template_source(atlas):
     assert "toy-template" in atlas.sources
-    assert "Toy template" in about_text(atlas)
+    assert any("Toy template" in row for row in about_rows(atlas))
 
 
 def start_quiz(window, mode, practice=False, level="structures", scope=None):
@@ -850,8 +867,8 @@ def local_atlas(tmp_path):
 
 def test_a_local_build_says_it_is_not_for_sharing(qapp, tmp_path):
     atlas = local_atlas(tmp_path)
-    text = about_text(atlas)
-    assert "may not be shared yet" in text and LOCAL_SOURCE.citation() in text
+    assert "may not be shared yet" in about_text(atlas)
+    assert any(row.endswith(" - local only") for row in about_rows(atlas))
     w = MainWindow(atlas, progress_path=tmp_path / "progress.sqlite")
     assert w.windowTitle().endswith("(local build, not for sharing)")
     w.close()
