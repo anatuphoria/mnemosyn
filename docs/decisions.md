@@ -1,0 +1,306 @@
+# Decisions
+
+Every choice that shapes Mnemosyn, newest last, with the reason and the design document behind it.
+Each one was approved by the project owner. A decision is never edited away: when it changes, a new
+entry replaces it and the old one says so.
+
+| No. | Date | Decision | Status |
+|---|---|---|---|
+| 1 | 2026-10-11 | Desktop app in Python with PySide6, VTK and PyVista | in force |
+| 2 | 2026-10-11 | Own atlas package with a BrainGlobe-compatible core | in force |
+| 3 | 2026-10-11 | Structure ids never change and are never reused | in force |
+| 4 | 2026-10-11 | Every source pinned by checksum and licence | in force |
+| 5 | 2026-10-11 | AAL3 as the first source, on its 1 mm grid | in force |
+| 6 | 2026-10-11 | The built atlas is not kept in git | in force |
+| 7 | 2026-10-11 | Descriptions are cited drafts until a doctor reviews them | in force |
+| 8 | 2026-10-11 | A disclaimer in four places | in force |
+| 9 | 2026-10-11 | Speed is enforced by tests | in force |
+| 10 | 2026-10-11 | The label volume decides where a structure is | in force |
+| 11 | 2026-10-11 | No surface smoothing | replaced by 33 |
+| 12 | 2026-10-11 | Slices over the Colin27 MRI, beside the 3D view | in force |
+| 13 | 2026-10-11 | App memory: 600 MB, later 400 MB of the app's own memory | in force |
+| 14 | 2026-10-11 | Self-testing with three modes and spaced repetition | in force |
+| 15 | 2026-10-11 | The project is named Mnemosyn | in force |
+| 16 | 2026-10-11 | The terminal viewer stays a companion with no new features | replaced by 25 |
+| 17 | 2026-10-11 | Tracts are hidden until asked for and have their own quiz level | changed by 29 |
+| 18 | 2026-10-11 | MNI template variants are combined without registration | in force |
+| 19 | 2026-10-12 | Pathways teach the route and lesions, one side at a time | in force |
+| 20 | 2026-10-12 | Data without a licence is used in local builds only | in force |
+| 21 | 2026-10-12 | Behaviour circuits as routes, with play and schematic hormone curves | in force |
+| 22 | 2026-10-13 | Brainstem nuclei from three open sources, the Navigator local only | in force |
+| 23 | 2026-10-13 | The spinal cord from PAM50, local only | in force |
+| 24 | 2026-10-13 | The spinal cord waits on its branch until the whole audit is fixed | in force |
+| 25 | 2026-10-18 | The terminal viewer moves to its own repository | in force |
+| 26 | 2026-10-18 | Wheel zooms to the pointer, right drag pans, rotation turns around the brain | in force |
+| 27 | 2026-10-18 | The camera never moves on its own; F frames the selection | in force |
+| 28 | 2026-10-18 | The Tracts group lives inside Brain | in force |
+| 29 | 2026-10-18 | Tracts shown by a selection hide again when the selection moves on | in force |
+| 30 | 2026-10-18 | One x-ray outline highlights every selection | in force |
+| 31 | 2026-10-18 | Selection time limits | in force |
+| 32 | 2026-10-18 | A fixed-size About window with a list of sources | in force |
+| 33 | 2026-10-18 | Smooth surfaces with a 2 mm blur | in force |
+| 34 | 2026-10-18 | A brainstem body from Iglesias 2015, local only | in force |
+| 35 | 2026-10-18 | The brainstem bodies are see-through | in force |
+| 36 | 2026-10-18 | Entering a route takes under 100 ms | in force |
+
+## 1. Desktop app in Python with PySide6, VTK and PyVista
+
+2026-10-11. The app is a desktop program built on PySide6 (Qt), VTK through PyVista and pyqtgraph;
+the atlas build tool and later simulations are Python too.
+Why: a desktop app can draw thousands of structures at the display's refresh rate, and one language
+covers the app, the build and the science libraries.
+Design: [atlas foundation, section 1](specs/2026-10-11-atlas-foundation-design.md).
+
+## 2. Own atlas package with a BrainGlobe-compatible core
+
+2026-10-11. Mnemosyn writes its own package format. The core files keep BrainGlobe's field names and
+meanings; everything else lives in extra fields and files.
+Why: BrainGlobe tools can still read the core, while Mnemosyn gets what BrainGlobe lacks: one
+citation per structure, mesh detail levels and several volumes. The BrainGlobe format as it is and
+glTF were both rejected.
+Design: [atlas foundation, section 3](specs/2026-10-11-atlas-foundation-design.md).
+
+## 3. Structure ids never change and are never reused
+
+2026-10-11. Every structure has a number below 65536 that never changes; a removed structure's number
+is retired for good. `atlas_src/ids.lock` records every number ever published.
+Why: quiz progress, routes and links refer to structures by number and must survive renames.
+Design: [atlas foundation, section 4](specs/2026-10-11-atlas-foundation-design.md).
+
+## 4. Every source pinned by checksum and licence
+
+2026-10-11. Every downloaded file is checked against a fixed sha256, and every source records its
+citation, version and licence. The build fails without them, and the same inputs always give the
+same package.
+Why: research-grade traceability: anyone can tell where each shape came from and whether it may be
+shared.
+Design: [atlas foundation, section 6](specs/2026-10-11-atlas-foundation-design.md).
+
+## 5. AAL3 as the first source, on its 1 mm grid
+
+2026-10-11. The brain regions come from AAL3 (GNU General Public License), and its 1 mm MNI grid is
+the atlas's label grid.
+Why: its licence was verified to allow sharing, and it covers the whole brain.
+Design: [atlas foundation, section 13](specs/2026-10-11-atlas-foundation-design.md).
+
+## 6. The built atlas is not kept in git
+
+2026-10-11. `atlases/` is built locally with `python -m tools.build_atlas` and is not committed.
+Why: the package is about 35 MB, over the 20 MB limit set for the repository.
+Design: [atlas foundation, section 13](specs/2026-10-11-atlas-foundation-design.md).
+
+## 7. Descriptions are cited drafts until a doctor reviews them
+
+2026-10-11. Descriptions are drafted from open, cited sources; every claim carries a reference and the
+app marks unreviewed entries as Draft. Drafts and judgment calls in the hierarchy (for example where
+the pituitary or the cochlear nuclei sit) are not changed until the owner's review with a doctor.
+Why: the atlas is made by a student for students, so accuracy has to come from sources and review.
+Design: [atlas foundation, sections 1 and 5](specs/2026-10-11-atlas-foundation-design.md).
+
+## 8. A disclaimer in four places
+
+2026-10-11. On first launch, in the About window, under every description and in the README: the
+atlas is a personal study project, not built or reviewed by a specialist, not for diagnosis or
+treatment, and feedback is welcome.
+Design: [atlas foundation, section 9](specs/2026-10-11-atlas-foundation-design.md).
+
+## 9. Speed is enforced by tests
+
+2026-10-11. Every time limit (opening, first frame, search, selection, slices, quizzes, routes) has a
+test that fails when it is exceeded; the ones on the real atlas run with `pytest -m slow`.
+Why: performance must be excellent, not merely acceptable, and stay that way.
+Design: [atlas foundation, section 8](specs/2026-10-11-atlas-foundation-design.md).
+
+## 10. The label volume decides where a structure is
+
+2026-10-11. The labelled volume is the single record of where every structure lies; slices, clicks
+and centring read it. Surfaces only decide the look, and may be built from a source's own finer grid.
+Why: one place to check and correct, which future importers rely on.
+Design: [viewer and slices, section 1](specs/2026-10-11-viewer-slices-design.md),
+[tracts and hypothalamus, section 1](specs/2026-10-11-tracts-hypothalamus-design.md).
+
+## 11. No surface smoothing
+
+2026-10-11. Replaced by 33. A blur before surface extraction was tried and dropped because it changed
+little on the AAL3 shapes of that time.
+Design: [viewer and slices, section 1](specs/2026-10-11-viewer-slices-design.md).
+
+## 12. Slices over the Colin27 MRI, beside the 3D view
+
+2026-10-11. Slices show coloured labels over the grey Colin27 MRI, like an MRI viewer, in a panel
+next to the 3D view; buttons switch the axis.
+Why: atlas plates are how anatomy is studied, and Colin27 sits exactly on the AAL3 grid.
+Design: [viewer and slices, section 4](specs/2026-10-11-viewer-slices-design.md).
+
+## 13. App memory: 600 MB, later 400 MB of the app's own memory
+
+2026-10-11. The app's memory limit became 600 MB instead of 500 MB, because Qt, VTK and PyVista alone
+take about 316 MB and keeping full detail mattered more. The limit later became 400 MB of the app's
+own memory, with shared libraries not counted, since how much of them is resident depends on the
+system.
+Design: [viewer and slices, section 8](specs/2026-10-11-viewer-slices-design.md).
+
+## 14. Self-testing with three modes and spaced repetition
+
+2026-10-11. Name it (typed or four choices), Find it and Flashcards, scheduled with FSRS. Left and
+right count as one item; groups and single structures are separate levels. Flashcards use reviewed
+descriptions only.
+Design: [self-testing, section 1](specs/2026-10-11-self-testing-design.md).
+
+## 15. The project is named Mnemosyn
+
+2026-10-11. After Mnemosyne, the Greek goddess of memory. The progress file moved to
+`~/.local/share/mnemosyn/`.
+Design: [self-testing, section 12](specs/2026-10-11-self-testing-design.md).
+
+## 16. The terminal viewer stays a companion with no new features
+
+2026-10-11. Replaced by 25.
+Design: [atlas foundation, section 1](specs/2026-10-11-atlas-foundation-design.md).
+
+## 17. Tracts are hidden until asked for and have their own quiz level
+
+2026-10-11. Changed by 29. White-matter tracts (HCP-1065) are hidden when the app opens; T shows them,
+and selecting a tract shows it. Tracts are quizzed on their own level.
+Why: tracts cover most of the brain and would hide the grey matter.
+Design: [tracts and hypothalamus, section 1](specs/2026-10-11-tracts-hypothalamus-design.md).
+
+## 18. MNI template variants are combined without registration
+
+2026-10-11. AAL3, HCP-1065, Neudorfer and the later sources are all in MNI ICBM 152 variants and are
+placed together as they are.
+Why: the variants differ by a few millimetres at most.
+Design: [tracts and hypothalamus, section 2](specs/2026-10-11-tracts-hypothalamus-design.md).
+
+## 19. Pathways teach the route and lesions, one side at a time
+
+2026-10-12. A route is followed station by station with what each station does and what a lesion
+there causes. The whole route stays visible with the current station lit; a Left and Right switch
+picks the side; crossings are steps of their own. Quiz questions on routes come later.
+Design: [pathways, section 1](specs/2026-10-12-pathways-design.md).
+
+## 20. Data without a licence is used in local builds only
+
+2026-10-12. A source whose files carry no licence is marked local only: `python -m tools.build_atlas
+--local` includes it, the normal build leaves it out and stays shareable, and its authors are asked
+for permission. A source moves to the normal build once they agree. An installer must refuse a local
+package.
+Why: some shapes exist nowhere else (pituitary, pineal, spinal cord, small brainstem nuclei), but
+nothing is shared without permission.
+Design: [endocrine glands, sections 1 and 4](specs/2026-10-12-endocrine-glands-design.md).
+
+## 21. Behaviour circuits as routes, with play and schematic hormone curves
+
+2026-10-12. Ten behaviour circuits live in the Pathways panel under Behaviour, on both sides at once,
+with Role, Disorders and Drugs texts. Play steps any route; the stress axis, body clock and hunger
+show schematic hormone curves. A real simulation is a later project. The playback controls sit in
+the Activity panel, where the change is shown.
+Design: [behaviour circuits, section 1](specs/2026-10-12-behaviour-circuits-design.md),
+[finishing pass, section 2](specs/2026-10-12-finishing-pass-design.md).
+
+## 22. Brainstem nuclei from three open sources, the Navigator local only
+
+2026-10-13. Edlow 2023, Diedrichsen 2009 and Sitek 2019 are shipped to everyone; the Brainstem
+Navigator adds nuclei no open source draws, in local builds only. Existing shapes never change, and
+each new structure comes from exactly one source.
+Design: [brainstem nuclei, section 1](specs/2026-10-13-brainstem-nuclei-design.md).
+
+## 23. The spinal cord from PAM50, local only
+
+2026-10-13. The 30 spinal segments, six grey matter regions and 30 white matter tracts come from
+PAM50, in local builds only until its authors allow sharing. Where tracts cover the white matter, a
+second label layer keeps the segment underneath visible in slices. The start view still frames the
+brain.
+Design: [spinal cord, sections 1 and 4](specs/2026-10-13-spinal-cord-design.md).
+
+## 24. The spinal cord waits on its branch until the whole audit is fixed
+
+2026-10-13. The `spinal-cord` branch is merged only when all 37 items of the audit done on that day
+are fixed, not only the ones first noticed. Reconfirmed on 2026-10-18, when a pull request was closed
+unmerged.
+Why: `main` should never carry known problems in how the atlas looks and behaves.
+
+## 25. The terminal viewer moves to its own repository
+
+2026-10-18. Replaces 16. The terminal viewer lives at github.com/anatuphoria/mnemosyn-tui with its own
+copy of the atlas reader, and this repository is the desktop app and the atlas. When the package
+format changes, the reader is copied there too.
+
+## 26. Wheel zooms to the pointer, right drag pans, rotation turns around the brain
+
+2026-10-18. The wheel zooms toward the point under the pointer, right drag slides the scene, left
+drag rotates and R returns to the start view. Rotation always turns like a turntable around the
+brain's own centre, never around a grabbed point or the screen centre.
+Design: [navigation and selection, section 2](specs/2026-10-18-navigation-selection-design.md).
+
+## 27. The camera never moves on its own; F frames the selection
+
+2026-10-18. Selecting from anywhere never moves the camera. F frames the selection whole, keeping the
+viewing direction; with nothing selected it frames the brain.
+Why: the same action must always do the same thing.
+Design: [navigation and selection, section 3](specs/2026-10-18-navigation-selection-design.md).
+
+## 28. The Tracts group lives inside Brain
+
+2026-10-18. Group 70 Tracts moved inside Brain, as the spinal tracts sit inside Spinal cord. Ids did
+not change.
+Design: [navigation and selection, section 4.1](specs/2026-10-18-navigation-selection-design.md).
+
+## 29. Tracts shown by a selection hide again when the selection moves on
+
+2026-10-18. Changes 17. Tracts turned on with T stay on until T again. Tracts shown because they were
+selected hide as soon as the selection moves to something that does not contain them, so browsing
+shows one tract at a time. Selecting Brain, Spinal cord or the whole CNS shows no tracts.
+Design: [navigation and selection, section 4.2](specs/2026-10-18-navigation-selection-design.md).
+
+## 30. One x-ray outline highlights every selection
+
+2026-10-18. Every selection, one nucleus or a whole group, gets one bright outline around its outer
+edge that shows through whatever is in front of it; the selected shapes keep their own colour.
+Why: a structure buried inside the cortex or the cord must still visibly change when it is picked.
+Design: [navigation and selection, section 4.3](specs/2026-10-18-navigation-selection-design.md).
+
+## 31. Selection time limits
+
+2026-10-18. Selecting one structure takes under 7 ms and under 16 ms with its redraw; a large group
+(the CNS, Brain, Spinal cord) under 10 ms and under 20 ms with its redraw; a tract group under 50 ms
+with its redraw. Measured on a local build.
+Why: the first design asked for 7 ms including the redraw, which large groups could not meet; the
+selection itself keeps 7 ms and the redraw gets its own limit.
+Design: [navigation and selection, section 4.4](specs/2026-10-18-navigation-selection-design.md).
+
+## 32. A fixed-size About window with a list of sources
+
+2026-10-18. The About window fits a 1366 x 768 screen and never grows. One tab holds the app,
+the atlas and the disclaimer; the other lists the data sources with what each gives the atlas, its
+licence and a local only tag, and shows the full citation of the chosen one.
+Design: [navigation and selection, section 5](specs/2026-10-18-navigation-selection-design.md).
+
+## 33. Smooth surfaces with a 2 mm blur
+
+2026-10-18. Replaces 11. Every structure's mask is blurred by 2 mm before its surface is extracted,
+then lightly evened. Small structures are protected: their volume stays within 10% and their centre
+within 1 mm, using less blur or a finer grid. Each structure is smoothed on its own.
+Why: every shape looked like stacked 1 mm cubes; one voxel of blur still left ridges on the cortex.
+Design: [smooth surfaces and the brainstem body, sections 2 and 6](specs/2026-10-18-surfaces-brainstem-design.md).
+
+## 34. A brainstem body from Iglesias 2015, local only
+
+2026-10-18. Midbrain, pons and medulla bodies come from the FreeSurfer brainstem atlas (Iglesias et al.
+2015), in local builds only until its authors allow sharing. They are trimmed where they meet the
+cerebellum and the spinal cord and never overwrite a nucleus in the slices.
+Why: without them the brainstem was a cloud of floating nuclei with a gap above the cord.
+Design: [smooth surfaces and the brainstem body, section 3](specs/2026-10-18-surfaces-brainstem-design.md).
+
+## 35. The brainstem bodies are see-through
+
+2026-10-18. The bodies are drawn like glass so the nuclei inside stay visible, and a click goes to
+the nucleus behind the body when there is one.
+Design: [smooth surfaces and the brainstem body, section 3.3](specs/2026-10-18-surfaces-brainstem-design.md).
+
+## 36. Entering a route takes under 100 ms
+
+2026-10-18. The limit for entering a route or switching its side was raised from 100 to 130 ms on
+2026-10-13, when the spinal cord added faded geometry. It went back to 100 ms once routes opened in
+75 to 85 ms.
+Design: [spinal cord, section 7](specs/2026-10-13-spinal-cord-design.md).

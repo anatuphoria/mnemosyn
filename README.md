@@ -182,6 +182,6 @@ cns_atlas/          atlas package loader (no Qt): model, meshes, knowledge, volu
 cns_desktop/        desktop app: app, main_window, state, views/
 tools/build_atlas/  atlas build tool: recipe, hierarchy, validate, fetch, labels, meshing, writer
 atlas_src/          committed atlas sources: recipe, structures, ids.lock, knowledge, LICENSES
-docs/               specs and plans
+docs/               design documents (specs/) and the decision log (decisions.md)
 tests/
 ```
