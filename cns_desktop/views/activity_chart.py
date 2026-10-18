@@ -21,6 +21,9 @@ PAUSE = "Pause (Space)"
 SPEEDS = ((0.5, "½×"), (1.0, "1×"), (2.0, "2×"))
 
 
+PLACEHOLDER_SPAN = 2.5
+
+
 def placeholder_series(structure_id: int) -> tuple[np.ndarray, np.ndarray]:
     """Fake deterministic signal until a real model exists."""
     rng = np.random.default_rng(zlib.crc32(str(structure_id).encode()))
@@ -97,7 +100,9 @@ class ActivityChart(QWidget):
     def _activity_axes(self) -> None:
         self.plot.setLabel("bottom", "time", units="s")
         self.plot.setLabel("left", "activity (a.u.)")
-        self.plot.enableAutoRange()
+        self.plot.disableAutoRange()
+        self.plot.setXRange(0, DURATION_S, padding=0.02)
+        self.plot.setYRange(-PLACEHOLDER_SPAN, PLACEHOLDER_SPAN, padding=0)
 
     def _on_selection(self, structure_id: int | None) -> None:
         if self.timeline is None:

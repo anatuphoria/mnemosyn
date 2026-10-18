@@ -283,3 +283,18 @@ def test_a_tract_shown_from_the_tree_checkbox_stays(window):
     state.set_hidden([160], False)
     state.select(101)
     assert shown(state, (160,)) == [True]
+
+
+def test_hiding_never_switches_blocks_off(window):
+    view = window.view
+    window.shortcuts["Tracts"].trigger()
+    window.shortcuts["Tracts"].trigger()
+    for structure_id in (151, 160):
+        block = view.blocks[structure_id]
+        assert view.tract_attributes.GetBlockVisibility(block)
+        assert view.tract_attributes.GetBlockOpacity(block) == 0.0
+        assert not view.tract_attributes.GetBlockPickability(block)
+        assert not view.is_drawn(structure_id)
+    window.state.set_hidden([101], True)
+    assert view.attributes.GetBlockVisibility(view.blocks[101])
+    assert not view.is_drawn(101)

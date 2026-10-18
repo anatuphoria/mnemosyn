@@ -30,7 +30,7 @@ class StructureTree(QWidget):
         self.tree.itemChanged.connect(self._on_item_checked)
         self.filter_box.textChanged.connect(self.apply_filter)
         state.selection_changed.connect(self._on_selection_changed)
-        state.visibility_changed.connect(lambda _ids: self._sync_checks())
+        state.visibility_changed.connect(lambda ids: self._sync_checks(ids))
 
     def _add(self, parent: QTreeWidgetItem, structure_id: int) -> None:
         item = QTreeWidgetItem(parent, [self.state.atlas.get(structure_id).name])
@@ -51,9 +51,15 @@ class StructureTree(QWidget):
         if not self.state.set_hidden(self.state.geometry_in(structure_id), hidden):
             self._sync_checks()
 
-    def _sync_checks(self) -> None:
+    def _sync_checks(self, changed=None) -> None:
+        if changed is None:
+            targets = list(self.items)
+        else:
+            atlas = self.state.atlas
+            targets = {a for i in changed for a in (*atlas.ancestors(i), i) if a in self.items}
         with QSignalBlocker(self.tree):
-            for structure_id, item in self.items.items():
+            for structure_id in targets:
+                item = self.items[structure_id]
                 ids = self.state.geometry_in(structure_id)
                 shown = sum(not self.state.is_hidden(i) for i in ids)
                 if shown == len(ids):

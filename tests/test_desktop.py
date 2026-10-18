@@ -258,7 +258,7 @@ def test_highlight_overlay_skips_hidden_structures(window):
     window.state.select(100)
     assert window.view.highlighted == [101, 102]
     assert window.view.overlay_ids == [102]
-    assert not window.view.overlay.GetPickable()
+    assert not window.view.outline.renderer.GetInteractive()
     window.state.set_hidden([101], False)
     assert window.view.overlay_ids == [101, 102]
 
@@ -661,7 +661,7 @@ def test_centre_on_selection_moves_the_slice_once(qapp, tmp_path):
 def test_a_tree_check_refreshes_the_marks_once(window, monkeypatch):
     calls = []
     original = window.tree._sync_checks
-    monkeypatch.setattr(window.tree, "_sync_checks", lambda: (calls.append(1), original()))
+    monkeypatch.setattr(window.tree, "_sync_checks", lambda *a: (calls.append(1), original(*a)))
     window.tree.items[100].setCheckState(0, Qt.CheckState.Unchecked)
     assert len(calls) == 1
     assert window.state.is_hidden(101)
@@ -868,3 +868,24 @@ def test_the_about_box_lists_local_sources_without_a_citation(tmp_path):
     metadata["local_only"] = ["ghost-source"]
     (root / "metadata.json").write_text(json.dumps(metadata))
     assert "ghost-source" in about_text(Atlas.open(root))
+
+
+def test_the_activity_chart_keeps_its_axes_between_selections(window):
+    box = window.chart.plot.getViewBox()
+    window.state.select(101)
+    QApplication.processEvents()
+    before = box.viewRange()
+    window.state.select(110)
+    QApplication.processEvents()
+    assert box.viewRange() == before
+
+
+def test_hiding_one_structure_updates_only_its_branch_of_the_tree(window, monkeypatch):
+    state = window.state
+    calls = []
+    real = state.geometry_in
+    monkeypatch.setattr(state, "geometry_in", lambda i: calls.append(i) or real(i))
+    state.set_hidden([101], True)
+    assert set(calls) <= set(state.atlas.ancestors(101)) | {101}
+    assert window.tree.items[101].checkState(0) == Qt.CheckState.Unchecked
+    assert window.tree.items[100].checkState(0) == Qt.CheckState.PartiallyChecked

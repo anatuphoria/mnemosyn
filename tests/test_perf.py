@@ -118,14 +118,32 @@ def test_selection_on_the_real_atlas_under_7ms(tmp_path):
     window.show()
     app.processEvents()
     window.view.render()
-    times = []
-    for structure_id in list(window.state.geometry_ids)[:60]:
+    def timed(structure_id):
         start = time.perf_counter()
         window.state.select(structure_id)
-        times.append(time.perf_counter() - start)
+        step = time.perf_counter() - start
+        app.processEvents()
+        window.view.ren_win.WaitForCompletion()
+        return step, time.perf_counter() - start
+
+    def median(values):
+        return sorted(values)[len(values) // 2]
+
+    singles = [timed(i) for i in list(window.state.geometry_ids)[:60]]
+    groups = {}
+    for group in (1, 2, 3, 70, 80):
+        if group in window.state.atlas:
+            timed(1000)
+            timed(group)
+            runs = [timed(i) for i in (1000, group, 1000, group, 1000, group)][1::2]
+            groups[group] = (median([r[0] for r in runs]), median([r[1] for r in runs]))
     window.close()
-    times.sort()
-    assert times[len(times) // 2] < 0.007
+    assert median([s[0] for s in singles]) < 0.007
+    assert median([s[1] for s in singles]) < 0.016
+    tract_groups = {70, 80}
+    assert all(step < 0.010 and whole < 0.020 for g, (step, whole) in groups.items()
+               if g not in tract_groups), groups
+    assert all(whole < 0.050 for g, (_, whole) in groups.items() if g in tract_groups), groups
 
 
 @pytest.mark.slow

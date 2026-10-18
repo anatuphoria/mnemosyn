@@ -15,20 +15,16 @@ from ..lod import choose_lod, face_totals
 from ..slices import AXIS_INDEX
 from ..state import AppState
 from .navigation import install_navigation
+from .outline import OutlineLayer
 
 BACKGROUND = "#0a0a10"
 CLICK_TOLERANCE_PX = 3
-HIGHLIGHT = 0.45
 FAINT = 0.08
 PLANE_OPACITY = 0.18
 
 
 def _rgb(color) -> tuple[float, float, float]:
     return tuple(c / 255 for c in color)
-
-
-def _lighten(color, amount: float) -> tuple[float, float, float]:
-    return tuple((c + (255 - c) * amount) / 255 for c in color)
 
 
 def _polydata(mesh) -> pv.PolyData:
@@ -72,8 +68,10 @@ class BrainView(QtInteractor):
         for structure_id in self.ids:
             block = self.blocks[structure_id]
             self.attributes.SetBlockColor(block, _rgb(state.atlas.get(structure_id).rgb_triplet))
-            self.attributes.SetBlockVisibility(block, not state.is_hidden(structure_id))
         self.renderer.AddActor(self.actor)
+        self._apply_focus(self.attributes, self.ids)
+        self.outline = OutlineLayer(self.ren_win, self.renderer)
+        self.outline.add_blocks(self.ids, [self.blocks[i] for i in self.ids])
         self.tract_actor: vtkActor | None = None
         self.tract_attributes = None
         self.tract_lod: int | None = None
@@ -81,7 +79,6 @@ class BrainView(QtInteractor):
         self._extents: dict[int, tuple] = {}
         self.scene_bounds = self._scene_bounds()
         self.highlighted: list[int] = []
-        self.overlay: vtkActor | None = None
         self.overlay_ids: list[int] = []
         self.plane = self.add_mesh(pv.Plane(), color="white", opacity=PLANE_OPACITY,
                                    pickable=False, reset_camera=False, lighting=False)
@@ -139,7 +136,8 @@ class BrainView(QtInteractor):
         block = self.blocks.get(structure_id)
         attributes = self._attributes_for(structure_id)
         return (block is not None and attributes is not None
-                and bool(attributes.GetBlockVisibility(block)))
+                and not (attributes.HasBlockOpacity(block)
+                         and attributes.GetBlockOpacity(block) == 0.0))
 
     def set_grey_opacity(self, opacity: float) -> None:
         self.actor.GetProperty().SetOpacity(opacity)
@@ -150,14 +148,16 @@ class BrainView(QtInteractor):
 
     def _apply_focus(self, attributes, ids) -> None:
         focus = self.state.focus
-        if focus is None:
-            attributes.RemoveBlockOpacities()
-            attributes.RemoveBlockPickabilities()
-            return
         for structure_id in ids:
             block = self.blocks[structure_id]
-            attributes.SetBlockOpacity(block, 1.0 if structure_id in focus else FAINT)
-            attributes.SetBlockPickability(block, structure_id in focus)
+            shown = not self.state.is_hidden(structure_id)
+            if shown and focus is None:
+                attributes.RemoveBlockOpacity(block)
+                attributes.RemoveBlockPickability(block)
+                continue
+            in_focus = focus is None or structure_id in focus
+            attributes.SetBlockOpacity(block, (1.0 if in_focus else FAINT) if shown else 0.0)
+            attributes.SetBlockPickability(block, shown and in_focus)
 
     def _on_focus_changed(self, _focus) -> None:
         self._apply_focus(self.attributes, self.ids)
@@ -179,11 +179,11 @@ class BrainView(QtInteractor):
         for structure_id in self.tract_ids:
             block = self.blocks[structure_id]
             attributes.SetBlockColor(block, _rgb(atlas.get(structure_id).rgb_triplet))
-            attributes.SetBlockVisibility(block, not self.state.is_hidden(structure_id))
         self._apply_focus(attributes, self.tract_ids)
         self.tract_actor, self.tract_attributes = actor, attributes
         self.tract_builds += 1
         self.renderer.AddActor(actor)
+        self.outline.add_blocks(self.tract_ids, [self.blocks[i] for i in self.tract_ids])
 
     def _event_pos(self) -> tuple[int, int]:
         return self.iren.interactor.GetEventPosition()
@@ -224,22 +224,9 @@ class BrainView(QtInteractor):
             self.state.select(structure_id)
 
     def _refresh_overlay(self) -> None:
-        if self.overlay is not None:
-            self.renderer.RemoveActor(self.overlay)
-            self.overlay = None
-        self.overlay_ids = [i for i in self.highlighted if not self.state.is_hidden(i)]
-        if not self.overlay_ids:
-            return
-        actor, mapper, attributes = _composite([self.blocks[i] for i in self.overlay_ids])
-        mapper.SetResolveCoincidentTopologyToPolygonOffset()
-        mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(-1.0, -1.0)
-        for structure_id in self.overlay_ids:
-            color = _lighten(self.state.atlas.get(structure_id).rgb_triplet, HIGHLIGHT)
-            attributes.SetBlockColor(self.blocks[structure_id], color)
-        actor.GetProperty().SetAmbient(0.3)
-        actor.SetPickable(False)
-        self.overlay = actor
-        self.renderer.AddActor(actor)
+        self.overlay_ids = [i for i in self.highlighted
+                            if i in self.blocks and not self.state.is_hidden(i)]
+        self.outline.show(self.overlay_ids)
 
     def _on_selection_changed(self, structure_id: int | None) -> None:
         self.highlighted = self.state.highlighted_ids()
@@ -274,10 +261,9 @@ class BrainView(QtInteractor):
         if any(i in self._tract_set and not self.state.is_hidden(i) for i in ids):
             self._ensure_tracts()
         for structure_id in ids:
-            block = self.blocks.get(structure_id)
             attributes = self._attributes_for(structure_id)
-            if block is not None and attributes is not None:
-                attributes.SetBlockVisibility(block, not self.state.is_hidden(structure_id))
+            if structure_id in self.blocks and attributes is not None:
+                self._apply_focus(attributes, [structure_id])
         if any(i in ids for i in self.highlighted):
             self._refresh_overlay()
         self._request_render()
