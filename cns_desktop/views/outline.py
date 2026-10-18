@@ -40,6 +40,18 @@ class OutlineLayer:
             self.renderer.AddActor(actor)
             self._actors[structure_id] = actor
 
+    def warm(self, ids: Iterable[int]) -> None:
+        self._glow.SetOutlineIntensity(0.0)
+        self._warming = [i for i in ids if i in self._actors and i not in self.shown]
+        for structure_id in self._warming:
+            self._actors[structure_id].SetVisibility(True)
+
+    def end_warm(self) -> None:
+        for structure_id in getattr(self, "_warming", ()):
+            self._actors[structure_id].SetVisibility(structure_id in self.shown)
+        self._warming = []
+        self._glow.SetOutlineIntensity(GLOW_INTENSITY)
+
     def show(self, ids: Iterable[int]) -> None:
         wanted = frozenset(ids)
         for structure_id in (wanted ^ self.shown) & self._actors.keys():

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import nibabel as nib
 import numpy as np
 
 AXES = ("axial", "coronal", "sagittal")
@@ -25,7 +24,9 @@ def mm_for_index(affine, axis: str, index: int) -> float:
 
 
 def is_ras(affine) -> bool:
-    return nib.aff2axcodes(np.asarray(affine)) == ("R", "A", "S")
+    linear = np.asarray(affine, dtype=float)[:3, :3]
+    rows = np.abs(linear).argmax(axis=0)
+    return bool((rows == (0, 1, 2)).all() and (linear[rows, (0, 1, 2)] > 0).all())
 
 
 def extract(volume: np.ndarray, affine, axis: str, index: int) -> np.ndarray:

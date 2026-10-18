@@ -162,3 +162,32 @@ def test_draw_tract_outlines_and_fills():
     draw_tract(image, rows, cols, color, True, 0.5)
     assert image[2, 2, :3].tolist() == [100, 50, 0]
     assert image[0, 0, :3].tolist() == [0, 0, 0]
+
+
+def test_is_ras_matches_nibabel_for_axis_flips_swaps_and_tilts():
+    import itertools
+
+    import nibabel as nib
+
+    from cns_desktop.slices import is_ras
+
+    rng = np.random.default_rng(3)
+    for order in itertools.permutations(range(3)):
+        for signs in itertools.product((1, -1), repeat=3):
+            affine = np.eye(4)
+            affine[:3, :3] = np.eye(3)[list(order)] * np.array(signs)[:, None] * 0.5
+            affine[:3, :3] += rng.normal(0, 0.05, (3, 3))
+            expected = nib.aff2axcodes(affine) == ("R", "A", "S")
+            assert is_ras(affine) == expected
+
+
+def test_is_ras_is_cheap():
+    import time
+
+    from cns_desktop.slices import is_ras
+
+    affine = np.diag([0.5, 0.5, 0.5, 1.0])
+    start = time.perf_counter()
+    for _ in range(1000):
+        is_ras(affine)
+    assert (time.perf_counter() - start) / 1000 < 20e-6

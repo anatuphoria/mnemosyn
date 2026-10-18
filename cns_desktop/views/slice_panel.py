@@ -164,6 +164,9 @@ class SlicePanel(QWidget):
         else:
             self.state.set_slice(axis, mm)
 
+    def warm(self, volume) -> None:
+        self._centres_of(volume)
+
     def _centres_of(self, volume):
         if volume.name not in self._centre_tables:
             self._centre_tables[volume.name] = slices.label_centres(volume.data)

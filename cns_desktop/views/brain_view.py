@@ -247,6 +247,11 @@ class BrainView(QtInteractor):
             self._style_shell(structure_id)
         self._request_render()
 
+    def warm_outline(self, ids) -> None:
+        self.outline.warm(ids)
+        self.ren_win.Render()
+        self.outline.end_warm()
+
     def prepare_tracts(self) -> None:
         self._ensure_tracts()
 

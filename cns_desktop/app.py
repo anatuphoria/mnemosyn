@@ -127,6 +127,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"peak memory: {peak:.0f} MB")
         if own is not None:
             print(f"own memory: {own:.0f} MB")
+        deadline = time.perf_counter() + 10.0
+        while not window.warm_up_done and time.perf_counter() < deadline:
+            app.processEvents()
+        own = own_memory_mb()
+        if own is not None:
+            print(f"own memory after warm-up: {own:.0f} MB")
         window.close()
         return 0
     if args.bench:

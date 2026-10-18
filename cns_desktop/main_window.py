@@ -28,6 +28,7 @@ from .views.quiz_panel import QuizPanel
 from .views.quiz_setup import QuizSetup
 from .views.slice_panel import SlicePanel
 from .views.structure_tree import StructureTree
+from .warm_up import WarmUp
 
 APP_NAME = "Mnemosyn"
 APP_FOLDER = "mnemosyn"
@@ -154,6 +155,27 @@ class MainWindow(QMainWindow):
         default = next((s.id for s in atlas.structures
                         if s.name.startswith("Hippocampus") and atlas.has_mesh(s.id)), None)
         self.state.select(default)
+        self._warm_up = WarmUp(self._warm_up_jobs(), self)
+
+    def _warm_up_jobs(self) -> list:
+        atlas = self.state.atlas
+        volumes = [*atlas.volumes, *atlas.templates.values(), *atlas.fills.values()]
+        jobs = [lambda v=v: v.data for v in volumes]
+        jobs += [lambda v=v: self.slices.warm(v) for v in atlas.volumes]
+        jobs += [lambda i=i: self.info.warm(i) for i in (1, 2, 3) if i in atlas]
+        ids = self.view.ids + self.view.shell_ids
+        jobs += [lambda c=ids[k:k + 40]: self.view.warm_outline(c) for k in range(0, len(ids), 40)]
+        jobs.append(lambda: self.view.warm_outline(ids))
+        return jobs
+
+    @property
+    def warm_up_done(self) -> bool:
+        return self._warm_up.done
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if not self._warm_up.done:
+            self._warm_up.start()
 
     def _dock(self, title: str, widget, area: Qt.DockWidgetArea) -> QDockWidget:
         dock = QDockWidget(title, self)
@@ -386,6 +408,7 @@ class MainWindow(QMainWindow):
             "drag rotate · right-drag/wheel zoom · middle/shift-drag pan · click select")
 
     def closeEvent(self, event) -> None:
+        self._warm_up.stop()
         if self.quiz_active:
             self.quiz.stop()
         self._status_timer.stop()
