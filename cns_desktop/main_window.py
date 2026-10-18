@@ -207,6 +207,7 @@ class MainWindow(QMainWindow):
 
     def _prefer_in_slices(self, ids) -> None:
         self.slices.preferred = frozenset(ids)
+        self.view.preferred = frozenset(ids)
 
     def progress_store(self) -> ProgressStore:
         if self._store is None:

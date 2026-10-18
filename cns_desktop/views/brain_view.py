@@ -115,6 +115,7 @@ class BrainView(QtInteractor):
 
         self._picker = vtkHardwarePicker()
         self.pick_position = np.zeros(3)
+        self.preferred: frozenset[int] = frozenset()
         self._press_pos: tuple[int, int] | None = None
         self.iren.add_observer("LeftButtonPressEvent", self._on_press)
         self.iren.add_observer("LeftButtonReleaseEvent", self._on_release)
@@ -262,7 +263,7 @@ class BrainView(QtInteractor):
         """VTK display coords: origin is bottom-left; a shell yields to shapes inside it."""
         found = self._pick(x, y)
         self.pick_position = np.array(self._picker.GetPickPosition())
-        if found not in self.shell_actors:
+        if found not in self.shell_actors or found in self.preferred:
             return found
         for actor in self.shell_actors.values():
             actor.SetPickable(False)

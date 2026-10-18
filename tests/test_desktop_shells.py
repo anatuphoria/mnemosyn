@@ -118,3 +118,13 @@ def test_shells_hide_isolate_and_fade_like_any_structure(window):
 def test_a_selected_shell_is_outlined(window):
     window.state.select(SHELL)
     assert SHELL in window.view.overlay_ids and SHELL in window.view.outline.shown
+
+
+def test_find_quiz_on_a_shell_accepts_a_click_over_a_nucleus_inside_it(window, qapp):
+    window.start_quiz(QuizChoice("find", "structures", SHELL, False), rng=random.Random(1))
+    quiz = window.quiz
+    assert quiz.item.id == SHELL
+    look_from_the_side(window.view)
+    window.view.pick_at(*pixel_of(window.view, (0.0, 0.0, 0.0)))
+    qapp.processEvents()
+    assert quiz.phase == "feedback" and "Correct" in quiz.feedback.text()
