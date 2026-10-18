@@ -39,6 +39,7 @@ class SourceSpec:
     fill: bool = False
     parts: tuple[int, ...] = ()
     trim_outside: int | None = None
+    within: str = ""
 
     @property
     def member_values(self) -> dict[str, int]:
@@ -122,6 +123,7 @@ def _source_spec(s: dict) -> SourceSpec:
                       fill=s.get("fill") is True,
                       parts=tuple(int(v) for v in s.get("parts", ())),
                       trim_outside=int(s["trim_outside"]) if "trim_outside" in s else None,
+                      within=str(s.get("within", "")),
                       members=tuple((str(k), str(v)) for k, v in s.get("members", {}).items()),
                       manual=s.get("manual") is True, crop=s.get("crop") is True)
 

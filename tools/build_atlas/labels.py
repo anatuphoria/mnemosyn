@@ -86,6 +86,24 @@ def trim_against(image: nib.Nifti1Image, data: np.ndarray, affine: np.ndarray,
     return nib.Nifti1Image(values, image.affine)
 
 
+def _world_z(image: nib.Nifti1Image, index: np.ndarray) -> np.ndarray:
+    return (np.c_[index, np.ones(len(index))] @ np.asarray(image.affine).T)[:, 2]
+
+
+def z_extent(image: nib.Nifti1Image) -> tuple[float, float]:
+    z = _world_z(image, np.argwhere(np.asarray(image.dataobj) > 0))
+    half = abs(np.asarray(image.affine)[2, :3]).sum() / 2
+    return float(z.min() - half), float(z.max() + half)
+
+
+def clip_z(image: nib.Nifti1Image, low: float, high: float) -> nib.Nifti1Image:
+    values = np.asarray(image.dataobj).copy()
+    index = np.argwhere(values != 0)
+    z = _world_z(image, index)
+    values[tuple(index[(z < low) | (z > high)].T)] = 0
+    return nib.Nifti1Image(values, image.affine)
+
+
 def member_masks(spec: SourceSpec, archive: Path):
     shape, affine = None, None
     for value, (name, member) in enumerate(spec.members, 1):
@@ -99,11 +117,15 @@ def member_masks(spec: SourceSpec, archive: Path):
         yield value, inside, affine
 
 
-def separate_natives(spec: SourceSpec, archive: Path, mapping: dict[int, int]
+def separate_natives(spec: SourceSpec, archive: Path, mapping: dict[int, int],
+                     extent: tuple[float, float] | None = None
                      ) -> list[tuple[np.ndarray, np.ndarray]]:
     natives = []
     for value, inside, affine in member_masks(spec, archive):
         if value in mapping:
+            if extent is not None:
+                inside = np.asarray(clip_z(nib.Nifti1Image(inside.astype(np.uint8), affine),
+                                           *extent).dataobj) > 0
             data, cropped_affine = crop(inside, affine)
             natives.append((data.astype(np.uint16) * mapping[value], cropped_affine))
     return natives

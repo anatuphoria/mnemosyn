@@ -88,6 +88,9 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: parts need a threshold")
         if spec.trim_outside is not None and spec.trim_outside not in groups:
             problems.append(f"source {name}: trim_outside {spec.trim_outside} is not a group")
+        if spec.within and (spec.within not in labels or labels[spec.within].volume != spec.volume):
+            problems.append(f"source {name}: within {spec.within!r} is not a label source of "
+                            f"volume {spec.volume}")
         if spec.threshold is not None and not (spec.mask or spec.members or spec.parts):
             problems.append(f"source {name}: threshold needs mask = true or members")
         problems += [f"source {name}: drop value {value!r} is not a label number"

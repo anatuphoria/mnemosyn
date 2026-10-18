@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 import pytest
 
-from atlas_fixtures import SPINE_AFFINE, spine_volume, write_extended_source_tree
+from atlas_fixtures import SPINE_AFFINE, sha256_file, spine_volume, write_extended_source_tree
 from cns_atlas import Atlas
 from tools.build_atlas.build import build
 from tools.build_atlas.hierarchy import load_structures
@@ -192,3 +192,40 @@ def test_separate_shapes_do_not_keep_full_grids_alive(tmp_path):
     assert [int(data.max()) for data, _ in natives] == [181, 182, 190]
     assert all(data.base is None for data, _ in natives)
     assert all(data.shape == (7, 10, 10) or data.shape == (5, 10, 10) for data, _ in natives)
+
+
+def taller_tract_tree(tmp_path, within=True):
+    src = spine_tree(tmp_path)
+    tract = tmp_path / "upstream" / "toy_spine_wm.nii.gz"
+    old = sha256_file(tract)
+    mask = np.zeros(spine_volume().shape, dtype=np.uint8)
+    mask[6:8, 6:10, 40:66] = 1
+    nib.save(nib.Nifti1Image(mask, SPINE_AFFINE), tract)
+    edit(src / "recipe.toml", old, sha256_file(tract))
+    if within:
+        edit(src / "recipe.toml", "mask = true\n", 'mask = true\nwithin = "toyspine"\n')
+    return src
+
+
+def test_within_trims_voxels_above_and_below_the_named_source(tmp_path):
+    src = taller_tract_tree(tmp_path)
+    assert spec_of(src, "toyspine-wm").within == "toyspine" and problems_for(src) == []
+    atlas = Atlas.open(quiet_build(src, tmp_path / "out", tmp_path / "cache", local=True))
+    spine = atlas.volumes[1]
+    index = np.argwhere(np.asarray(spine.data) == 220)
+    top = -230.0 + 59 + 0.5
+    assert len(index) and (nib.affines.apply_affine(spine.affine, index)[:, 2] < top).all()
+    assert np.asarray(atlas.mesh(220).vertices)[:, 2].max() < top + 1.0
+
+
+def test_without_within_the_tract_keeps_its_full_height(tmp_path):
+    src = taller_tract_tree(tmp_path, within=False)
+    atlas = Atlas.open(quiet_build(src, tmp_path / "out", tmp_path / "cache", local=True))
+    assert np.asarray(atlas.mesh(220).vertices)[:, 2].max() > -230.0 + 63
+
+
+def test_within_must_name_a_label_source_on_the_same_volume(tmp_path):
+    src = spine_tree(tmp_path)
+    edit(src / "recipe.toml", "mask = true\n", 'mask = true\nwithin = "toyhyp"\n')
+    assert "source toyspine-wm: within 'toyhyp' is not a label source of volume spine" in (
+        problems_for(src))
