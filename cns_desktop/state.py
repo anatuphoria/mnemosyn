@@ -76,6 +76,10 @@ class AppState(QObject):
     def is_hidden(self, structure_id: int) -> bool:
         return structure_id in self._hidden
 
+    @property
+    def hidden_ids(self) -> frozenset[int]:
+        return frozenset(self._hidden)
+
     def is_tract(self, structure_id: int) -> bool:
         return structure_id in self._tracts
 

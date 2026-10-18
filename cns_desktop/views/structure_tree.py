@@ -22,6 +22,7 @@ class StructureTree(QWidget):
         layout.addWidget(self.tree)
 
         self.items: dict[int, QTreeWidgetItem] = {}
+        self._geometry: dict[int, frozenset[int]] = {}
         self._add(self.tree.invisibleRootItem(), state.atlas.structures[0].id)
         self.tree.expandToDepth(3)
         self._sync_checks()
@@ -51,6 +52,11 @@ class StructureTree(QWidget):
         if not self.state.set_hidden(self.state.geometry_in(structure_id), hidden):
             self._sync_checks()
 
+    def _geometry_of(self, structure_id: int) -> frozenset[int]:
+        if structure_id not in self._geometry:
+            self._geometry[structure_id] = frozenset(self.state.geometry_in(structure_id))
+        return self._geometry[structure_id]
+
     def _sync_checks(self, changed=None) -> None:
         if changed is None:
             targets = list(self.items)
@@ -58,10 +64,11 @@ class StructureTree(QWidget):
             atlas = self.state.atlas
             targets = {a for i in changed for a in (*atlas.ancestors(i), i) if a in self.items}
         with QSignalBlocker(self.tree):
+            hidden = self.state.hidden_ids
             for structure_id in targets:
                 item = self.items[structure_id]
-                ids = self.state.geometry_in(structure_id)
-                shown = sum(not self.state.is_hidden(i) for i in ids)
+                ids = self._geometry_of(structure_id)
+                shown = len(ids) - len(ids & hidden)
                 if shown == len(ids):
                     mark = Qt.CheckState.Checked
                 elif shown == 0:

@@ -86,3 +86,19 @@ def test_picking_works_across_chunks(chunked, qapp):
         x, y = view.renderer.GetSize()
         found = view.structure_at(x // 2, y // 2)
         assert found is not None and found in view.ids
+
+
+def test_moving_the_slice_reuses_the_plane(window, qapp):
+    view, state = window.view, window.state
+    state.set_slice("axial", 0.0)
+    qapp.processEvents()
+    data = view.plane.GetMapper().GetInput()
+    state.set_slice("axial", 7.0)
+    qapp.processEvents()
+    assert view.plane.GetMapper().GetInput() is data
+    low, high = view.plane.GetBounds()[4:6]
+    assert low == pytest.approx(state.slice_mm) and high == pytest.approx(state.slice_mm)
+    assert state.slice_mm != 0.0
+    state.set_slice("coronal", -3.0)
+    qapp.processEvents()
+    assert view.plane.GetBounds()[2] == pytest.approx(state.slice_mm)

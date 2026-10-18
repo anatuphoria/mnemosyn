@@ -94,6 +94,7 @@ class BrainView(QtInteractor):
         self.scene_bounds = self._scene_bounds()
         self.highlighted: list[int] = []
         self.overlay_ids: list[int] = []
+        self._plane_key = None
         self.plane = self.add_mesh(pv.Plane(), color="white", opacity=PLANE_OPACITY,
                                    pickable=False, reset_camera=False, lighting=False)
 
@@ -375,14 +376,19 @@ class BrainView(QtInteractor):
         if not self.state.atlas.volumes or bounds[0] > bounds[1]:
             self.plane.SetVisibility(False)
             return
-        center = [(bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2,
-                  (bounds[4] + bounds[5]) / 2]
-        normal = [0.0, 0.0, 0.0]
         a = AXIS_INDEX[axis]
-        center[a], normal[a] = mm, 1.0
-        size = 1.1 * max(bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
-        plane = pv.Plane(center=center, direction=normal, i_size=size, j_size=size)
-        self.plane.GetMapper().SetInputData(plane)
+        if self._plane_key != (axis, bounds):
+            self._plane_key = (axis, bounds)
+            center = [(bounds[0] + bounds[1]) / 2, (bounds[2] + bounds[3]) / 2,
+                      (bounds[4] + bounds[5]) / 2]
+            normal = [0.0, 0.0, 0.0]
+            center[a], normal[a] = 0.0, 1.0
+            size = 1.1 * max(bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
+            plane = pv.Plane(center=center, direction=normal, i_size=size, j_size=size)
+            self.plane.GetMapper().SetInputData(plane)
+        offset = [0.0, 0.0, 0.0]
+        offset[a] = mm
+        self.plane.SetPosition(*offset)
         self.plane.SetVisibility(True)
         self._request_render()
 
