@@ -8,6 +8,7 @@ import pyvista as pv
 from pyvistaqt import QtInteractor
 from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkCommonDataModel import vtkMultiBlockDataSet
+from vtkmodules.vtkFiltersCore import vtkImplicitPolyDataDistance
 from vtkmodules.vtkRenderingCore import (vtkActor, vtkCompositeDataDisplayAttributes,
                                          vtkCompositePolyDataMapper, vtkHardwarePicker,
                                          vtkPolyDataMapper)
@@ -22,6 +23,7 @@ BACKGROUND = "#0a0a10"
 CLICK_TOLERANCE_PX = 3
 FAINT = 0.08
 PLANE_OPACITY = 0.18
+SHELL_OPACITY = 0.25
 
 
 def _rgb(color) -> tuple[float, float, float]:
@@ -54,15 +56,30 @@ def _composite(blocks: list[pv.PolyData]):
     return actor, mapper, attributes
 
 
+def _surface_actor(block: pv.PolyData, color) -> vtkActor:
+    mapper = vtkPolyDataMapper()
+    mapper.SetInputData(block)
+    mapper.ScalarVisibilityOff()
+    actor = vtkActor()
+    actor.SetMapper(mapper)
+    prop = actor.GetProperty()
+    prop.SetColor(*_rgb(color))
+    prop.SetInterpolationToGouraud()
+    prop.SetSpecular(0.15)
+    return actor
+
+
 class BrainView(QtInteractor):
     def __init__(self, state: AppState, parent=None) -> None:
         super().__init__(parent, auto_update=False)
         self.state = state
         self.set_background(BACKGROUND)
-        self.ids = [i for i in state.geometry_ids if not state.is_tract(i)]
+        self.shell_ids = [i for i in state.geometry_ids if state.atlas.get(i).kind == "shell"]
+        shells = frozenset(self.shell_ids)
+        self.ids = [i for i in state.geometry_ids if not state.is_tract(i) and i not in shells]
         self.tract_ids = list(state.tract_ids)
         self._tract_set = frozenset(self.tract_ids)
-        self.lod = choose_lod(face_totals(state.atlas, self.ids))
+        self.lod = choose_lod(face_totals(state.atlas, self.ids + self.shell_ids))
         self.blocks = {i: _polydata(state.atlas.mesh(i, self.lod)) for i in self.ids}
         blocks = [self.blocks[i] for i in self.ids]
         self.actor, self.composite_mapper, self.attributes = _composite(blocks)
@@ -74,6 +91,17 @@ class BrainView(QtInteractor):
         self._apply_focus(self.attributes, self.ids)
         self.outline = OutlineLayer(self.ren_win, self.renderer)
         self.outline.add_blocks(self.ids, [self.blocks[i] for i in self.ids])
+        self.shell_actors: dict[int, vtkActor] = {}
+        self._shell_of: dict[vtkActor, int] = {}
+        self._insides: dict[int, vtkImplicitPolyDataDistance] = {}
+        for structure_id in self.shell_ids:
+            block = self.blocks[structure_id] = _polydata(state.atlas.mesh(structure_id, self.lod))
+            actor = _surface_actor(block, state.atlas.get(structure_id).rgb_triplet)
+            self.renderer.AddActor(actor)
+            self.shell_actors[structure_id] = actor
+            self._shell_of[actor] = structure_id
+            self._style_shell(structure_id)
+        self.outline.add_blocks(self.shell_ids, [self.blocks[i] for i in self.shell_ids])
         self.tract_actors: dict[int, vtkActor] = {}
         self._tract_of: dict[vtkActor, int] = {}
         self.tract_lod: int | None = None
@@ -86,6 +114,7 @@ class BrainView(QtInteractor):
                                    pickable=False, reset_camera=False, lighting=False)
 
         self._picker = vtkHardwarePicker()
+        self.pick_position = np.zeros(3)
         self._press_pos: tuple[int, int] | None = None
         self.iren.add_observer("LeftButtonPressEvent", self._on_press)
         self.iren.add_observer("LeftButtonReleaseEvent", self._on_release)
@@ -135,8 +164,9 @@ class BrainView(QtInteractor):
             self.render()
 
     def is_drawn(self, structure_id: int) -> bool:
-        if structure_id in self.tract_actors:
-            return bool(self.tract_actors[structure_id].GetVisibility())
+        actor = self.tract_actors.get(structure_id) or self.shell_actors.get(structure_id)
+        if actor is not None:
+            return bool(actor.GetVisibility())
         block = self.blocks.get(structure_id)
         return (block is not None and structure_id not in self._tract_set
                 and bool(self.attributes.GetBlockVisibility(block)))
@@ -164,10 +194,20 @@ class BrainView(QtInteractor):
         actor.GetProperty().SetOpacity(1.0 if in_focus else FAINT)
         actor.SetPickable(shown and in_focus)
 
+    def _style_shell(self, structure_id: int) -> None:
+        actor = self.shell_actors[structure_id]
+        shown = not self.state.is_hidden(structure_id)
+        in_focus = self.state.in_focus(structure_id)
+        actor.SetVisibility(shown)
+        actor.GetProperty().SetOpacity(SHELL_OPACITY if in_focus else FAINT)
+        actor.SetPickable(shown and in_focus)
+
     def _on_focus_changed(self, _focus) -> None:
         self._apply_focus(self.attributes, self.ids)
         for structure_id in self.tract_actors:
             self._style_tract(structure_id)
+        for structure_id in self.shell_actors:
+            self._style_shell(structure_id)
         self._request_render()
 
     def prepare_tracts(self) -> None:
@@ -180,15 +220,7 @@ class BrainView(QtInteractor):
         self.tract_lod = choose_lod(face_totals(atlas, self.tract_ids))
         for structure_id in self.tract_ids:
             block = self.blocks[structure_id] = _polydata(atlas.mesh(structure_id, self.tract_lod))
-            mapper = vtkPolyDataMapper()
-            mapper.SetInputData(block)
-            mapper.ScalarVisibilityOff()
-            actor = vtkActor()
-            actor.SetMapper(mapper)
-            prop = actor.GetProperty()
-            prop.SetColor(*_rgb(atlas.get(structure_id).rgb_triplet))
-            prop.SetInterpolationToGouraud()
-            prop.SetSpecular(0.15)
+            actor = _surface_actor(block, atlas.get(structure_id).rgb_triplet)
             self.renderer.AddActor(actor)
             self.tract_actors[structure_id] = actor
             self._tract_of[actor] = structure_id
@@ -210,8 +242,7 @@ class BrainView(QtInteractor):
         if abs(x1 - x0) <= CLICK_TOLERANCE_PX and abs(y1 - y0) <= CLICK_TOLERANCE_PX:
             self.pick_at(x1, y1)
 
-    def structure_at(self, x: int, y: int) -> int | None:
-        """VTK display coords: origin is bottom-left."""
+    def _pick(self, x: int, y: int) -> int | None:
         self._picker.Pick(x, y, 0, self.renderer)
         actor = self._picker.GetActor()
         if actor is None:
@@ -219,13 +250,35 @@ class BrainView(QtInteractor):
         if actor is self.actor:
             index = self._picker.GetFlatBlockIndex() - 1
             return self.ids[index] if 0 <= index < len(self.ids) else None
-        return self._tract_of.get(actor)
+        return self._tract_of.get(actor, self._shell_of.get(actor))
+
+    def _inside(self, shell_id: int, point: np.ndarray) -> bool:
+        if shell_id not in self._insides:
+            self._insides[shell_id] = vtkImplicitPolyDataDistance()
+            self._insides[shell_id].SetInput(self.blocks[shell_id])
+        return self._insides[shell_id].EvaluateFunction(*point) < 0
+
+    def structure_at(self, x: int, y: int) -> int | None:
+        """VTK display coords: origin is bottom-left; a shell yields to shapes inside it."""
+        found = self._pick(x, y)
+        self.pick_position = np.array(self._picker.GetPickPosition())
+        if found not in self.shell_actors:
+            return found
+        for actor in self.shell_actors.values():
+            actor.SetPickable(False)
+        behind = self._pick(x, y)
+        point = np.array(self._picker.GetPickPosition())
+        for structure_id in self.shell_actors:
+            self._style_shell(structure_id)
+        if behind is None or not self._inside(found, point):
+            return found
+        self.pick_position = point
+        return behind
 
     def zoom_at(self, x: int, y: int, factor: float) -> None:
         camera = self.renderer.GetActiveCamera()
         position, focal = np.array(camera.GetPosition()), np.array(camera.GetFocalPoint())
-        anchor = (np.array(self._picker.GetPickPosition())
-                  if self.structure_at(x, y) is not None else focal)
+        anchor = self.pick_position if self.structure_at(x, y) is not None else focal
         camera.SetPosition(*(anchor + (position - anchor) / factor))
         camera.SetFocalPoint(*(anchor + (focal - anchor) / factor))
         self.renderer.ResetCameraClippingRange()
@@ -275,6 +328,8 @@ class BrainView(QtInteractor):
         for structure_id in ids:
             if structure_id in self.tract_actors:
                 self._style_tract(structure_id)
+            elif structure_id in self.shell_actors:
+                self._style_shell(structure_id)
             elif structure_id in self.blocks and structure_id not in self._tract_set:
                 self.attributes.SetBlockVisibility(self.blocks[structure_id],
                                                    not self.state.is_hidden(structure_id))
