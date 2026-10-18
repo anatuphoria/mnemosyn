@@ -45,7 +45,7 @@ def test_every_aal3_label_maps_to_exactly_one_structure():
     assert sorted(values) == sorted(set(range(1, 171)) - AAL3_EMPTY_LABELS)
     assert {ref.source for r in raws for ref in r.labels} == {
         "aal3", "neudorfer2020", "hcp1065", "tang2024", "razavi2021", "edlow2023",
-        "diedrichsen2009", "sitek2019", "bianciardi2024", "pam50", "pam50-atlas"}
+        "diedrichsen2009", "sitek2019", "bianciardi2024", "iglesias2015", "pam50", "pam50-atlas"}
 
 
 NEUDORFER_LABELS = set(range(1, 11)) | set(range(13, 39)) | set(range(41, 55))
@@ -192,7 +192,8 @@ def test_the_built_atlas_pathways_light_and_read_on_both_sides():
 
 def test_the_glands_are_local_only_midline_structures():
     local = {s.source.id: s for s in load_recipe(SRC / "recipe.toml").sources if s.local_only}
-    assert list(local) == ["tang2024", "razavi2021", "bianciardi2024", "pam50", "pam50-atlas"]
+    assert list(local) == ["tang2024", "razavi2021", "bianciardi2024", "iglesias2015", "pam50",
+                           "pam50-atlas"]
     for spec in (local["tang2024"], local["razavi2021"]):
         assert not spec.source.redistribution and spec.mesh_grid == "native"
         assert spec.priority == -1 and spec.volume == "brain"
@@ -209,8 +210,8 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
 
     src = shutil.copytree(SRC, tmp_path / "src")
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None, local=True))
-    assert atlas.local_only == ("tang2024", "razavi2021", "bianciardi2024", "pam50",
-                                "pam50-atlas", "pam50-t2")
+    assert atlas.local_only == ("tang2024", "razavi2021", "bianciardi2024", "iglesias2015",
+                                "pam50", "pam50-atlas", "pam50-t2")
     assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 392
     spine = next(v for v in atlas.volumes if v.name == "spine")
     assert nib.aff2axcodes(spine.affine) == ("R", "A", "S")
@@ -287,7 +288,7 @@ def test_the_new_sources_rank_below_the_old_and_mesh_natively():
     specs = {s.source.id: s for s in load_recipe(SRC / "recipe.toml").sources}
     new = ("edlow2023", "diedrichsen2009", "sitek2019", "bianciardi2024")
     assert max(specs[n].priority for n in new) < min(
-        s.priority for n, s in specs.items() if n not in new)
+        s.priority for n, s in specs.items() if n not in (*new, "iglesias2015"))
     for name in new[:3]:
         spec = specs[name]
         assert spec.priority == -2 and spec.mesh_grid == "native", name
@@ -384,10 +385,28 @@ PROVIDES = {"aal3": "Brain regions", "colin27": "MRI template for brain slices",
             "edlow2023": "Brainstem arousal nuclei", "diedrichsen2009": "Deep cerebellar nuclei",
             "sitek2019": "Auditory brainstem nuclei", "bianciardi2024": "Brainstem nuclei",
             "pam50": "Spinal cord segments", "pam50-atlas": "Spinal grey matter and tracts",
-            "pam50-t2": "MRI template for spinal cord slices"}
+            "pam50-t2": "MRI template for spinal cord slices",
+            "iglesias2015": "Brainstem body"}
 
 
 def test_every_source_says_what_it_provides():
     recipe = load_recipe(SRC / "recipe.toml")
     specs = (*recipe.sources, *recipe.templates, *recipe.tracts)
     assert {s.source.id: s.source.provides for s in specs} == PROVIDES
+
+
+def test_the_brainstem_bodies_are_local_shells():
+    sources = load_recipe(SRC / "recipe.toml").sources
+    spec = next(s for s in sources if s.source.id == "iglesias2015")
+    assert spec.local_only and not spec.source.redistribution and spec.volume == "brain"
+    assert spec.parts == (1, 2, 4) and spec.threshold == 0.5 and spec.trim_outside == 30
+    assert spec.mesh_grid == "native"
+    others = [s.priority for s in sources if s.volume == "brain" and s is not spec]
+    assert spec.priority < min(others)
+    raws = {r.id: r for r in load_structures(SRC / "structures.toml")}
+    bodies = {2250: (31, 4, "Midbrain body"), 2260: (32, 2, "Pons body"),
+              2270: (34, 1, "Medulla body")}
+    for structure_id, (parent, value, name) in bodies.items():
+        r = raws[structure_id]
+        assert (r.parent, r.kind, r.side, r.name) == (parent, "shell", "midline", name)
+        assert [(ref.source, ref.value) for ref in r.labels] == [("iglesias2015", value)]

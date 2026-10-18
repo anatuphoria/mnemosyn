@@ -221,6 +221,28 @@ sMRt_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_threshol
 iMRt_l = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/iMRt_l.nii.gz"
 iMRt_r = "BrainstemNavigatorv1.0/1.0/2a.BrainstemNucleiAtlas_MNI/labels_thresholded_binary_0.35/iMRt_r.nii.gz"
 
+[[sources]]
+id = "iglesias2015"
+provides = "Brainstem body"
+title = "Bayesian segmentation of brainstem structures in MRI (MNI ICBM 2009c symmetric version)"
+authors = "Iglesias JE, Van Leemput K, Bhatt P, Casillas C, Dutt S, Schuff N, Truran-Sacrey D, Boxer A, Fischl B"
+year = 2015
+version = "FreeSurfer subfield atlases in MNI ICBM 152 space, brainstem probabilities at 0.5"
+doi = "10.1016/j.neuroimage.2015.02.065"
+url = "https://surfer.nmr.mgh.harvard.edu/fswiki/SubfieldAtlasesICBMspace"
+licence = "No licence stated; local use only until the authors allow sharing"
+redistribution = false
+local_only = true
+download = "https://surfer.nmr.mgh.harvard.edu/fswiki/SubfieldAtlasesICBMspace?action=AttachFile&do=get&target=Brainstem.zip"
+sha256 = "f6ad672136102669955ee803f27c188a5e172a326a61fb9818d12fb4707fe5c2"
+member = "BrainstemProbs.MNIsymSpace.nii.gz"
+volume = "brain"
+priority = -4
+mesh_grid = "native"
+parts = [1, 2, 4]
+threshold = 0.5
+trim_outside = 30
+
 [[tracts]]
 id = "hcp1065"
 provides = "Brain white matter tracts"
