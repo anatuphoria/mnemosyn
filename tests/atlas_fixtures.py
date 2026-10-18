@@ -506,6 +506,24 @@ sha256 = "{template_sha}"
 volume = "spine"
 """
 
+TOY_CORD_SOURCE = """
+[[sources]]
+id = "toyspine-cord"
+title = "Toy cord outline"
+authors = "Test G"
+year = 2024
+version = "1"
+licence = "No licence stated"
+redistribution = false
+local_only = true
+download = "{cord}"
+sha256 = "{cord_sha}"
+volume = "spine"
+priority = 0
+mesh_grid = "native"
+outline_of = "toyspine"
+"""
+
 TOY_SPINE_STRUCTURES = """\
   { id = 200, parent = 2, acronym = "UPS", name = "Upper segment", source = "toyspine", midline = 1 },
   { id = 210, parent = 2, acronym = "LOS", name = "Lower segment", source = "toyspine", midline = 2 },
@@ -598,7 +616,7 @@ def hyp_volume() -> np.ndarray:
 def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
                                local: bool = False, behaviour: bool = False,
                                members: str = "", spine: bool = False,
-                               shells: bool = False) -> Path:
+                               shells: bool = False, cord: bool = False) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -627,6 +645,12 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
                                            template=template, template_sha=sha256_file(template),
                                            tract=tract, tract_sha=sha256_file(tract))
         concepts += TOY_SPINE_STRUCTURES
+        if cord:
+            outline = root / "upstream" / "toy_spine_cord.nii.gz"
+            mask = np.zeros(SPINE_SHAPE, dtype=np.uint8)
+            mask[6:10, 6:10, 4:66] = 1
+            nib.save(nib.Nifti1Image(mask, SPINE_AFFINE), outline)
+            recipe += TOY_CORD_SOURCE.format(cord=outline, cord_sha=sha256_file(outline))
     if tracts:
         folder = root / "upstream" / "tracts"
         folder.mkdir()

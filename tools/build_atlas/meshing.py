@@ -59,7 +59,8 @@ def _centroid(mesh: pv.PolyData) -> np.ndarray:
 
 def _pieces(mesh: pv.PolyData, voxel: float = 0.0) -> int:
     parts = mesh.connectivity().split_bodies()
-    return sum(1 for part in parts if abs(part.extract_surface(algorithm="dataset_surface").volume) >= voxel)
+    return sum(1 for part in parts
+               if abs(part.extract_surface(algorithm="dataset_surface").volume) >= voxel)
 
 
 def surface(volume: np.ndarray, affine: np.ndarray, label: int, iterations: int,
@@ -137,3 +138,51 @@ def levels(mesh: pv.PolyData, max_faces: int, fractions: tuple[float, ...],
         out.append(data)
         repaired.append(count)
     return out, repaired[0] if repaired else 0
+
+
+def bands(image, mapping: dict[int, int]) -> list[tuple[int, float, float]]:
+    values = np.asarray(image.dataobj)
+    affine = np.asarray(image.affine)
+    half = abs(affine[2, :3]).sum() / 2
+    spans = []
+    for value, structure_id in mapping.items():
+        index = np.argwhere(values == value)
+        if len(index):
+            z = (np.c_[index, np.ones(len(index))] @ affine.T)[:, 2]
+            spans.append((float(z.min() - half), float(z.max() + half), structure_id))
+    spans.sort()
+    cuts = [(below[1] + above[0]) / 2 for below, above in zip(spans, spans[1:])]
+    lows, highs = [-np.inf, *cuts], [*cuts, np.inf]
+    return [(sid, low, high) for (_, _, sid), low, high in zip(spans, lows, highs)]
+
+
+def _piece(level: pv.PolyData, low: float, high: float) -> pv.PolyData:
+    if np.isfinite(high):
+        level = level.clip(normal=(0, 0, 1), origin=(0, 0, high))
+    if np.isfinite(low):
+        level = level.clip(normal=(0, 0, 1), origin=(0, 0, low), invert=False)
+    return level.triangulate()
+
+
+def cut_levels(mesh: pv.PolyData, cuts: list[tuple[int, float, float]], max_faces: int,
+               fractions: tuple[float, ...], min_faces: int
+               ) -> tuple[dict[int, list[MeshData]], int]:
+    base = mesh if mesh.n_cells <= max_faces else mesh.decimate(1.0 - max_faces / mesh.n_cells)
+    out: dict[int, list[MeshData]] = {sid: [] for sid, _, _ in cuts}
+    repaired = 0
+    for k, fraction in enumerate(fractions):
+        target = max(min_faces * len(cuts), int(base.n_cells * fraction))
+        level = base if target >= base.n_cells else base.decimate(1.0 - target / base.n_cells)
+        level = level.compute_normals(cell_normals=False, split_vertices=False,
+                                      auto_orient_normals=True)
+        for sid, low, high in cuts:
+            piece = _piece(level, low, high)
+            points = np.asarray(piece.points, dtype=np.float32)
+            normals = np.asarray(piece.point_data["Normals"], dtype=np.float32).copy()
+            length = np.linalg.norm(normals, axis=1, keepdims=True)
+            normals = np.where(length > 1e-6, normals / np.maximum(length, 1e-6), 0.0)
+            count = repair_normals(points, normals)
+            repaired += count if k == 0 else 0
+            out[sid].append(MeshData(vertices=points, normals=normals.astype(np.float16),
+                                     faces=np.asarray(piece.regular_faces, dtype=np.uint32)))
+    return out, repaired

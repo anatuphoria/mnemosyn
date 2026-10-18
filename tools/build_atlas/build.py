@@ -20,7 +20,7 @@ from .idlock import IdLock, load_lock, write_lock
 from .labels import (clip_z, crop, load_label_image, load_members, load_parts, load_tiles,
                      mapping_for, merge, read_label_names, relabel, separate_natives, source_values,
                      trim_against, z_extent)
-from .meshing import levels, surface
+from .meshing import bands, cut_levels, levels, surface
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
 from .templates import covers, on_grid, to_uint8
@@ -163,7 +163,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                                                        margin=spec.margin)
         if spec.label_names:
             names[spec.source.id] = read_label_names(member_path(spec, archive, spec.label_names))
-    extents = {s.source.id: z_extent(images[s.within]) for s in sources if s.within}
+    extents = {s.source.id: z_extent(images[s.within or s.outline_of])
+               for s in sources if s.within or s.outline_of}
     for name, extent in extents.items():
         images[name] = clip_z(images[name], *extent)
     small = []
@@ -172,7 +173,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                                 return_counts=True)
         small += [f"{by_id[int(i)].name} ({n} voxels)" for i, n in zip(ids, counts)
                   if i and n < SMALL_VOXELS]
-    for spec in sources:
+    outlines = [s for s in sources if s.outline_of]
+    cut = {s.outline_of for s in outlines}
+    for spec in (s for s in sources if not s.outline_of):
         values = source_values(images[spec.source.id])
         mapped = set(mapping_for(spec.source.id, planned))
         dropped = set(spec.drop)
@@ -186,7 +189,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         if vspec.name in skipped_volumes:
             continue
         layers = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
-                  for s in sources if s.volume == vspec.name]
+                  for s in sources if s.volume == vspec.name and not s.outline_of]
         grid = nib.as_closest_canonical(images[vspec.grid_source])
         volumes.append((vspec, merge(grid, layers), grid.affine))
         fill = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
@@ -202,11 +205,13 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                                                allowed if vspec.name == s.volume else None)
     natives = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
                     images[s.source.id].affine)
-               for s in sources if s.mesh_grid == "native" and not s.separate]
+               for s in sources if s.mesh_grid == "native" and not s.separate
+               and not s.outline_of and s.source.id not in cut]
     for s in (s for s in sources if s.separate):
         natives += separate_natives(s, archives[s.source.id], mapping_for(s.source.id, planned),
                                     extents.get(s.source.id))
     native_ids = set().union(*(present(data) for data, _ in natives))
+    native_ids |= {sid for s in outlines for sid in mapping_for(s.outline_of, planned).values()}
     tract_rows: list[tuple[int, np.ndarray]] = []
     for spec in recipe.tracts:
         shape, affine = grids[spec.labels]
@@ -257,6 +262,20 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                 repaired += count
                 for level, mesh_data in zip(meshes, built):
                     level[p.structure.id] = mesh_data
+
+    for s in outlines:
+        outline = (np.asarray(images[s.source.id].dataobj) > 0).astype(np.uint8)
+        if not outline.any():
+            continue
+        mesh = surface(outline, images[s.source.id].affine, 1, recipe.smoothing_iterations,
+                       recipe.smoothing_pass_band, recipe.smoothing_blur_mm)
+        cuts = bands(images[s.outline_of], mapping_for(s.outline_of, planned))
+        pieces, count = cut_levels(mesh, cuts, recipe.lod0_max_faces * len(cuts),
+                                   recipe.lod_fractions, recipe.min_faces)
+        repaired += count
+        for structure_id, built in pieces.items():
+            for level, mesh_data in zip(meshes, built):
+                level[structure_id] = mesh_data
 
     structures = recolour([p.structure for p in planned],
                           {r.id for r in raws if r.palette == "distinct"},

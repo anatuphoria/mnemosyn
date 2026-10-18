@@ -41,6 +41,7 @@ class SourceSpec:
     trim_outside: int | None = None
     within: str = ""
     tiles: float | None = None
+    outline_of: str = ""
 
     @property
     def member_values(self) -> dict[str, int]:
@@ -126,6 +127,7 @@ def _source_spec(s: dict) -> SourceSpec:
                       trim_outside=int(s["trim_outside"]) if "trim_outside" in s else None,
                       within=str(s.get("within", "")),
                       tiles=float(s["tiles"]) if "tiles" in s else None,
+                      outline_of=str(s.get("outline_of", "")),
                       members=tuple((str(k), str(v)) for k, v in s.get("members", {}).items()),
                       manual=s.get("manual") is True, crop=s.get("crop") is True)
 

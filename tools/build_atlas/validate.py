@@ -61,6 +61,7 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
     known = set(labels) | set(tracts)
     volumes = {v.name for v in recipe.volumes}
     groups = {r.id for r in raws if r.kind == "group"}
+    referenced = {ref.source for r in raws for ref in r.labels}
     problems = []
     for spec in recipe.sources:
         name = spec.source.id
@@ -84,6 +85,10 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: separate needs members")
         elif spec.separate and spec.mesh_grid != "native":
             problems.append(f"source {name}: separate needs mesh_grid = \"native\"")
+        if spec.outline_of and spec.outline_of not in labels:
+            problems.append(f"source {name}: outline_of {spec.outline_of!r} is not a label source")
+        if spec.outline_of and name in referenced:
+            problems.append(f"source {name}: an outline source cannot have structures")
         if spec.tiles is not None and not spec.members:
             problems.append(f"source {name}: tiles needs members")
         elif spec.tiles is not None and spec.separate:
