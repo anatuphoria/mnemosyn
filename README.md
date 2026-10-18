@@ -1,7 +1,9 @@
 # Mnemosyn
 
-A 3D atlas of the human central nervous system for studying: a desktop app, a terminal
-viewer, and the tool that builds the atlas data from open, cited sources.
+A 3D atlas of the human central nervous system for studying: a desktop app and the tool that
+builds the atlas data from open, cited sources. The terminal viewer lives in its own
+repository, [Mnemosyn TUI](https://github.com/anatuphoria/mnemosyn-tui), and reads the same
+atlas packages.
 
 The name joins Mnemosyne, the Greek goddess of memory, with the synapse, where memories are
 stored: an atlas of the brain that helps you remember it.
@@ -18,7 +20,6 @@ python -m venv .venv
 .venv/bin/python -m tools.build_atlas    # downloads the open atlases and builds atlases/cns (about 40 s)
 .venv/bin/python -m tools.build_atlas --local    # also adds sources not yet allowed to be shared
 .venv/bin/mnemosyn                       # desktop app
-.venv/bin/brain-tui                      # terminal viewer
 ```
 
 On hybrid-GPU laptops, `prime-run .venv/bin/mnemosyn` uses the discrete GPU.
@@ -92,27 +93,6 @@ in the chart, where a cursor follows the steps, the time is shown next to the co
 click in the plot jumps to that moment. All pathway texts and timelines are drafts awaiting
 review.
 
-## Terminal viewer
-
-`brain-tui [--atlas PATH]` reads the same atlas package and falls back to a 36-region
-procedural brain when no atlas is built (a `--atlas` path that does not exist is an error).
-Descriptions show numbered citations with their references, and drafts are marked. Letters are lowercase unless written with `Shift+`.
-
-| Action | Keys |
-|---|---|
-| Rotate | arrows / `hjkl` or mouse-drag |
-| Zoom / Pan | `+`/`-`, `wasd` or wheel / shift+drag |
-| Spin | `r` |
-| Select | click, `Tab` / `Shift+Tab`, `/` search (`Enter` commits, `Esc` cancels) |
-| Move selected | `m` move-mode: arrows or `wasd`, `PgUp`/`PgDn` depth, `Esc` exits |
-| Isolate / Hide / Unhide | `i` / `Shift+H` / `u` |
-| Explode | `x` / `Shift+X` |
-| Slice axial/coronal/sagittal | `1` / `2` / `3`, `,`/`.` move plane |
-| Labels | `Shift+L` |
-| Bookmark save/restore | `b` / `Shift+B` |
-| HiFi stills / Quiz | `o` / `z` (`z` again reveals the answer) |
-| Help | `?` |
-
 ## Atlas data
 
 | Data | Source | Licence |
@@ -173,7 +153,6 @@ instead. Every build needs the Harvard Ascending Arousal Network Atlas (CC0, fro
 | Measure | Result |
 |---|---|
 | Desktop, 166 structures, integrated GPU | display refresh rate (144 Hz) |
-| Terminal viewer, simulated drag at 200x60 | about 28 to 30 frames per second |
 
 The 3D view draws every structure with one composite object and picks with the GPU, so it
 scales to thousands of structures; it switches to a lighter level of detail when the scene
@@ -200,7 +179,6 @@ or switching its side takes under 130 ms (on a local build with the spinal cord)
 ```
 cns_atlas/          atlas package loader (no Qt): model, meshes, knowledge, volume, atlas
 cns_desktop/        desktop app: app, main_window, state, views/
-brain_tui/          terminal viewer
 tools/build_atlas/  atlas build tool: recipe, hierarchy, validate, fetch, labels, meshing, writer
 atlas_src/          committed atlas sources: recipe, structures, ids.lock, knowledge, LICENSES
 docs/               specs and plans
