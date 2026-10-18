@@ -105,15 +105,35 @@ def focal_z(window):
 def test_reset_frames_the_brain_not_the_cord(window):
     window.view.reset_view()
     assert focal_z(window) > -60.0
-    assert not window.view.framing_outside
 
 
-def test_selecting_outside_the_brain_frames_it_and_back(window):
+def test_selecting_never_moves_the_camera(window):
     window.view.reset_view()
+    before = window.view.camera_position
+    for structure_id in (210, 101, 2):
+        window.state.select(structure_id)
+        assert window.view.camera_position == before
+
+
+def brain_box(window):
+    return window.view.scene_bounds
+
+
+def test_f_frames_the_selection(window):
+    frame = window.shortcuts["Frame selection"]
+    assert frame.shortcut().toString() == "F"
     window.state.select(210)
-    assert focal_z(window) < -150.0 and window.view.framing_outside
+    frame.trigger()
+    assert focal_z(window) < -150.0
     window.state.select(101)
-    assert focal_z(window) > -60.0 and not window.view.framing_outside
+    frame.trigger()
+    b = brain_box(window)
+    point = window.view.camera.focal_point
+    assert all(b[2 * a] <= point[a] <= b[2 * a + 1] for a in range(3))
+    window.state.select(None)
+    frame.trigger()
+    centre = [(b[2 * a] + b[2 * a + 1]) / 2 for a in range(3)]
+    assert np.allclose(window.view.camera.focal_point, centre, atol=1.0)
 
 
 def test_the_plane_follows_the_spinal_volume(window):

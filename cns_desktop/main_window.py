@@ -195,6 +195,7 @@ class MainWindow(QMainWindow):
         action("Show all", "U", self.state.show_all)
         action("Tracts", "T", self.state.toggle_tracts)
         action("Reset view", "R", self.view.reset_view)
+        action("Frame selection", "F", self.view.frame_selection)
         action("Centre slice", "C", self.slices.centre_on_selection)
         action("About", "F1", self.show_about)
         focus_filter = QAction(self, shortcut=QKeySequence.StandardKey.Find,

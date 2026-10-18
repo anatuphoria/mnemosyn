@@ -114,3 +114,19 @@ def test_left_drag_still_rotates_and_a_left_click_still_selects(window):
     mouse(view, "LeftButtonPressEvent", x, y)
     mouse(view, "LeftButtonReleaseEvent", x, y)
     assert window.state.selected == view.structure_at(x, y)
+
+
+def test_route_steps_and_quiz_answers_leave_the_camera(qapp, toy_pathway_atlas, tmp_path):
+    w = MainWindow(Atlas.open(toy_pathway_atlas), progress_path=tmp_path / "p.sqlite")
+    w.resize(1400, 900)
+    w.show()
+    qapp.processEvents()
+    before = w.view.camera_position
+    w.pathway_dock.raise_()
+    w.pathways.open("loop")
+    for index in range(len(w.pathways.lights)):
+        w.pathways.go(index)
+        qapp.processEvents()
+        assert w.view.camera_position == before
+    w.close()
+

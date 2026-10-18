@@ -79,7 +79,6 @@ class BrainView(QtInteractor):
         self.tract_lod: int | None = None
         self.tract_builds = 0
         self._extents: dict[int, tuple] = {}
-        self.framing_outside = False
         self.scene_bounds = self._scene_bounds()
         self.highlighted: list[int] = []
         self.overlay: vtkActor | None = None
@@ -113,7 +112,6 @@ class BrainView(QtInteractor):
     def reset_view(self) -> None:
         """World frame is MNI millimetres: x right, y anterior, z superior."""
         self.camera_position = [(-400.0, 250.0, 150.0), (0.0, -18.0, 10.0), (0.0, 0.0, 1.0)]
-        self.framing_outside = False
         if len(self.state.atlas.volumes) > 1:
             self.reset_camera(render=False, bounds=self.scene_bounds)
         else:
@@ -246,7 +244,6 @@ class BrainView(QtInteractor):
     def _on_selection_changed(self, structure_id: int | None) -> None:
         self.highlighted = self.state.highlighted_ids()
         self._refresh_overlay()
-        self._frame_selection()
         self._request_render()
 
     def _extent(self, structure_id: int) -> tuple[np.ndarray, np.ndarray]:
@@ -261,22 +258,17 @@ class BrainView(QtInteractor):
             self._extents[structure_id] = (low, high)
         return self._extents[structure_id]
 
-    def _frame_selection(self) -> None:
-        if len(self.state.atlas.volumes) < 2 or not self.highlighted:
-            return
-        shaped = [i for i in self.highlighted if i in self.blocks]
-        extents = [self._extent(i) for i in shaped or self.highlighted]
-        low = np.min([e[0] for e in extents], axis=0)
-        high = np.max([e[1] for e in extents], axis=0)
-        brain = self.scene_bounds
-        centre = (low + high) / 2
-        if not all(brain[2 * a] <= centre[a] <= brain[2 * a + 1] for a in range(3)):
-            self.framing_outside = True
-            self.reset_camera(render=False, bounds=(low[0], high[0], low[1], high[1],
-                                                    low[2], high[2]))
-        elif self.framing_outside:
-            self.framing_outside = False
-            self.reset_camera(render=False, bounds=brain)
+    def frame_selection(self) -> None:
+        shown = [i for i in self.highlighted if i in self.blocks and not self.state.is_hidden(i)]
+        if shown:
+            extents = [self._extent(i) for i in shown]
+            low = np.min([e[0] for e in extents], axis=0)
+            high = np.max([e[1] for e in extents], axis=0)
+            bounds = (low[0], high[0], low[1], high[1], low[2], high[2])
+        else:
+            bounds = self.scene_bounds
+        self.reset_camera(render=False, bounds=bounds)
+        self.render()
 
     def _on_visibility_changed(self, ids: frozenset[int]) -> None:
         if any(i in self._tract_set and not self.state.is_hidden(i) for i in ids):
