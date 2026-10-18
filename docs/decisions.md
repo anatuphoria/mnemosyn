@@ -42,6 +42,7 @@ entry replaces it and the old one says so.
 | 34 | 2026-10-18 | A brainstem body from Iglesias 2015, local only | in force |
 | 35 | 2026-10-18 | The brainstem bodies are see-through | in force |
 | 36 | 2026-10-18 | Entering a route takes under 100 ms | in force |
+| 37 | 2026-10-18 | Questions and feedback go to GitHub Discussions | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -304,3 +305,11 @@ Design: [smooth surfaces and the brainstem body, section 3.3](specs/2026-10-18-s
 2026-10-13, when the spinal cord added faded geometry. It went back to 100 ms once routes opened in
 75 to 85 ms.
 Design: [spinal cord, section 7](specs/2026-10-13-spinal-cord-design.md).
+
+## 37. Questions and feedback go to GitHub Discussions
+
+2026-10-18. The repository's Discussions tab is open for questions, corrections and feedback, and
+the website links to it.
+Why: students and reviewers need one public place to ask and correct; the first design already
+planned it for later.
+Design: [atlas foundation, section 1](specs/2026-10-11-atlas-foundation-design.md).
