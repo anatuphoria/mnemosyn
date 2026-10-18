@@ -212,7 +212,12 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
     atlas = Atlas.open(build(src, tmp_path / "cns", log=lambda *_: None, local=True))
     assert atlas.local_only == ("tang2024", "razavi2021", "bianciardi2024", "iglesias2015",
                                 "pam50", "pam50-atlas", "pam50-t2")
-    assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 392
+    assert len([s for s in atlas.structures if atlas.has_mesh(s.id)]) == 395
+    for structure_id, centre in ((2250, (0.0, -23.0, -13.0)), (2260, (0.0, -28.0, -33.0)),
+                                 (2270, (0.0, -41.0, -55.0))):
+        assert atlas.get(structure_id).kind == "shell"
+        mean = np.asarray(atlas.mesh(structure_id).vertices).mean(axis=0)
+        assert np.allclose(mean, centre, atol=4.0), (structure_id, mean)
     spine = next(v for v in atlas.volumes if v.name == "spine")
     assert nib.aff2axcodes(spine.affine) == ("R", "A", "S")
     assert 55 <= spine.shape[0] <= 75 and 950 <= spine.shape[2] <= 991

@@ -9,7 +9,7 @@ lod_fractions = [1.0, 0.25, 0.05]
 min_faces = 64
 smoothing_iterations = 30
 smoothing_pass_band = 0.05
-smoothing_blur_mm = 1.0
+smoothing_blur_mm = 2.0
 
 [[volumes]]
 name = "brain"

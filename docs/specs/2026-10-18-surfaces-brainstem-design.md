@@ -110,7 +110,8 @@ The bamboo look of the cord segments and the colours (project 3), speed (project
 
 ## 6. Calls made by the builder of this document (not the owner)
 
-- About one voxel of blur, less for small structures, volume within 10%, centre within 1 mm.
+- 2 mm of blur (one voxel left the hand-drawn AAL3 ridges on the cortex; checked on renders), less for
+  small structures, volume within 10%, centre (of the enclosed volume) within 1 mm.
 - Names Midbrain body, Pons body, Medulla body.
 - Highest-probability assignment at 0.5 and dropping the peduncle channel.
 - Whole-brainstem assignment (no cracks), trimming against the cerebellum and at the cord.
