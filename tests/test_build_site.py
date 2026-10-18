@@ -30,6 +30,7 @@ def test_site_pages_come_from_the_repo(tmp_path):
 def test_site_marks_local_only_sources(tmp_path):
     build_site(REPO, tmp_path)
     recipe = tomllib.loads((REPO / "atlas_src/recipe.toml").read_text())
-    local = [s for s in recipe["sources"] if s.get("local_only")]
+    sources = recipe["sources"] + recipe.get("tracts", []) + recipe.get("templates", [])
+    local = [s for s in sources if s.get("local_only")]
     page = (tmp_path / "atlas/sources.md").read_text()
     assert page.count("Local builds only") == len(local)
