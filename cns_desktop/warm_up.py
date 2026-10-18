@@ -12,9 +12,12 @@ class WarmUp(QObject):
         super().__init__(parent)
         self._jobs = list(jobs)
         self.done = False
+        self.started_after_render: int | None = None
 
-    def start(self) -> None:
-        QTimer.singleShot(0, self, self._next)
+    def start(self, after_render: int) -> None:
+        if self.started_after_render is None:
+            self.started_after_render = after_render
+            QTimer.singleShot(0, self, self._next)
 
     def stop(self) -> None:
         self._jobs.clear()

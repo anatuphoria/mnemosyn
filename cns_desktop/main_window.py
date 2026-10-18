@@ -43,6 +43,7 @@ RECOVERED = {
     "newer": ("Progress file from a newer version", "Your progress file was written by a newer "
               "version of Mnemosyn. It was kept as {path} and a new one was started."),
 }
+FIRST_DRAW_WAIT_MS = 250
 
 
 def data_folder() -> Path:
@@ -156,6 +157,7 @@ class MainWindow(QMainWindow):
                         if s.name.startswith("Hippocampus") and atlas.has_mesh(s.id)), None)
         self.state.select(default)
         self._warm_up = WarmUp(self._warm_up_jobs(), self)
+        self._first_draw = None
 
     def _warm_up_jobs(self) -> list:
         atlas = self.state.atlas
@@ -174,8 +176,14 @@ class MainWindow(QMainWindow):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        if not self._warm_up.done:
-            self._warm_up.start()
+        if self._warm_up.started_after_render is None and self._first_draw is None:
+            self._first_draw = self.view.ren_win.AddObserver("EndEvent", self._after_first_draw)
+            QTimer.singleShot(FIRST_DRAW_WAIT_MS, self, self._after_first_draw)
+
+    def _after_first_draw(self, *_) -> None:
+        if self._warm_up.started_after_render is None and self.view.ren_win is not None:
+            self.view.ren_win.RemoveObserver(self._first_draw)
+            self._warm_up.start(self.view.render_count)
 
     def _dock(self, title: str, widget, area: Qt.DockWidgetArea) -> QDockWidget:
         dock = QDockWidget(title, self)

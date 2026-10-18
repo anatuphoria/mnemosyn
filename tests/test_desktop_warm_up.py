@@ -73,3 +73,47 @@ def test_an_atlas_without_spine_or_template_warms_up(qapp, toy_atlas, tmp_path):
     window = open_window(qapp, toy_atlas, tmp_path)
     assert wait_for_warm_up(qapp, window)
     window.close()
+
+
+def frame(view):
+    import numpy as np
+    from vtkmodules.util.numpy_support import vtk_to_numpy
+    from vtkmodules.vtkRenderingCore import vtkWindowToImageFilter
+
+    grab = vtkWindowToImageFilter()
+    grab.SetInput(view.ren_win)
+    grab.ShouldRerenderOff()
+    grab.ReadFrontBufferOff()
+    grab.Update()
+    return np.asarray(vtk_to_numpy(grab.GetOutput().GetPointData().GetScalars()), dtype=int)
+
+
+def test_warm_up_leaves_the_selection_glow_on_screen(qapp, toy_spine_atlas, tmp_path):
+    import numpy as np
+
+    window = open_window(qapp, toy_spine_atlas, tmp_path)
+    window.state.select(101)
+    qapp.processEvents()
+    window.view.render()
+    before = frame(window.view)
+    assert wait_for_warm_up(qapp, window)
+    qapp.processEvents()
+    assert np.abs(before - frame(window.view)).sum() == 0
+    window.close()
+
+
+def test_warm_up_starts_only_after_the_first_frame(qapp, toy_spine_atlas, tmp_path):
+    window = MainWindow(Atlas.open(toy_spine_atlas), progress_path=tmp_path / "progress.sqlite")
+    window.resize(1000, 800)
+    jobs = len(window._warm_up._jobs)
+    window.show()
+    qapp.processEvents()
+    assert window._warm_up.started_after_render is None and len(window._warm_up._jobs) == jobs
+    for _ in range(5):
+        qapp.processEvents()
+    drawn = window.view.render_count
+    window.view.ren_win.Render()
+    qapp.processEvents()
+    assert window._warm_up.started_after_render in (drawn, drawn + 1)
+    assert window._warm_up.started_after_render >= 1
+    window.close()
