@@ -47,6 +47,7 @@ entry replaces it and the old one says so.
 | 39 | 2026-10-18 | One continuous banded cord, solid until you look inside | in force |
 | 40 | 2026-10-18 | Spinal tracts tile the white matter | in force |
 | 41 | 2026-10-18 | Colours that neighbours can tell apart | in force |
+| 42 | 2026-10-18 | Tiny spinal tracts stay in the atlas and the quizzes | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -353,3 +354,10 @@ hypothalamus and deep cerebellar nuclei every member gets a clearly different co
 neighbours differing most. Left and right share a colour.
 Why: shading one colour by 15% made neighbours look the same in 3D, in slices and in quizzes.
 Design: [the cord's look and colours, section 6](specs/2026-10-18-cord-colours-design.md).
+
+## 42. Tiny spinal tracts stay in the atlas and the quizzes
+
+2026-10-18. The lateral reticulospinal tract (19 voxels a side) and the spinal part of the medial
+longitudinal fasciculus (69 voxels a side) come out very small once the tracts tile, but they stay
+in the atlas and in the tract quizzes like every other tract.
+Why: they are real tracts students meet in textbooks; the build report lists them as small shapes.
