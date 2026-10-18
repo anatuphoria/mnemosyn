@@ -202,15 +202,18 @@ def panned(view):
     drag(view, "Right", width // 2, height // 2, 120, 40)
 
 
-def test_turning_keeps_the_grabbed_point_in_place(window):
+def brain_centre(view):
+    b = view.scene_bounds
+    return np.array([(b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2])
+
+
+def test_turning_from_a_structure_keeps_the_brain_centre_in_place(window):
     view = window.view
     panned(view)
     x, y = structure_pixel(view)
-    view.structure_at(x, y)
-    point = np.array(view._picker.GetPickPosition())
-    before = on_screen(view, point)
+    before = on_screen(view, brain_centre(view))
     drag(view, "Left", x, y, 60, 35)
-    assert np.allclose(on_screen(view, point), before, atol=0.5)
+    assert np.allclose(on_screen(view, brain_centre(view)), before, atol=0.5)
 
 
 def test_turning_on_empty_space_keeps_the_brain_centre_in_place(window):

@@ -24,9 +24,7 @@ def rotate_about(camera, pivot, axis, degrees: float) -> None:
     camera.SetFocalPoint(transform.TransformPoint(camera.GetFocalPoint()))
 
 
-def pivot_at(view, x: int, y: int) -> np.ndarray:
-    if view.structure_at(x, y) is not None:
-        return np.array(view._picker.GetPickPosition())
+def model_centre(view) -> np.ndarray:
     b = view.scene_bounds
     return np.array([(b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2])
 
@@ -50,7 +48,7 @@ def install_navigation(view) -> None:
 
     def start_turn(*_):
         drag["last"] = interactor.GetEventPosition()
-        drag["pivot"] = pivot_at(view, *drag["last"])
+        drag["pivot"] = model_centre(view)
 
     def end_turn(*_):
         drag["last"] = None
