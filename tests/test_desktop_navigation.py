@@ -130,3 +130,62 @@ def test_route_steps_and_quiz_answers_leave_the_camera(qapp, toy_pathway_atlas, 
         assert w.view.camera_position == before
     w.close()
 
+
+
+def drag(view, button, x, y, dx, dy, steps=4):
+    mouse(view, f"{button}ButtonPressEvent", x, y)
+    for k in range(1, steps + 1):
+        mouse(view, "MouseMoveEvent", x + dx * k // steps, y + dy * k // steps)
+    mouse(view, f"{button}ButtonReleaseEvent", x + dx, y + dy)
+
+
+def elevation(view):
+    direction = np.array(view.camera.direction)
+    return float(np.degrees(np.arcsin(-direction[2] / np.linalg.norm(direction))))
+
+
+def test_a_sideways_drag_only_turns_sideways(window):
+    view = window.view
+    width, height = view.ren_win.GetSize()
+    x, y = width // 2, height // 2
+    drag(view, "Left", x, y, 0, 60)
+    before = elevation(view)
+    for _ in range(3):
+        drag(view, "Left", x, y, 80, 0)
+        assert abs(elevation(view) - before) < 1e-6
+        assert np.allclose(view.camera.up, (0.0, 0.0, 1.0), atol=1e-6)
+
+
+def test_tilting_stops_short_of_the_poles_and_never_rolls(window):
+    view = window.view
+    width, height = view.ren_win.GetSize()
+    x, y = width // 2, height // 2
+    for _ in range(6):
+        drag(view, "Left", x, y, 37, 400)
+    assert elevation(view) < 89.0
+    assert np.allclose(view.camera.up, (0.0, 0.0, 1.0), atol=1e-6)
+    for _ in range(12):
+        drag(view, "Left", x, y, -25, -400)
+    assert elevation(view) > -89.0
+    assert np.allclose(view.camera.up, (0.0, 0.0, 1.0), atol=1e-6)
+
+
+def test_panning_still_works_after_rotating(window):
+    view = window.view
+    width, height = view.ren_win.GetSize()
+    x, y = width // 2, height // 2
+    drag(view, "Left", x, y, 50, 30)
+    focal = np.array(view.camera.focal_point)
+    drag(view, "Right", x, y, 40, 0)
+    assert np.linalg.norm(np.array(view.camera.focal_point) - focal) > 1e-3
+
+
+def test_dragging_up_tilts_the_model_like_grabbing_it(window):
+    view = window.view
+    width, height = view.ren_win.GetSize()
+    x, y = width // 2, height // 2
+    before = elevation(view)
+    drag(view, "Left", x, y, 0, 50)
+    assert elevation(view) == pytest.approx(before - 50 * 0.4, abs=1e-3)
+    drag(view, "Left", x, y, 0, -50)
+    assert elevation(view) == pytest.approx(before, abs=1e-3)
