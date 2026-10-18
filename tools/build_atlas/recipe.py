@@ -87,6 +87,7 @@ class Recipe:
     volumes: tuple[VolumeSpec, ...]
     templates: tuple[SourceSpec, ...] = ()
     tracts: tuple[TractSpec, ...] = ()
+    smoothing_blur_mm: float = 1.0
 
 
 def read_toml(path: Path) -> dict:
@@ -149,6 +150,7 @@ def load_recipe(path: Path) -> Recipe:
             min_faces=int(data["min_faces"]),
             smoothing_iterations=int(data["smoothing_iterations"]),
             smoothing_pass_band=float(data["smoothing_pass_band"]),
+            smoothing_blur_mm=float(data.get("smoothing_blur_mm", 1.0)),
             sources=tuple(_source_spec(s) for s in data.get("sources", [])),
             volumes=tuple(VolumeSpec(v["name"], v["space"], v["grid_source"])
                           for v in data.get("volumes", [])),

@@ -220,7 +220,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         for p in planned:
             if p.structure.id in ids:
                 mesh = surface(data, affine, p.structure.id, recipe.smoothing_iterations,
-                               recipe.smoothing_pass_band)
+                               recipe.smoothing_pass_band, recipe.smoothing_blur_mm)
                 built, count = levels(mesh, recipe.lod0_max_faces, recipe.lod_fractions,
                                       recipe.min_faces)
                 repaired += count
