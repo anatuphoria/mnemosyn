@@ -87,6 +87,10 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: separate needs mesh_grid = \"native\"")
         if spec.outline_of and spec.outline_of not in labels:
             problems.append(f"source {name}: outline_of {spec.outline_of!r} is not a label source")
+        if spec.inside and (spec.inside not in labels or not labels[spec.inside].outline_of
+                            or labels[spec.inside].volume != spec.volume):
+            problems.append(f"source {name}: inside {spec.inside!r} is not an outline source of "
+                            f"volume {spec.volume}")
         if spec.outline_of and name in referenced:
             problems.append(f"source {name}: an outline source cannot have structures")
         if spec.tiles is not None and not spec.members:

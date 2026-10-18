@@ -104,3 +104,32 @@ def test_outline_of_must_name_a_label_source_and_map_no_structures(tmp_path):
     edit(src / "structures.toml", 'source = "toyspine", midline = 2',
          'source = "toyspine-cord", midline = 1')
     assert "source toyspine-cord: an outline source cannot have structures" in problems_for(src)
+
+
+def test_inside_keeps_a_shape_within_the_cord_outline(tmp_path):
+    import nibabel as nib
+
+    from atlas_fixtures import SPINE_AFFINE, SPINE_SHAPE, sha256_file
+
+    src = write_extended_source_tree(tmp_path, tracts=False, spine=True, cord=True)
+    tract = tmp_path / "upstream" / "toy_spine_wm.nii.gz"
+    old = sha256_file(tract)
+    mask = np.zeros(SPINE_SHAPE, dtype=np.uint8)
+    mask[3:10, 6:10, 40:60] = 1
+    nib.save(nib.Nifti1Image(mask, SPINE_AFFINE), tract)
+    edit(src / "recipe.toml", old, sha256_file(tract))
+    plain = Atlas.open(quiet_build(src, tmp_path / "plain", tmp_path / "cache", local=True))
+    edit(src / "recipe.toml", "mask = true\n", 'mask = true\ninside = "toyspine-cord"\n')
+    assert problems_for(src) == []
+    atlas = Atlas.open(quiet_build(src, tmp_path / "out", tmp_path / "cache", local=True))
+    assert np.asarray(plain.mesh(220).vertices)[:, 0].max() > 3.0
+    assert np.asarray(atlas.mesh(220).vertices)[:, 0].max() < 8.0 - 6 + 0.5
+    voxels = [(np.asarray(a.volumes[1].data) == 220).sum() for a in (plain, atlas)]
+    assert voxels[0] == voxels[1] > 0
+
+
+def test_inside_must_name_an_outline_source(tmp_path):
+    src = write_extended_source_tree(tmp_path, tracts=False, spine=True, cord=True)
+    edit(src / "recipe.toml", "mask = true\n", 'mask = true\ninside = "toyspine"\n')
+    assert "source toyspine-wm: inside 'toyspine' is not an outline source of volume spine" in (
+        problems_for(src))

@@ -17,9 +17,9 @@ from .fetch import DEFAULT_CACHE, fetch, member_path, missing_manual
 from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
                         without_sources)
 from .idlock import IdLock, load_lock, write_lock
-from .labels import (clip_z, crop, load_label_image, load_members, load_parts, load_tiles,
-                     mapping_for, merge, read_label_names, relabel, separate_natives, source_values,
-                     tile_fields, trim_against, z_extent)
+from .labels import (clip_z, crop, keep_inside, load_label_image, load_members, load_parts,
+                     load_tiles, mapping_for, merge, read_label_names, relabel, separate_natives,
+                     source_values, tile_fields, trim_against, z_extent)
 from .meshing import bands, cut_levels, field_surface, levels, surface
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
@@ -203,13 +203,20 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         for vspec, data, affine in volumes:
             images[s.source.id] = trim_against(images[s.source.id], data, affine,
                                                allowed if vspec.name == s.volume else None)
-    natives = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
-                    images[s.source.id].affine)
-               for s in sources if s.mesh_grid == "native" and not s.separate
-               and not s.outline_of and s.source.id not in cut and s.tiles is None]
-    for s in (s for s in sources if s.separate):
-        natives += separate_natives(s, archives[s.source.id], mapping_for(s.source.id, planned),
-                                    extents.get(s.source.id))
+    natives = []
+    for s in sources:
+        if s.mesh_grid != "native" or s.outline_of or s.source.id in cut or s.tiles is not None:
+            continue
+        if s.separate:
+            found = separate_natives(s, archives[s.source.id], mapping_for(s.source.id, planned),
+                                     extents.get(s.source.id))
+        else:
+            found = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
+                          images[s.source.id].affine)]
+        if s.inside:
+            found = [crop(keep_inside(data, affine, images[s.inside]), affine)
+                     for data, affine in found]
+        natives += found
     fields = []
     for s in (s for s in sources if s.tiles is not None):
         mapping = mapping_for(s.source.id, planned)

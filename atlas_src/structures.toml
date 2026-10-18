@@ -268,9 +268,9 @@ concepts = [
   { id = 5570, parent = 80, acronym = "SOT", name = "Spino-olivary tract", kind = "tract", color = [140, 140, 240], source = "pam50-atlas", left = "A14", right = "A15" },
   { id = 5580, parent = 80, acronym = "VLReST", name = "Ventrolateral reticulospinal tract", kind = "tract", color = [250, 180, 80], source = "pam50-atlas", left = "A16", right = "A17" },
   { id = 5590, parent = 80, acronym = "LVST", name = "Lateral vestibulospinal tract", kind = "tract", color = [210, 80, 20], source = "pam50-atlas", left = "A18", right = "A19" },
-  { id = 5600, parent = 80, acronym = "VReST", name = "Ventral reticulospinal tract", kind = "tract", color = [190, 90, 30], source = "pam50-atlas", left = "A20", right = "A21" },
+  { id = 5600, parent = 80, acronym = "VReST", name = "Ventral reticulospinal tract", kind = "tract", color = [120, 60, 20], source = "pam50-atlas", left = "A20", right = "A21" },
   { id = 5610, parent = 80, acronym = "VCST", name = "Ventral corticospinal tract", kind = "tract", color = [240, 120, 90], source = "pam50-atlas", left = "A22", right = "A23" },
-  { id = 5620, parent = 80, acronym = "TST", name = "Tectospinal tract", kind = "tract", color = [250, 150, 120], source = "pam50-atlas", left = "A24", right = "A25" },
+  { id = 5620, parent = 80, acronym = "TST", name = "Tectospinal tract", kind = "tract", color = [255, 230, 90], source = "pam50-atlas", left = "A24", right = "A25" },
   { id = 5630, parent = 80, acronym = "MReST", name = "Medial reticulospinal tract", kind = "tract", color = [240, 100, 140], source = "pam50-atlas", left = "A26", right = "A27" },
   { id = 5640, parent = 80, acronym = "sMLF", name = "Medial longitudinal fasciculus (spinal part)", kind = "tract", color = [170, 50, 60], source = "pam50-atlas", left = "A28", right = "A29" },
 ]

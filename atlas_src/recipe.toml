@@ -440,6 +440,7 @@ mesh_grid = "native"
 threshold = 0.3
 separate = true
 within = "pam50"
+inside = "pam50-cord"
 
 [sources.members]
 A30 = "spinalcordtoolbox-PAM50-3144364/atlas/PAM50_atlas_30.nii.gz"

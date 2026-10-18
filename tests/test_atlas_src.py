@@ -207,6 +207,19 @@ def test_the_glands_are_local_only_midline_structures():
     assert raws[24].kind == "group"
 
 
+def touching_concepts(voxels, ids, minimum=50):
+    counts = {}
+    for axis in range(3):
+        moved = np.moveaxis(voxels, axis, 0)
+        a, b = moved[:-1].ravel(), moved[1:].ravel()
+        keep = (a != b) & np.isin(a, ids) & np.isin(b, ids)
+        for p, q in zip(a[keep] // 10 * 10, b[keep] // 10 * 10):
+            if p != q:
+                key = (min(p, q), max(p, q))
+                counts[key] = counts.get(key, 0) + 1
+    return [key for key, n in counts.items() if n >= minimum]
+
+
 @pytest.mark.slow
 def test_a_local_build_adds_the_two_glands(tmp_path):
     from tools.build_atlas.build import build
@@ -245,6 +258,21 @@ def test_a_local_build_adds_the_two_glands(tmp_path):
         assert atlas.has_mesh(concept + 1) and atlas.has_mesh(concept + 2), concept
         left, right = (voxels == concept + 1).sum(), (voxels == concept + 2).sum()
         assert abs(int(left) - int(right)) <= 0.05 * max(left, right), (concept, left, right)
+    import pyvista as pv
+    from vtkmodules.vtkFiltersCore import vtkImplicitPolyDataDistance
+
+    cord = pv.merge([pv.PolyData(np.asarray(atlas.mesh(i).vertices, dtype=float),
+                                 np.c_[np.full(len(atlas.mesh(i).faces), 3),
+                                       atlas.mesh(i).faces].ravel()) for i in z]).clean()
+    distance = vtkImplicitPolyDataDistance()
+    distance.SetInput(cord)
+    for s in atlas.structures:
+        if 5400 <= s.id < 5430 and atlas.has_mesh(s.id):
+            points = np.asarray(atlas.mesh(s.id).vertices, dtype=float)[::7]
+            assert max(distance.EvaluateFunction(*p) for p in points) < 0.1, s.name
+    tract_ids = [s.id for s in atlas.structures if 5500 <= s.id < 5660]
+    for a, b in touching_concepts(voxels, tract_ids):
+        assert delta_e(atlas.get(a).rgb_triplet, atlas.get(b).rgb_triplet) >= 20, (a, b)
     members = [s for s in atlas.structures if 30 in s.structure_id_path[:-1]
                and s.kind not in ("group", "shell") and s.concept is None]
     centres = {}
@@ -381,7 +409,7 @@ def test_the_spinal_cord_is_local_only_on_its_own_volume():
     assert not tracts.separate and tracts.mesh_grid == "native"
     assert sorted(n for n, _ in tracts.members) == [f"A{i:02d}" for i in range(30)]
     assert grey.threshold == 0.3 and grey.separate and grey.within == "pam50"
-    assert grey.priority == 2 and grey.mesh_grid == "native"
+    assert grey.priority == 2 and grey.mesh_grid == "native" and grey.inside == "pam50-cord"
     assert sorted(n for n, _ in grey.members) == [f"A{i:02d}" for i in range(30, 36)]
     assert cord.outline_of == "pam50" and cord.member.endswith("template/PAM50_cord.nii.gz")
     assert (cord.download, cord.sha256) == (specs["pam50"].download, specs["pam50"].sha256)

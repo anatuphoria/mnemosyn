@@ -5,6 +5,7 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 from nibabel.processing import resample_from_to
+from scipy import ndimage
 
 from .fetch import member_path
 from .hierarchy import PlannedStructure
@@ -104,6 +105,18 @@ def clip_z(image: nib.Nifti1Image, low: float, high: float) -> nib.Nifti1Image:
     return nib.Nifti1Image(values, image.affine)
 
 
+def keep_inside(data: np.ndarray, affine: np.ndarray, outline: nib.Nifti1Image) -> np.ndarray:
+    mask = ndimage.binary_erosion(np.asarray(outline.dataobj) > 0)
+    index = np.argwhere(data > 0)
+    world = np.c_[index, np.ones(len(index))] @ np.asarray(affine).T
+    other = np.rint(world @ np.linalg.inv(outline.affine).T)[:, :3].astype(int)
+    inside = ((other >= 0) & (other < mask.shape)).all(axis=1)
+    inside[inside] = mask[tuple(other[inside].T)]
+    data = data.copy()
+    data[tuple(index[~inside].T)] = 0
+    return data
+
+
 def member_masks(spec: SourceSpec, archive: Path):
     shape, affine = None, None
     for value, (name, member) in enumerate(spec.members, 1):
@@ -159,8 +172,7 @@ def _member_values(spec: SourceSpec, archive: Path):
 def tile_fields(spec: SourceSpec, archive: Path, tiles: nib.Nifti1Image, wanted: set[int],
                 extent: tuple[float, float] | None = None
                 ) -> list[tuple[int, np.ndarray, np.ndarray]]:
-    """Positive inside a member's tile: its probability minus the strongest other, bounded by the
-    summed probability over the tile threshold; the zero level is a smooth tile border."""
+    """Positive inside a member's tile; its zero level is a smooth border between tiles."""
     total = best = second = arg = None
     for value, values in _member_values(spec, archive):
         if total is None:
