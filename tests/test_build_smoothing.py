@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-pytest.importorskip("pyvista")
+pv = pytest.importorskip("pyvista")
 
 from tools.build_atlas.meshing import isosurface, surface
 
@@ -34,6 +34,11 @@ def pieces(mesh) -> int:
     return len(np.unique(mesh.connectivity().point_data["RegionId"]))
 
 
+def centroid_of(mesh):
+    from tools.build_atlas.meshing import _centroid
+    return _centroid(mesh)
+
+
 def centre_of(volume, label=1):
     return np.argwhere(volume == label).mean(axis=0)
 
@@ -56,20 +61,36 @@ def test_spheres_keep_their_volume(radius):
     assert abs(mesh.volume / volume.sum() - 1) < 0.10
 
 
-@pytest.mark.parametrize("count", [2, 3, 4])
+@pytest.mark.parametrize("count", [1, 2, 3, 4, 8])
 def test_tiny_blobs_survive_smoothing(count):
     volume = np.zeros((20, 20, 20), dtype=np.uint8)
     volume[10:10 + count, 10, 10] = 1
     mesh = mesh_of(volume)
-    assert pieces(mesh) == 1 and mesh.volume > 0
+    assert pieces(mesh) == 1 and abs(mesh.volume / count - 1) < 0.10
     assert np.linalg.norm(np.asarray(mesh.points).mean(axis=0) - centre_of(volume)) < 1.0
 
 
-def test_thin_slabs_are_never_thinner_than_unblurred():
+def test_thin_slabs_keep_their_volume():
     volume = np.zeros((20, 30, 30), dtype=np.uint8)
     volume[10, 9:21, 9:21] = 1
-    raw = abs(mesh_of(volume, blur_mm=0.0).volume / volume.sum() - 1)
-    assert abs(mesh_of(volume).volume / volume.sum() - 1) <= raw + 0.01
+    assert abs(mesh_of(volume).volume / volume.sum() - 1) < 0.10
+
+
+def diagonal_shapes():
+    edge = np.zeros((20, 20, 20), dtype=np.uint8)
+    edge[8:10, 8:10, 8:10] = 1
+    edge[10:12, 10:12, 8:10] = 1
+    sparse = np.zeros((24, 24, 24), dtype=np.uint8)
+    sparse[8:16, 8:16, 8:16] = np.random.default_rng(3).random((8, 8, 8)) < 0.35
+    return {"edge": edge, "sparse": sparse}
+
+
+@pytest.mark.parametrize("name", ["edge", "sparse"])
+def test_shapes_touching_only_at_edges_keep_their_volume(name):
+    volume = diagonal_shapes()[name]
+    mesh = mesh_of(volume, blur_mm=2.0)
+    assert abs(mesh.volume / volume.sum() - 1) < 0.10
+    assert np.linalg.norm(centroid_of(mesh) - centre_of(volume)) < 1.0
 
 
 def test_touching_structures_stay_apart():
@@ -88,3 +109,19 @@ def test_points_too_close_to_tell_apart_leave_only_triangles():
     field[9, 9, 9] = 0.5 + 1e-6
     mesh = isosurface(field, (100.0, 100.0, 60.0))
     assert mesh.n_cells and mesh.is_all_triangles
+
+
+@pytest.mark.parametrize("radius", [1.5, 2.0])
+def test_small_nuclei_come_out_round(radius):
+    volume = sphere(radius, size=20)
+    mesh = mesh_of(volume, blur_mm=2.0)
+    distance = np.linalg.norm(np.asarray(mesh.points) - centroid_of(mesh), axis=1)
+    assert distance.std() / distance.mean() < 0.05
+    assert abs(mesh.volume / volume.sum() - 1) < 0.10
+
+
+def test_slivers_smaller_than_a_voxel_are_not_counted_as_pieces():
+    from tools.build_atlas.meshing import _pieces
+    mesh = (pv.Sphere(radius=5.0) + pv.Sphere(radius=0.3, center=(9.0, 0.0, 0.0))).triangulate()
+    assert _pieces(mesh, voxel=1.0) == 1
+    assert _pieces(mesh, voxel=0.01) == 2
