@@ -78,6 +78,9 @@ def run_benchmark(window, frames: int = 300) -> None:
     times.sort()
     ids = window.state.geometry_ids
     tris = sum(len(window.state.atlas.mesh(i).faces) for i in ids)
+    from .main_window import gpu_name
+
+    print(f"GPU: {gpu_name(view)}")
     print(f"{len(ids)} structures, {tris:,} triangles, 3D view {view.width()}x{view.height()} px")
     print(f"{frames / wall:.0f} fps on screen | render median {times[len(times) // 2]:.2f} ms, "
           f"p95 {times[int(len(times) * 0.95)]:.2f} ms, max {times[-1]:.2f} ms "

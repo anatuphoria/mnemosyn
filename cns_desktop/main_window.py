@@ -35,6 +35,7 @@ APP_FOLDER = "mnemosyn"
 OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
 GREY_DIMMED = 0.15
+MOUSE_HINT = "drag rotates · right-drag pans · wheel zooms · F frames · click selects"
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
 PATHWAY_LOCKED = ("Hide", "Isolate", "Show all", "Tracts")
 RECOVERED = {
@@ -124,7 +125,6 @@ class MainWindow(QMainWindow):
         self._add_actions()
         self.status = QLabel()
         self.statusBar().addWidget(self.status, 1)
-        self.statusBar().addPermanentWidget(QLabel(f"GPU: {gpu_name(self.view)}"))
         self.slices.hovered.connect(self._show_hover)
         self.quiz.finished.connect(self.leave_quiz)
         self.quiz.centre_requested.connect(self.slices.centre_on_selection)
@@ -414,8 +414,7 @@ class MainWindow(QMainWindow):
 
     def _update_status(self) -> None:
         if self.quiz_active:
-            self.status.setText(f"quiz in progress   │   last frame: "
-                                f"{self.view.last_render_ms:.1f} ms   │   Esc ends the quiz")
+            self.status.setText("quiz in progress   │   Esc ends the quiz")
             return
         panel = self.pathways
         if self.pathway_active and panel.pathway is not None:
@@ -423,16 +422,11 @@ class MainWindow(QMainWindow):
                 f"pathway: {panel.pathway.name}"
                 f"{f' ({panel.side})' if panel.pathway.sides == 'one' else ''}   │   "
                 f"step {panel.index + 1} of {len(panel.pathway.steps)}   │   "
-                f"last frame: {self.view.last_render_ms:.1f} ms   │   Esc leaves the pathway")
+                "Esc leaves the pathway")
             return
         selected = self.state.selected
         name = self.state.atlas.get(selected).name if selected else "-"
-        total = len(self.state.geometry_ids)
-        shown = sum(not self.state.is_hidden(i) for i in self.state.geometry_ids)
-        self.status.setText(
-            f"selected: {name}   │   visible: {shown}/{total}   │   "
-            f"last frame: {self.view.last_render_ms:.1f} ms   │   "
-            "drag rotate · right-drag/wheel zoom · middle/shift-drag pan · click select")
+        self.status.setText(f"selected: {name}   │   {MOUSE_HINT}")
 
     def closeEvent(self, event) -> None:
         self._warm_up.stop()

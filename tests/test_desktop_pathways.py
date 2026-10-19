@@ -281,3 +281,9 @@ def test_the_pathway_page_holds_the_controls_and_the_leave_button(window):
     assert panel.back_button.isEnabled() is False
     panel.go(2)
     assert panel.back_button.isEnabled() and panel.next_button.isEnabled()
+
+
+def test_long_step_names_wrap_without_a_sideways_scroll_bar(window):
+    steps = window.pathways.steps
+    assert steps.wordWrap()
+    assert steps.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff

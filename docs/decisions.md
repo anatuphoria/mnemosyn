@@ -55,6 +55,7 @@ entry replaces it and the old one says so.
 | 47 | 2026-10-19 | The Activity panel appears only for a route with a timeline | in force |
 | 48 | 2026-10-19 | Route play controls are media symbols in the Pathways panel | in force |
 | 49 | 2026-10-19 | Name it and Flashcards fade everything but the asked structure | in force |
+| 50 | 2026-10-19 | The status bar shows the selection and the mouse hint only | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -448,3 +449,13 @@ the cortex, so only the slice made the question answerable.
 Cost: starting a quiz takes about 45 ms instead of 22 and each next question about 13 ms instead of
 7 (limits 100 and 50 ms), because the whole brain is redrawn see-through.
 Design: [slices and looks, section 5](specs/2026-10-19-slices-looks-design.md).
+
+## 50. The status bar shows the selection and the mouse hint only
+
+2026-10-18. The status bar names the selected structure and gives the correct mouse hint (drag
+rotates, right-drag pans, the wheel zooms, F frames the selection, a click selects); during a quiz
+or a route it says so and how to leave. The last frame time, the GPU name and the visible count are
+gone from it; `--bench` still prints the frame times and the GPU.
+Why: the old hint said right-drag zooms, which stopped being true when right-drag became pan, and
+the developer read-outs mean nothing to a student.
+Design: [slices and looks, section 6](specs/2026-10-19-slices-looks-design.md).

@@ -16,6 +16,7 @@ class StructureTree(QWidget):
         self.filter_box.setClearButtonEnabled(True)
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
+        self.tree.setIndentation(12)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.filter_box)
@@ -35,6 +36,7 @@ class StructureTree(QWidget):
 
     def _add(self, parent: QTreeWidgetItem, structure_id: int) -> None:
         item = QTreeWidgetItem(parent, [self.state.atlas.get(structure_id).name])
+        item.setToolTip(0, item.text(0))
         item.setData(0, ID_ROLE, structure_id)
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
         item.setCheckState(0, Qt.CheckState.Checked)

@@ -120,6 +120,8 @@ class PathwayPanel(QWidget):
         self.edges_changed.connect(self._show_edges)
         self.step_changed.connect(self.step_label.setText)
         self.steps = QListWidget()
+        self.steps.setWordWrap(True)
+        self.steps.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.details = QTextBrowser()
         self.details.setOpenExternalLinks(True)
         self.leave_button = QPushButton("Leave pathway (Esc)")

@@ -11,7 +11,7 @@ from fsrs import Rating, State
 from PySide6.QtCore import QPoint, QSettings, Qt
 from PySide6.QtGui import QAction
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialogButtonBox
+from PySide6.QtWidgets import QApplication, QDialogButtonBox, QLabel
 
 from atlas_package import TOY_SOURCE, tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas, Source
@@ -966,3 +966,26 @@ def test_the_about_tab_shows_the_app_version(atlas):
 
     assert f"Version {app_version()}" in about_text(atlas)
 
+
+def test_the_status_bar_shows_the_selection_and_the_right_hint_only(window):
+    window.state.select(101)
+    window._update_status()
+    text = window.status.text()
+    assert "Alpha gyrus (left)" in text and "right-drag pans" in text and "wheel zooms" in text
+    assert "F frames" in text
+    assert not any(word in text for word in ("frame:", "visible", "GPU", "zoom ·"))
+    labels = [w.text() for w in window.statusBar().findChildren(QLabel)]
+    assert not any(t.startswith("GPU") for t in labels)
+
+
+def test_the_info_panel_names_the_side_but_not_the_drawing_kind(window):
+    kind = window.state.atlas.get(101).kind
+    line = window.info.html_for(101).split("</h2>")[1].split("</p>")[0]
+    assert "left" in line and kind not in line
+    assert "midline" not in window.info.html_for(120).split("</h2>")[1].split("</p>")[0]
+
+
+def test_tree_items_show_their_full_name_on_hover(window):
+    item = window.tree.items[101]
+    assert item.toolTip(0) == window.state.atlas.get(101).name
+    assert window.tree.tree.indentation() <= 12

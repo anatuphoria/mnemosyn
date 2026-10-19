@@ -26,7 +26,8 @@ On hybrid-GPU laptops, `prime-run .venv/bin/mnemosyn` uses the discrete GPU.
 
 ## Desktop app
 
-Drag rotates, right-drag or the wheel zooms, middle- or shift-drag pans, a click selects.
+Drag rotates, right-drag pans, the wheel zooms, F frames the selection, a click selects. In the
+slice the wheel zooms and right-drag pans too.
 
 | Key | Action |
 |---|---|
@@ -36,11 +37,12 @@ Drag rotates, right-drag or the wheel zooms, middle- or shift-drag pans, a click
 | `T` | Show or hide all tracts |
 | `R` | Reset the view |
 | `C` | Centre the slice on the selection |
+| `F` | Frame the selection (with the pointer over the slice: fit the whole slice) |
 | `F1` | About, data sources and licences |
 | `Q` | Start a quiz (Study menu) |
 | `Left` / `Right` | Previous or next step of a pathway (Pathways panel) |
 | `Esc` | Leave the pathway, or end a quiz |
-| `Space` | Play or pause the current pathway (Pathways or Activity panel) |
+| `Space` | Play or pause the current pathway |
 | `Ctrl+F` | Filter the structure tree (names, abbreviations, synonyms, atlas labels) |
 
 Tree checkboxes show and hide structures; unticking a group hides its whole subtree. The info

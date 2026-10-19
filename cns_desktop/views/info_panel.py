@@ -56,9 +56,9 @@ class InfoPanel(QTextBrowser):
             return "<p><i>Click a structure in the 3D view or the tree.</i></p>"
         s = self.state.atlas.get(structure_id)
         r, g, b = s.rgb_triplet
-        kind = s.kind if s.side == "none" else f"{s.kind}, {s.side}"
+        side = s.side if s.side in ("left", "right") else ""
         parts = [f"<h2>{escape(s.name)}</h2>",
-                 f"<p><span style='color:#{r:02x}{g:02x}{b:02x}'>&#9632;</span> {escape(kind)}</p>"]
+                 f"<p><span style='color:#{r:02x}{g:02x}{b:02x}'>&#9632;</span> {escape(side)}</p>"]
         parts += entry_html(self.state.atlas.knowledge(structure_id))
         parts += self._sources_html(s)
         parts.append(f"<p style='color:#c55'><small>{escape(DISCLAIMER)}</small></p>")
