@@ -263,9 +263,10 @@ def test_nothing_is_picked_when_everything_is_hidden(window):
     assert window.view.structure_at(x, y) is None
 
 
-def test_visibility_change_renders_once(window):
+def test_visibility_change_renders_once(window, qapp):
     before = window.view.render_count
     window.tree.items[100].setCheckState(0, Qt.CheckState.Unchecked)
+    qapp.processEvents()
     assert window.view.render_count == before + 1
 
 
@@ -320,11 +321,13 @@ def test_click_on_unlabelled_tissue_keeps_the_selection(window):
     assert window.slices.name_at_pixel(500, 500) == ""
 
 
-def test_selecting_a_hidden_structure_draws_nothing_new(window):
+def test_selecting_a_hidden_structure_draws_nothing_new(window, qapp):
     window.state.set_slice("axial", 20.0)
     window.state.set_hidden([101], True)
+    qapp.processEvents()
     before = window.slices.image.copy()
     window.state.select(101)
+    qapp.processEvents()
     assert (window.slices.image == before).all()
     pixel = window.slices.image[19, 12]
     assert pixel[0] == pixel[1] == pixel[2]

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import QSignalBlocker, Qt, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QPushButton, QSlider,
                                QVBoxLayout, QWidget)
 
@@ -42,6 +42,8 @@ class SlicePanel(QWidget):
         self._tract_coords: dict[int, tuple[np.ndarray, ...]] = {}
         self._holds = 0
         self._redraw_wanted = False
+        self._redraw_soon = QTimer(self, singleShot=True, interval=0)
+        self._redraw_soon.timeout.connect(self.redraw)
         self.redraw_count = 0
         self._centre_tables: dict[str, object] = {}
         self.volume_buttons: dict[str, QPushButton] = {}
@@ -107,11 +109,11 @@ class SlicePanel(QWidget):
         self.opacity_slider.valueChanged.connect(self._on_opacity)
         self.view.scene().sigMouseMoved.connect(self._on_mouse_moved)
         self.view.scene().sigMouseClicked.connect(self._on_mouse_clicked)
-        state.selection_changed.connect(lambda _id: self.redraw())
-        state.visibility_changed.connect(lambda _ids: self.redraw())
+        state.selection_changed.connect(lambda _id: self._redraw_soon.start())
+        state.visibility_changed.connect(lambda _ids: self._redraw_soon.start())
         state.slice_changed.connect(self._on_slice_changed)
         state.slice_volume_changed.connect(self._on_volume_changed)
-        state.focus_changed.connect(lambda _focus: self.redraw())
+        state.focus_changed.connect(lambda _focus: self._redraw_soon.start())
 
         if self.labels is not None and not slices.is_ras(self.labels.affine):
             self.labels = None
@@ -192,6 +194,7 @@ class SlicePanel(QWidget):
                 self.redraw()
 
     def redraw(self) -> None:
+        self._redraw_soon.stop()
         if self._holds:
             self._redraw_wanted = True
             return

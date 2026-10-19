@@ -156,7 +156,8 @@ instead. Every build needs the Harvard Ascending Arousal Network Atlas (CC0, fro
 | Desktop, 166 structures, integrated GPU | display refresh rate (144 Hz) |
 
 The 3D view draws the grey matter as a few composite objects of neighbouring structures, so
-showing or hiding shapes rebuilds only the pieces that changed, and picks with the GPU; it
+showing or hiding shapes rebuilds only the pieces that changed, and picks with the GPU; the 3D
+view and the slice redraw once per action, after every change in it has been made; it
 switches to a lighter level of detail when the scene exceeds 3 million triangles. Right after the
 first frame the app loads the slice volumes, their label centres and the outlines in small idle
 steps, so nothing is loaded the first time it is used. Budgets enforced by `pytest -m perf`:

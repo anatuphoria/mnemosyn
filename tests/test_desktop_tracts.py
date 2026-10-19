@@ -105,20 +105,23 @@ def test_the_tracts_action_is_harmless_without_a_tract_layer(qapp, toy_atlas, tm
     w.close()
 
 
-def test_slices_outline_visible_tracts_only(window):
+def test_slices_outline_visible_tracts_only(window, qapp):
     window.state.set_slice("axial", -4.0)
     before = window.slices.image.copy()
     window.shortcuts["Tracts"].trigger()
+    qapp.processEvents()
     assert window.slices.image[35, 10, :3].tolist() == window.slices.colors[151].tolist()
     window.state.set_hidden(window.state.tract_ids, True)
+    qapp.processEvents()
     assert window.slices.image[35, 10, :3].tolist() == before[35, 10, :3].tolist()
 
 
-def test_a_selected_tract_is_filled_in_slices(window):
+def test_a_selected_tract_is_filled_in_slices(window, qapp):
     window.shortcuts["Tracts"].trigger()
     window.state.set_slice("axial", 4.0)
     plain = window.slices.image[34, 9, :3].copy()
     window.state.select(150)
+    qapp.processEvents()
     assert window.slices.image[34, 9, :3].tolist() != plain.tolist()
 
 
@@ -319,3 +322,26 @@ def test_a_ticked_tract_stays_after_selecting_it_and_moving_on(window):
     state.select(160)
     state.select(101)
     assert shown(state, (160,)) == [True]
+
+
+def count_renders(view):
+    count = [0]
+    view.ren_win.AddObserver("StartEvent", lambda *_: count.__setitem__(0, count[0] + 1))
+    return count
+
+
+def test_selecting_a_tract_group_draws_the_slice_and_the_3d_view_once(window, qapp):
+    qapp.processEvents()
+    renders, before = count_renders(window.view), window.slices.redraw_count
+    window.state.select(150)
+    qapp.processEvents()
+    assert renders[0] == 1 and window.slices.redraw_count == before + 1
+
+
+def test_a_selection_returns_before_the_3d_view_redraws(window, qapp):
+    qapp.processEvents()
+    renders = count_renders(window.view)
+    window.state.select(101)
+    assert renders[0] == 0
+    qapp.processEvents()
+    assert renders[0] == 1

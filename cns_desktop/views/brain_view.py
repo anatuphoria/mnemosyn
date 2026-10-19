@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 import numpy as np
 import pyvista as pv
+from PySide6.QtCore import QTimer
 from pyvistaqt import QtInteractor
 from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkFiltersCore import vtkImplicitPolyDataDistance
@@ -106,6 +107,8 @@ class BrainView(QtInteractor):
 
         self._holds = 0
         self._render_wanted = False
+        self._render_soon = QTimer(self, singleShot=True, interval=0)
+        self._render_soon.timeout.connect(self.render)
         self.last_render_ms = 0.0
         self.render_count = 0
         self._render_started = 0.0
@@ -146,7 +149,7 @@ class BrainView(QtInteractor):
         if self._holds:
             self._render_wanted = True
         else:
-            self.render()
+            self._render_soon.start()
 
     def is_drawn(self, structure_id: int) -> bool:
         actor = self.tract_actors.get(structure_id) or self.shell_actors.get(structure_id)
@@ -396,6 +399,7 @@ class BrainView(QtInteractor):
         self._request_render()
 
     def _on_render_start(self, *_):
+        self._render_soon.stop()
         self._render_started = time.perf_counter()
 
     def _on_render_end(self, *_):
