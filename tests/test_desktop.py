@@ -993,3 +993,23 @@ def test_tree_items_show_their_full_name_on_hover(window):
     item = window.tree.items[101]
     assert item.toolTip(0) == window.state.atlas.get(101).name
     assert window.tree.tree.indentation() <= 12
+
+
+def test_f_frames_3d_when_there_are_no_slices(qapp, tmp_path, monkeypatch):
+    root = write_package(tmp_path / "pkg", tiny_structures(),
+                         meshes={101: tetra(0), 102: tetra(5), 110: tetra(9)})
+    window = MainWindow(Atlas.open(root), progress_path=tmp_path / "progress.sqlite")
+    monkeypatch.setattr(window.slices.view, "underMouse", lambda: True)
+    called = []
+    monkeypatch.setattr(window.view, "frame_selection", lambda: called.append(1))
+    window.frame()
+    assert called == [1]
+    window.close()
+
+
+def test_the_colour_swatch_sits_beside_the_name(window):
+    for structure_id in (101, 120):
+        heading, rest = window.info.html_for(structure_id).split("</h2>", 1)
+        assert "&#9632;" in heading and "&#9632;" not in rest
+    assert window.info.html_for(101).split("</h2>", 1)[1].startswith("<p>left</p>")
+    assert not window.info.html_for(120).split("</h2>", 1)[1].startswith("<p></p>")

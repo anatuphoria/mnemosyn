@@ -37,6 +37,7 @@ HOVER_MS = 1500
 GREY_DIMMED = 0.15
 MOUSE_HINT = "drag rotates · right-drag pans · wheel zooms · F frames · click selects"
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
+ROUTE_KEYS = ("Play or pause", "Back", "Next")
 PATHWAY_LOCKED = ("Hide", "Isolate", "Show all", "Tracts")
 RECOVERED = {
     "damaged": ("Progress file damaged", "Your progress file could not be read. It was kept as "
@@ -216,12 +217,14 @@ class MainWindow(QMainWindow):
         leave.setEnabled(False)
         self.addAction(leave)
         self.shortcuts["Leave pathway"] = leave
-        play = QAction("Play or pause", self, shortcut=QKeySequence("Space"),
-                       triggered=self.pathways.toggle_play)
-        play.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
-        play.setEnabled(False)
-        self.addAction(play)
-        self.shortcuts["Play or pause"] = play
+        for name, key, slot in (("Play or pause", "Space", self.pathways.toggle_play),
+                                ("Back", "Left", self.pathways.back),
+                                ("Next", "Right", self.pathways.next)):
+            route_key = QAction(name, self, shortcut=QKeySequence(key), triggered=slot)
+            route_key.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+            route_key.setEnabled(False)
+            self.addAction(route_key)
+            self.shortcuts[name] = route_key
 
     def _show_hover(self, name: str) -> None:
         if self.quiz_active:
@@ -353,7 +356,8 @@ class MainWindow(QMainWindow):
             self.shortcuts[name].setEnabled(False)
         self.shortcuts["Leave pathway"].setEnabled(True)
         self._sync_chart()
-        self.shortcuts["Play or pause"].setEnabled(True)
+        for name in ROUTE_KEYS:
+            self.shortcuts[name].setEnabled(True)
         self._update_status()
 
     def leave_pathway(self) -> None:
@@ -366,7 +370,8 @@ class MainWindow(QMainWindow):
         with self._held():
             self.state.set_focus(None)
             self._restore(*self._pathway_saved)
-        self.shortcuts["Play or pause"].setEnabled(False)
+        for name in ROUTE_KEYS:
+            self.shortcuts[name].setEnabled(False)
         self._sync_chart()
         self._update_status()
 
@@ -389,7 +394,7 @@ class MainWindow(QMainWindow):
             self.chart_dock.hide()
 
     def frame(self) -> None:
-        if self.slices.view.underMouse():
+        if self.slices.layer is not None and self.slices.view.underMouse():
             self.slices.fit_volume()
         else:
             self.view.frame_selection()

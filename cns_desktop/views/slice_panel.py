@@ -31,6 +31,9 @@ class SliceBox(pg.ViewBox):
         self._on_wheel, self._on_pan = on_wheel, on_pan
 
     def wheelEvent(self, ev, axis=None) -> None:
+        if ev.orientation() == Qt.Orientation.Horizontal:
+            ev.ignore()
+            return
         point = self.mapToView(ev.pos())
         self._on_wheel(ev.delta() / 120, point.y(), point.x())
         ev.accept()
@@ -123,6 +126,7 @@ class SlicePanel(QWidget):
         self.box = SliceBox(self.wheel_zoom, self.pan_by)
         self.view.addItem(self.box)
         self.box.setMenuEnabled(False)
+        self.box.setDefaultPadding(0)
         self.template_item = SmoothImage(axisOrder="row-major")
         self.template_item.setZValue(0)
         self.label_item = SharpImage(axisOrder="row-major")
@@ -295,7 +299,13 @@ class SlicePanel(QWidget):
             self.fit_volume()
 
     def pan_by(self, rows: float, cols: float) -> None:
-        self.box.translateBy(t=(cols, rows))
+        if self.layer is None:
+            return
+        (x0, x1), (y0, y1) = self.box.viewRange()
+        height, width = self.layer.shape[:2]
+        x, y = (x0 + x1) / 2, (y0 + y1) / 2
+        self.box.translateBy(t=(min(max(x + cols, 0), width) - x,
+                                min(max(y + rows, 0), height) - y))
 
     @property
     def image(self) -> np.ndarray | None:

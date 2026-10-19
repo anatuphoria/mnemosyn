@@ -372,13 +372,3 @@ class PathwayPanel(QWidget):
     def _set_time(self, time: float) -> None:
         self.time = time
         self.time_changed.emit(time)
-
-    def keyPressEvent(self, event) -> None:
-        if self.pathway is not None and event.key() == Qt.Key.Key_Right:
-            self.next()
-        elif self.pathway is not None and event.key() == Qt.Key.Key_Left:
-            self.back()
-        elif self.pathway is not None and event.key() == Qt.Key.Key_Space:
-            self.toggle_play()
-        else:
-            super().keyPressEvent(event)

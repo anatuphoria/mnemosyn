@@ -112,15 +112,24 @@ def test_centre_mm():
 
 
 @pytest.mark.perf
-def test_compose_full_slice_under_5ms(timing):
+def test_label_layer_of_a_full_slice_under_5ms(timing):
     rng = np.random.default_rng(1)
     labels = rng.integers(0, 2500, size=(217, 181))
-    template = rng.integers(0, 255, size=(217, 181)).astype(np.uint8)
     colors = rng.integers(0, 255, size=(2501, 3)).astype(np.uint8)
     hidden = mask_table(2501, range(0, 2500, 7))
     selected = mask_table(2501, range(100, 200))
-    best = best_of(lambda: compose(labels, template, colors, hidden, selected))
-    timing.assert_within({"compose a full slice": (best, 0.005)})
+    best = best_of(lambda: overlay(labels, colors, hidden, selected))
+    timing.assert_within({"label layer of a full slice": (best, 0.005)})
+
+
+def test_a_filled_tract_at_zero_opacity_warns_nothing():
+    import warnings
+
+    layer = np.zeros((4, 4, 4), np.uint8)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        draw_tract(layer, np.array([1, 2]), np.array([1, 1]), (200, 0, 0), True, 0.0)
+    assert layer[1, 1, 3] == 255 and layer[1, 1, :3].tolist() == [200, 0, 0]
 
 
 def test_label_centre_table_matches_the_volume_scan():

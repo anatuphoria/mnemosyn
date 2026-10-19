@@ -1,5 +1,7 @@
 import numpy as np
 import pytest
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
@@ -268,3 +270,81 @@ def test_centre_on_selection_brings_it_into_a_zoomed_slice(window, qapp):
     (x0, x1), (y0, y1) = panel.box.viewRange()
     rows, cols = np.nonzero(panel.layer[..., 3] == 255)
     assert x0 <= cols.mean() <= x1 and y0 <= rows.mean() <= y1
+
+
+def test_the_slice_cannot_be_panned_out_of_view(window, qapp):
+    panel = window.slices
+    qapp.processEvents()
+    panel.wheel_zoom(3, 10.0, 10.0)
+    panel.pan_by(10_000.0, 10_000.0)
+    (x0, x1), (y0, y1) = panel.box.viewRange()
+    rows, cols = panel.layer.shape[:2]
+    assert 0 <= (x0 + x1) / 2 <= cols and 0 <= (y0 + y1) / 2 <= rows
+
+
+def test_a_fitted_slice_has_no_margin(window, qapp):
+    panel = window.slices
+    panel.fit_volume()
+    qapp.processEvents()
+    (x0, x1), (y0, y1) = panel.box.viewRange()
+    rows, cols = panel.layer.shape[:2]
+    assert abs((x1 - x0) - cols) < 0.5 or abs((y1 - y0) - rows) < 0.5
+
+
+class SidewaysWheel:
+    def __init__(self, pos):
+        self._pos = pos
+        self.accepted = False
+
+    def orientation(self):
+        return Qt.Orientation.Horizontal
+
+    def delta(self):
+        return 120
+
+    def pos(self):
+        return self._pos
+
+    def accept(self):
+        self.accepted = True
+
+    def ignore(self):
+        self.accepted = False
+
+
+def test_a_sideways_swipe_does_not_zoom(window, qapp):
+    panel = window.slices
+    qapp.processEvents()
+    before = panel.box.viewRange()
+    panel.box.wheelEvent(SidewaysWheel(QPointF(10.0, 10.0)))
+    assert panel.box.viewRange() == before and not panel.zoomed()
+
+
+def grabbed(panel, qapp):
+    qapp.processEvents()
+    image = panel.view.grab().toImage().convertToFormat(QImage.Format.Format_RGB888)
+    width, height = image.width(), image.height()
+    data = np.frombuffer(image.constBits(), np.uint8, count=image.sizeInBytes())
+    return data.reshape(height, image.bytesPerLine())[:, :width * 3].reshape(height, width, 3)
+
+
+def test_the_template_is_drawn_smooth_and_the_labels_sharp(window, qapp):
+    panel = window.slices
+    window.state.select(None)
+    for letter in panel.letters:
+        letter.hide()
+    rows, cols = panel.layer.shape[:2]
+    panel.wheel_zoom(6, rows / 2, cols / 2)
+    window.state.set_hidden(window.state.geometry_ids, True)
+    template = grabbed(panel, qapp)
+    middle = template[template.shape[0] // 2]
+    (x0, x1), (y0, y1) = panel.box.viewRange()
+    row = panel._template_2d[round((y0 + y1) / 2)]
+    visible = row[max(int(x0), 0):int(np.ceil(x1)) + 1]
+    assert len({tuple(p) for p in middle}) > 2 * len(set(visible.tolist()))
+    window.state.set_hidden(window.state.geometry_ids, False)
+    panel.template = None
+    panel.opacity_slider.setValue(100)
+    labels = grabbed(panel, qapp)
+    allowed = {(0, 0, 0)} | {tuple(int(v) for v in c) for c in panel.colors}
+    assert {tuple(int(v) for v in p) for p in labels.reshape(-1, 3)} <= allowed

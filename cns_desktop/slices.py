@@ -169,7 +169,8 @@ def draw_tract(image: np.ndarray, rows, cols, color, filled: bool, opacity: floa
         under = region[mask].astype(np.float32)
         a = under[:, 3:] / 255
         a2 = 1.0 - (1.0 - a) * (1.0 - opacity)
-        rgb = (under[:, :3] * a * (1.0 - opacity) + color * opacity) / a2
+        rgb = np.divide(under[:, :3] * a * (1.0 - opacity) + color * opacity, a2,
+                        out=np.zeros((len(under), 3), np.float32), where=a2 > 0)
         region[mask, :3] = np.clip(np.rint(rgb), 0, 255)
         region[mask, 3] = np.clip(np.rint(a2[:, 0] * 255), 0, 255)
     edge = outline(mask)

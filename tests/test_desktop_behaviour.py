@@ -420,3 +420,22 @@ def test_stopping_a_quiz_mid_question_ends_the_fade(window):
     assert window.state.focus == frozenset(window.quiz.item.geometry)
     window.quiz.stop()
     assert window.state.focus is None and not window.pathway_active
+
+
+def test_arrow_keys_step_the_route_from_anywhere(window, qapp):
+    window.pathways.open("loop")
+    window.view.setFocus()
+    QTest.keyClick(window.view, Qt.Key.Key_Right)
+    assert window.pathways.index == 1
+    QTest.keyClick(window.view, Qt.Key.Key_Left)
+    assert window.pathways.index == 0
+
+
+def test_arrow_keys_in_a_text_field_stay_in_the_field_during_a_route(window, qapp):
+    window.pathways.open("loop")
+    window.tree_dock.raise_()
+    box = window.tree.filter_box
+    box.setFocus()
+    QTest.keyClicks(box, "ab")
+    QTest.keyClick(box, Qt.Key.Key_Left)
+    assert box.cursorPosition() == 1 and window.pathways.index == 0
