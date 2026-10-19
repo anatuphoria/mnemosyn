@@ -69,8 +69,12 @@ jobs:
           7z x mesa.7z -omesa -y > $null
           Copy-Item mesa\x64\*.dll (Split-Path $app)
           $env:QT_QPA_PLATFORM = "offscreen"
+          $clock = [Diagnostics.Stopwatch]::StartNew()
           $process = Start-Process $app -ArgumentList "--first-frame" -Wait -PassThru
+          $seconds = $clock.Elapsed.TotalSeconds
+          Write-Output "Mnemosyn ran for $seconds s and exited with $($process.ExitCode)"
           if ($process.ExitCode -ne 0) { throw "Mnemosyn exited with $($process.ExitCode)" }
+          if ($seconds -lt 1) { throw "Mnemosyn closed too early to have drawn a frame" }
       - uses: actions/upload-artifact@v4
         with:
           name: package-${{ runner.os }}
