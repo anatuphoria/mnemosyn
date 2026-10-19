@@ -89,7 +89,6 @@ def test_tree_selection_updates_every_view(window):
     window.tree.tree.setCurrentItem(window.tree.items[111])
     assert window.state.selected == 111
     assert "Beta nucleus (left)" in window.info.toPlainText()
-    assert "Beta nucleus (left)" in window.chart.plot.plotItem.titleLabel.text
     assert window.view.highlighted == [111]
 
 
@@ -643,11 +642,12 @@ def test_progress_window_counts_reviews(window):
     dialog.reject()
 
 
-def test_the_activity_chart_is_hidden_during_a_quiz(window):
+def test_the_activity_chart_stays_hidden_through_a_quiz_without_a_route(window):
+    assert not window.chart_dock.isVisible()
     start_quiz(window, "name-typed")
     assert not window.chart_dock.isVisible()
     window.quiz.stop()
-    assert window.chart_dock.isVisible()
+    assert not window.chart_dock.isVisible()
 
 
 def test_quiz_keys_still_work_after_clicking_the_3d_view_and_the_slice(window, qapp):
@@ -711,11 +711,13 @@ def test_no_cutting_plane_without_a_labelled_volume(qapp, tmp_path):
 
 
 def test_the_dock_menu_cannot_reveal_answers_during_a_quiz(window):
-    docks = (window.tree_dock, window.info_dock, window.chart_dock)
+    docks = (window.tree_dock, window.info_dock)
     start_quiz(window, "name-typed")
     assert not any(dock.toggleViewAction().isEnabled() for dock in docks)
+    assert not window.chart_dock.toggleViewAction().isEnabled()
     window.quiz.stop()
     assert all(dock.toggleViewAction().isEnabled() for dock in docks)
+    assert not window.chart_dock.toggleViewAction().isEnabled()
 
 
 def test_the_highlight_stays_on_the_answer_during_feedback(window, qapp):

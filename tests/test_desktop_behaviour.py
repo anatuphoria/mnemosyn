@@ -179,15 +179,54 @@ def test_seeking_outside_the_timeline_clamps(window):
     assert panel.time == 60.0 and panel.index == 3
 
 
-def test_leaving_or_a_route_without_a_timeline_restores_the_chart(window):
+def test_leaving_or_a_route_without_a_timeline_clears_the_chart(window):
     chart, panel = window.chart, window.pathways
     panel.open("mood")
     panel.open("loop")
     assert chart.timeline is None and chart.timeline_items == [] and chart.note.isHidden()
     panel.open("mood")
     panel.leave()
-    assert chart.timeline is None and chart.curve.isVisible() and chart.note.isHidden()
-    assert chart.plot.plotItem.titleLabel.text == "Select a structure"
+    assert chart.timeline is None and chart.timeline_items == [] and chart.note.isHidden()
+
+
+def test_the_activity_panel_is_hidden_outside_timeline_routes(window):
+    assert window.chart_dock.isHidden()
+    assert not window.chart_dock.toggleViewAction().isEnabled()
+    window.pathways.open("loop")
+    assert window.chart_dock.isHidden()
+    window.pathways.open("mood")
+    assert not window.chart_dock.isHidden() and window.chart_dock.toggleViewAction().isEnabled()
+    window.pathways.open("loop")
+    assert window.chart_dock.isHidden()
+    window.pathways.open("mood")
+    window.pathways.leave()
+    assert window.chart_dock.isHidden()
+
+
+def test_a_timeline_route_shows_the_activity_panel_even_after_closing_it(window):
+    window.pathways.open("mood")
+    window.chart_dock.close()
+    window.pathways.open("loop")
+    window.pathways.open("mood")
+    assert not window.chart_dock.isHidden()
+
+
+def test_the_timeline_note_sits_beside_a_tall_chart(window, qapp):
+    window.resize(1400, 950)
+    window.pathways.open("mood")
+    qapp.processEvents()
+    chart = window.chart
+    assert chart.note_area.geometry().left() >= chart.plot.geometry().right()
+    assert chart.plot.height() >= 950 // 4
+    assert "Author A (2020)" in chart.note.text()
+
+
+def test_no_placeholder_signal_anywhere(window):
+    import cns_desktop.views.activity_chart as module
+
+    assert not hasattr(module, "placeholder_series")
+    window.state.select(101)
+    assert "PLACEHOLDER" not in window.chart.plot.plotItem.titleLabel.text
 
 
 def test_closing_the_window_stops_play(qapp, toy_behaviour_atlas, tmp_path):
@@ -266,14 +305,6 @@ def test_space_on_the_chart_toggles_play(window):
     window.pathways.open("loop")
     QTest.keyClick(window.chart, Qt.Key.Key_Space)
     assert window.pathways.playing
-
-
-def test_entering_shows_a_hidden_activity_panel_and_leaving_hides_it_again(window, qapp):
-    window.chart_dock.hide()
-    window.pathways.open("mood")
-    assert not window.chart_dock.isHidden()
-    window.pathways.leave()
-    assert window.chart_dock.isHidden()
 
 
 def test_a_quiz_hides_the_control_bar(window):

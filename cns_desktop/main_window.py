@@ -94,7 +94,6 @@ class MainWindow(QMainWindow):
         self.recovery_box: QMessageBox | None = None
         self.quiz_active = False
         self.pathway_active = False
-        self._chart_was_shown = True
         self._pathway_saved: tuple | None = None
         self.shortcuts: dict[str, QAction] = {}
 
@@ -120,7 +119,7 @@ class MainWindow(QMainWindow):
         self.splitDockWidget(self.slice_dock, self.info_dock, Qt.Orientation.Horizontal)
         self.resizeDocks([self.tree_dock, self.slice_dock, self.info_dock], [250, 420, 300],
                          Qt.Orientation.Horizontal)
-        self.resizeDocks([self.chart_dock], [180], Qt.Orientation.Vertical)
+        self._sync_chart()
 
         self._add_actions()
         self.status = QLabel()
@@ -135,9 +134,7 @@ class MainWindow(QMainWindow):
         self.pathways.entered.connect(self.enter_pathway)
         self.pathways.left.connect(self.leave_pathway)
         self.pathways.centre_requested.connect(self.slices.centre_on_selection)
-        self.pathways.timeline_changed.connect(
-            lambda timeline: self.chart.show_timeline(
-                timeline, self.pathways.pathway.name if self.pathways.pathway else ""))
+        self.pathways.timeline_changed.connect(self._on_timeline)
         self.pathways.time_changed.connect(self.chart.set_time)
         self.chart.seek_requested.connect(self.pathways.seek)
         self.chart.back_requested.connect(self.pathways.back)
@@ -323,6 +320,7 @@ class MainWindow(QMainWindow):
             widget.setFocusPolicy(policy)
         self.restoreState(layout)
         self._restore(hidden, selected, axis, mm, volume)
+        self._sync_chart()
         self._update_status()
 
     def _snapshot(self) -> tuple:
@@ -355,8 +353,7 @@ class MainWindow(QMainWindow):
         for name in PATHWAY_LOCKED:
             self.shortcuts[name].setEnabled(False)
         self.shortcuts["Leave pathway"].setEnabled(True)
-        self._chart_was_shown = not self.chart_dock.isHidden()
-        self.chart_dock.show()
+        self._sync_chart()
         self.chart.show_controls(True)
         self._update_status()
 
@@ -371,9 +368,26 @@ class MainWindow(QMainWindow):
             self.state.set_focus(None)
             self._restore(*self._pathway_saved)
         self.chart.show_controls(False)
-        if not self._chart_was_shown:
-            self.chart_dock.hide()
+        self._sync_chart()
         self._update_status()
+
+    def _on_timeline(self, timeline) -> None:
+        self.chart.show_timeline(timeline, self.pathways.pathway.name if self.pathways.pathway
+                                 else "")
+        self._sync_chart()
+
+    def chart_wanted(self) -> bool:
+        return (self.pathway_active and not self.quiz_active
+                and self.pathways.timeline is not None)
+
+    def _sync_chart(self) -> None:
+        wanted = self.chart_wanted()
+        self.chart_dock.toggleViewAction().setEnabled(wanted)
+        if wanted and self.chart_dock.isHidden():
+            self.chart_dock.show()
+            self.resizeDocks([self.chart_dock], [self.height() // 3], Qt.Orientation.Vertical)
+        elif not wanted:
+            self.chart_dock.hide()
 
     def frame(self) -> None:
         if self.slices.view.underMouse():

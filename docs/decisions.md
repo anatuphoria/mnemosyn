@@ -52,6 +52,7 @@ entry replaces it and the old one says so.
 | 44 | 2026-10-19 | Timing tests also catch a quarter slowdown under the limits | in force |
 | 45 | 2026-10-19 | Slice labels are sharp squares over a smooth MRI | in force |
 | 46 | 2026-10-19 | Slices zoom with the wheel and pan with the right button | in force |
+| 47 | 2026-10-19 | The Activity panel appears only for a route with a timeline | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -408,3 +409,14 @@ its own. The closest zoom shows 20 voxels across.
 Why: the cord was about a fifth of the slice panel wide in axial view and a sliver in the other
 two; the owner wanted the moves people already know from the 3D view, not an automatic zoom.
 Design: [slices and looks, section 2](specs/2026-10-19-slices-looks-design.md).
+
+## 47. The Activity panel appears only for a route with a timeline
+
+2026-10-18 and 2026-10-19. The Activity panel is hidden, and its menu entry disabled, unless a
+route with a timeline is open (today the stress axis, the body clock and hunger); it then opens at
+about a third of the window height. The placeholder wave shown for every structure is gone. The
+timeline's note and references sit in a narrow column to the right of the chart, which takes the
+panel's full height (layout B, chosen by the owner from mockups).
+Why: a random placeholder wave took a fifth of the window for every structure, and the note under
+the stress-axis chart squashed its curves almost flat.
+Design: [slices and looks, section 4](specs/2026-10-19-slices-looks-design.md).

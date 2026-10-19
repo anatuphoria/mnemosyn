@@ -1,39 +1,20 @@
 from __future__ import annotations
 
-import zlib
 from html import escape
 
-import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QPushButton, QScrollArea,
+                               QSizePolicy, QVBoxLayout, QWidget)
 
 from cns_atlas import Timeline
 from cns_atlas.timelines import note_parts
 
 from ..state import AppState
 
-DURATION_S = 60.0
-SAMPLES = 600
 PLAY = "Play (Space)"
 PAUSE = "Pause (Space)"
 SPEEDS = ((0.5, "½×"), (1.0, "1×"), (2.0, "2×"))
-
-
-PLACEHOLDER_SPAN = 2.5
-
-
-def placeholder_series(structure_id: int) -> tuple[np.ndarray, np.ndarray]:
-    """Fake deterministic signal until a real model exists."""
-    rng = np.random.default_rng(zlib.crc32(str(structure_id).encode()))
-    t = np.linspace(0.0, DURATION_S, SAMPLES)
-    freqs = rng.uniform(0.02, 0.4, size=3)
-    phases = rng.uniform(0, 2 * np.pi, size=3)
-    y = sum(np.sin(2 * np.pi * f * t + p) / (i + 1)
-            for i, (f, p) in enumerate(zip(freqs, phases)))
-    y += rng.normal(0, 0.08, SAMPLES)
-    return t, y
 
 
 class ActivityChart(QWidget):
@@ -51,13 +32,16 @@ class ActivityChart(QWidget):
         self.plot = pg.PlotWidget()
         self.plot.setBackground("#0a0a10")
         self.plot.showGrid(x=True, y=True, alpha=0.2)
-        self.curve = self.plot.plot(pen=pg.mkPen(width=2))
         self.legend = self.plot.addLegend()
         self.cursor = pg.InfiniteLine(angle=90, movable=False, pen=pg.mkPen("#ffffff", width=1))
         self.note = QLabel()
         self.note.setWordWrap(True)
         self.note.setTextFormat(Qt.TextFormat.RichText)
         self.note.setOpenExternalLinks(True)
+        self.note.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.note_area = QScrollArea()
+        self.note_area.setWidgetResizable(True)
+        self.note_area.setWidget(self.note)
         self.note.hide()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.back_button = QPushButton("Back")
@@ -90,33 +74,12 @@ class ActivityChart(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.controls)
-        layout.addWidget(self.plot, 1)
-        layout.addWidget(self.note)
+        row = QHBoxLayout()
+        row.addWidget(self.plot, 3)
+        row.addWidget(self.note_area, 1)
+        layout.addLayout(row, 1)
         self.plot.scene().sigMouseClicked.connect(self._on_click)
-        state.selection_changed.connect(self._on_selection)
-        self._activity_axes()
-        self.show_structure(state.selected)
-
-    def _activity_axes(self) -> None:
-        self.plot.setLabel("bottom", "time", units="s")
-        self.plot.setLabel("left", "activity (a.u.)")
         self.plot.disableAutoRange()
-        self.plot.setXRange(0, DURATION_S, padding=0.02)
-        self.plot.setYRange(-PLACEHOLDER_SPAN, PLACEHOLDER_SPAN, padding=0)
-
-    def _on_selection(self, structure_id: int | None) -> None:
-        if self.timeline is None:
-            self.show_structure(structure_id)
-
-    def show_structure(self, structure_id: int | None) -> None:
-        if structure_id is None:
-            self.curve.setData([], [])
-            self.plot.setTitle("Select a structure")
-            return
-        s = self.state.atlas.get(structure_id)
-        t, y = placeholder_series(structure_id)
-        self.curve.setData(t, y, pen=pg.mkPen(s.rgb_triplet, width=2))
-        self.plot.setTitle(f"{s.name} - PLACEHOLDER data (no model yet)")
 
     def show_timeline(self, timeline: Timeline | None, name: str = "") -> None:
         for item in self.timeline_items:
@@ -129,11 +92,8 @@ class ActivityChart(QWidget):
         if timeline is None:
             self.time_label.setText("")
             self.note.hide()
-            self.curve.show()
-            self._activity_axes()
-            self.show_structure(self.state.selected)
+            self.plot.setTitle("")
             return
-        self.curve.hide()
         for c in timeline.curves:
             times, levels = zip(*c.points)
             item = self.plot.plot(times, levels, pen=pg.mkPen(c.color, width=2), name=c.name)
