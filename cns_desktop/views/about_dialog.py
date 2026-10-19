@@ -6,6 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QListWidget, QTabWidget,
                                QVBoxLayout, QWidget)
 
@@ -13,6 +14,8 @@ from cns_atlas import DISCLAIMER, Atlas
 from cns_atlas.model import Source
 
 APP_NAME = "Mnemosyn"
+WORDMARK = Path(__file__).resolve().parents[1] / "resources" / "wordmark.svg"
+WORDMARK_WIDTH = 320
 SIZE = (720, 520)
 
 
@@ -86,8 +89,16 @@ class AboutDialog(QDialog):
         column.addWidget(self.sources, 1)
         column.addWidget(self.detail)
 
+        wordmark = QSvgWidget(str(WORDMARK))
+        natural = wordmark.renderer().defaultSize()
+        wordmark.setFixedSize(WORDMARK_WIDTH,
+                              round(WORDMARK_WIDTH * natural.height() / max(natural.width(), 1)))
+        front = QWidget()
+        front_layout = QVBoxLayout(front)
+        front_layout.addWidget(wordmark, 0, Qt.AlignmentFlag.AlignHCenter)
+        front_layout.addWidget(about, 1)
         self.tabs = QTabWidget()
-        self.tabs.addTab(about, "About")
+        self.tabs.addTab(front, "About")
         self.tabs.addTab(listing, "Data sources")
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.reject)

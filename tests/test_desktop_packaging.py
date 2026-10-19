@@ -40,3 +40,26 @@ def test_the_about_box_names_a_test_version(monkeypatch, tmp_path):
     root = write_package(tmp_path / "pkg", tiny_structures(), meshes={101: tetra()})
     monkeypatch.setattr(about, "app_version", lambda: "0.1.0")
     assert "Version 0.1.0, test version" in about.about_text(Atlas.open(root))
+
+
+def test_the_app_wears_the_mark():
+    from PySide6.QtWidgets import QApplication
+
+    qapp = QApplication.instance() or QApplication([])
+    app.apply_identity(qapp)
+    assert not qapp.windowIcon().isNull()
+    assert (app.RESOURCES / "mark.png").exists() and (app.RESOURCES / "wordmark.svg").exists()
+
+
+def test_the_about_box_opens_with_the_wordmark(tmp_path):
+    from PySide6.QtSvgWidgets import QSvgWidget
+    from PySide6.QtWidgets import QApplication
+
+    from atlas_package import tetra, tiny_structures, write_package
+    from cns_atlas import Atlas
+
+    QApplication.instance() or QApplication([])
+    root = write_package(tmp_path / "pkg", tiny_structures(), meshes={101: tetra()})
+    dialog = about.AboutDialog(Atlas.open(root))
+    marks = dialog.findChildren(QSvgWidget)
+    assert len(marks) == 1 and marks[0].renderer().isValid()

@@ -7,6 +7,7 @@ from pathlib import Path
 
 STARTED = time.perf_counter()
 DEFAULT_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
+RESOURCES = Path(__file__).resolve().parent / "resources"
 
 
 def default_atlas() -> Path:
@@ -31,6 +32,12 @@ def apply_dark_theme(app) -> None:
     }.items():
         p.setColor(role, QColor(color))
     app.setPalette(p)
+
+
+def apply_identity(app) -> None:
+    from PySide6.QtGui import QIcon
+
+    app.setWindowIcon(QIcon(str(RESOURCES / "mark.png")))
 
 
 def disclaimer_due(settings) -> bool:
@@ -117,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     app = QApplication.instance() or QApplication(sys.argv[:1])
     app.setApplicationName("Mnemosyn")
     apply_dark_theme(app)
+    apply_identity(app)
 
     from .main_window import MainWindow, migrate_progress
 

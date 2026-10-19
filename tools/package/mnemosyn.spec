@@ -7,7 +7,8 @@ analysis = Analysis(
     [str(Path(SPECPATH) / "launch.py")],
     pathex=[str(root)],
     datas=[(os.environ["MNEMOSYN_ATLAS"], "atlases/cns"),
-           (os.environ["MNEMOSYN_VERSION_FILE"], ".")],
+           (os.environ["MNEMOSYN_VERSION_FILE"], "."),
+           (str(root / "cns_desktop" / "resources"), "cns_desktop/resources")],
     excludes=["tkinter", "tools", "IPython", "jupyter", "notebook", "pytest"],
 )
 archive = PYZ(analysis.pure)
