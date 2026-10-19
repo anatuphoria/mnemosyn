@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import pytest
 import pyvista as pv
@@ -9,6 +11,7 @@ from cns_atlas.meshes import MeshData
 from cns_atlas.model import Structure
 from cns_desktop.main_window import MainWindow
 from cns_desktop.views.brain_view import FAINT, SHELL_OPACITY
+from cns_study.session import QuizChoice
 
 UPPER, LOWER, HORN, TRACT, OUTER = 401, 402, 300, 310, 110
 GREY = (170, 170, 180)
@@ -133,3 +136,14 @@ def test_covers_hidden_or_out_of_focus_follow_the_usual_rules(window):
     window.state.set_focus(None)
     window.state.set_hidden([UPPER], True)
     assert not view.shell_actors[UPPER].GetVisibility() and not view.is_drawn(UPPER)
+
+
+def test_the_cord_is_solid_again_on_the_find_summary(window):
+    window.start_quiz(QuizChoice("find", "structures", HORN, False), rng=random.Random(1))
+    quiz = window.quiz
+    assert quiz.item.id == HORN and opacities(window.view) == {SHELL_OPACITY}
+    while quiz.item is not None:
+        window.state.select(next(iter(quiz.item.geometry)))
+        quiz.go_on()
+    assert quiz.phase == "summary" and opacities(window.view) == {1.0}
+    quiz.stop()

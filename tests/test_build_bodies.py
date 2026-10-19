@@ -2,7 +2,7 @@ import nibabel as nib
 import numpy as np
 import pytest
 
-from atlas_fixtures import (AFFINE, BLOBS, SPINE_AFFINE, spine_volume,
+from atlas_fixtures import (AFFINE, BLOBS, BODY_BOXES, SPINE_AFFINE, spine_volume,
                             write_extended_source_tree)
 from cns_atlas import Atlas
 from tools.build_atlas.build import build
@@ -118,6 +118,24 @@ def test_bodies_stop_where_the_cord_begins(tmp_path):
     lo, hi = spine_box()
     assert not ((points > lo + 1.0) & (points < hi - 1.0)).all(axis=1).any()
     assert len(points)
+
+
+def test_slices_lose_a_body_where_its_shape_was_trimmed(tmp_path, monkeypatch):
+    import atlas_fixtures
+
+    raised = SPINE_AFFINE.copy()
+    raised[2, 3] += 140.0
+    monkeypatch.setattr(atlas_fixtures, "SPINE_AFFINE", raised)
+    monkeypatch.setattr(atlas_fixtures, "BODY_BOXES",
+                        {**BODY_BOXES, 2: ((-4, -48, -40), (6, -40, -20))})
+    src = write_extended_source_tree(tmp_path, tracts=False, spine=True, shells=True)
+    atlas = Atlas.open(quiet_build(src, tmp_path / "out", tmp_path / "cache", local=True))
+    brain = next(v for v in atlas.volumes if v.name == "brain")
+    spine = next(v for v in atlas.volumes if v.name == "spine")
+    body = np.argwhere(np.asarray(brain.data) == 240)
+    assert len(body)
+    world = (np.c_[body, np.ones(len(body))] @ np.asarray(brain.affine).T)[:, :3]
+    assert not any(spine.label_at(tuple(point)) for point in world)
 
 
 def problems_for(src):

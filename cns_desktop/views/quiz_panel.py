@@ -267,6 +267,7 @@ class QuizPanel(QWidget):
         summary = self.session.summary()
         self.item, self.phase, self.options = None, "summary", []
         self._select(None)
+        self.find_target.emit(frozenset())
         self.dim_grey.emit(False)
         self.state.set_focus(None)
         missed = ", ".join(item.name for item in summary.most_missed) or "none"

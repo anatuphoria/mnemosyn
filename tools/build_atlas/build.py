@@ -210,25 +210,32 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         problems += [f"source {spec.source.id}: drop value {value} is not in the source"
                      for value in sorted(dropped - values)]
     planned = with_xrefs(planned, names)
-    volumes, fills = [], []
-    for vspec in recipe.volumes:
-        if vspec.name in skipped_volumes:
-            continue
-        layers = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
-                  for s in sources if s.volume == vspec.name and not s.outline_of]
-        grid = nib.as_closest_canonical(images[vspec.grid_source])
-        volumes.append((vspec, merge(grid, layers), grid.affine))
-        fill = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
-                for s in sources if s.volume == vspec.name and s.fill]
-        if fill:
-            fills.append((vspec.name, merge(grid, fill), grid.affine))
+    def merged() -> tuple[list, list]:
+        volumes, fills = [], []
+        for vspec in recipe.volumes:
+            if vspec.name in skipped_volumes:
+                continue
+            layers = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
+                      for s in sources if s.volume == vspec.name and not s.outline_of]
+            grid = nib.as_closest_canonical(images[vspec.grid_source])
+            volumes.append((vspec, merge(grid, layers), grid.affine))
+            fill = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
+                    for s in sources if s.volume == vspec.name and s.fill]
+            if fill:
+                fills.append((vspec.name, merge(grid, fill), grid.affine))
+        return volumes, fills
+
+    volumes, fills = merged()
     grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
-    for s in (s for s in sources if s.trim_outside is not None):
+    trimmed = [s for s in sources if s.trim_outside is not None]
+    for s in trimmed:
         allowed = {p.structure.id for p in planned
                    if s.trim_outside in p.structure.structure_id_path}
         for vspec, data, affine in volumes:
             images[s.source.id] = trim_against(images[s.source.id], data, affine,
                                                allowed if vspec.name == s.volume else None)
+    if trimmed:
+        volumes, fills = merged()
     natives = []
     for s in sources:
         if s.mesh_grid != "native" or s.outline_of or s.source.id in cut or s.tiles is not None:

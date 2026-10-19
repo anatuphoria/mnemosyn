@@ -297,7 +297,8 @@ class BrainView(QtInteractor):
     def zoom_at(self, x: int, y: int, factor: float) -> None:
         camera = self.renderer.GetActiveCamera()
         position, focal = np.array(camera.GetPosition()), np.array(camera.GetFocalPoint())
-        anchor = self.pick_position if self.structure_at(x, y) is not None else focal
+        found = self._pick(x, y) is not None
+        anchor = np.array(self._picker.GetPickPosition()) if found else focal
         camera.SetPosition(*(anchor + (position - anchor) / factor))
         camera.SetFocalPoint(*(anchor + (focal - anchor) / factor))
         self.renderer.ResetCameraClippingRange()

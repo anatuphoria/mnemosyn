@@ -128,3 +128,14 @@ def test_find_quiz_on_a_shell_accepts_a_click_over_a_nucleus_inside_it(window, q
     window.view.pick_at(*pixel_of(window.view, (0.0, 0.0, 0.0)))
     qapp.processEvents()
     assert quiz.phase == "feedback" and "Correct" in quiz.feedback.text()
+
+
+def test_zooming_over_a_body_picks_once(window, monkeypatch):
+    view = window.view
+    picks = []
+    real = view._pick
+    monkeypatch.setattr(view, "_pick", lambda x, y: picks.append((x, y)) or real(x, y))
+    position = np.array(view.camera.GetPosition())
+    view.zoom_at(*pixel_of(view, (0.0, 0.0, 0.0)), 1.15)
+    assert len(picks) == 1
+    assert np.linalg.norm(np.array(view.camera.GetPosition())) < np.linalg.norm(position)
