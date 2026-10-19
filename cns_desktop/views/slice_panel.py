@@ -5,13 +5,14 @@ from contextlib import contextmanager
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Signal
+from PySide6.QtCore import QPointF, QSignalBlocker, Qt, QTimer, Signal
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QPushButton, QSlider,
                                QVBoxLayout, QWidget)
 
 from .. import slices
 from ..state import AppState
+from .navigation import WHEEL_FACTOR
 
 NO_TEMPLATE = "No template in this atlas"
 VOLUME_TITLES = {"brain": "Brain", "spine": "Spinal cord"}
@@ -21,6 +22,26 @@ COORDINATE = {"axial": "z", "coronal": "y", "sagittal": "x"}
 EDGES = {"axial": ("A", "P", "L", "R"), "coronal": ("S", "I", "L", "R"),
          "sagittal": ("S", "I", "A", "P")}
 ANCHORS = ((0.5, 0.0), (0.5, 1.0), (0.0, 0.5), (1.0, 0.5))
+CLOSEST_VOXELS = 20
+
+
+class SliceBox(pg.ViewBox):
+    def __init__(self, on_wheel, on_pan) -> None:
+        super().__init__(lockAspect=True, invertY=True)
+        self._on_wheel, self._on_pan = on_wheel, on_pan
+
+    def wheelEvent(self, ev, axis=None) -> None:
+        point = self.mapToView(ev.pos())
+        self._on_wheel(ev.delta() / 120, point.y(), point.x())
+        ev.accept()
+
+    def mouseDragEvent(self, ev, axis=None) -> None:
+        if ev.button() != Qt.MouseButton.RightButton:
+            ev.ignore()
+            return
+        ev.accept()
+        moved = self.mapToView(ev.pos()) - self.mapToView(ev.lastPos())
+        self._on_pan(-moved.y(), -moved.x())
 
 
 class SmoothImage(pg.ImageItem):
@@ -62,6 +83,7 @@ class SlicePanel(QWidget):
         self.redraw_count = 0
         self._centre_tables: dict[str, object] = {}
         self.volume_buttons: dict[str, QPushButton] = {}
+        self._view_key: tuple[str, str] | None = None
 
         regions = QHBoxLayout()
         if len(atlas.volumes) > 1:
@@ -98,9 +120,9 @@ class SlicePanel(QWidget):
         self.note = QLabel(NO_TEMPLATE if self.template is None else "")
 
         self.view = pg.GraphicsLayoutWidget()
-        self.box = self.view.addViewBox(lockAspect=True, invertY=True)
+        self.box = SliceBox(self.wheel_zoom, self.pan_by)
+        self.view.addItem(self.box)
         self.box.setMenuEnabled(False)
-        self.box.setMouseEnabled(x=False, y=False)
         self.template_item = SmoothImage(axisOrder="row-major")
         self.template_item.setZValue(0)
         self.label_item = SharpImage(axisOrder="row-major")
@@ -243,10 +265,37 @@ class SlicePanel(QWidget):
             self.template_item.setImage(template_2d, autoLevels=False, levels=(0, 255))
         self.label_item.setImage(self.layer, autoLevels=False, levels=(0, 255))
         height, width = self.layer.shape[:2]
+        if (self.labels.name, axis) != self._view_key:
+            self._view_key = (self.labels.name, axis)
+            self.box.setLimits(minXRange=min(CLOSEST_VOXELS, width),
+                               minYRange=min(CLOSEST_VOXELS, height))
+            self.fit_volume()
         places = ((width / 2, 0), (width / 2, height), (0, height / 2), (width, height / 2))
         for letter, text, place in zip(self.letters, EDGES[axis], places):
             letter.setText(text)
             letter.setPos(*place)
+
+    def fit_volume(self) -> None:
+        if self.layer is None:
+            return
+        self.box.autoRange(padding=0)
+        self.box.enableAutoRange()
+
+    def zoomed(self) -> bool:
+        return not all(self.box.autoRangeEnabled())
+
+    def wheel_zoom(self, steps: float, row: float, col: float) -> None:
+        if self.layer is None or not steps:
+            return
+        scale = WHEEL_FACTOR ** -steps
+        self.box.scaleBy(s=(scale, scale), center=QPointF(col, row))
+        (x0, x1), (y0, y1) = self.box.viewRange()
+        height, width = self.layer.shape[:2]
+        if x1 - x0 >= width and y1 - y0 >= height:
+            self.fit_volume()
+
+    def pan_by(self, rows: float, cols: float) -> None:
+        self.box.translateBy(t=(cols, rows))
 
     @property
     def image(self) -> np.ndarray | None:
@@ -341,7 +390,16 @@ class SlicePanel(QWidget):
             index = slices.index_for_mm(volume.affine, volume.shape, axis,
                                         centre[slices.AXIS_INDEX[axis]])
             self.state.set_slice(axis, slices.mm_for_index(volume.affine, axis, index))
+            if self.zoomed():
+                self._bring_into_view(volume, centre)
             return
+
+    def _bring_into_view(self, volume, centre) -> None:
+        voxel = np.linalg.inv(np.asarray(volume.affine, dtype=float)) @ np.array([*centre, 1.0])
+        rows, cols = slices.pixels_for_voxels(volume.shape, self.state.slice_axis,
+                                              tuple([round(v)] for v in voxel[:3]))
+        (x0, x1), (y0, y1) = self.box.viewRange()
+        self.pan_by(float(rows[0]) - (y0 + y1) / 2, float(cols[0]) - (x0 + x1) / 2)
 
     def _pixel(self, scene_pos) -> tuple[int, int]:
         point = self.label_item.mapFromScene(scene_pos)

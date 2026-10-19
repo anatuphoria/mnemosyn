@@ -207,7 +207,7 @@ class MainWindow(QMainWindow):
         action("Show all", "U", self.state.show_all)
         action("Tracts", "T", self.state.toggle_tracts)
         action("Reset view", "R", self.view.reset_view)
-        action("Frame selection", "F", self.view.frame_selection)
+        action("Frame selection", "F", self.frame)
         action("Centre slice", "C", self.slices.centre_on_selection)
         action("About", "F1", self.show_about)
         focus_filter = QAction(self, shortcut=QKeySequence.StandardKey.Find,
@@ -374,6 +374,12 @@ class MainWindow(QMainWindow):
         if not self._chart_was_shown:
             self.chart_dock.hide()
         self._update_status()
+
+    def frame(self) -> None:
+        if self.slices.view.underMouse():
+            self.slices.fit_volume()
+        else:
+            self.view.frame_selection()
 
     def show_about(self) -> None:
         AboutDialog(self.state.atlas, self).exec()

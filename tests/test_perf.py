@@ -526,6 +526,13 @@ for volume in [v.name for v in state.atlas.volumes]:
     app.processEvents()
     results.append(median([timed(lambda: state.set_slice("axial", state.slice_mm + 1.0))
                            for _ in range(15)]))
+    panel = window.slices
+    rows, cols = panel.layer.shape[:2]
+    results.append(median([timed(lambda k=k: panel.wheel_zoom(1 if k % 2 else -1, rows / 2,
+                                                             cols / 2)) for k in range(1, 16)]))
+    results.append(median([timed(lambda k=k: panel.pan_by(1.0 if k % 2 else -1.0, 1.0))
+                           for k in range(15)]))
+    panel.fit_volume()
 window.close()
 print(*results)
 """
@@ -535,9 +542,10 @@ print(*results)
 def test_one_slider_step_meets_16ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
-    values = run_timing(SLIDER_TIMING, atlas_path, tmp_path)
-    timing.assert_within({f"slider step, {volume.name}": (value, 0.016)
-                          for volume, value in zip(Atlas.open(atlas_path).volumes, values)})
+    values = iter(run_timing(SLIDER_TIMING, atlas_path, tmp_path))
+    timing.assert_within({f"{action} step, {volume.name}": (next(values), 0.016)
+                          for volume in Atlas.open(atlas_path).volumes
+                          for action in ("slider", "zoom", "pan")})
 
 
 TRACTS_GROUP_TIMING = PRELUDE + """

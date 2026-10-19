@@ -190,3 +190,81 @@ def test_selecting_a_group_reads_no_meshes(window, monkeypatch):
     window.state.select(2)
     window.state.select(200)
     assert reads == []
+
+
+def visible_rows(panel):
+    (x0, x1), (y0, y1) = panel.box.viewRange()
+    return y1 - y0
+
+
+def test_the_wheel_zooms_around_the_pointer_and_right_drag_pans(window, qapp):
+    panel = window.slices
+    qapp.processEvents()
+    whole = visible_rows(panel)
+    panel.wheel_zoom(3, 20.0, 15.0)
+    assert visible_rows(panel) < whole / 1.4 and panel.zoomed()
+    before = panel.box.viewRange()
+    panel.pan_by(2.0, 0.0)
+    assert panel.box.viewRange() != before
+
+
+def test_zoom_survives_the_slider_and_selection(window, qapp):
+    panel = window.slices
+    qapp.processEvents()
+    panel.wheel_zoom(3, 10.0, 10.0)
+    zoomed = panel.box.viewRange()
+    panel.slider.setValue(panel.slider.value() + 1)
+    window.state.select(101)
+    qapp.processEvents()
+    assert panel.box.viewRange() == zoomed
+
+
+def test_switching_volume_or_axis_fits_the_whole_slice(window, qapp):
+    panel = window.slices
+    qapp.processEvents()
+    panel.wheel_zoom(3, 10.0, 10.0)
+    window.state.set_slice_volume("spine")
+    qapp.processEvents()
+    assert not panel.zoomed()
+    window.state.set_slice_volume("brain")
+    panel.wheel_zoom(3, 10.0, 10.0)
+    panel.set_axis("coronal")
+    qapp.processEvents()
+    assert not panel.zoomed()
+
+
+def test_zoom_stops_at_its_limits(window, qapp):
+    panel = window.slices
+    qapp.processEvents()
+    panel.wheel_zoom(2, 10.0, 10.0)
+    panel.wheel_zoom(-20, 10.0, 10.0)
+    assert not panel.zoomed()
+    panel.wheel_zoom(200, 10.0, 10.0)
+    assert visible_rows(panel) >= 19
+
+
+def test_f_over_the_slice_fits_it_and_elsewhere_frames_3d(window, qapp, monkeypatch):
+    panel = window.slices
+    qapp.processEvents()
+    panel.wheel_zoom(3, 10.0, 10.0)
+    monkeypatch.setattr(panel.view, "underMouse", lambda: True)
+    window.frame()
+    assert not panel.zoomed()
+    monkeypatch.setattr(panel.view, "underMouse", lambda: False)
+    called = []
+    monkeypatch.setattr(window.view, "frame_selection", lambda: called.append(1))
+    window.frame()
+    assert called == [1]
+
+
+def test_centre_on_selection_brings_it_into_a_zoomed_slice(window, qapp):
+    panel = window.slices
+    qapp.processEvents()
+    window.state.select(111)
+    panel.centre_on_selection()
+    panel.wheel_zoom(4, 0.0, 0.0)
+    panel.centre_on_selection()
+    qapp.processEvents()
+    (x0, x1), (y0, y1) = panel.box.viewRange()
+    rows, cols = np.nonzero(panel.layer[..., 3] == 255)
+    assert x0 <= cols.mean() <= x1 and y0 <= rows.mean() <= y1

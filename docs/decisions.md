@@ -51,6 +51,7 @@ entry replaces it and the old one says so.
 | 43 | 2026-10-18 | Speed limits for first use, groups, hiding and the slider | in force |
 | 44 | 2026-10-19 | Timing tests also catch a quarter slowdown under the limits | in force |
 | 45 | 2026-10-19 | Slice labels are sharp squares over a smooth MRI | in force |
+| 46 | 2026-10-19 | Slices zoom with the wheel and pan with the right button | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -396,3 +397,14 @@ nobody measured, which would mislead a researcher reading a structure's edge; re
 (FSLeyes, ITK-SNAP, 3D Slicer) show labels this way. The MRI is a measured brightness, and showing
 it smooth, as those viewers do, makes the cord's shape easy to read for a student.
 Design: [slices and looks, section 3](specs/2026-10-19-slices-looks-design.md).
+
+## 46. Slices zoom with the wheel and pan with the right button
+
+2026-10-19. The slices take the same moves as the 3D view: the wheel zooms around the pointer and a
+right drag pans, while a left click still selects. The zoom stays while the slider moves and the
+selection changes, and the slice fits the whole volume again when the volume (brain or cord) or
+the view direction changes, or when F is pressed with the pointer over the slice. Nothing zooms on
+its own. The closest zoom shows 20 voxels across.
+Why: the cord was about a fifth of the slice panel wide in axial view and a sliver in the other
+two; the owner wanted the moves people already know from the 3D view, not an automatic zoom.
+Design: [slices and looks, section 2](specs/2026-10-19-slices-looks-design.md).
