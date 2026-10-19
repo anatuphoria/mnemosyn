@@ -448,7 +448,8 @@ matter as before. The fade ends with the quiz or on its summary screen.
 Why: a small buried structure, such as a hypothalamic nucleus, showed in 3D only as a tiny ring on
 the cortex, so only the slice made the question answerable.
 Cost: starting a quiz takes about 45 ms instead of 22 and each next question about 13 ms instead of
-7 (limits 100 and 50 ms), because the whole brain is redrawn see-through.
+7 (limits 100 and 50 ms), because the whole brain is redrawn see-through; the owner accepted this
+on 2026-10-19.
 Design: [slices and looks, section 5](specs/2026-10-19-slices-looks-design.md).
 
 ## 50. The status bar shows the selection and the mouse hint only
