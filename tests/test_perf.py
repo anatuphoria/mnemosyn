@@ -33,7 +33,7 @@ def large_structures(groups: int = 50, per_group: int = 99) -> list[Structure]:
     return out
 
 
-def run_timing(script: str, atlas_path, tmp_path, runs: int = 3) -> list[float]:
+def run_timing(script: str, atlas_path, tmp_path, runs: int = 5) -> list[float]:
     env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
     rows = []
     for run in range(runs):
