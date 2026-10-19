@@ -65,6 +65,8 @@ class PathwayPanel(QWidget):
         self.speed = 1.0
 
         self.choices = QListWidget()
+        self.choices.setWordWrap(True)
+        self.choices.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         groups = list(dict.fromkeys(p.group for p in state.atlas.pathways))
         for group in groups:
             header = QListWidgetItem(group)
