@@ -77,7 +77,21 @@ one image); the builder decides how, within the slider limit below.
   (builder's call on the exact size; the curves must be clearly readable at a 950-pixel window).
 - Layout B, chosen by the owner from mockups: the note and its references sit in a narrow column to
   the right of the chart inside the Activity panel, scrolling if long; the chart takes the full
-  height of the panel. The play controls stay above the chart as today.
+  height of the panel. The time read-out ("0 / 120 min") stays with the chart.
+
+## 4a. Route play controls move to the Pathways panel
+
+Today Back, Play, Next and the speed picker sit in the Activity panel and every route uses them, not
+only routes with a timeline. The owner chose on 2026-10-19 to move them into the Pathways panel,
+just above the step list, for every route, drawn as the familiar media control symbols instead of
+words:
+
+- Back, play or pause, next: the standard media icons from the system theme (skip back, play,
+  pause, skip forward), each with a tooltip naming it and its key, for example "Play (Space)".
+- Speed: a compact picker showing "½×", "1×", "2×", as video players show it.
+- The step read-out ("Step 1 of 6: Amygdala") sits with the controls.
+- Space plays and pauses during any route, wherever the keyboard focus is, except while typing in
+  a text field; Back and Next stay disabled at the first and last step, as today.
 
 ## 5. Name it quiz fades the rest
 
