@@ -5,8 +5,9 @@ from html import escape
 
 from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Signal
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
-                               QPushButton, QStackedWidget, QTextBrowser, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QButtonGroup, QComboBox, QHBoxLayout, QLabel, QListWidget,
+                               QListWidgetItem, QPushButton, QStackedWidget, QStyle, QTextBrowser,
+                               QToolButton, QVBoxLayout, QWidget)
 
 from cns_atlas import DISCLAIMER, Crossing, Pathway, Relay, Station, Timeline
 from cns_atlas.pathways import PathwayText, lights, side_of
@@ -19,6 +20,9 @@ RELAY_COLOR = QColor("#8a8a99")
 KEY_ROLE = Qt.ItemDataRole.UserRole
 TICK_MS = 50
 STEP_SECONDS = 3.0
+PLAY_TIP = "Play (Space)"
+PAUSE_TIP = "Pause (Space)"
+SPEEDS = ((0.5, "½×"), (1.0, "1×"), (2.0, "2×"))
 
 
 def _column(*widgets) -> QWidget:
@@ -90,6 +94,31 @@ class PathwayPanel(QWidget):
             sides.addWidget(button)
             self.side_buttons[side] = button
         self.draft = QLabel("<b>Draft</b>: not yet reviewed.")
+        icon = self.style().standardIcon
+        self._play_icon = icon(QStyle.StandardPixmap.SP_MediaPlay)
+        self._pause_icon = icon(QStyle.StandardPixmap.SP_MediaPause)
+        self.back_button = self._control(icon(QStyle.StandardPixmap.SP_MediaSkipBackward),
+                                         "Back (Left)", self.back)
+        self.play_button = self._control(self._play_icon, PLAY_TIP, self.toggle_play)
+        self.next_button = self._control(icon(QStyle.StandardPixmap.SP_MediaSkipForward),
+                                         "Next (Right)", self.next)
+        self.speed_picker = QComboBox()
+        for value, text in SPEEDS:
+            self.speed_picker.addItem(text, value)
+        self.speed_picker.setCurrentIndex(1)
+        self.speed_picker.setToolTip("Speed")
+        self.speed_picker.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.speed_picker.currentIndexChanged.connect(
+            lambda i: self.set_speed(float(self.speed_picker.itemData(i))))
+        controls = QHBoxLayout()
+        for widget in (self.back_button, self.play_button, self.next_button, self.speed_picker):
+            controls.addWidget(widget)
+        controls.addStretch(1)
+        self.step_label = QLabel()
+        self.step_label.setWordWrap(True)
+        self.playing_changed.connect(self._show_playing)
+        self.edges_changed.connect(self._show_edges)
+        self.step_changed.connect(self.step_label.setText)
         self.steps = QListWidget()
         self.details = QTextBrowser()
         self.details.setOpenExternalLinks(True)
@@ -100,8 +129,9 @@ class PathwayPanel(QWidget):
 
         self.pages = QStackedWidget()
         self.pages.addWidget(_column(self.choices, self.empty))
-        self.pages.addWidget(_column(self.title, self.start, sides, self.draft, self.steps,
-                                     self.details, self.leave_button))
+        self.pages.addWidget(_column(self.title, self.start, sides, self.draft, controls,
+                                     self.step_label, self.steps, self.details,
+                                     self.leave_button))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.pages)
@@ -112,6 +142,22 @@ class PathwayPanel(QWidget):
         self.steps.itemClicked.connect(self._on_step_clicked)
         self.leave_button.clicked.connect(self.leave)
         state.selection_changed.connect(self._on_selection)
+
+    def _control(self, icon, tip: str, action) -> QToolButton:
+        button = QToolButton()
+        button.setIcon(icon)
+        button.setToolTip(tip)
+        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        button.clicked.connect(action)
+        return button
+
+    def _show_playing(self, playing: bool) -> None:
+        self.play_button.setIcon(self._pause_icon if playing else self._play_icon)
+        self.play_button.setToolTip(PAUSE_TIP if playing else PLAY_TIP)
+
+    def _show_edges(self, can_back: bool, can_next: bool) -> None:
+        self.back_button.setEnabled(can_back)
+        self.next_button.setEnabled(can_next)
 
     def _on_choice(self, item: QListWidgetItem) -> None:
         key = item.data(KEY_ROLE)

@@ -137,13 +137,6 @@ class MainWindow(QMainWindow):
         self.pathways.timeline_changed.connect(self._on_timeline)
         self.pathways.time_changed.connect(self.chart.set_time)
         self.chart.seek_requested.connect(self.pathways.seek)
-        self.chart.back_requested.connect(self.pathways.back)
-        self.chart.next_requested.connect(self.pathways.next)
-        self.chart.play_requested.connect(self.pathways.toggle_play)
-        self.chart.speed_changed.connect(self.pathways.set_speed)
-        self.pathways.playing_changed.connect(self.chart.set_playing)
-        self.pathways.step_changed.connect(self.chart.set_step)
-        self.pathways.edges_changed.connect(self.chart.set_edges)
         self.pathway_dock.visibilityChanged.connect(self._prepare_pathways)
         self.state.selection_changed.connect(lambda _: self._update_status())
         self.state.visibility_changed.connect(lambda _: self._update_status())
@@ -223,6 +216,12 @@ class MainWindow(QMainWindow):
         leave.setEnabled(False)
         self.addAction(leave)
         self.shortcuts["Leave pathway"] = leave
+        play = QAction("Play or pause", self, shortcut=QKeySequence("Space"),
+                       triggered=self.pathways.toggle_play)
+        play.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+        play.setEnabled(False)
+        self.addAction(play)
+        self.shortcuts["Play or pause"] = play
 
     def _show_hover(self, name: str) -> None:
         if self.quiz_active:
@@ -354,7 +353,7 @@ class MainWindow(QMainWindow):
             self.shortcuts[name].setEnabled(False)
         self.shortcuts["Leave pathway"].setEnabled(True)
         self._sync_chart()
-        self.chart.show_controls(True)
+        self.shortcuts["Play or pause"].setEnabled(True)
         self._update_status()
 
     def leave_pathway(self) -> None:
@@ -367,7 +366,7 @@ class MainWindow(QMainWindow):
         with self._held():
             self.state.set_focus(None)
             self._restore(*self._pathway_saved)
-        self.chart.show_controls(False)
+        self.shortcuts["Play or pause"].setEnabled(False)
         self._sync_chart()
         self._update_status()
 

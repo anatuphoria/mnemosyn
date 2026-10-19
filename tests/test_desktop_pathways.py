@@ -108,14 +108,14 @@ def test_crossings_and_relays_light_nothing_and_keep_the_slice(window):
 def test_next_back_and_the_arrow_keys_stay_inside_the_route(window):
     panel = enter(window)
     panel.back()
-    assert panel.index == 0 and not window.chart.back_button.isEnabled()
+    assert panel.index == 0 and not panel.back_button.isEnabled()
     QTest.keyClick(panel, Qt.Key.Key_Right)
     QTest.keyClick(panel, Qt.Key.Key_Right)
     assert panel.index == 2
     QTest.keyClick(panel, Qt.Key.Key_Left)
     assert panel.index == 1
     panel.go(99)
-    assert panel.index == 5 and not window.chart.next_button.isEnabled()
+    assert panel.index == 5 and not panel.next_button.isEnabled()
     panel.next()
     assert panel.index == 5
 
@@ -273,10 +273,10 @@ def test_leaving_draws_the_3d_view_once(window):
 
 
 
-def test_the_pathway_page_keeps_only_the_leave_button(window):
+def test_the_pathway_page_holds_the_controls_and_the_leave_button(window):
     panel = enter(window)
-    assert not hasattr(panel, "back_button") and not hasattr(panel, "next_button")
+    assert not hasattr(window.chart, "back_button") and not hasattr(window.chart, "next_button")
     assert panel.leave_button.text() == "Leave pathway (Esc)"
-    assert window.chart.back_button.isEnabled() is False
+    assert panel.back_button.isEnabled() is False
     panel.go(2)
-    assert window.chart.back_button.isEnabled() and window.chart.next_button.isEnabled()
+    assert panel.back_button.isEnabled() and panel.next_button.isEnabled()

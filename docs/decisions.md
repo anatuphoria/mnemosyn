@@ -53,6 +53,7 @@ entry replaces it and the old one says so.
 | 45 | 2026-10-19 | Slice labels are sharp squares over a smooth MRI | in force |
 | 46 | 2026-10-19 | Slices zoom with the wheel and pan with the right button | in force |
 | 47 | 2026-10-19 | The Activity panel appears only for a route with a timeline | in force |
+| 48 | 2026-10-19 | Route play controls are media symbols in the Pathways panel | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -420,3 +421,16 @@ panel's full height (layout B, chosen by the owner from mockups).
 Why: a random placeholder wave took a fifth of the window for every structure, and the note under
 the stress-axis chart squashed its curves almost flat.
 Design: [slices and looks, section 4](specs/2026-10-19-slices-looks-design.md).
+
+## 48. Route play controls are media symbols in the Pathways panel
+
+2026-10-19. Back, play or pause, next and the speed picker sit in the Pathways panel just above the
+step list, for every route. They are drawn as the system's standard media symbols (skip back, play,
+pause, skip forward) with tooltips naming each and its key, and the speed picker shows "½×", "1×"
+and "2×". Space plays and pauses during a route from anywhere in the window, except while typing in
+a text field.
+Why: every route uses these controls, not only the routes with a timeline, so they cannot live in
+the Activity panel once it appears only for timelines (decision 47); media symbols are what people
+already know from video and music players.
+Replaces the part of the earlier layout that put these controls in the Activity panel.
+Design: [slices and looks, section 4a](specs/2026-10-19-slices-looks-design.md).

@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
-from cns_desktop.views.activity_chart import PAUSE, PLAY
+from cns_desktop.views.pathway_panel import PAUSE_TIP, PLAY_TIP
 
 MOOD_ROUTE = {111, 112, 101, 102, 120}
 
@@ -72,14 +72,14 @@ def test_play_steps_a_route_without_a_timeline(window):
     panel = window.pathways
     panel.open("loop")
     panel.play()
-    assert panel.playing and window.chart.play_button.text() == PAUSE
+    assert panel.playing and window.pathways.play_button.toolTip() == PAUSE_TIP
     panel.advance(2.9)
     assert panel.index == 0
     panel.advance(0.2)
     assert panel.index == 1
     for _ in range(4):
         panel.advance(3.0)
-    assert panel.index == 5 and not panel.playing and window.chart.play_button.text() == PLAY
+    assert panel.index == 5 and not panel.playing and window.pathways.play_button.toolTip() == PLAY_TIP
     panel.play()
     assert panel.index == 0
 
@@ -259,40 +259,76 @@ def test_selecting_off_the_route_while_playing_pauses(window):
     assert not panel.playing and window.state.selected == 131
 
 
-def test_the_control_bar_shows_only_in_pathway_mode(window):
+def test_the_controls_show_the_step_and_the_chart_the_time(window):
     chart, panel = window.chart, window.pathways
-    assert chart.controls.isHidden()
     panel.open("mood")
-    assert not chart.controls.isHidden()
-    assert chart.step_label.text() == "Step 1 of 4: Beta nucleus"
+    assert panel.step_label.text() == "Step 1 of 4: Beta nucleus"
     assert chart.time_label.text() == "0 / 60 min"
-    panel.leave()
-    assert chart.controls.isHidden()
 
 
-def test_the_control_bar_drives_the_route(window):
+def test_the_controls_drive_the_route(window):
     chart, panel = window.chart, window.pathways
     panel.open("loop")
-    chart.next_button.click()
-    assert panel.index == 1 and chart.step_label.text() == "Step 2 of 6: ✕ Toy crossing"
-    chart.back_button.click()
+    panel.next_button.click()
+    assert panel.index == 1 and panel.step_label.text() == "Step 2 of 6: ✕ Toy crossing"
+    panel.back_button.click()
     assert panel.index == 0
-    chart.play_button.click()
-    assert panel.playing and chart.play_button.text() == PAUSE
-    chart.play_button.click()
-    assert not panel.playing and chart.play_button.text() == PLAY
+    panel.play_button.click()
+    assert panel.playing and panel.play_button.toolTip() == PAUSE_TIP
+    panel.play_button.click()
+    assert not panel.playing and panel.play_button.toolTip() == PLAY_TIP
     assert chart.time_label.text() == ""
 
 
+def test_the_controls_are_media_symbols_with_named_tips(window):
+    panel = window.pathways
+    panel.open("loop")
+    assert panel.play_button.text() == "" and not panel.play_button.icon().isNull()
+    assert panel.play_button.toolTip() == "Play (Space)"
+    assert panel.back_button.toolTip() == "Back (Left)"
+    assert panel.next_button.toolTip() == "Next (Right)"
+    assert [panel.speed_picker.itemText(i) for i in range(3)] == ["½×", "1×", "2×"]
+    playing_icon = panel.play_button.icon().cacheKey()
+    panel.play()
+    assert panel.play_button.toolTip() == "Pause (Space)"
+    assert panel.play_button.icon().cacheKey() != playing_icon
+
+
+def test_the_controls_sit_above_the_steps_on_every_route(window, qapp):
+    panel = window.pathways
+    window.pathway_dock.raise_()
+    panel.open("loop")
+    qapp.processEvents()
+    assert panel.play_button.isVisible()
+    top_of_steps = panel.steps.mapTo(panel, panel.steps.rect().topLeft()).y()
+    assert panel.play_button.mapTo(panel, panel.play_button.rect().bottomLeft()).y() <= top_of_steps
+
+
+def test_space_plays_from_anywhere_during_a_route(window, qapp):
+    window.pathways.open("loop")
+    window.view.setFocus()
+    QTest.keyClick(window.view, Qt.Key.Key_Space)
+    assert window.pathways.playing
+
+
+def test_space_in_the_search_box_types_a_space_during_a_route(window, qapp):
+    window.pathways.open("loop")
+    window.tree_dock.raise_()
+    box = window.tree.filter_box
+    box.setFocus()
+    QTest.keyClicks(box, "a b")
+    assert box.text() == "a b" and not window.pathways.playing
+
+
 def test_speed_scales_playback_without_pausing(window):
-    chart, panel = window.chart, window.pathways
+    panel = window.pathways
     panel.open("mood")
     panel.play()
-    chart.speed.setCurrentIndex(2)
+    panel.speed_picker.setCurrentIndex(2)
     assert panel.playing and panel.speed == 2.0
     panel.advance(1.0)
     assert panel.time == pytest.approx(20.0) and panel.index == 2
-    chart.speed.setCurrentIndex(0)
+    panel.speed_picker.setCurrentIndex(0)
     panel.open("loop")
     panel.play()
     panel.advance(3.0)
@@ -301,20 +337,14 @@ def test_speed_scales_playback_without_pausing(window):
     assert panel.index == 1
 
 
-def test_space_on_the_chart_toggles_play(window):
-    window.pathways.open("loop")
-    QTest.keyClick(window.chart, Qt.Key.Key_Space)
-    assert window.pathways.playing
-
-
-def test_a_quiz_hides_the_control_bar(window):
+def test_a_quiz_ends_the_route_and_its_play_key(window):
     import random
 
     from cns_study.session import QuizChoice
 
     window.pathways.open("mood")
     window.start_quiz(QuizChoice("name-typed", "structures", None, False), rng=random.Random(1))
-    assert window.chart.controls.isHidden()
+    assert not window.pathway_active and not window.shortcuts["Play or pause"].isEnabled()
     window.quiz.stop()
 
 
