@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         self.quiz_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
         self.quiz_dock.hide()
         self.splitDockWidget(self.slice_dock, self.info_dock, Qt.Orientation.Horizontal)
-        self.resizeDocks([self.tree_dock, self.slice_dock, self.info_dock], [250, 420, 300],
+        self.resizeDocks([self.tree_dock, self.slice_dock, self.info_dock], [320, 380, 270],
                          Qt.Orientation.Horizontal)
         self._sync_chart()
 

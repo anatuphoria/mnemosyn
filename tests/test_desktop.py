@@ -985,6 +985,11 @@ def test_the_info_panel_names_the_side_but_not_the_drawing_kind(window):
     assert "midline" not in window.info.html_for(120).split("</h2>")[1].split("</p>")[0]
 
 
+def test_the_structures_panel_opens_wide_enough_for_common_names(window, qapp):
+    qapp.processEvents()
+    assert window.tree_dock.width() >= 310 and window.view.width() >= 400
+
+
 def test_tree_items_show_their_full_name_on_hover(window):
     item = window.tree.items[101]
     assert item.toolTip(0) == window.state.atlas.get(101).name
