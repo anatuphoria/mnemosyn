@@ -22,7 +22,7 @@ desktop = [
 ]
 atlas-build = ["vtk>=9.4", "pyvista>=0.44", "scipy>=1.11"]
 package = ["pyinstaller>=6.22,<7"]
-brand = ["fonttools>=4.50"]
+brand = ["fonttools>=4.50", "PySide6-Essentials>=6.8"]
 
 [project.scripts]
 cns-desktop = "cns_desktop.app:main"

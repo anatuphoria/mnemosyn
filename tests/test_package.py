@@ -94,3 +94,5 @@ def test_the_packaged_app_reaches_its_first_frame(tmp_path):
                             capture_output=True, text=True, timeout=120, check=False)
     assert result.returncode == 0, result.stderr[-2000:]
     assert "first frame:" in result.stdout
+    resources = folder / "_internal" / "cns_desktop" / "resources"
+    assert (resources / "mark.png").exists() and (resources / "wordmark.svg").exists()

@@ -47,10 +47,12 @@ def text_path(face: TTFont, text: str, size: float, tracking: float = 0.0,
 
 def glyph_bounds(face: TTFont, char: str, size: float,
                  weight: float | None = None) -> tuple[float, float, float, float]:
-    glyphs = glyph_set(face, weight)
+    glyphs, cmap = glyph_set(face, weight), face.getBestCmap()
+    if ord(char) not in cmap:
+        raise BrandError(f"{char!r} is not in {Path(face.reader.file.name).stem}")
     scale = size / face["head"].unitsPerEm
     pen = BoundsPen(glyphs)
-    glyphs[face.getBestCmap()[ord(char)]].draw(TransformPen(pen, (scale, 0, 0, -scale, 0, 0)))
+    glyphs[cmap[ord(char)]].draw(TransformPen(pen, (scale, 0, 0, -scale, 0, 0)))
     return pen.bounds
 
 

@@ -36,3 +36,4 @@
 @media (max-width: 60em) { .features { grid-template-columns: repeat(2, 1fr); } .start { grid-template-columns: 1fr; } .stats { gap: 1.5rem; flex-wrap: wrap; } }
 @media (max-width: 30em) { .features { grid-template-columns: 1fr; } }
 .request-form { width: 100%; height: 60rem; border: 0; border-radius: .4rem; background: #fff; }
+[data-md-color-scheme="default"] .md-header, [data-md-color-scheme="default"] .md-tabs { background-color: #16161d; }

@@ -111,8 +111,24 @@ Specialists can help: download the review booklet and ask for access to the answ
 ```bash
 .venv/bin/python -m pytest            # fast suite, including lint (ruff) at zero findings
 .venv/bin/python -m pytest -m slow    # with the real atlas built: speed limits and builds
+pip install "mkdocs>=1.6,<2" "mkdocs-material>=9.5,<10"
 python -m tools.build_site && mkdocs serve   # preview the website
-python -m tools.brand                 # redraw the logo, icons and badges
+.venv/bin/pip install -e ".[brand]" && .venv/bin/python -m tools.brand   # redraw logo and badges
+```
+
+```
+cns_atlas/          atlas package loader (no Qt): model, meshes, knowledge, volume, atlas
+cns_desktop/        desktop app: app, main_window, state, views/, resources/ (icon, wordmark)
+cns_study/          quizzes: items, answers, choices, sessions, FSRS progress
+tools/build_atlas/  atlas build tool: recipe, hierarchy, validate, fetch, labels, meshing,
+                    compare, writer
+tools/package/      Windows installer and Linux AppImage packaging
+tools/brand/        draws the logo, icons and badges from the fonts in brand/fonts/
+tools/build_site.py writes the website pages; site/ holds their sources and styles
+atlas_src/          committed atlas sources: recipe, structures, ids.lock, knowledge, LICENSES
+brand/              logo, badges, dividers, screenshot and the two fonts with their licences
+docs/               design documents (specs/), the decision log and packaging instructions
+tests/
 ```
 
 The code is under the GNU General Public License v3.0 or later (`LICENSE`); the descriptions are CC

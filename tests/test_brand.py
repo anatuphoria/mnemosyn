@@ -88,3 +88,27 @@ def test_every_brand_file_the_readme_uses_exists():
 
     for path in re.findall(r'(?:src|srcset)="(brand/[^"]+)"', README.read_text()):
         assert (brand.ROOT / path).exists(), path
+
+
+def test_the_committed_brand_files_match_the_project_version(tmp_path):
+    for path in brand.write_all(tmp_path, brand.project_version()):
+        if path.suffix == ".svg":
+            name = path.relative_to(tmp_path)
+            assert (brand.ROOT / name).read_text() == path.read_text(), (
+                f"{name} is out of date; run python -m tools.brand")
+
+
+def test_a_missing_mark_glyph_is_named():
+    with pytest.raises(brand.BrandError, match="not in NotoSansBamum"):
+        brand.glyph_bounds(brand.font("NotoSansBamum.ttf"), "\U0001f600", 100)
+
+
+def test_the_readme_keeps_the_layout_and_the_site_preview_setup():
+    text = README.read_text()
+    assert "cns_desktop/" in text and "tools/brand/" in text and "brand/" in text
+    assert 'pip install "mkdocs>=1.6,<2" "mkdocs-material>=9.5,<10"' in text
+
+
+def test_the_light_website_header_stays_dark_for_the_mark():
+    css = (brand.ROOT / "site/stylesheets/extra.css").read_text()
+    assert '[data-md-color-scheme="default"] .md-header' in css
