@@ -21,6 +21,7 @@ desktop = [
   "fsrs>=6.3,<7",
 ]
 atlas-build = ["vtk>=9.4", "pyvista>=0.44", "scipy>=1.11"]
+package = ["pyinstaller>=6.22,<7"]
 
 [project.scripts]
 cns-desktop = "cns_desktop.app:main"

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Mnemosyn
+Comment=A 3D atlas of the human central nervous system for students
+Exec=Mnemosyn
+Icon=mnemosyn
+Categories=Education;Science;MedicalSoftware;
+Terminal=false
