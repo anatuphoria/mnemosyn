@@ -17,8 +17,8 @@ theme:
     - scheme: default
       primary: indigo
       toggle: {icon: material/weather-night, name: Dark}
-  icon:
-    logo: material/brain
+  logo: assets/mark.svg
+  favicon: assets/favicon.png
   features: [navigation.tabs, navigation.sections, navigation.top, navigation.instant, search.highlight, content.code.copy, toc.follow]
 extra:
   social:

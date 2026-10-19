@@ -22,7 +22,7 @@
 .features > div { border: 1px solid var(--md-default-fg-color--lightest); border-radius: .4rem; padding: .9rem 1rem; font-size: .72rem; }
 .md-typeset .features p { margin: .3em 0; }
 .feature-icon { color: #3d6fd6; font-size: 1.4rem; }
-.stats { display: flex; justify-content: center; gap: 3rem; padding: 1rem 0; margin: 1.4rem 0; border-top: 1px solid var(--md-default-fg-color--lightest); border-bottom: 1px solid var(--md-default-fg-color--lightest); font-size: .7rem; color: var(--md-default-fg-color--light); text-transform: uppercase; letter-spacing: .08em; }
+.stats { display: flex; justify-content: center; gap: 3rem; padding: 1rem 0; margin: 1.4rem 0; border: 0; background: url(../assets/divider.svg) top / auto 10px repeat-x, url(../assets/divider.svg) bottom / auto 10px repeat-x; font-size: .7rem; color: var(--md-default-fg-color--light); text-transform: uppercase; letter-spacing: .08em; }
 .stats div { text-align: center; }
 .stats span { display: block; font-size: 1.3rem; color: var(--md-default-fg-color); letter-spacing: 0; }
 .md-typeset h2.section-title { font-size: .95rem; margin: 1.6rem 0 .8rem; }

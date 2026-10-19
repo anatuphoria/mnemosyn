@@ -9,10 +9,6 @@ from pathlib import Path
 LOCK = ' :material-lock-outline:{ title="local builds only" }'
 
 
-def _sections(readme: str) -> dict[str, str]:
-    return dict(re.findall(r"^## (.+?)\n(.*?)(?=^## |\Z)", readme, re.DOTALL | re.MULTILINE))
-
-
 def _sources(recipe: dict) -> list[dict]:
     return recipe["sources"] + recipe.get("tracts", []) + recipe.get("templates", [])
 
@@ -180,7 +176,6 @@ def build_site(repo: Path, out: Path) -> None:
     shutil.copytree(repo / "site", out)
     (out / "atlas").mkdir()
     (out / "design").mkdir()
-    sections = _sections((repo / "README.md").read_text())
     structures = tomllib.loads((repo / "atlas_src/structures.toml").read_text())
     sources = _sources(tomllib.loads((repo / "atlas_src/recipe.toml").read_text()))
     local = {s["id"] for s in sources if s.get("local_only")}
@@ -198,9 +193,9 @@ def build_site(repo: Path, out: Path) -> None:
     (out / "reviewers.md").write_text(_reviewers_page(review))
     published = tomllib.loads((out / "download.toml").read_text()).get("version", "")
     (out / "download.toml").unlink()
-    (out / "download.md").write_text(_download_page(published, sections["Quickstart"]))
-    (out / "guide.md").write_text("# Using the app\n" + sections["Desktop app"])
-    (out / "performance.md").write_text("# Performance\n" + sections["Performance"])
+    from_source = (out / "build-from-source.md").read_text()
+    (out / "build-from-source.md").unlink()
+    (out / "download.md").write_text(_download_page(published, from_source))
     (out / "atlas/structures.md").write_text(_structures_page(structures, local))
     (out / "atlas/sources.md").write_text(_sources_page(sources, local))
     (out / "decisions.md").write_text(decisions.replace("](specs/", "](design/"))

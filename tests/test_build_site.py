@@ -136,3 +136,22 @@ def test_before_the_first_release_the_buttons_say_coming_soon(tmp_path):
     page = (tmp_path / "out/download.md").read_text()
     assert "coming soon" in page.lower() and "releases/download" not in page
     assert "## Build from source" in page
+
+
+def test_the_website_keeps_its_pages_whatever_the_readme_says(tmp_path):
+    repo = review_settings(tmp_path)
+    (repo / "README.md").write_text("# Mnemosyn\n\nA short front page.\n")
+    build_site(repo, tmp_path / "out")
+    guide = (tmp_path / "out/guide.md").read_text()
+    assert guide.startswith("# Using the app") and "| Key | Action |" in guide
+    assert "| `F` | Frame the selection" in guide and "Tracts" in guide
+    performance = (tmp_path / "out/performance.md").read_text()
+    assert "Budgets enforced by" in performance and ".timing-baseline.json" in performance
+    download = (tmp_path / "out/download.md").read_text()
+    assert "## Build from source" in download and "pip install -e" in download
+
+
+def test_the_website_wears_the_mark():
+    config = (REPO / "mkdocs.yml").read_text()
+    assert "logo: assets/mark.svg" in config and "favicon: assets/favicon.png" in config
+    assert "assets/divider.svg" in (REPO / "site/stylesheets/extra.css").read_text()
