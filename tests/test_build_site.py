@@ -25,7 +25,8 @@ def test_site_pages_come_from_the_repo(tmp_path):
     assert "](specs/" not in decisions and "](design/" in decisions
     design = (tmp_path / "design/index.md").read_text()
     assert all(spec.name in design for spec in (REPO / "docs/specs").glob("*.md"))
-    assert (tmp_path / "install.md").read_text().startswith("# Install")
+    assert (tmp_path / "download.md").read_text().startswith("# Download")
+    assert not (tmp_path / "install.md").exists()
     assert (tmp_path / "stylesheets/extra.css").exists()
 
 
@@ -49,8 +50,8 @@ def test_readme_code_spans_stay_on_one_line():
 
 def review_settings(tmp_path, **changes):
     repo = tmp_path / "repo"
-    shutil.copytree(REPO, repo, ignore=shutil.ignore_patterns(".git", ".venv", "atlases", "build",
-                                                              "review", "*.pyc", "__pycache__"))
+    skipped = (".git", ".venv", "atlases", "build", "dist", "review", "*.pyc", "__pycache__")
+    shutil.copytree(REPO, repo, ignore=shutil.ignore_patterns(*skipped))
     settings = tomllib.loads((repo / "site/review.toml").read_text())
     settings.update(changes)
     lines = [f"{key} = {json.dumps(value)}" for key, value in settings.items()
@@ -100,9 +101,37 @@ def test_the_home_page_invites_specialists_without_changing_its_layout(tmp_path)
     home = (tmp_path / "out/index.md").read_text()
     assert "Help us review it](review.md)" in home
     assert home.count('<div class="start" markdown>') == 1
-    assert home.count("](install.md)") == 2 and "](guide.md)" in home
+    assert home.count("](download.md)") == 2 and "](guide.md)" in home
+    assert "install.md" not in home and "[Download](download.md)" in home
 
 
 def test_the_review_pages_are_in_the_navigation():
     nav = (REPO / "mkdocs.yml").read_text()
     assert "review.md" in nav and "reviewers.md" in nav
+    assert "Download: download.md" in nav and "install.md" not in nav
+
+
+def download_settings(tmp_path, released):
+    repo = review_settings(tmp_path)
+    (repo / "site/download.toml").write_text(f"released = {str(released).lower()}\n")
+    return repo
+
+
+def test_the_download_page_links_this_versions_files(tmp_path):
+    build_site(download_settings(tmp_path, True), tmp_path / "out")
+    page = (tmp_path / "out/download.md").read_text()
+    base = "https://github.com/anatuphoria/mnemosyn/releases/download/v0.1.0/"
+    assert f"]({base}Mnemosyn-0.1.0-Setup.exe)" in page
+    assert f"]({base}Mnemosyn-0.1.0-x86_64.AppImage)" in page
+    assert "releases/tag/v0.1.0" in page and "SHA256SUMS.txt" in page
+    assert "Windows 10" in page and "OpenGL 3.2" in page
+    assert "Run anyway" in page and "chmod +x" in page
+    assert "shareable" in page.lower() and "test version" in page.lower()
+    assert "## Build from source" in page and "pip install" in page
+
+
+def test_before_the_first_release_the_buttons_say_coming_soon(tmp_path):
+    build_site(download_settings(tmp_path, False), tmp_path / "out")
+    page = (tmp_path / "out/download.md").read_text()
+    assert "coming soon" in page.lower() and "releases/download" not in page
+    assert "## Build from source" in page

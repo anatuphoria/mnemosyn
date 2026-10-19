@@ -11,7 +11,7 @@ hide: [navigation, toc]
 A free 3D atlas of the human central nervous system for students. Turn it, slice it, follow a
 pathway through it and test yourself on it. Every shape comes from open, cited research data.
 
-[Install](install.md){ .md-button .md-button--primary } [What is inside](atlas/structures.md){ .md-button }
+[Download](download.md){ .md-button .md-button--primary } [What is inside](atlas/structures.md){ .md-button }
 
 </div>
 
@@ -62,7 +62,7 @@ Name it, find it and flashcards with spaced repetition.
 
 <div class="start" markdown>
 
-[:material-download: **Install**<br>Get the app and build the atlas on your computer](install.md)
+[:material-download: **Download**<br>Get the app for Windows or Linux](download.md)
 
 [:material-mouse: **Using the app**<br>Keys, panels, slices, routes and quizzes](guide.md)
 

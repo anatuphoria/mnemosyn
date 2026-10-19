@@ -46,7 +46,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Get started:
-      - Install: install.md
+      - Download: download.md
       - Using the app: guide.md
   - The atlas:
       - Structures: atlas/structures.md
