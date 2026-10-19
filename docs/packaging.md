@@ -84,8 +84,8 @@ other than 3.14, Inno Setup not installed, or a source file with a different nam
 
 ## A public release
 
-1. Set the new version in `pyproject.toml` (for example `version = "0.2.0"`), commit it and push
-   `main`.
+1. Set the new version in `pyproject.toml` (for example `version = "0.2.0"`), run
+   `python -m tools.brand` so the release badge shows it, commit both and push `main`.
 2. Tag that commit and push the tag:
 
    ```bash

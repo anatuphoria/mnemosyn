@@ -66,6 +66,8 @@ entry replaces it and the old one says so.
 | 58 | 2026-10-19 | Test releases are not signed | in force |
 | 59 | 2026-10-19 | Local-only data may be packaged for the owner's own machines, never shared | in force |
 | 60 | 2026-10-19 | Releases come from version tags, as pre-releases below 1.0 | in force |
+| 61 | 2026-10-19 | ΜΝΗΜΟΣΥΝΗ is the project's identity | in force |
+| 62 | 2026-10-19 | The README is a clean front page; the website holds the details | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -570,3 +572,25 @@ Download page, whose buttons point at the version set in `site/download.toml` on
 is published.
 Why: one reproducible path from a tag to the files students download, with no hand-made uploads.
 Design: [packaging, sections 5 and 6](specs/2026-10-19-packaging-design.md).
+
+## 61. ΜΝΗΜΟΣΥΝΗ is the project's identity
+
+2026-10-19, chosen by the owner from mockups. The wordmark is ΜΝΗΜΟΣΥΝΗ in GFS Didot, spaced like an
+inscription, between two blue Greek key (meander) bands; the mark is the single character 𖡎
+(Bamum letter MAEM, chosen for its shape) on the app's dark square, used as the app, installer,
+AppImage and website icon; the meander is the divider between sections; the badges are our own, in
+the same lettering between thin rules. Everything is drawn as outlines by `python -m tools.brand`
+from the two fonts kept in `brand/fonts/` under the SIL Open Font Licence.
+Why: the owner likes the Greek letters in this classical style and wants them to be the look of the
+whole project, not only the website's home page.
+Design: [identity](specs/2026-10-19-identity-design.md).
+
+## 62. The README is a clean front page; the website holds the details
+
+2026-10-19. The README keeps what a visitor needs (what Mnemosyn is, a screenshot, how to get or
+build it, the data sources and their licences, the disclaimer and review, how to contribute) and
+links to the website for everything detailed. The website keeps all its content in its own files
+and no longer builds pages from README sections.
+Why: since the website exists it is the full documentation, and the README had grown into a second
+copy of it.
+Design: [identity, sections 4 and 5](specs/2026-10-19-identity-design.md).
