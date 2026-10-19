@@ -3,7 +3,7 @@
 Date: 2026-10-18
 Status: described in discussion; builder check done; awaiting the owner's review
 Branch: `spinal-cord` (C2 stays unmerged until every audit item is fixed)
-Audit: `.superpowers/audit-2026-10-13.md` items 1, 2, 6 and 9
+Audit: the 2026-10-13 audit, items 1, 2, 6 and 9
 
 ## 1. Why
 

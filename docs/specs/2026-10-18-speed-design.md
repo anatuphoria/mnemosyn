@@ -3,7 +3,7 @@
 Date: 2026-10-18
 Status: approved by the owner on 2026-10-18; built on `spinal-cord`
 Branch: `spinal-cord` (C2 stays unmerged until every audit item is fixed)
-Audit: `.superpowers/audit-2026-10-18.md` section 2 (old audit items 17, 21 and 23)
+Audit: the 2026-10-18 audit, section 2 (old audit items 17, 21 and 23)
 
 ## 1. Why
 
