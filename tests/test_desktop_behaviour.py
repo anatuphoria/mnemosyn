@@ -408,3 +408,15 @@ def test_a_crossing_station_is_labelled_with_a_cross(window):
     panel = window.pathways
     panel.open("loop")
     assert panel.label(9, Station((110,), "opposite", crossing=True)) == "9 ✕ Beta nucleus (right)"
+
+
+def test_stopping_a_quiz_mid_question_ends_the_fade(window):
+    import random
+
+    from cns_study.session import QuizChoice
+
+    window.pathways.open("mood")
+    window.start_quiz(QuizChoice("name-typed", "structures", None, False), rng=random.Random(1))
+    assert window.state.focus == frozenset(window.quiz.item.geometry)
+    window.quiz.stop()
+    assert window.state.focus is None and not window.pathway_active

@@ -345,3 +345,10 @@ def test_a_selection_returns_before_the_3d_view_redraws(window, qapp):
     assert renders[0] == 0
     qapp.processEvents()
     assert renders[0] == 1
+
+
+def test_the_tract_quiz_keeps_dimming_without_a_fade(window):
+    opacity = window.view.chunks.actors[0].GetProperty().GetOpacity
+    quiz = start_quiz(window, "name-typed", "tracts")
+    assert window.state.focus is None and opacity() == pytest.approx(0.15)
+    quiz.stop()

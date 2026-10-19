@@ -54,6 +54,7 @@ entry replaces it and the old one says so.
 | 46 | 2026-10-19 | Slices zoom with the wheel and pan with the right button | in force |
 | 47 | 2026-10-19 | The Activity panel appears only for a route with a timeline | in force |
 | 48 | 2026-10-19 | Route play controls are media symbols in the Pathways panel | in force |
+| 49 | 2026-10-19 | Name it and Flashcards fade everything but the asked structure | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -434,3 +435,16 @@ the Activity panel once it appears only for timelines (decision 47); media symbo
 already know from video and music players.
 Replaces the part of the earlier layout that put these controls in the Activity panel.
 Design: [slices and looks, section 4a](specs/2026-10-19-slices-looks-design.md).
+
+## 49. Name it and Flashcards fade everything but the asked structure
+
+2026-10-18 (Name it, the owner) and 2026-10-19 (Flashcards, the builder's call the owner checked).
+While a Name it question or a flashcard is shown, the asked structure stays solid and everything
+else fades, in 3D and in the slice, the same way a route step fades all but its stations. Find it
+never fades, because fading would point at the answer; the tract quiz keeps dimming the grey
+matter as before. The fade ends with the quiz or on its summary screen.
+Why: a small buried structure, such as a hypothalamic nucleus, showed in 3D only as a tiny ring on
+the cortex, so only the slice made the question answerable.
+Cost: starting a quiz takes about 45 ms instead of 22 and each next question about 13 ms instead of
+7 (limits 100 and 50 ms), because the whole brain is redrawn see-through.
+Design: [slices and looks, section 5](specs/2026-10-19-slices-looks-design.md).

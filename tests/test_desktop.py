@@ -420,6 +420,36 @@ def start_quiz(window, mode, practice=False, level="structures", scope=None):
     return window.quiz
 
 
+@pytest.mark.parametrize("mode", ["name-typed", "name-choice"])
+def test_naming_quizzes_fade_all_but_the_asked_structure(window, mode):
+    quiz = start_quiz(window, mode)
+    assert window.state.focus == frozenset(quiz.item.geometry)
+    quiz.stop()
+    assert window.state.focus is None
+
+
+def test_flashcards_fade_all_but_the_asked_structure(reviewed_window):
+    quiz = start_quiz(reviewed_window, "flashcard")
+    assert reviewed_window.state.focus == frozenset(quiz.item.geometry)
+    quiz.stop()
+    assert reviewed_window.state.focus is None
+
+
+def test_find_it_does_not_fade(window):
+    quiz = start_quiz(window, "find")
+    assert window.state.focus is None
+    quiz.stop()
+
+
+def test_the_summary_screen_ends_the_fade(window):
+    quiz = start_quiz(window, "name-typed")
+    while quiz.item is not None:
+        quiz.submit_text(quiz.item.name)
+        quiz.go_on()
+    assert quiz.phase == "summary" and window.state.focus is None
+    quiz.stop()
+
+
 def test_quiz_mode_hides_giveaways_and_restores_the_window(window):
     window.state.set_hidden([102], True)
     window.state.select(111)

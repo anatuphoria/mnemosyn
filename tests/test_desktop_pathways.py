@@ -195,7 +195,8 @@ def test_a_quiz_leaves_pathway_mode_first(window):
     enter(window)
     window.start_quiz(QuizChoice("name-typed", "structures", None, False),
                       rng=random.Random(1))
-    assert not window.pathway_active and state.focus is None and window.quiz_active
+    assert not window.pathway_active and window.quiz_active
+    assert state.focus == frozenset(window.quiz.item.geometry)
     assert not window.pathway_dock.toggleViewAction().isEnabled()
     window.quiz.stop()
     assert state.selected == 132 and window.pathway_dock.toggleViewAction().isEnabled()

@@ -170,6 +170,8 @@ class QuizPanel(QWidget):
     def _present(self, item: Item) -> None:
         self.options = []
         self.dim_grey.emit(item.level == "tracts" and self.mode != "find")
+        naming = self.mode != "find" and item.level != "tracts"
+        self.state.set_focus(frozenset(item.geometry) if naming else None)
         if item.level == "tracts" and self.mode != "find":
             self.state.set_hidden([i for i in self.state.tract_ids if i not in item.geometry],
                                   True)
@@ -266,6 +268,7 @@ class QuizPanel(QWidget):
         self.item, self.phase, self.options = None, "summary", []
         self._select(None)
         self.dim_grey.emit(False)
+        self.state.set_focus(None)
         missed = ", ".join(item.name for item in summary.most_missed) or "none"
         lines = [f"{summary.answered} answered, {summary.percent}% correct",
                  f"Most missed: {escape(missed)}"]
@@ -285,6 +288,7 @@ class QuizPanel(QWidget):
         self.phase, self.item, self.session, self.options = "idle", None, None, []
         self.find_target.emit(frozenset())
         self.dim_grey.emit(False)
+        self.state.set_focus(None)
         self._layout()
         self.finished.emit()
 
