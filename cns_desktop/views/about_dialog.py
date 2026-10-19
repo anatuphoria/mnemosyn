@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import sys
 from html import escape
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QListWidget, QTabWidget,
@@ -18,7 +20,14 @@ def app_version() -> str:
     try:
         return version("mnemosyn")
     except PackageNotFoundError:
+        bundled = Path(getattr(sys, "_MEIPASS", "")) / "VERSION"
+        if getattr(sys, "frozen", False) and bundled.is_file():
+            return bundled.read_text(encoding="utf-8").strip()
         return "development"
+
+
+def is_test_version(text: str) -> bool:
+    return text.split(".")[0] == "0"
 
 
 def about_text(atlas: Atlas) -> str:
@@ -30,7 +39,9 @@ def about_text(atlas: Atlas) -> str:
                           for i in atlas.local_only)
         notice = ("<p><b>Local build, not for sharing.</b> It contains data that may not be "
                   f"shared yet: {names}.</p>")
-    return (f"<h3>{APP_NAME}</h3><p>Version {escape(app_version())}</p>"
+    current = app_version()
+    label = f"{current}, test version" if is_test_version(current) else current
+    return (f"<h3>{APP_NAME}</h3><p>Version {escape(label)}</p>"
             f"<p>{escape(DISCLAIMER)}</p>"
             f"<p>Atlas package: {name} {version}</p>{notice}")
 

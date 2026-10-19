@@ -7,6 +7,12 @@ from pathlib import Path
 
 STARTED = time.perf_counter()
 DEFAULT_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
+
+
+def default_atlas() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS) / "atlases" / "cns"
+    return DEFAULT_ATLAS
 DISCLAIMER_KEY = "disclaimer_hidden"
 
 
@@ -90,7 +96,8 @@ def run_benchmark(window, frames: int = 300) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Mnemosyn: a 3D atlas of the central nervous system")
-    parser.add_argument("--atlas", type=Path, default=DEFAULT_ATLAS, help="atlas package directory")
+    parser.add_argument("--atlas", type=Path, default=default_atlas(),
+                        help="atlas package directory")
     parser.add_argument("--bench", action="store_true", help="measure on-screen fps, then exit")
     parser.add_argument("--first-frame", action="store_true",
                         help="print the time to the first frame, then exit")
