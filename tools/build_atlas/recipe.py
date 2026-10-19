@@ -113,6 +113,21 @@ def _source(s: dict) -> Source:
                   provides=str(s.get("provides", "")))
 
 
+def _number(s: dict, key: str, default=None):
+    value = s.get(key, default)
+    if value is None or (isinstance(value, int | float) and not isinstance(value, bool)):
+        return None if value is None else float(value)
+    raise BuildError([f"source {s.get('id')}: {key} must be a number, not {value!r}"])
+
+
+def _member_paths(s: dict) -> tuple[tuple[str, str], ...]:
+    members = s.get("members", {})
+    wrong = [value for value in members.values() if not isinstance(value, str)]
+    if wrong:
+        raise BuildError([f"source {s.get('id')}: member paths must be text, not {wrong[0]!r}"])
+    return tuple((str(k), v) for k, v in members.items())
+
+
 def _source_spec(s: dict) -> SourceSpec:
     return SourceSpec(source=_source(s), download=s["download"], sha256=s["sha256"].lower(),
                       member=s.get("member", ""), label_names=s.get("label_names", ""),
@@ -121,16 +136,16 @@ def _source_spec(s: dict) -> SourceSpec:
                       licence_file=s.get("licence_file", ""), drop=tuple(s.get("drop", ())),
                       mesh_grid=str(s.get("mesh_grid", "label")),
                       local_only=s.get("local_only") is True, mask=s.get("mask") is True,
-                      threshold=float(s["threshold"]) if "threshold" in s else None,
-                      margin=float(s.get("margin", 0)), separate=s.get("separate") is True,
+                      threshold=_number(s, "threshold"),
+                      margin=_number(s, "margin", 0), separate=s.get("separate") is True,
                       fill=s.get("fill") is True,
                       parts=tuple(int(v) for v in s.get("parts", ())),
                       trim_outside=int(s["trim_outside"]) if "trim_outside" in s else None,
                       within=str(s.get("within", "")),
-                      tiles=float(s["tiles"]) if "tiles" in s else None,
+                      tiles=_number(s, "tiles"),
                       outline_of=str(s.get("outline_of", "")),
                       inside=str(s.get("inside", "")),
-                      members=tuple((str(k), str(v)) for k, v in s.get("members", {}).items()),
+                      members=_member_paths(s),
                       manual=s.get("manual") is True, crop=s.get("crop") is True)
 
 
@@ -149,6 +164,16 @@ def load_recipe(path: Path) -> Recipe:
                  if isinstance(t, dict) and "local_only" in t]
     if misplaced:
         raise BuildError(misplaced)
+    problems = []
+    for s in (*data.get("sources", []), *data.get("templates", [])):
+        try:
+            _source_spec(s)
+        except BuildError as exc:
+            problems += exc.problems
+        except KeyError:
+            pass
+    if problems:
+        raise BuildError(problems)
     try:
         return Recipe(
             name=data["name"],

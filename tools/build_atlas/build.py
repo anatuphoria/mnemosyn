@@ -144,6 +144,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     templates_used = [t for t in recipe.templates
                       if t.volume not in skipped_volumes and (local or not t.local_only)]
     problems = missing_manual(sources, cache, manual_dir)
+    problems += [f"tracts {t.source.id}: label volume {t.labels!r} is left out of this build"
+                 for t in recipe.tracts if t.labels in skipped_volumes]
     if problems:
         raise BuildError(problems)
     planned = build_tree(without_sources(raws, skipped))

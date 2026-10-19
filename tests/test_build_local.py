@@ -215,3 +215,11 @@ def test_the_report_has_warnings_size_and_plurals(local_src, tmp_path):
     lines = report.rstrip().splitlines()
     assert lines[-3].startswith("- package size: ") and lines[-2].startswith("- build time: ")
     assert lines[-1].startswith("- peak build memory: ") and lines[-1].endswith(" MB")
+
+
+def test_tracts_on_a_left_out_volume_are_a_build_problem(tmp_path):
+    src = write_extended_source_tree(tmp_path, tracts=True, spine=True)
+    edit_recipe(src, 'labels = "brain"', 'labels = "spine"')
+    with pytest.raises(BuildError) as error:
+        quiet_build(src, tmp_path / "out", tmp_path / "cache")
+    assert "tracts toytracts: label volume 'spine' is left out of this build" in str(error.value)

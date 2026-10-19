@@ -77,8 +77,18 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
             problems.append(f"source {name}: unknown volume {spec.volume!r}")
         if spec.mesh_grid not in MESH_GRIDS:
             problems.append(f"source {name}: mesh_grid must be one of {MESH_GRIDS}")
-        if spec.members and (spec.member or spec.label_names):
+        if spec.members and spec.member:
             problems.append(f"source {name}: give member or members, not both")
+        ignored = [key for key, value in (("drop", spec.drop), ("crop", spec.crop),
+                                          ("mask", spec.mask), ("label_names", spec.label_names))
+                   if spec.members and value]
+        if ignored:
+            problems.append(f"source {name}: drop, crop, mask and label_names do not apply to "
+                            f"members; remove {', '.join(ignored)}")
+        if spec.margin < 0:
+            problems.append(f"source {name}: margin must be zero or more, not {spec.margin}")
+        elif spec.margin and not spec.crop:
+            problems.append(f"source {name}: margin needs crop = true")
         if spec.manual and not spec.source.url:
             problems.append(f"source {name}: a manual source needs a url to download it from")
         if spec.separate and not spec.members:

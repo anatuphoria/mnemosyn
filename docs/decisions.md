@@ -57,6 +57,7 @@ entry replaces it and the old one says so.
 | 49 | 2026-10-19 | Name it and Flashcards fade everything but the asked structure | in force |
 | 50 | 2026-10-19 | The status bar shows the selection and the mouse hint only | in force |
 | 51 | 2026-10-19 | Full names in the tree, the side only in the info panel, wrapped route lists | in force |
+| 52 | 2026-10-19 | The atlas build never ignores a setting | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -472,3 +473,15 @@ and the step list wrap long names onto a second line instead of scrolling sidewa
 Why: names such as "Hippocampus (left)" were cut off at the old width, the drawing kind means
 nothing to a reader, and long route names hid behind a sideways scroll bar.
 Design: [slices and looks, section 7](specs/2026-10-19-slices-looks-design.md).
+
+## 52. The atlas build never ignores a setting
+
+2026-10-19. A recipe setting the build would not apply is a build problem, never silently skipped:
+multi-file sources reject drop, crop, mask and label_names; margin must be zero or more and needs
+crop; numbers and member paths must have the right type; tracts on a volume left out of the build
+are named. Bad data found while loading (an image with several frames, a missing channel, an
+empty cord piece) stops the build with a message that names the source and what to do. All
+problems found in one pass are listed together.
+Why: several settings were accepted and then quietly did nothing, and some mistakes crashed with a
+raw Python error (audit items 28 to 31).
+Design: [build checks and finish, section 2](specs/2026-10-19-build-checks-finish-design.md).

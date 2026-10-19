@@ -57,6 +57,54 @@ def test_member_rules(tmp_path, where, old, new, message):
     assert message in problems_for(src)
 
 
+@pytest.mark.parametrize(("setting", "keys"), [
+    ("drop = [3]", "drop"), ("crop = true", "crop"), ("mask = true", "mask"),
+    ('label_names = "names.txt"', "label_names"),
+])
+def test_member_sources_reject_settings_they_would_ignore(tmp_path, setting, keys):
+    src = write_extended_source_tree(tmp_path, tracts=False, members="download")
+    edit(src / "recipe.toml", 'url = "https://example.org/toy-masks"\n',
+         f'url = "https://example.org/toy-masks"\n{setting}\n')
+    assert (f"source toymembers: drop, crop, mask and label_names do not apply to members; "
+            f"remove {keys}") in problems_for(src)
+
+
+def test_member_paths_must_be_text(tmp_path):
+    src = write_extended_source_tree(tmp_path, tracts=False, members="download")
+    edit(src / "recipe.toml", 'Mid = "MEM/Mid.nii"', "Mid = 5")
+    with pytest.raises(BuildError) as error:
+        load_recipe(src / "recipe.toml")
+    assert error.value.problems == ["source toymembers: member paths must be text, not 5"]
+
+
+def test_a_non_numeric_threshold_is_a_build_error(tmp_path):
+    src = write_extended_source_tree(tmp_path, tracts=False, members="download")
+    edit(src / "recipe.toml", 'url = "https://example.org/toy-masks"\n',
+         'url = "https://example.org/toy-masks"\nthreshold = "high"\n')
+    with pytest.raises(BuildError) as error:
+        load_recipe(src / "recipe.toml")
+    assert error.value.problems == ["source toymembers: threshold must be a number, not 'high'"]
+
+
+@pytest.mark.parametrize(("setting", "message"), [
+    ("crop = true\nmargin = -2", "source toy: margin must be zero or more, not -2.0"),
+    ("margin = 4", "source toy: margin needs crop = true"),
+])
+def test_margin_rules(tmp_path, setting, message):
+    src = write_extended_source_tree(tmp_path, tracts=False)
+    edit(src / "recipe.toml", 'id = "toy"\n', f'id = "toy"\n{setting}\n')
+    assert message in problems_for(src)
+
+
+def test_several_recipe_mistakes_are_reported_together(tmp_path):
+    src = write_extended_source_tree(tmp_path, tracts=False, members="download")
+    edit(src / "recipe.toml", 'url = "https://example.org/toy-masks"\n',
+         'url = "https://example.org/toy-masks"\ndrop = [3]\nmargin = 4\n')
+    problems = problems_for(src)
+    assert any("do not apply to members" in p for p in problems)
+    assert "source toymembers: margin needs crop = true" in problems
+
+
 def test_member_names_resolve_to_label_numbers():
     from tools.build_atlas.hierarchy import RawStructure
 
