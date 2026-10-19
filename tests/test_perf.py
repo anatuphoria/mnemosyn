@@ -16,6 +16,7 @@ from timing_baseline import best_of
 pytestmark = pytest.mark.perf
 REAL_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
 GREY = (170, 170, 180)
+ONCE_RUNS = 7
 
 
 def large_structures(groups: int = 50, per_group: int = 99) -> list[Structure]:
@@ -265,7 +266,7 @@ print(started, times[len(times) // 2])
 def test_quiz_on_the_real_atlas_starts_under_100ms_and_moves_on_under_50ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
-    started, moved_on = run_timing(QUIZ_TIMING, atlas_path, tmp_path)
+    started, moved_on = run_timing(QUIZ_TIMING, atlas_path, tmp_path, runs=ONCE_RUNS)
     timing.assert_within({"start a quiz": (started, 0.100), "move on in a quiz": (moved_on, 0.050)})
 
 
@@ -322,7 +323,8 @@ print(first, median(toggles), median(redraws), median(lookups))
 def test_tracts_on_the_real_atlas_meet_their_budgets(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
-    first, toggle, redraw, lookup = run_timing(TRACT_TIMING, atlas_path, tmp_path)
+    first, toggle, redraw, lookup = run_timing(TRACT_TIMING, atlas_path, tmp_path,
+                                               runs=ONCE_RUNS)
     timing.assert_within({"show tracts the first time": (first, 0.500),
                           "show or hide tracts": (toggle, 0.050),
                           "redraw a slice with tracts": (redraw, 0.010),
@@ -386,7 +388,8 @@ print(entered, switched, sorted(steps)[int(len(steps) * 0.9)], sorted(ticks)[len
 def test_pathways_on_the_real_atlas_meet_their_budgets(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
-    entered, switched, step, tick = run_timing(PATHWAY_TIMING, atlas_path, tmp_path)
+    entered, switched, step, tick = run_timing(PATHWAY_TIMING, atlas_path, tmp_path,
+                                               runs=ONCE_RUNS)
     timing.assert_within({"enter a pathway": (entered, 0.100),
                           "switch a pathway's side": (switched, 0.100),
                           "cerebellar pathway step, 90th percentile": (step, 0.030),
@@ -487,7 +490,7 @@ print(cns, brain, cord)
 @pytest.mark.slow
 def test_first_large_group_selections_meet_20ms_after_warm_up(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
-    values = run_timing(GROUP_TIMING, real_atlas_or_skip(), tmp_path)
+    values = run_timing(GROUP_TIMING, real_atlas_or_skip(), tmp_path, runs=ONCE_RUNS)
     timing.assert_within({f"first selection of {name}": (value, 0.020)
                           for name, value in zip(("CNS", "Brain", "Spinal cord"), values)})
 
