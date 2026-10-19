@@ -73,6 +73,59 @@ def _sources_page(sources: list[dict], local: set[str]) -> str:
     return "\n".join(lines)
 
 
+def _review_page(settings: dict) -> str:
+    editions = settings.get("editions", [])
+    latest = editions[0]
+    form = settings.get("request_form", "")
+    contact = settings["contact"]
+    lines = ["# Review the atlas\n",
+             "Mnemosyn asks specialists in neuroanatomy, neurology, neurosurgery, psychiatry and "
+             "related fields to check its anatomy and clinical texts before students learn from "
+             "them. The booklet explains what we are unsure of, chapter by chapter, and asks 50 "
+             "numbered questions.\n",
+             "## How to take part\n",
+             "1. Download the booklet below and read it.",
+             "2. Ask for access to the answer form with the request form on this page, giving the "
+             "date from which you would like to answer.",
+             f"3. Your request reaches us by email. We reply to you from {contact} with the link "
+             "to the answer form, on or before the date you asked for. The answer form link is "
+             "never published here.",
+             "4. Answer the questions in your own time; the form saves your answers when you "
+             "submit it.\n",
+             "## The booklet\n",
+             f"[:material-download: Download edition {latest['edition']} "
+             f"({latest['date']})]({latest['file']}){{ .md-button .md-button--primary }}\n",
+             "| Edition | Date | What changed |", "|---|---|---|"]
+    lines += [f"| Edition {e['edition']} | {e['date']} | {e['changes']} |" for e in editions]
+    lines += ["", "## Ask for access\n"]
+    if form:
+        lines.append(f'<iframe class="request-form" src="{form}?embedded=true" '
+                     'title="Request access to the review">Loading the form</iframe>\n')
+    else:
+        lines.append(f"Requests open soon. Until then, write to [{contact}](mailto:{contact}) "
+                     "with your name, speciality and the date you would like to start.\n")
+    lines += ["## Your data\n",
+              "The request form keeps your name, email address, speciality, institution if you "
+              "give it, the date you asked for and your consent to be contacted. It is stored in "
+              "a private Google Sheet owned by the project and used only to send you the answer "
+              "form link and to keep in touch about the review. We keep it until the review ends "
+              f"or until you ask us to delete it: write to [{contact}](mailto:{contact}).\n",
+              "Reviewers who choose to be credited are listed on the "
+              "[Reviewers](reviewers.md) page. Nobody is listed without that choice.\n"]
+    return "\n".join(lines)
+
+
+def _reviewers_page(settings: dict) -> str:
+    people = settings.get("reviewers", [])
+    if not people:
+        return ("# Reviewers\n\nThe list of reviewers starts when the first reviews are in. "
+                "Only reviewers who choose to be credited are listed.\n")
+    rows = [f"- {p['name']}, {p['institution']}" if p.get("institution") else f"- {p['name']}"
+            for p in people]
+    return ("# Reviewers\n\nSpecialists who reviewed the atlas and chose to be credited.\n\n"
+            + "\n".join(rows) + "\n")
+
+
 def build_site(repo: Path, out: Path) -> None:
     shutil.rmtree(out, ignore_errors=True)
     shutil.copytree(repo / "site", out)
@@ -90,6 +143,10 @@ def build_site(repo: Path, out: Path) -> None:
     for key, value in counts.items():
         home = home.replace(f"@{key}@", str(value))
     (out / "index.md").write_text(home)
+    review = tomllib.loads((out / "review.toml").read_text())
+    (out / "review.toml").unlink()
+    (out / "review.md").write_text(_review_page(review))
+    (out / "reviewers.md").write_text(_reviewers_page(review))
     (out / "install.md").write_text("# Install\n" + sections["Quickstart"])
     (out / "guide.md").write_text("# Using the app\n" + sections["Desktop app"])
     (out / "performance.md").write_text("# Performance\n" + sections["Performance"])

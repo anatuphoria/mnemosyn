@@ -51,6 +51,9 @@ nav:
   - The atlas:
       - Structures: atlas/structures.md
       - Data sources: atlas/sources.md
+  - Review:
+      - Take part: review.md
+      - Reviewers: reviewers.md
   - How it was made:
       - Decisions: decisions.md
       - Performance: performance.md

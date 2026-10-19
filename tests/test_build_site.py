@@ -1,4 +1,6 @@
+import json
 import re
+import shutil
 import tomllib
 from pathlib import Path
 
@@ -43,3 +45,64 @@ def test_readme_code_spans_stay_on_one_line():
             in_code = not in_code
         elif not in_code:
             assert line.count("`") % 2 == 0, f"README.md:{number}: {line}"
+
+
+def review_settings(tmp_path, **changes):
+    repo = tmp_path / "repo"
+    shutil.copytree(REPO, repo, ignore=shutil.ignore_patterns(".git", ".venv", "atlases", "build",
+                                                              "review", "*.pyc", "__pycache__"))
+    settings = tomllib.loads((repo / "site/review.toml").read_text())
+    settings.update(changes)
+    lines = [f"{key} = {json.dumps(value)}" for key, value in settings.items()
+             if not isinstance(value, list)]
+    for key in ("editions", "reviewers"):
+        for row in settings.get(key, []):
+            lines += [f"\n[[{key}]]"] + [f"{k} = {json.dumps(v)}" for k, v in row.items()]
+    (repo / "site/review.toml").write_text("\n".join(lines) + "\n")
+    return repo
+
+
+def test_the_review_page_offers_the_booklet_and_the_steps(tmp_path):
+    build_site(REPO, tmp_path / "out")
+    page = (tmp_path / "out/review.md").read_text()
+    settings = tomllib.loads((REPO / "site/review.toml").read_text())
+    latest = settings["editions"][0]
+    assert (REPO / "site" / latest["file"]).exists() and f"]({latest['file']})" in page
+    assert all(f"edition {e['edition']}" in page.lower() for e in settings["editions"])
+    assert "answer form link is never published" in page
+    assert settings["contact"] in page and "delet" in page.lower()
+
+
+def test_the_request_form_is_embedded_once_its_link_is_set(tmp_path):
+    url = "https://docs.google.com/forms/d/e/abc/viewform"
+    build_site(review_settings(tmp_path, request_form=url), tmp_path / "out")
+    page = (tmp_path / "out/review.md").read_text()
+    assert f'src="{url}?embedded=true"' in page and "open soon" not in page
+
+
+def test_without_a_form_link_requests_open_soon_by_email(tmp_path):
+    build_site(review_settings(tmp_path, request_form=""), tmp_path / "out")
+    page = (tmp_path / "out/review.md").read_text()
+    assert "open soon" in page and "<iframe" not in page
+
+
+def test_reviewers_are_listed_only_from_the_credit_list(tmp_path):
+    build_site(review_settings(tmp_path, reviewers=[]), tmp_path / "out")
+    assert "first reviews" in (tmp_path / "out/reviewers.md").read_text()
+    people = [{"name": "Dr A. Name", "institution": "Some University"}, {"name": "B. Other"}]
+    build_site(review_settings(tmp_path / "b", reviewers=people), tmp_path / "out2")
+    page = (tmp_path / "out2/reviewers.md").read_text()
+    assert "Dr A. Name, Some University" in page and "- B. Other\n" in page
+
+
+def test_the_home_page_invites_specialists_without_changing_its_layout(tmp_path):
+    build_site(REPO, tmp_path / "out")
+    home = (tmp_path / "out/index.md").read_text()
+    assert "Help us review it](review.md)" in home
+    assert home.count('<div class="start" markdown>') == 1
+    assert home.count("](install.md)") == 2 and "](guide.md)" in home
+
+
+def test_the_review_pages_are_in_the_navigation():
+    nav = (REPO / "mkdocs.yml").read_text()
+    assert "review.md" in nav and "reviewers.md" in nav

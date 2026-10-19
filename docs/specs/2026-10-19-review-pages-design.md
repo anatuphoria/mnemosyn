@@ -1,7 +1,7 @@
 # Review pages on the website
 
 Date: 2026-10-19
-Status: agreed with the owner in conversation on 2026-10-19; awaiting the owner's review of this text
+Status: approved by the owner on 2026-10-19; built on `main`
 Branch: `main` (a small project before packaging, sub-project F)
 
 ## 1. Why

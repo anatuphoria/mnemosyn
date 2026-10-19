@@ -73,4 +73,5 @@ Name it, find it and flashcards with spaced repetition.
 <p class="disclaimer" markdown>:material-information-outline: **A study project.** This atlas was not
 built or reviewed by a neuroanatomy specialist and may contain errors. It is not for diagnosis or
 treatment. Questions, corrections and feedback are welcome in
-[GitHub Discussions](https://github.com/anatuphoria/mnemosyn/discussions).</p>
+[GitHub Discussions](https://github.com/anatuphoria/mnemosyn/discussions). Are you a specialist?
+[Help us review it](review.md).</p>

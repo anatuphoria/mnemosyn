@@ -59,6 +59,9 @@ entry replaces it and the old one says so.
 | 51 | 2026-10-19 | Full names in the tree, the side only in the info panel, wrapped route lists | in force |
 | 52 | 2026-10-19 | The atlas build never ignores a setting | in force |
 | 53 | 2026-10-19 | Lint stays at zero, with settings that match the code | in force |
+| 54 | 2026-10-19 | The review booklet PDF is published on the website | in force |
+| 55 | 2026-10-19 | Access to the review form is by request and the owner's reply | in force |
+| 56 | 2026-10-19 | Reviewers are credited on the website only with their consent | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -497,3 +500,31 @@ folder, which is never committed, is left out. The code needs numpy 2 or later.
 Why: 138 findings nobody read hid the few real ones (unused imports, an unused import that a test
 relied on, needless casts).
 Design: [build checks and finish, section 4](specs/2026-10-19-build-checks-finish-design.md).
+
+## 54. The review booklet PDF is published on the website
+
+2026-10-19. The latest edition of the specialist review booklet can be downloaded from the
+website's Review page, and every edition is listed with its date and what changed. Only the PDF is
+committed (under `site/files/`); the rest of the review material stays out of git. The booklet
+and the Review page give the owner's Gmail as the contact.
+Why: the project is open source and open to specialist review, and reviewers could not find the
+booklet unless they were emailed it.
+Design: [review pages, sections 3 and 4](specs/2026-10-19-review-pages-design.md).
+
+## 55. Access to the review form is by request and the owner's reply
+
+2026-10-19. A specialist asks for access with a short request form on the Review page (name,
+email, speciality, institution if they wish, the date they want access from, consent to be
+contacted). Each request reaches the owner by email and is kept in a private sheet; the owner
+replies with the answer form link on or before that date. The answer form link is never published.
+Why: an open answer form would attract spam and answers from people outside the field, and the
+statistics need to know who answered.
+Design: [review pages, section 2](specs/2026-10-19-review-pages-design.md).
+
+## 56. Reviewers are credited on the website only with their consent
+
+2026-10-19. The website's Reviewers page lists only reviewers who chose to be credited in the
+review form, with their name as they asked and their institution if they chose. The owner keeps
+the list by hand; the website never reads the private answer sheet.
+Why: reviewers decide whether they are named, as the booklet promises.
+Design: [review pages, section 3](specs/2026-10-19-review-pages-design.md).
