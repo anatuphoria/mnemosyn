@@ -53,6 +53,17 @@ def plural(n: int, word: str) -> str:
     return f"{n} {word}" + ("" if n == 1 else "s")
 
 
+def small_shapes(labelled: np.ndarray, ids, names: dict[int, str]) -> list[str]:
+    ids = sorted(ids)
+    counts = np.bincount(np.asarray(labelled).ravel(), minlength=max(ids, default=0) + 1)
+    return [f"{names[i]} ({int(counts[i])} voxels)" for i in ids if counts[i] < SMALL_VOXELS]
+
+
+def empty_pieces(pieces: dict[int, list[MeshData]], cuts, names: dict[int, str]) -> list[str]:
+    return [f"structure {names[sid]}: its cord piece between {low:.1f} and {high:.1f} mm has "
+            "no surface" for sid, low, high in cuts if not len(pieces[sid][0].faces)]
+
+
 def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[int, MeshData]],
                  volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=(),
                  tracts=None, shape_only=(), per_source=None, pathways: int = 0,
@@ -183,10 +194,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         images[name] = clip_z(images[name], *extent)
     small = []
     for s in (s for s in sources if s.tiles is not None):
-        ids, counts = np.unique(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
-                                return_counts=True)
-        small += [f"{by_id[int(i)].name} ({n} voxels)" for i, n in zip(ids, counts)
-                  if i and n < SMALL_VOXELS]
+        mapping = mapping_for(s.source.id, planned)
+        small += small_shapes(relabel(images[s.source.id], mapping), mapping.values(),
+                              {i: by_id[i].name for i in mapping.values()})
     outlines = [s for s in sources if s.outline_of]
     cut = {s.outline_of for s in outlines}
     for spec in (s for s in sources if not s.outline_of):
@@ -310,6 +320,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         pieces, count = cut_levels(mesh, cuts, recipe.lod0_max_faces * len(cuts),
                                    recipe.lod_fractions, recipe.min_faces)
         repaired += count
+        problems = empty_pieces(pieces, cuts, {p.structure.id: p.structure.name for p in planned})
+        if problems:
+            raise BuildError(problems)
         for structure_id, built in pieces.items():
             for level, mesh_data in zip(meshes, built):
                 level[structure_id] = mesh_data

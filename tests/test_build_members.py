@@ -1,8 +1,11 @@
+import zipfile
+
 import nibabel as nib
 import numpy as np
 import pytest
 
-from atlas_fixtures import MEMBER_AFFINE, write_extended_source_tree, write_member_archive
+from atlas_fixtures import (MEMBER_AFFINE, MEMBER_BOXES, MEMBER_SHAPE, write_extended_source_tree,
+                            write_member_archive)
 from cns_atlas import Atlas
 from tools.build_atlas.build import build
 from tools.build_atlas.hierarchy import LabelRef, load_structures, resolve_members
@@ -133,6 +136,20 @@ def test_a_member_on_another_grid_stops_the_build(tmp_path):
     with pytest.raises(BuildError) as error:
         load_members(members_spec(src), archive)
     assert error.value.problems == ["source toymembers: member Mid is on another grid"]
+
+
+def test_a_member_with_several_frames_stops_the_build(tmp_path):
+    archive = tmp_path / "m" / "toy_members.zip"
+    archive.parent.mkdir()
+    with zipfile.ZipFile(archive, "w") as zipped:
+        for name in MEMBER_BOXES:
+            data = np.zeros(MEMBER_SHAPE + ((2,) if name == "Mid" else ()), dtype=np.uint8)
+            zipped.writestr(f"MEM/{name}.nii", nib.Nifti1Image(data, MEMBER_AFFINE).to_bytes())
+    src = write_extended_source_tree(tmp_path / "t", tracts=False, members="download")
+    with pytest.raises(BuildError) as error:
+        load_members(members_spec(src), archive)
+    assert error.value.problems == [
+        "source toymembers: member Mid has 2 frames; give a single 3D image"]
 
 
 def test_a_build_shapes_every_member_and_reports_overlaps(tmp_path):

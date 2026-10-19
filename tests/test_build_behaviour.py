@@ -94,6 +94,14 @@ def test_for_package_turns_left_out_stations_into_text_steps(tmp_path):
     assert packed.steps == (Station((110,)), Relay("Toy gland"), Relay("Toy relay"))
 
 
+def test_for_package_keeps_crossing_and_fallback_of_a_partly_left_out_station(tmp_path):
+    mood = routes(tmp_path)[2]
+    station = Station((110, 170), crossing=True, fallback="Toy text")
+    mood = replace(mood, steps=(station,))
+    packed = for_package([mood], {110: "Beta nucleus", 170: "Toy gland"}, {170})[0]
+    assert packed.steps == (Station((110,), crossing=True, fallback="Toy text"),)
+
+
 def test_toy_timeline_loads(tmp_path):
     folder = tmp_path / "timelines"
     folder.mkdir()

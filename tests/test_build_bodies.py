@@ -34,6 +34,13 @@ def test_parts_fill_every_voxel_of_the_whole(tmp_path):
     assert values.tolist() == [1, 2, 1, 2, 0, 0]
 
 
+def test_a_part_beyond_the_channels_stops_the_build(tmp_path):
+    with pytest.raises(BuildError) as error:
+        load_parts(parts_file(tmp_path, np.zeros((3, 3, 3, 3))), (1, 9), 0.5, name="toyparts")
+    assert error.value.problems == ["source toyparts: part 9 is not a channel of the image "
+                                    "(it has 3)"]
+
+
 def test_a_3d_image_cannot_be_read_as_parts(tmp_path):
     with pytest.raises(BuildError) as error:
         load_parts(parts_file(tmp_path, np.zeros((3, 3, 3))), (1,), 0.5, name="flat")

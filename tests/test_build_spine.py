@@ -349,3 +349,11 @@ def test_mirrored_tiles_give_mirrored_shapes(tmp_path):
     a, b = meshes[1], meshes[2]
     assert a.volume == pytest.approx(b.volume, rel=0.01)
     assert np.asarray(a.points)[:, 0].max() <= 1e-3 and np.asarray(b.points)[:, 0].min() >= -1e-3
+
+
+def test_small_shapes_include_structures_with_no_voxels():
+    from tools.build_atlas.build import small_shapes
+
+    labelled = np.array([[0, 5, 5]])
+    assert small_shapes(labelled, [7, 5], {5: "Toy five", 7: "Toy seven"}) == [
+        "Toy five (2 voxels)", "Toy seven (0 voxels)"]

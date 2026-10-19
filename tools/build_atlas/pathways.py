@@ -169,7 +169,7 @@ def for_package(pathways: list[Pathway], names: dict[int, str],
         for step in pathway.steps:
             if isinstance(step, Station) and left_out & set(step.structures):
                 kept = tuple(i for i in step.structures if i not in left_out)
-                step = (Station(kept, step.side) if kept else
+                step = (replace(step, structures=kept) if kept else
                         Relay(step.fallback or " and ".join(names[i] for i in step.structures),
                               step.side))
             steps.append(step)

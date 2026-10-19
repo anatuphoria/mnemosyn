@@ -65,6 +65,10 @@ def load_parts(path: Path, parts: tuple[int, ...], threshold: float, name: str =
     image = nib.load(path)
     if len(image.shape) != 4:
         raise BuildError([f"source {name}: parts need a 4D probability image"])
+    missing = [p for p in parts if not 0 <= p < image.shape[3]]
+    if missing:
+        raise BuildError([f"source {name}: part {missing[0]} is not a channel of the image "
+                          f"(it has {image.shape[3]})"])
     data = np.nan_to_num(np.asarray(image.dataobj, dtype=np.float32))
     inside = data[..., 1:].sum(axis=-1) >= threshold
     best = np.asarray(parts)[data[..., list(parts)].argmax(axis=-1)]
@@ -117,30 +121,34 @@ def keep_inside(data: np.ndarray, affine: np.ndarray, outline: nib.Nifti1Image) 
     return data
 
 
-def member_masks(spec: SourceSpec, archive: Path):
-    shape, affine = None, None
+def _member_images(spec: SourceSpec, archive: Path):
+    shape = affine = None
     for value, (name, member) in enumerate(spec.members, 1):
         image = nib.load(member_path(spec, archive, member))
+        frames = int(np.prod(image.shape[3:]))
+        if frames > 1:
+            raise BuildError([f"source {spec.source.id}: member {name} has {frames} frames; "
+                              "give a single 3D image"])
         if shape is None:
             shape, affine = image.shape[:3], image.affine
         elif image.shape[:3] != shape or not np.allclose(image.affine, affine):
             raise BuildError([f"source {spec.source.id}: member {name} is on another grid"])
-        values = np.nan_to_num(np.asarray(image.dataobj)).reshape(shape)
+        values = np.nan_to_num(np.asarray(image.dataobj, dtype=np.float32)).reshape(shape)
+        yield value, values, affine
+
+
+def member_masks(spec: SourceSpec, archive: Path):
+    for value, values, affine in _member_images(spec, archive):
         inside = values >= spec.threshold if spec.threshold is not None else values != 0
         yield value, inside, affine
 
 
 def load_tiles(spec: SourceSpec, archive: Path, sides: dict[int, str]) -> nib.Nifti1Image:
-    shape = affine = total = best = arg = None
-    for value, (name, member) in enumerate(spec.members, 1):
-        image = nib.load(member_path(spec, archive, member))
-        if shape is None:
-            shape, affine = image.shape[:3], image.affine
-            total, best = np.zeros(shape, np.float32), np.zeros(shape, np.float32)
-            arg, split = np.zeros(shape, np.int32), np.zeros(shape, bool)
-        elif image.shape[:3] != shape or not np.allclose(image.affine, affine):
-            raise BuildError([f"source {spec.source.id}: member {name} is on another grid"])
-        values = np.nan_to_num(np.asarray(image.dataobj, dtype=np.float32)).reshape(shape)
+    total = best = arg = split = None
+    for value, values, affine in _member_images(spec, archive):
+        if total is None:
+            total, best = np.zeros(values.shape, np.float32), np.zeros(values.shape, np.float32)
+            arg, split = np.zeros(values.shape, np.int32), np.zeros(values.shape, bool)
         total += values
         higher = values > best
         best[higher], arg[higher], split[higher] = values[higher], value, False
@@ -158,23 +166,12 @@ def load_tiles(spec: SourceSpec, archive: Path, sides: dict[int, str]) -> nib.Ni
                            affine)
 
 
-def _member_values(spec: SourceSpec, archive: Path):
-    shape = affine = None
-    for value, (name, member) in enumerate(spec.members, 1):
-        image = nib.load(member_path(spec, archive, member))
-        if shape is None:
-            shape, affine = image.shape[:3], image.affine
-        elif image.shape[:3] != shape or not np.allclose(image.affine, affine):
-            raise BuildError([f"source {spec.source.id}: member {name} is on another grid"])
-        yield value, np.nan_to_num(np.asarray(image.dataobj, dtype=np.float32)).reshape(shape)
-
-
 def tile_fields(spec: SourceSpec, archive: Path, tiles: nib.Nifti1Image, wanted: set[int],
                 extent: tuple[float, float] | None = None
                 ) -> list[tuple[int, np.ndarray, np.ndarray]]:
     """Positive inside a member's tile; its zero level is a smooth border between tiles."""
     total = best = second = arg = None
-    for value, values in _member_values(spec, archive):
+    for value, values, _ in _member_images(spec, archive):
         if total is None:
             total, best, second = (np.zeros(values.shape, np.float32) for _ in range(3))
             arg = np.zeros(values.shape, np.int32)
@@ -185,7 +182,7 @@ def tile_fields(spec: SourceSpec, archive: Path, tiles: nib.Nifti1Image, wanted:
     labels = np.asarray(tiles.dataobj)
     affine = np.asarray(tiles.affine)
     out = []
-    for value, values in _member_values(spec, archive):
+    for value, values, _ in _member_images(spec, archive):
         index = np.argwhere(labels == value)
         if value not in wanted or not len(index):
             continue

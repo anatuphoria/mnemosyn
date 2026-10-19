@@ -133,3 +133,17 @@ def test_inside_must_name_an_outline_source(tmp_path):
     edit(src / "recipe.toml", "mask = true\n", 'mask = true\ninside = "toyspine"\n')
     assert "source toyspine-wm: inside 'toyspine' is not an outline source of volume spine" in (
         problems_for(src))
+
+
+def test_an_empty_cord_piece_is_named():
+    from cns_atlas.meshes import MeshData
+    from tools.build_atlas.build import empty_pieces
+
+    empty = MeshData(np.zeros((0, 3), np.float32), np.zeros((0, 3), np.float16),
+                     np.zeros((0, 3), np.uint32))
+    full = MeshData(np.zeros((3, 3), np.float32), np.zeros((3, 3), np.float16),
+                    np.array([[0, 1, 2]], np.uint32))
+    pieces = {200: [full], 201: [empty]}
+    cuts = [(200, -10.0, 0.0), (201, 0.0, 12.5)]
+    assert empty_pieces(pieces, cuts, {200: "Upper segment", 201: "Lower segment"}) == [
+        "structure Lower segment: its cord piece between 0.0 and 12.5 mm has no surface"]
