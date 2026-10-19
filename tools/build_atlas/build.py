@@ -15,6 +15,7 @@ from cns_atlas.meshes import LODS, MeshData
 from cns_atlas.model import Structure
 
 from .colours import recolour
+from .compare import ACCEPT_HINT, compare, report_lines
 from .fetch import DEFAULT_CACHE, fetch, member_path, missing_manual
 from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
                         without_sources)
@@ -123,7 +124,8 @@ def _replaceable(out: Path) -> bool:
 
 
 def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
-          local: bool = False, manual_dir: Path | None = None) -> Path:
+          local: bool = False, manual_dir: Path | None = None,
+          accept_changes: bool = False) -> Path:
     started = time.perf_counter()
     src, out = Path(src), Path(out)
     if not _replaceable(out):
@@ -346,6 +348,9 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         local_note = f"- local-only sources left out: {', '.join(sorted(left))}"
     else:
         local_note = ""
+    changes = compare(out, structures, volumes, set(lock.retired) | left_out)
+    if changes is not None and changes.blocking and not accept_changes:
+        raise BuildError([*changes.blocking, ACCEPT_HINT])
     report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
                           per_source, len(pathways), local_note, sources, repaired,
                           overlaps=overlaps, small=small)
@@ -359,6 +364,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                       timelines=timelines, fills=fills)
         size = sum(p.stat().st_size for p in package.rglob("*") if p.is_file())
         with (package / "build-report.md").open("a", encoding="utf-8") as report_file:
+            report_file.write("".join(f"{line}\n" for line in report_lines(changes)))
             report_file.write(f"- package size: {size / 1e6:.1f} MB\n")
             report_file.write(f"- build time: {time.perf_counter() - started:.0f} s\n")
             peak = peak_memory_mb()

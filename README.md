@@ -22,6 +22,9 @@ python -m venv .venv
 .venv/bin/mnemosyn                       # desktop app
 ```
 
+A rebuild compares itself with the atlas it replaces: its build report lists structures removed,
+renamed or moved, and a removal or rename stops the build unless you add `--accept-changes`.
+
 On hybrid-GPU laptops, `prime-run .venv/bin/mnemosyn` uses the discrete GPU.
 
 ## Desktop app

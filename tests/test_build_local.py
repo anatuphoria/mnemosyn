@@ -149,13 +149,15 @@ def test_cli_passes_local_to_the_build(monkeypatch, tmp_path):
 
     seen = {}
 
-    def fake(src, out, cache, local=False, manual_dir=None):
-        seen["local"] = local
+    def fake(src, out, cache, local=False, manual_dir=None, accept_changes=False):
+        seen.update(local=local, accept=accept_changes)
         return out
 
     monkeypatch.setattr(cli, "build", fake)
-    assert cli.main(["--out", str(tmp_path / "o"), "--local"]) == 0 and seen == {"local": True}
-    assert cli.main(["--out", str(tmp_path / "o")]) == 0 and seen == {"local": False}
+    assert cli.main(["--out", str(tmp_path / "o"), "--local"]) == 0
+    assert seen == {"local": True, "accept": False}
+    assert cli.main(["--out", str(tmp_path / "o"), "--accept-changes"]) == 0
+    assert seen == {"local": False, "accept": True}
 
 
 def test_zero_normals_are_repaired_outward():

@@ -19,10 +19,13 @@ def main(argv: list[str] | None = None) -> int:
                         help="also build local-only sources; the result must not be shared")
     parser.add_argument("--manual-dir", type=Path, default=None,
                         help="folder holding sources you downloaded yourself")
+    parser.add_argument("--accept-changes", action="store_true",
+                        help="replace a previous build even if structures were removed or "
+                             "renamed")
     args = parser.parse_args(argv)
     try:
         out = build(args.src, args.out, args.cache, local=args.local,
-                    manual_dir=args.manual_dir)
+                    manual_dir=args.manual_dir, accept_changes=args.accept_changes)
     except BuildError as exc:
         print("build failed:", file=sys.stderr)
         for problem in exc.problems:
