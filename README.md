@@ -83,16 +83,17 @@ circuit, the stress axis, the body clock, hunger, memory, and decision and self-
 For a sensory or motor route, choose a pathway and a start side (Left or Right): everything
 off the route fades and cannot be clicked, the route's tracts are shown, and the current
 station is highlighted with its role and the effect of a lesion there, with references. Back
-and Next in the Activity panel (or the arrow keys) move along the route and the slice
+and Next in the Pathways panel (or the arrow keys) move along the route and the slice
 follows; crossings and relays the atlas has no shape for are steps of their own. Leaving
 (`Esc` or the Leave button) restores the view as it was. Behaviour routes light both sides and
 show, for each step, its role, the disorders linked to it and the drugs that act there.
 
-While a pathway is open, the Activity panel holds the playback controls: Back, Play / Pause,
-Next, a speed choice (½×, 1×, 2×) and the current step. Play (`Space`) steps through a route on
-its own; the stress axis, body clock and hunger routes also play a schematic hormone timeline
-in the chart, where a cursor follows the steps, the time is shown next to the controls, and a
-click in the plot jumps to that moment. All pathway texts and timelines are drafts awaiting
+While a pathway is open, the Pathways panel holds the playback controls above the steps, drawn
+as media symbols: back, play or pause, next, a speed choice (½×, 1×, 2×) and the current step.
+Play (`Space`) steps through a route on its own. The stress axis, body clock and hunger routes
+also open the Activity panel, which appears only for them: it plays a schematic hormone timeline
+in which a cursor follows the steps, the time is shown above the chart, the note and references
+sit beside it, and a click in the plot jumps to that moment. All pathway texts and timelines are drafts awaiting
 review.
 
 ## Atlas data
