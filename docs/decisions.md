@@ -50,6 +50,7 @@ entry replaces it and the old one says so.
 | 42 | 2026-10-18 | Tiny spinal tracts stay in the atlas and the quizzes | in force |
 | 43 | 2026-10-18 | Speed limits for first use, groups, hiding and the slider | in force |
 | 44 | 2026-10-19 | Timing tests also catch a quarter slowdown under the limits | in force |
+| 45 | 2026-10-19 | Slice labels are sharp squares over a smooth MRI | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -384,3 +385,14 @@ record is written the first time and changes only when the owner runs the tests 
 `--reset-timing-baseline`; a faster run never lowers it.
 Why: an action can creep slower for many changes in a row and stay under its limit until the last
 one; the 1 ms floor keeps actions that take under a few milliseconds from failing on noise.
+
+## 45. Slice labels are sharp squares over a smooth MRI
+
+2026-10-19, on the builder's advice. In the slices every label voxel is drawn as a sharp square at
+any zoom, and outlines stay sharp; the grey MRI template under the labels is drawn smooth. This
+holds for the brain and the cord, and the Labels slider changes only the labels.
+Why: each label square is a real decision in the atlas data, and smoothing it would draw boundaries
+nobody measured, which would mislead a researcher reading a structure's edge; research viewers
+(FSLeyes, ITK-SNAP, 3D Slicer) show labels this way. The MRI is a measured brightness, and showing
+it smooth, as those viewers do, makes the cord's shape easy to read for a student.
+Design: [slices and looks, section 3](specs/2026-10-19-slices-looks-design.md).

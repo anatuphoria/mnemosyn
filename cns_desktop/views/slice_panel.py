@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Signal
+from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QPushButton, QSlider,
                                QVBoxLayout, QWidget)
 
@@ -22,6 +23,18 @@ EDGES = {"axial": ("A", "P", "L", "R"), "coronal": ("S", "I", "L", "R"),
 ANCHORS = ((0.5, 0.0), (0.5, 1.0), (0.0, 0.5), (1.0, 0.5))
 
 
+class SmoothImage(pg.ImageItem):
+    smooth = True
+
+    def paint(self, painter, *args) -> None:
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        super().paint(painter, *args)
+
+
+class SharpImage(pg.ImageItem):
+    smooth = False
+
+
 class SlicePanel(QWidget):
     hovered = Signal(str)
 
@@ -35,7 +48,9 @@ class SlicePanel(QWidget):
         self._last_mm: dict[tuple[str, str], float] = {}
         self.colors = slices.color_table(atlas.structures)
         self.opacity = slices.DEFAULT_OPACITY
-        self.image: np.ndarray | None = None
+        self.layer: np.ndarray | None = None
+        self._template_2d: np.ndarray | None = None
+        self._image: np.ndarray | None = None
         self.index = 0
         self.tracts = atlas.tracts
         self.preferred: frozenset[int] = frozenset()
@@ -86,8 +101,12 @@ class SlicePanel(QWidget):
         self.box = self.view.addViewBox(lockAspect=True, invertY=True)
         self.box.setMenuEnabled(False)
         self.box.setMouseEnabled(x=False, y=False)
-        self.item = pg.ImageItem(axisOrder="row-major")
-        self.box.addItem(self.item)
+        self.template_item = SmoothImage(axisOrder="row-major")
+        self.template_item.setZValue(0)
+        self.label_item = SharpImage(axisOrder="row-major")
+        self.label_item.setZValue(1)
+        self.box.addItem(self.template_item)
+        self.box.addItem(self.label_item)
         self.letters = [pg.TextItem(color="w", anchor=anchor) for anchor in ANCHORS]
         for letter in self.letters:
             self.box.addItem(letter)
@@ -215,15 +234,25 @@ class SlicePanel(QWidget):
                                          self.index)
         chosen = self.state.highlighted_ids()
         selected = slices.mask_table(size, chosen)
-        self.image = slices.compose(labels_2d, template_2d, self.colors, hidden, selected,
-                                    self.opacity)
+        self.layer = slices.overlay(labels_2d, self.colors, hidden, selected, self.opacity)
         self._draw_tracts(axis, set(chosen))
-        self.item.setImage(self.image, autoLevels=False, levels=(0, 255))
-        height, width = self.image.shape[:2]
+        self._template_2d, self._image = template_2d, None
+        if template_2d is None:
+            self.template_item.clear()
+        else:
+            self.template_item.setImage(template_2d, autoLevels=False, levels=(0, 255))
+        self.label_item.setImage(self.layer, autoLevels=False, levels=(0, 255))
+        height, width = self.layer.shape[:2]
         places = ((width / 2, 0), (width / 2, height), (0, height / 2), (width, height / 2))
         for letter, text, place in zip(self.letters, EDGES[axis], places):
             letter.setText(text)
             letter.setPos(*place)
+
+    @property
+    def image(self) -> np.ndarray | None:
+        if self._image is None and self.layer is not None:
+            self._image = slices.over(self._template_2d, self.layer)
+        return self._image
 
     def _shown(self, structure_id: int) -> bool:
         return not self.state.is_hidden(structure_id) and self.state.in_focus(structure_id)
@@ -254,12 +283,12 @@ class SlicePanel(QWidget):
                 continue
             rows, cols = slices.pixels_for_voxels(self.labels.shape, axis,
                                                   tuple(c[here] for c in coords))
-            slices.draw_tract(self.image, rows, cols, self.colors[structure_id],
+            slices.draw_tract(self.layer, rows, cols, self.colors[structure_id],
                               structure_id in chosen, self.opacity)
 
     def structure_at_pixel(self, row: int, col: int) -> int | None:
-        if self.image is None or not (0 <= row < self.image.shape[0]
-                                      and 0 <= col < self.image.shape[1]):
+        if self.layer is None or not (0 <= row < self.layer.shape[0]
+                                      and 0 <= col < self.layer.shape[1]):
             return None
         voxel = slices.voxel_for_pixel(self.labels.shape, self.state.slice_axis, self.index,
                                        row, col)
@@ -315,7 +344,7 @@ class SlicePanel(QWidget):
             return
 
     def _pixel(self, scene_pos) -> tuple[int, int]:
-        point = self.item.mapFromScene(scene_pos)
+        point = self.label_item.mapFromScene(scene_pos)
         return int(math.floor(point.y())), int(math.floor(point.x()))
 
     def _on_mouse_moved(self, scene_pos) -> None:

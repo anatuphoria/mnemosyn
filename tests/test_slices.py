@@ -1,12 +1,12 @@
-import time
-
 import numpy as np
 import pytest
 
 from cns_atlas.model import Structure
 from cns_desktop.slices import (centre_from_table, centre_mm, color_table, compose, draw_tract,
                                 extract, index_for_mm, label_centres, mask_table, mm_for_index,
-                                pixels_for_voxels, slice_count, voxel_for_pixel, world_for_voxel)
+                                over, overlay, pixels_for_voxels, slice_count, voxel_for_pixel,
+                                world_for_voxel)
+from timing_baseline import best_of
 
 AAL = np.array([[1.0, 0, 0, -90.0], [0, 1.0, 0, -126.0], [0, 0, 1.0, -72.0], [0, 0, 0, 1.0]])
 COLORS = np.array([[0, 0, 0], [200, 0, 0], [0, 200, 0]], dtype=np.uint8)
@@ -119,14 +119,8 @@ def test_compose_full_slice_under_5ms(timing):
     colors = rng.integers(0, 255, size=(2501, 3)).astype(np.uint8)
     hidden = mask_table(2501, range(0, 2500, 7))
     selected = mask_table(2501, range(100, 200))
-    best = min(_time(lambda: compose(labels, template, colors, hidden, selected)) for _ in range(5))
+    best = best_of(lambda: compose(labels, template, colors, hidden, selected))
     timing.assert_within({"compose a full slice": (best, 0.005)})
-
-
-def _time(fn) -> float:
-    start = time.perf_counter()
-    fn()
-    return time.perf_counter() - start
 
 
 def test_label_centre_table_matches_the_volume_scan():
@@ -153,6 +147,7 @@ def test_pixels_for_voxels_inverts_voxel_for_pixel():
 
 def test_draw_tract_outlines_and_fills():
     image = np.zeros((6, 6, 4), dtype=np.uint8)
+    image[..., 3] = 255
     rows = np.array([1, 1, 1, 2, 2, 2, 3, 3, 3])
     cols = np.array([1, 2, 3] * 3)
     color = np.array([200, 100, 0], dtype=np.uint8)
@@ -191,3 +186,34 @@ def test_is_ras_is_cheap():
     for _ in range(1000):
         is_ras(affine)
     assert (time.perf_counter() - start) / 1000 < 20e-6
+
+
+def test_overlay_over_template_matches_compose():
+    rng = np.random.default_rng(3)
+    labels = rng.integers(0, 6, size=(20, 30))
+    template = rng.integers(0, 255, size=(20, 30)).astype(np.uint8)
+    colors = rng.integers(0, 255, size=(6, 3)).astype(np.uint8)
+    hidden, selected = mask_table(6, [2]), mask_table(6, [4])
+    composed = compose(labels, template, colors, hidden, selected, 0.45)
+    layered = over(template, overlay(labels, colors, hidden, selected, 0.45))
+    assert np.abs(composed.astype(int) - layered.astype(int)).max() <= 1
+
+
+def test_overlay_is_clear_where_nothing_is_drawn():
+    labels = np.array([[0, 1], [2, 0]])
+    colors = np.full((3, 3), 200, np.uint8)
+    layer = overlay(labels, colors, mask_table(3, [2]), mask_table(3, []))
+    assert layer[0, 0, 3] == 0 and layer[1, 0, 3] == 0 and layer[0, 1, 3] == round(0.45 * 255)
+
+
+def test_a_filled_tract_on_the_overlay_blends_like_on_the_picture():
+    template = np.full((4, 4), 100, np.uint8)
+    labels = np.zeros((4, 4), int)
+    labels[1, 1] = 1
+    colors = np.array([[0, 0, 0], [200, 0, 0]], np.uint8)
+    picture = compose(labels, template, colors, mask_table(2, []), mask_table(2, []))
+    layer = overlay(labels, colors, mask_table(2, []), mask_table(2, []))
+    rows, cols = np.array([1, 1, 2]), np.array([1, 2, 2])
+    draw_tract(picture, rows, cols, (0, 0, 250), True, 0.45)
+    draw_tract(layer, rows, cols, (0, 0, 250), True, 0.45)
+    assert np.abs(picture.astype(int) - over(template, layer).astype(int)).max() <= 1

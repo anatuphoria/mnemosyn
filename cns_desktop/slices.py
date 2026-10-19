@@ -90,6 +90,30 @@ def compose(labels, template, colors, hidden, selected, opacity=DEFAULT_OPACITY)
     return out
 
 
+def overlay(labels, colors, hidden, selected, opacity=DEFAULT_OPACITY) -> np.ndarray:
+    labels = np.asarray(labels, dtype=np.int64)
+    visible = (labels > 0) & ~hidden[labels]
+    chosen = visible & selected[labels]
+    out = np.empty(labels.shape + (4,), dtype=np.uint8)
+    out[..., :3] = colors[labels]
+    out[..., 3] = np.where(chosen, 255, np.where(visible, round(opacity * 255), 0))
+    edge = outline(chosen)
+    out[edge, :3] = OUTLINE
+    out[edge, 3] = 255
+    return out
+
+
+def over(template, layer) -> np.ndarray:
+    alpha = layer[..., 3:].astype(np.float32) / 255
+    base = (np.zeros(layer.shape[:2], dtype=np.float32) if template is None
+            else np.asarray(template, dtype=np.float32))
+    rgb = base[..., None] * (1.0 - alpha) + layer[..., :3].astype(np.float32) * alpha
+    out = np.empty(layer.shape, dtype=np.uint8)
+    out[..., :3] = np.clip(np.rint(rgb), 0, 255)
+    out[..., 3] = 255
+    return out
+
+
 def centre_mm(volume, affine, ids) -> tuple[float, float, float] | None:
     mask = np.isin(volume, list(ids))
     if not mask.any():
@@ -139,9 +163,15 @@ def draw_tract(image: np.ndarray, rows, cols, color, filled: bool, opacity: floa
     r0, c0 = int(np.min(rows)), int(np.min(cols))
     mask = np.zeros((int(np.max(rows)) - r0 + 1, int(np.max(cols)) - c0 + 1), dtype=bool)
     mask[np.asarray(rows) - r0, np.asarray(cols) - c0] = True
-    region = image[r0:r0 + mask.shape[0], c0:c0 + mask.shape[1], :3]
+    region = image[r0:r0 + mask.shape[0], c0:c0 + mask.shape[1]]
     color = np.asarray(color, dtype=np.float32)
     if filled:
-        blend = region[mask].astype(np.float32) * (1.0 - opacity) + color * opacity
-        region[mask] = np.clip(np.rint(blend), 0, 255)
-    region[outline(mask)] = color
+        under = region[mask].astype(np.float32)
+        a = under[:, 3:] / 255
+        a2 = 1.0 - (1.0 - a) * (1.0 - opacity)
+        rgb = (under[:, :3] * a * (1.0 - opacity) + color * opacity) / a2
+        region[mask, :3] = np.clip(np.rint(rgb), 0, 255)
+        region[mask, 3] = np.clip(np.rint(a2[:, 0] * 255), 0, 255)
+    edge = outline(mask)
+    region[edge, :3] = color
+    region[edge, 3] = 255

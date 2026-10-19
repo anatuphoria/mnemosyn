@@ -201,6 +201,14 @@ def test_selection_updates_all_panels_under_7ms(window, timing):
     timing.assert_within({"toy atlas: select a structure": (times[len(times) // 2], 0.007)})
 
 
+def test_slices_draw_a_smooth_template_under_sharp_labels(window, qapp):
+    qapp.processEvents()
+    panel = window.slices
+    assert panel.template_item.zValue() < panel.label_item.zValue()
+    assert panel.template_item.smooth and not panel.label_item.smooth
+    assert panel.layer.shape[2] == 4 and panel.image.shape[2] == 4
+
+
 def test_view_uses_the_packages_stored_normals(window, atlas):
     normals = window.view.blocks[101].GetPointData().GetNormals()
     assert normals is not None
