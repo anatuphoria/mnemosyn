@@ -136,8 +136,8 @@ def resolve_members(raws: list[RawStructure], values: dict[str, dict[str, int]]
 
 def shade(rgb: tuple[int, int, int], factor: float) -> tuple[int, int, int]:
     if factor >= 0:
-        return tuple(int(round(c + (255 - c) * factor)) for c in rgb)
-    return tuple(int(round(c * (1 + factor))) for c in rgb)
+        return tuple(round(c + (255 - c) * factor) for c in rgb)
+    return tuple(round(c * (1 + factor)) for c in rgb)
 
 
 def sibling_factors(ids: list[int]) -> dict[int, float]:

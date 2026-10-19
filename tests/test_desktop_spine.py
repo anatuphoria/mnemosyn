@@ -193,7 +193,7 @@ def test_selecting_a_group_reads_no_meshes(window, monkeypatch):
 
 
 def visible_rows(panel):
-    (x0, x1), (y0, y1) = panel.box.viewRange()
+    _, (y0, y1) = panel.box.viewRange()
     return y1 - y0
 
 

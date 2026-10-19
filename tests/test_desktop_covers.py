@@ -72,7 +72,7 @@ def pixel_of(view, point):
     view.renderer.SetWorldPoint(*point, 1.0)
     view.renderer.WorldToDisplay()
     x, y, _ = view.renderer.GetDisplayPoint()
-    return int(round(x)), int(round(y))
+    return round(x), round(y)
 
 
 def opacities(view):

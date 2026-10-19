@@ -16,8 +16,9 @@ def quiet_build(src, out, cache, **kwargs):
     return build(src, out, cache=cache, log=lambda *_: None, **kwargs)
 
 
-def parts_file(tmp_path, data, affine=np.eye(4)):
+def parts_file(tmp_path, data, affine=None):
     path = tmp_path / "parts.nii.gz"
+    affine = np.eye(4) if affine is None else affine
     nib.save(nib.Nifti1Image(data.astype(np.float32), affine), path)
     return path
 

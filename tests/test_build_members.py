@@ -231,10 +231,10 @@ def world(image, value):
 
 
 def test_a_cropped_read_keeps_the_box_and_the_positions(tmp_path, monkeypatch):
-    import tools.build_atlas.labels as labels
+    from tools.build_atlas import labels
 
     monkeypatch.setattr(labels, "CROP_SLAB", 8)
-    path, data, affine = blobs_file(tmp_path)
+    path, _, _ = blobs_file(tmp_path)
     full = labels.load_label_image(path)
     cut = labels.load_label_image(path, cropped=True)
     assert cut.shape == (14, 12, 45)
@@ -293,7 +293,7 @@ def test_a_manual_dir_replaces_a_bad_cached_file(tmp_path):
 
 
 def test_a_cropped_read_keeps_the_gzip_open_between_slabs(tmp_path, monkeypatch):
-    import tools.build_atlas.labels as labels
+    from tools.build_atlas import labels
 
     seen = []
     real = labels.nib.load

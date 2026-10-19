@@ -4,7 +4,7 @@ import random
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fsrs import Card, Rating, Scheduler
 
@@ -16,7 +16,7 @@ LEARN_AHEAD = timedelta(minutes=20)
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass(frozen=True)

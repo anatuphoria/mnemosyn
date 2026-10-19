@@ -18,7 +18,7 @@ from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, Session, utc_now
 
 from .state import AppState
-from .views.about_dialog import AboutDialog, about_text
+from .views.about_dialog import AboutDialog
 from .views.activity_chart import ActivityChart
 from .views.brain_view import BrainView
 from .views.info_panel import InfoPanel

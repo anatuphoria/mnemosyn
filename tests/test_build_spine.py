@@ -11,7 +11,7 @@ from cns_atlas import Atlas
 from tools.build_atlas.build import build
 from tools.build_atlas.hierarchy import load_structures
 from tools.build_atlas.labels import load_label_image, load_members
-from tools.build_atlas.recipe import BuildError, load_recipe
+from tools.build_atlas.recipe import load_recipe
 from tools.build_atlas.validate import check_sources, check_templates
 
 

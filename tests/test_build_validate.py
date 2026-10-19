@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from atlas_fixtures import TOY_STRUCTURES, write_source_tree
+from atlas_fixtures import write_source_tree
 from cns_atlas.knowledge import load_references
 from tools.build_atlas.hierarchy import (LabelRef, PlannedStructure, RawStructure, build_tree,
                                          load_structures, shade, sibling_factors, with_xrefs)

@@ -403,7 +403,7 @@ class SlicePanel(QWidget):
 
     def _pixel(self, scene_pos) -> tuple[int, int]:
         point = self.label_item.mapFromScene(scene_pos)
-        return int(math.floor(point.y())), int(math.floor(point.x()))
+        return math.floor(point.y()), math.floor(point.x())
 
     def _on_mouse_moved(self, scene_pos) -> None:
         self.hovered.emit(self.name_at_pixel(*self._pixel(scene_pos)))

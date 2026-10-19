@@ -69,7 +69,6 @@ def test_wheel_over_background_zooms_to_the_centre(window):
 def test_wheel_events_zoom(window):
     view = window.view
     position, focal, _ = camera(view)
-    width, height = view.ren_win.GetSize()
     mouse(view, "MouseWheelForwardEvent", 1, 1)
     assert np.linalg.norm(camera(view)[0] - camera(view)[1]) < np.linalg.norm(position - focal)
 

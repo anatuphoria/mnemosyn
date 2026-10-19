@@ -14,7 +14,7 @@ def slice_count(shape, axis: str) -> int:
 
 def index_for_mm(affine, shape, axis: str, mm: float) -> int:
     a = AXIS_INDEX[axis]
-    index = int(round((mm - affine[a][3]) / affine[a][a]))
+    index = round((mm - affine[a][3]) / affine[a][a])
     return min(max(index, 0), int(shape[a]) - 1)
 
 

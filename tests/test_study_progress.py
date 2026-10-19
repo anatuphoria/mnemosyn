@@ -1,13 +1,13 @@
 import sqlite3
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fsrs import Card, Rating, Scheduler
 
 from cns_study.progress import ModeStats, ProgressStore, day_start, mode_stats, weakest
 
-T0 = day_start(datetime(2026, 10, 11, 12, tzinfo=timezone.utc)) + timedelta(hours=9)
+T0 = day_start(datetime(2026, 10, 11, 12, tzinfo=UTC)) + timedelta(hours=9)
 
 
 def reviewed(item, rating, when):
@@ -72,7 +72,7 @@ def test_first_reviews_count_items_first_seen_since_a_moment(tmp_path):
 def test_day_start_is_local_midnight_in_utc():
     start = day_start(T0)
     assert start <= T0 < start + timedelta(days=1)
-    assert start.astimezone().hour == 0 and start.tzinfo == timezone.utc
+    assert start.astimezone().hour == 0 and start.tzinfo == UTC
 
 
 def test_mode_stats_and_weakest():
@@ -134,6 +134,6 @@ def berlin(monkeypatch):
 
 
 def test_day_boundaries_follow_the_calendar_across_a_clock_change(berlin):
-    moment = datetime(2026, 10, 24, 10, tzinfo=timezone.utc)
+    moment = datetime(2026, 10, 24, 10, tzinfo=UTC)
     assert day_start(moment, 2).astimezone().hour == 0
     assert day_start(moment, 2) - day_start(moment, 1) == timedelta(hours=25)

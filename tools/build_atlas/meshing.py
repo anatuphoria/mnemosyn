@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from itertools import pairwise
+
 import numpy as np
 import pyvista as pv
 from scipy import ndimage
@@ -158,7 +160,7 @@ def bands(image, mapping: dict[int, int]) -> list[tuple[int, float, float]]:
             z = (np.c_[index, np.ones(len(index))] @ affine.T)[:, 2]
             spans.append((float(z.min() - half), float(z.max() + half), structure_id))
     spans.sort()
-    cuts = [(below[1] + above[0]) / 2 for below, above in zip(spans, spans[1:])]
+    cuts = [(below[1] + above[0]) / 2 for below, above in pairwise(spans)]
     lows, highs = [-np.inf, *cuts], [*cuts, np.inf]
     return [(sid, low, high) for (_, _, sid), low, high in zip(spans, lows, highs)]
 

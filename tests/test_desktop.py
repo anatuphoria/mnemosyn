@@ -3,7 +3,7 @@ import random
 import shutil
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import pytest
@@ -17,10 +17,9 @@ from atlas_package import TOY_SOURCE, tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas, Source
 from cns_desktop.app import (disclaimer_due, main, offer_disclaimer, own_memory_mb,
                              peak_memory_mb)
-from cns_desktop.views.about_dialog import AboutDialog
-from cns_desktop.main_window import (MainWindow, about_text, default_progress_path,
-                                     migrate_progress)
+from cns_desktop.main_window import MainWindow, default_progress_path, migrate_progress
 from cns_desktop.state import AppState
+from cns_desktop.views.about_dialog import AboutDialog, about_text
 from cns_desktop.views.quiz_setup import NO_ITEMS, NO_REVIEWED, NOTHING_DUE
 from cns_desktop.views.slice_panel import NO_TEMPLATE, NOT_RAS, SlicePanel
 from cns_study.progress import day_start
@@ -157,7 +156,7 @@ def test_about_dialog_fits_and_lists_every_source(window, atlas):
                                                                           "Data sources"]
     assert dialog.sources.count() == len(atlas.sources)
     dialog.sources.setCurrentRow(0)
-    first = list(atlas.sources.values())[0]
+    first = next(iter(atlas.sources.values()))
     assert first.citation() in dialog.detail.text()
 
 
@@ -665,7 +664,7 @@ def test_progress_window_counts_reviews(window):
     dialog = window.show_progress()
     cells = [dialog.table.item(0, column).text() for column in range(7)]
     due = window.progress_store().card(100, "name-typed").due
-    week_end = day_start(datetime.now(timezone.utc), 7)
+    week_end = day_start(datetime.now(UTC), 7)
     in_week = "1" if due < week_end else "0"
     assert cells == ["Name it (typed)", "Structures", "2", "0", "1", "0", in_week]
     assert dialog.weakest.count() == 1 and "Alpha gyrus" in dialog.weakest.item(0).text()

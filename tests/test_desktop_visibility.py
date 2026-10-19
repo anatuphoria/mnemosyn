@@ -46,7 +46,7 @@ def test_showing_tracts_with_others_builds_them_once(window, qapp):
 
 @pytest.fixture
 def chunked(qapp, toy_spine_atlas, tmp_path, monkeypatch):
-    import cns_desktop.views.chunks as chunks
+    from cns_desktop.views import chunks
 
     monkeypatch.setattr(chunks, "CHUNK_FACES", 1)
     w = MainWindow(Atlas.open(toy_spine_atlas), progress_path=tmp_path / "progress.sqlite")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import pairwise
 from pathlib import Path
 
 from cns_atlas.knowledge import CITATION
@@ -30,7 +31,7 @@ def _curve_problems(curve, where: str, duration: float) -> list[str]:
             and all(isinstance(p, list) and len(p) == 2 and all(map(_number, p)) for p in points)):
         return problems + [f"{where}: points must be at least two [time, level] pairs"]
     times = [t for t, _ in points]
-    if any(b <= a for a, b in zip(times, times[1:])):
+    if any(b <= a for a, b in pairwise(times)):
         problems.append(f"{where}: times must increase")
     if any(t < 0 or t > duration for t in times):
         problems.append(f"{where}: times must be within 0 and the duration")
@@ -75,7 +76,7 @@ def _problems(data: dict, where: str, steps: dict[str, int], references) -> list
                     and isinstance(m.get("step"), int) for m in marks)):
         return problems + [f"{where}: marks must be tables with a time and a step"]
     times = [m["time"] for m in marks]
-    if any(b <= a for a, b in zip(times, times[1:])):
+    if any(b <= a for a, b in pairwise(times)):
         problems.append(f"{where}: marks must be in time order")
     if duration is not None and any(t < 0 or t > duration for t in times):
         problems.append(f"{where}: marks must be within 0 and the duration")

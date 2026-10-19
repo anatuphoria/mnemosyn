@@ -1,6 +1,6 @@
 import random
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fsrs import Rating, Scheduler, State
@@ -9,7 +9,7 @@ from cns_study.items import Item
 from cns_study.progress import ProgressStore, day_start
 from cns_study.session import Session, due_and_new
 
-T0 = day_start(datetime(2026, 10, 11, 12, tzinfo=timezone.utc)) + timedelta(hours=9)
+T0 = day_start(datetime(2026, 10, 11, 12, tzinfo=UTC)) + timedelta(hours=9)
 
 
 class Clock:

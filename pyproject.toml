@@ -35,6 +35,14 @@ packages = ["cns_atlas", "cns_desktop", "cns_study", "tools"]
 
 [tool.ruff]
 line-length = 100
+extend-exclude = ["review"]
+
+[tool.ruff.lint]
+ignore = ["I001", "ISC004"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["atlas_fixtures", "atlas_package", "cns_atlas", "cns_desktop", "cns_study",
+                     "study_atlas", "timing_baseline", "tools"]
 
 [tool.pytest.ini_options]
 markers = [

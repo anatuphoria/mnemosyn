@@ -3,13 +3,13 @@ import pytest
 
 pv = pytest.importorskip("pyvista")
 
-from atlas_fixtures import write_extended_source_tree  # noqa: E402
-from cns_atlas import Atlas  # noqa: E402
-from tools.build_atlas.build import build  # noqa: E402
-from tools.build_atlas.hierarchy import load_structures  # noqa: E402
-from tools.build_atlas.meshing import cut_levels, surface  # noqa: E402
-from tools.build_atlas.recipe import load_recipe  # noqa: E402
-from tools.build_atlas.validate import check_sources  # noqa: E402
+from atlas_fixtures import write_extended_source_tree
+from cns_atlas import Atlas
+from tools.build_atlas.build import build
+from tools.build_atlas.hierarchy import load_structures
+from tools.build_atlas.meshing import cut_levels, surface
+from tools.build_atlas.recipe import load_recipe
+from tools.build_atlas.validate import check_sources
 
 BANDS = [(1, -np.inf, 15.0), (2, 15.0, 25.0), (3, 25.0, np.inf)]
 

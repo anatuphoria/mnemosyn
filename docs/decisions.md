@@ -58,6 +58,7 @@ entry replaces it and the old one says so.
 | 50 | 2026-10-19 | The status bar shows the selection and the mouse hint only | in force |
 | 51 | 2026-10-19 | Full names in the tree, the side only in the info panel, wrapped route lists | in force |
 | 52 | 2026-10-19 | The atlas build never ignores a setting | in force |
+| 53 | 2026-10-19 | Lint stays at zero, with settings that match the code | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -485,3 +486,14 @@ problems found in one pass are listed together.
 Why: several settings were accepted and then quietly did nothing, and some mistakes crashed with a
 raw Python error (audit items 28 to 31).
 Design: [build checks and finish, section 2](specs/2026-10-19-build-checks-finish-design.md).
+
+## 53. Lint stays at zero, with settings that match the code
+
+2026-10-19. Ruff reports nothing, and a fast test fails on any new finding. The settings follow the
+code's existing style rather than the other way round: the test helper modules count as the
+project's own, strings split over lines inside lists are allowed, and import order is kept by hand
+because ruff cannot write the code's wrapped import style. The review folder, which is never
+committed, is left out.
+Why: 138 findings nobody read hid the few real ones (unused imports, an unused import that a test
+relied on, needless casts).
+Design: [build checks and finish, section 4](specs/2026-10-19-build-checks-finish-design.md).

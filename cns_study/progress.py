@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fsrs import Card, Scheduler, State
@@ -27,12 +27,12 @@ INSERT_REVIEW = ("INSERT INTO reviews (atlas, item, mode, rating, correct, answe
 
 
 def stamp(moment: datetime) -> str:
-    return moment.astimezone(timezone.utc).isoformat(timespec="microseconds")
+    return moment.astimezone(UTC).isoformat(timespec="microseconds")
 
 
 def day_start(moment: datetime, days: int = 0) -> datetime:
     day = moment.astimezone().date() + timedelta(days=days)
-    return datetime(day.year, day.month, day.day).astimezone(timezone.utc)
+    return datetime(day.year, day.month, day.day).astimezone(UTC)
 
 
 class NewerVersion(sqlite3.DatabaseError):
