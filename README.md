@@ -17,7 +17,7 @@ stored: an atlas of the brain that helps you remember it.
 ```bash
 python -m venv .venv
 .venv/bin/pip install -e ".[desktop,atlas-build,dev]"
-.venv/bin/python -m tools.build_atlas    # downloads the open atlases and builds atlases/cns (about 40 s)
+.venv/bin/python -m tools.build_atlas    # downloads the open atlases and builds atlases/cns
 .venv/bin/python -m tools.build_atlas --local    # also adds sources not yet allowed to be shared
 .venv/bin/mnemosyn                       # desktop app
 ```
@@ -43,7 +43,7 @@ slice the wheel zooms and right-drag pans too.
 | `F` | Frame the selection (with the pointer over the slice: fit the whole slice) |
 | `F1` | About, data sources and licences |
 | `Q` | Start a quiz (Study menu) |
-| `Left` / `Right` | Previous or next step of a pathway (Pathways panel) |
+| `Left` / `Right` | Previous or next step of a pathway, anywhere but a text field |
 | `Esc` | Leave the pathway, or end a quiz |
 | `Space` | Play or pause the current pathway |
 | `Ctrl+F` | Filter the structure tree (names, abbreviations, synonyms, atlas labels) |
@@ -53,22 +53,25 @@ panel shows the description with numbered references, the geometry source and it
 Entries marked **Draft** have not been reviewed yet. The Activity panel appears only for the
 routes with a hormone timeline.
 
-The **Slices** panel shows axial, coronal or sagittal cross-sections: coloured labels over the
-Colin27 MRI template, in neurological convention (the patient's left on the screen's left,
-with L/R, A/P and S/I letters on the edges). The slider moves the plane, which also appears
-as a translucent sheet in the 3D view; the second slider sets label opacity. Hovering shows
-the structure under the cursor, clicking selects it, and `C` (Centre slice) moves the plane
+The **Slices** panel shows axial, coronal or sagittal cross-sections: coloured labels over an
+MRI template (Colin27 for the brain; in local builds, PAM50 for the spinal cord, chosen with the
+Brain and Spinal cord buttons), in neurological convention (the patient's left on the screen's
+left, with L/R, A/P and S/I letters on the edges). Labels are drawn as sharp squares, one per
+voxel, over a smoothly drawn template. The wheel zooms around the pointer, right-drag pans and
+`F` over the slice fits it again. The slider moves the plane, which also appears as a
+translucent sheet in the 3D view; the second slider sets label opacity. Hovering shows the
+structure under the cursor, clicking selects it, and `C` (Centre slice) moves the plane
 through the selected structure.
 
-The **Study** menu starts a quiz (`Q`) or shows your progress. *Name it* highlights a
-structure on both sides and asks for its name: type it (synonyms, abbreviations, any word
-order and small typos count) or pick one of four. *Find it* names a structure and you click it
-in 3D or in a slice. *Flashcards* show reviewed descriptions only. Choose single structures or
-bigger groups, the whole atlas or one part of it, and either what is due now or a practice
-round that leaves your schedule alone. Scheduling uses FSRS, the spaced repetition method Anki
-uses, with at most 20 new items a day per mode. Progress is saved after every answer in
-`~/.local/share/mnemosyn/progress.sqlite`. During a quiz the tree, the info panel and hover
-names are hidden; `Esc` ends the quiz and restores the window.
+The **Study** menu starts a quiz (`Q`) or shows your progress. *Name it* highlights a structure on
+both sides, fades everything else and asks for its name: type it (synonyms, abbreviations, any word
+order and small typos count) or pick one of four. *Find it* names a structure and you click it in 3D
+or in a slice. *Flashcards* show reviewed descriptions only, fading the rest the same way. Choose
+single structures or bigger groups, the whole atlas or one part of it, and either what is due now or
+a practice round that leaves your schedule alone. Scheduling uses FSRS, the spaced repetition method
+Anki uses, with at most 20 new items a day per mode. Progress is saved after every answer in
+`~/.local/share/mnemosyn/progress.sqlite`. During a quiz the tree, the info panel and hover names
+are hidden; `Esc` ends the quiz and restores the window.
 
 **Tracts** (43 white-matter pathways: 41 from the HCP-1065 atlas, among them the
 corticospinal tract, the lemnisci, the cerebellar peduncles and seven cranial nerves, and the
@@ -91,12 +94,12 @@ follows; crossings and relays the atlas has no shape for are steps of their own.
 (`Esc` or the Leave button) restores the view as it was. Behaviour routes light both sides and
 show, for each step, its role, the disorders linked to it and the drugs that act there.
 
-While a pathway is open, the Pathways panel holds the playback controls above the steps, drawn
-as media symbols: back, play or pause, next, a speed choice (½×, 1×, 2×) and the current step.
-Play (`Space`) steps through a route on its own. The stress axis, body clock and hunger routes
-also open the Activity panel, which appears only for them: it plays a schematic hormone timeline
-in which a cursor follows the steps, the time is shown above the chart, the note and references
-sit beside it, and a click in the plot jumps to that moment. All pathway texts and timelines are drafts awaiting
+While a pathway is open, the Pathways panel holds the playback controls above the steps, drawn as
+media symbols: back, play or pause, next, a speed choice (½×, 1×, 2×) and the current step. Play
+(`Space`) steps through a route on its own. The stress axis, body clock and hunger routes also open
+the Activity panel, which appears only for them: it plays a schematic hormone timeline in which a
+cursor follows the steps, the time is shown above the chart, the note and references sit beside it,
+and a click in the plot jumps to that moment. All pathway texts and timelines are drafts awaiting
 review.
 
 ## Atlas data
@@ -119,9 +122,10 @@ review.
 | Code | This repository | GNU General Public License v3.0 or later (`LICENSE`) |
 
 The atlas package (`atlases/cns/`, built locally, not committed) contains `metadata.json`,
-`structures.json`, `sources.json`, `collections.json`, `pathways.json`, a labelled volume in
-`volumes/`, packed meshes at three levels of detail in `meshes/`, and descriptions in
-`knowledge/`. The format is described in `docs/specs/2026-10-11-atlas-foundation-design.md`.
+`structures.json`, `sources.json`, `collections.json`, `pathways.json`, the labelled volumes and
+their MRI templates in `volumes/`, packed meshes at three levels of detail in `meshes/`, and
+descriptions in `knowledge/`. The format is described in `docs/specs/2026-10-11-atlas-foundation-
+design.md`.
 
 To change the atlas, edit `atlas_src/` and rebuild:
 
@@ -142,7 +146,8 @@ To change the atlas, edit `atlas_src/` and rebuild:
 The build refuses to package a source without a redistribution licence, a description that
 cites a missing reference, a reference without a DOI, URL or ISBN, a changed or reused id,
 a labelled structure without voxels, or a pathway with an unknown structure, a station with
-no shape on a side, or a description that does not match its route.
+no shape on a side, or a description that does not match its route. It never accepts a recipe
+setting it would ignore, and it lists every problem it finds in one run, each with what to do.
 
 A source whose authors have not yet allowed sharing can be marked `local_only = true` in
 `recipe.toml`. A normal build leaves it out, so the result can be shared; `--local` includes it,
@@ -159,35 +164,35 @@ instead. Every build needs the Harvard Ascending Arousal Network Atlas (CC0, fro
 
 | Measure | Result |
 |---|---|
-| Desktop, 166 structures, integrated GPU | display refresh rate (144 Hz) |
+| Desktop, local build with 395 shapes, integrated GPU (Radeon 680M) | 2.7 ms per frame while turning, so the display refresh rate (144 Hz) is the limit |
 
-The 3D view draws the grey matter as a few composite objects of neighbouring structures, so
-showing or hiding shapes rebuilds only the pieces that changed, and picks with the GPU; the 3D
-view and the slice redraw once per action, after every change in it has been made; it
-switches to a lighter level of detail when the scene exceeds 3 million triangles. Right after the
-first frame the app loads the slice volumes, their label centres and the outlines in small idle
-steps, so nothing is loaded the first time it is used. Budgets enforced by `pytest -m perf`:
-opening a 5,000-structure atlas under 200 ms, search under 10 ms per keystroke, a slice under
-5 ms. With the real atlas built, `pytest -m slow` checks, each in a fresh process on the median
-of repeated runs: first frame under 2 s; the app's own memory under 400 MB, also once everything
-is loaded (shared libraries such as Qt and VTK not counted, since how much of them is resident
-depends on what the system has cached); selecting a structure under 7 ms and under 16 ms with its
-redraw; the CNS, Brain or Spinal cord under 20 ms with its redraw, the first time too; the Tracts
-group under 40 ms; hiding, showing or isolating any group under 30 ms; one step of the slice
-slider under 16 ms; a generated 3,500-structure scene at 60 fps or more; a quiz starting under
-100 ms, moving on under 50 ms and checking a typed answer under 1 ms; tracts built the first time
-they are shown under 500 ms, then shown or hidden in under 50 ms, a slice with every tract
-outlined redrawn in under 10 ms; entering a pathway or switching its side under 100 ms, every
-step of every pathway under 30 ms, and a playing timeline updated in under 5 ms per tick. The
-build report records the build time and peak memory. Each timed action is also compared with its
-own record in `.timing-baseline.json` (written on the first run, kept out of git): one at least 25%
-and 1 ms slower than its record fails even under its limit. After a slowdown you accept, run the
-tests with `--reset-timing-baseline` to record the new times.
+The 3D view draws the grey matter as a few composite objects of neighbouring structures, so showing
+or hiding shapes rebuilds only the pieces that changed, and picks with the GPU; the 3D view and the
+slice redraw once per action, after every change in it has been made; it switches to a lighter level
+of detail when the scene exceeds 3 million triangles. Right after the first frame the app loads the
+slice volumes, their label centres and the outlines in small idle steps, so nothing is loaded the
+first time it is used. Budgets enforced by `pytest -m perf`: opening a 5,000-structure atlas under
+200 ms, search under 10 ms per keystroke, the label layer of a slice under 5 ms. With the real atlas
+built, `pytest -m slow` checks, each in a fresh process on the median of repeated runs: first frame
+under 2 s; the app's own memory under 400 MB, also once everything is loaded (shared libraries such
+as Qt and VTK not counted, since how much of them is resident depends on what the system has
+cached); selecting a structure under 7 ms and under 16 ms with its redraw; the CNS, Brain or Spinal
+cord under 20 ms with its redraw, the first time too; the Tracts group under 40 ms; hiding, showing
+or isolating any group under 30 ms; one step of the slice slider, of a slice zoom or of a slice pan
+under 16 ms; a generated 3,500-structure scene at 60 fps or more; a quiz starting under 100 ms,
+moving on under 50 ms and checking a typed answer under 1 ms; tracts built the first time they are
+shown under 500 ms, then shown or hidden in under 50 ms, a slice with every tract outlined redrawn
+in under 10 ms; entering a pathway or switching its side under 100 ms, every step of every pathway
+under 30 ms, and a playing timeline updated in under 5 ms per tick. The build report records the
+build time and peak memory. Each timed action is also compared with its own record in `.timing-
+baseline.json` (written on the first run, kept out of git): one at least 25% and 1 ms slower than
+its record fails even under its limit. After a slowdown you accept, run the tests with `--reset-
+timing-baseline` to record the new times.
 
 ## Tests
 
 ```bash
-.venv/bin/python -m pytest            # fast suite
+.venv/bin/python -m pytest            # fast suite, including lint (ruff) at zero findings
 .venv/bin/python -m pytest -m slow    # downloads AAL3, builds the real atlas, checks budgets
 ```
 
@@ -206,7 +211,9 @@ python -m tools.build_site && mkdocs serve
 ```
 cns_atlas/          atlas package loader (no Qt): model, meshes, knowledge, volume, atlas
 cns_desktop/        desktop app: app, main_window, state, views/
-tools/build_atlas/  atlas build tool: recipe, hierarchy, validate, fetch, labels, meshing, writer
+cns_study/          quizzes: items, answers, choices, sessions, FSRS progress
+tools/build_atlas/  atlas build tool: recipe, hierarchy, validate, fetch, labels, meshing,
+                    compare, writer
 atlas_src/          committed atlas sources: recipe, structures, ids.lock, knowledge, LICENSES
 docs/               design documents (specs/) and the decision log (decisions.md)
 site/               website home page and styles; tools/build_site.py writes the other pages
