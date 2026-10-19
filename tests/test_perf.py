@@ -11,6 +11,7 @@ from atlas_package import tetra, write_package
 from cns_atlas import Atlas
 from cns_atlas.meshes import MeshData
 from cns_atlas.model import Structure
+from timing_baseline import best_of
 
 pytestmark = pytest.mark.perf
 REAL_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
@@ -77,15 +78,6 @@ def timed(action):
 def median(values):
     return sorted(values)[len(values) // 2]
 """
-
-
-def best_of(fn, runs: int = 5) -> float:
-    times = []
-    for _ in range(runs):
-        start = time.perf_counter()
-        fn()
-        times.append(time.perf_counter() - start)
-    return min(times)
 
 
 @pytest.fixture(scope="module")

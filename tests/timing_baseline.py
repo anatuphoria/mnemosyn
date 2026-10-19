@@ -1,9 +1,28 @@
 import json
+import time
 from pathlib import Path
 
 SLOWER = 1.25
 FLOOR = 0.001
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / ".timing-baseline.json"
+
+
+def keep_busy(seconds: float) -> None:
+    end = time.perf_counter() + seconds
+    while time.perf_counter() < end:
+        pass
+
+
+def best_of(fn, runs: int = 5, warm_s: float = 0.05) -> float:
+    end = time.perf_counter() + warm_s
+    while time.perf_counter() < end:
+        fn()
+    times = []
+    for _ in range(runs):
+        start = time.perf_counter()
+        fn()
+        times.append(time.perf_counter() - start)
+    return min(times)
 
 
 class TimingBaseline:

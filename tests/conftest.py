@@ -30,8 +30,9 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def timing(request):
-    from timing_baseline import TimingBaseline
+    from timing_baseline import TimingBaseline, keep_busy
 
+    keep_busy(0.6)
     return TimingBaseline(reset=request.config.getoption("--reset-timing-baseline"))
 
 

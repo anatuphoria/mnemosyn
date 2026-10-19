@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from timing_baseline import TimingBaseline
+from timing_baseline import TimingBaseline, best_of
 
 
 @pytest.fixture
@@ -57,3 +57,9 @@ def test_assert_within_reports_every_failure_at_once(path):
     with pytest.raises(AssertionError) as failure:
         baseline.assert_within({"a": (0.020, 0.030), "b": (0.040, 0.030)})
     assert "a:" in str(failure.value) and "b:" in str(failure.value)
+
+
+def test_best_of_warms_up_before_it_times():
+    calls = []
+    best_of(lambda: calls.append(1), runs=5, warm_s=0.05)
+    assert len(calls) > 5
