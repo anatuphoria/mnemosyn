@@ -55,6 +55,7 @@ nav:
       - Take part: review.md
       - Reviewers: reviewers.md
   - How it was made:
+      - Building the atlas: building-the-atlas.md
       - Decisions: decisions.md
       - Performance: performance.md
       - Design documents: design/index.md

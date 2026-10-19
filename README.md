@@ -1,18 +1,59 @@
-# Mnemosyn
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/wordmark-dark.svg">
+    <img src="brand/wordmark-light.svg" alt="ΜΝΗΜΟΣΥΝΗ" width="520">
+  </picture>
+</p>
 
-A 3D atlas of the human central nervous system for studying: a desktop app and the tool that
-builds the atlas data from open, cited sources. The terminal viewer lives in its own
-repository, [Mnemosyn TUI](https://github.com/anatuphoria/mnemosyn-tui), and reads the same
-atlas packages.
+<p align="center"><b>Mnemosyn</b>, a free 3D atlas of the human central nervous system for students.</p>
 
-The name joins Mnemosyne, the Greek goddess of memory, with the synapse, where memories are
-stored: an atlas of the brain that helps you remember it.
+<p align="center">
+  <a href="https://github.com/anatuphoria/mnemosyn/releases"><img src="brand/badge-release.svg" alt="Release" height="28"></a>
+  <a href="LICENSE"><img src="brand/badge-licence.svg" alt="Licence: GPL 3.0" height="28"></a>
+  <a href="https://mnemo.saeed.cool/download/"><img src="brand/badge-platforms.svg" alt="For Windows and Linux" height="28"></a>
+  <a href="https://mnemo.saeed.cool/"><img src="brand/badge-website.svg" alt="Website" height="28"></a>
+  <a href="https://mnemo.saeed.cool/review/"><img src="brand/badge-review.svg" alt="Review: open to specialists" height="28"></a>
+</p>
 
-> **Disclaimer.** This atlas is a personal study project. It was not built or reviewed by a
-> neuroanatomy specialist and may contain errors. It is not for diagnosis or treatment.
-> Corrections and feedback are welcome.
+<p align="center">
+  <a href="https://mnemo.saeed.cool/download/">Download</a> ·
+  <a href="https://mnemo.saeed.cool/guide/">Using the app</a> ·
+  <a href="https://mnemo.saeed.cool/atlas/structures/">The atlas</a> ·
+  <a href="https://mnemo.saeed.cool/review/">Review</a> ·
+  <a href="https://mnemo.saeed.cool/decisions/">Decisions</a>
+</p>
 
-## Quickstart
+<p align="center"><img src="brand/screenshot.png" alt="Mnemosyn showing the cerebellar motor loop in 3D, with an axial slice and the station's description" width="900"></p>
+
+<p align="center"><img src="brand/divider.svg" alt="" width="100%"></p>
+
+## What it is
+
+Turn the brain and spinal cord in 3D, cut through them in axial, coronal and sagittal slices, follow
+sensory, motor and behaviour pathways station by station with what a lesion there causes, and test
+yourself with spaced-repetition quizzes. Every shape comes from open, cited research data, and every
+choice behind the project is recorded in its [decision log](https://mnemo.saeed.cool/decisions/).
+
+- **Explore in 3D:** hide, isolate, search and frame any structure; tracts and a see-through cord.
+- **Slices like atlas plates:** labels over an MRI template, linked to the 3D view, with zoom and
+  pan.
+- **Pathways and circuits:** visual, auditory, motor, touch, pain, cerebellar and basal ganglia
+  routes, and ten behaviour circuits with schematic hormone timelines.
+- **Quiz yourself:** name it, find it and flashcards, scheduled with FSRS.
+
+The name joins Mnemosyne (ΜΝΗΜΟΣΥΝΗ), the Greek goddess of memory, with the synapse, where memories
+are stored. A terminal viewer, [Mnemosyn TUI](https://github.com/anatuphoria/mnemosyn-tui), reads
+the same atlas packages.
+
+<p align="center"><img src="brand/divider.svg" alt="" width="100%"></p>
+
+## Get it
+
+Download the test version for Windows or Linux from the [Download
+page](https://mnemo.saeed.cool/download/). It carries the shareable atlas; sources whose authors
+have not yet allowed sharing stay in local builds.
+
+To build from source:
 
 ```bash
 python -m venv .venv
@@ -22,93 +63,17 @@ python -m venv .venv
 .venv/bin/mnemosyn                       # desktop app
 ```
 
-A rebuild compares itself with the atlas it replaces: its build report lists structures removed,
-renamed or moved, and a removal or rename stops the build unless you add `--accept-changes`.
+How to make your own packages, including a full local one for your own machines, is in
+`docs/packaging.md`.
 
-On hybrid-GPU laptops, `prime-run .venv/bin/mnemosyn` uses the discrete GPU.
+<p align="center"><img src="brand/divider.svg" alt="" width="100%"></p>
 
-## Downloads
+## The atlas data
 
-Ready-made downloads for Windows and Linux are on the website's
-[Download page](https://mnemo.saeed.cool/download/). To make a package yourself, including a full
-local one for your own machines, see `docs/packaging.md`.
-
-## Desktop app
-
-Drag rotates, right-drag pans, the wheel zooms, F frames the selection, a click selects. In the
-slice the wheel zooms and right-drag pans too.
-
-| Key | Action |
-|---|---|
-| `H` | Hide the selection (a group hides everything inside it) |
-| `I` | Isolate the selection |
-| `U` | Show all |
-| `T` | Show or hide all tracts |
-| `R` | Reset the view |
-| `C` | Centre the slice on the selection |
-| `F` | Frame the selection (with the pointer over the slice: fit the whole slice) |
-| `F1` | About, data sources and licences |
-| `Q` | Start a quiz (Study menu) |
-| `Left` / `Right` | Previous or next step of a pathway, anywhere but a text field |
-| `Esc` | Leave the pathway, or end a quiz |
-| `Space` | Play or pause the current pathway |
-| `Ctrl+F` | Filter the structure tree (names, abbreviations, synonyms, atlas labels) |
-
-Tree checkboxes show and hide structures; unticking a group hides its whole subtree. The info
-panel shows the description with numbered references, the geometry source and its licence.
-Entries marked **Draft** have not been reviewed yet. The Activity panel appears only for the
-routes with a hormone timeline.
-
-The **Slices** panel shows axial, coronal or sagittal cross-sections: coloured labels over an
-MRI template (Colin27 for the brain; in local builds, PAM50 for the spinal cord, chosen with the
-Brain and Spinal cord buttons), in neurological convention (the patient's left on the screen's
-left, with L/R, A/P and S/I letters on the edges). Labels are drawn as sharp squares, one per
-voxel, over a smoothly drawn template. The wheel zooms around the pointer, right-drag pans and
-`F` over the slice fits it again. The slider moves the plane, which also appears as a
-translucent sheet in the 3D view; the second slider sets label opacity. Hovering shows the
-structure under the cursor, clicking selects it, and `C` (Centre slice) moves the plane
-through the selected structure.
-
-The **Study** menu starts a quiz (`Q`) or shows your progress. *Name it* highlights a structure on
-both sides, fades everything else and asks for its name: type it (synonyms, abbreviations, any word
-order and small typos count) or pick one of four. *Find it* names a structure and you click it in 3D
-or in a slice. *Flashcards* show reviewed descriptions only, fading the rest the same way. Choose
-single structures or bigger groups, the whole atlas or one part of it, and either what is due now or
-a practice round that leaves your schedule alone. Scheduling uses FSRS, the spaced repetition method
-Anki uses, with at most 20 new items a day per mode. Progress is saved after every answer in
-`~/.local/share/mnemosyn/progress.sqlite`. During a quiz the tree, the info panel and hover names
-are hidden; `Esc` ends the quiz and restores the window.
-
-**Tracts** (43 white-matter pathways: 41 from the HCP-1065 atlas, among them the
-corticospinal tract, the lemnisci, the cerebellar peduncles and seven cranial nerves, and the
-mammillothalamic tract and inferior thalamic peduncle from the hypothalamus atlas) are hidden
-when the app opens. `T` shows or hides them all, the tree shows single tracts, and selecting a
-tract shows it. In slices, visible tracts are outlined in their colour, and hovering or
-clicking where tracts overlap picks the smallest. Quizzes have a Tracts level of their own;
-while a tract is named, the grey matter around it is dimmed.
-
-The **Pathways** panel, a tab next to Structures, follows routes station by station in two
-groups. Sensory and motor: the visual and auditory pathways, the Papez circuit, voluntary
-movement, touch and position, pain and temperature, and the basal ganglia and cerebellar motor
-loops. Behaviour: the dopamine, serotonin, noradrenaline and acetylcholine systems, the fear
-circuit, the stress axis, the body clock, hunger, memory, and decision and self-control.
-For a sensory or motor route, choose a pathway and a start side (Left or Right): everything
-off the route fades and cannot be clicked, the route's tracts are shown, and the current
-station is highlighted with its role and the effect of a lesion there, with references. Back
-and Next in the Pathways panel (or the arrow keys) move along the route and the slice
-follows; crossings and relays the atlas has no shape for are steps of their own. Leaving
-(`Esc` or the Leave button) restores the view as it was. Behaviour routes light both sides and
-show, for each step, its role, the disorders linked to it and the drugs that act there.
-
-While a pathway is open, the Pathways panel holds the playback controls above the steps, drawn as
-media symbols: back, play or pause, next, a speed choice (½×, 1×, 2×) and the current step. Play
-(`Space`) steps through a route on its own. The stress axis, body clock and hunger routes also open
-the Activity panel, which appears only for them: it plays a schematic hormone timeline in which a
-cursor follows the steps, the time is shown above the chart, the note and references sit beside it,
-and a click in the plot jumps to that moment. All pathway texts and timelines are drafts awaiting
-review.
-
-## Atlas data
+Every structure, tract and template comes from a published atlas with its citation and licence. The
+full list, with what each source provides, is on the [Data sources
+page](https://mnemo.saeed.cool/atlas/sources/); how the atlas is built and checked is on [Building
+the atlas](https://mnemo.saeed.cool/building-the-atlas/).
 
 | Data | Source | Licence |
 |---|---|---|
@@ -127,101 +92,31 @@ review.
 | Descriptions | Written for this project; every claim cites a reference | CC BY 4.0 |
 | Code | This repository | GNU General Public License v3.0 or later (`LICENSE`) |
 
-The atlas package (`atlases/cns/`, built locally, not committed) contains `metadata.json`,
-`structures.json`, `sources.json`, `collections.json`, `pathways.json`, the labelled volumes and
-their MRI templates in `volumes/`, packed meshes at three levels of detail in `meshes/`, and
-descriptions in `knowledge/`. The format is described in
-`docs/specs/2026-10-11-atlas-foundation-design.md`.
+<p align="center"><img src="brand/divider-gold.svg" alt="" width="100%"></p>
 
-To change the atlas, edit `atlas_src/` and rebuild:
+## Review and disclaimer
 
-- `structures.toml`: the hierarchy, ids, names, synonyms and source labels. Ids never change
-  and are never reused; `ids.lock` records every published id.
-- `knowledge/en/<id>.md`: one description per concept, with `status = "draft"` or
-  `"reviewed"`, citing keys from `knowledge/references.toml`.
-- `recipe.toml`: sources with pinned checksums and licences.
-- `pathways.toml`: the routes, one step per station, crossing or relay, with the side of each
-  station relative to the start (`same`, `opposite` or `midline`).
-- `knowledge/en/pathway-<key>.md`: one description per route with an Overview and one
-  `Step N` section per step, each with one `Role:` and one `Lesion:` line; `{same}` and
-  `{opposite}` become "left" or "right". Behaviour routes (`sides = "both"`,
-  `texts = "behaviour"`) use one `Role:`, one `Disorders:` and at most one `Drugs:` line.
-- `timelines/<route>.toml`: a schematic hormone timeline for a route: curves of relative level
-  over time and marks that tie moments to steps.
+> **Disclaimer.** This atlas is a personal study project. It was not built or reviewed by a
+> neuroanatomy specialist and may contain errors. It is not for diagnosis or treatment.
+> Corrections and feedback are welcome.
 
-The build refuses to package a source without a redistribution licence, a description that
-cites a missing reference, a reference without a DOI, URL or ISBN, a changed or reused id,
-a labelled structure without voxels, or a pathway with an unknown structure, a station with
-no shape on a side, or a description that does not match its route. It never accepts a recipe
-setting it would ignore; mistakes of the same kind are listed together, each with what to do.
+Specialists can help: download the review booklet and ask for access to the answer form on the
+[Review page](https://mnemo.saeed.cool/review/). Questions and corrections are also welcome in
+[GitHub Discussions](https://github.com/anatuphoria/mnemosyn/discussions).
 
-A source whose authors have not yet allowed sharing can be marked `local_only = true` in
-`recipe.toml`. A normal build leaves it out, so the result can be shared; `--local` includes it,
-and the app then shows "local build, not for sharing" in its title and About box. Such a package
-may be packaged for your own machines but must never be shared or published.
+<p align="center"><img src="brand/divider.svg" alt="" width="100%"></p>
 
-Some sources cannot be downloaded by a script and are marked `manual = true`. The build then
-stops and names the page to download each file from and the folder to put it in
-(`~/.cache/cns-atlas/sources/<checksum>/`); `--manual-dir <folder>` takes them from a folder
-instead. Every build needs the Harvard Ascending Arousal Network Atlas (CC0, from Dryad); only
-`--local` needs the Brainstem Navigator (from NITRC, after accepting its licence).
-
-## Performance
-
-| Measure | Result |
-|---|---|
-| Desktop, local build with 395 shapes, integrated GPU (Radeon 680M) | 2.7 ms per frame while turning, so the display refresh rate (144 Hz) is the limit |
-
-The 3D view draws the grey matter as a few composite objects of neighbouring structures, so showing
-or hiding shapes rebuilds only the pieces that changed, and picks with the GPU; the 3D view and the
-slice redraw once per action, after every change in it has been made; it switches to a lighter level
-of detail when the scene exceeds 3 million triangles. Right after the first frame the app loads the
-slice volumes, their label centres and the outlines in small idle steps, so nothing is loaded the
-first time it is used. Budgets enforced by `pytest -m perf`: opening a 5,000-structure atlas under
-200 ms, search under 10 ms per keystroke, the label layer of a slice under 5 ms. With the real atlas
-built, `pytest -m slow` checks, each in a fresh process on the median of repeated runs: first frame
-under 2 s; the app's own memory under 400 MB, also once everything is loaded (shared libraries such
-as Qt and VTK not counted, since how much of them is resident depends on what the system has
-cached); selecting a structure under 7 ms and under 16 ms with its redraw; the CNS, Brain or Spinal
-cord under 20 ms with its redraw, the first time too; the Tracts group under 40 ms; hiding, showing
-or isolating any group under 30 ms; one step of the slice slider, of a slice zoom or of a slice pan
-under 16 ms; a generated 3,500-structure scene at 60 fps or more; a quiz starting under 100 ms,
-moving on under 50 ms and checking a typed answer under 1 ms; tracts built the first time they are
-shown under 500 ms, then shown or hidden in under 50 ms, a slice with every tract outlined redrawn
-in under 10 ms; entering a pathway or switching its side under 100 ms, every step of every pathway
-under 30 ms, and a playing timeline updated in under 5 ms per tick. The build report records the
-build time and peak memory. Each timed action is also compared with its own record in
-`.timing-baseline.json` (written on the first run, kept out of git): one at least 25% and 1 ms
-slower than its record fails even under its limit. After a slowdown you accept, run the tests with
-`--reset-timing-baseline` to record the new times.
-
-## Tests
+## Contributing and licence
 
 ```bash
 .venv/bin/python -m pytest            # fast suite, including lint (ruff) at zero findings
-.venv/bin/python -m pytest -m slow    # downloads AAL3, builds the real atlas, checks budgets
+.venv/bin/python -m pytest -m slow    # with the real atlas built: speed limits and builds
+python -m tools.build_site && mkdocs serve   # preview the website
+python -m tools.brand                 # redraw the logo, icons and badges
 ```
 
-## Website
-
-The website at https://mnemo.saeed.cool is built from this repository by MkDocs with the Material
-theme and published by GitHub Actions on every push to `main`. To preview it:
-
-```bash
-pip install "mkdocs>=1.6,<2" "mkdocs-material>=9.5,<10"
-python -m tools.build_site && mkdocs serve
-```
-
-## Layout
-
-```
-cns_atlas/          atlas package loader (no Qt): model, meshes, knowledge, volume, atlas
-cns_desktop/        desktop app: app, main_window, state, views/
-cns_study/          quizzes: items, answers, choices, sessions, FSRS progress
-tools/build_atlas/  atlas build tool: recipe, hierarchy, validate, fetch, labels, meshing,
-                    compare, writer
-atlas_src/          committed atlas sources: recipe, structures, ids.lock, knowledge, LICENSES
-docs/               design documents (specs/) and the decision log (decisions.md)
-site/               website home page and styles; tools/build_site.py writes the other pages
-tests/
-```
+The code is under the GNU General Public License v3.0 or later (`LICENSE`); the descriptions are CC
+BY 4.0; the GFS Didot and Noto Sans Bamum fonts used for the logo are under the SIL Open Font
+Licence (OFL, in `brand/fonts/`). The design of every part is in the
+[design documents](https://mnemo.saeed.cool/design/), and the limits the app is held to are on the
+[Performance page](https://mnemo.saeed.cool/performance/).
