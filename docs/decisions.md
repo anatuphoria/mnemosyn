@@ -25,7 +25,7 @@ entry replaces it and the old one says so.
 | 17 | 2026-10-11 | Tracts are hidden until asked for and have their own quiz level | changed by 29 |
 | 18 | 2026-10-11 | MNI template variants are combined without registration | in force |
 | 19 | 2026-10-12 | Pathways teach the route and lesions, one side at a time | in force |
-| 20 | 2026-10-12 | Data without a licence is used in local builds only | in force |
+| 20 | 2026-10-12 | Data without a licence is used in local builds only | changed by 59 |
 | 21 | 2026-10-12 | Behaviour circuits as routes, with play and schematic hormone curves | changed by 48 |
 | 22 | 2026-10-13 | Brainstem nuclei from three open sources, the Navigator local only | in force |
 | 23 | 2026-10-13 | The spinal cord from PAM50, local only | in force |
@@ -62,6 +62,10 @@ entry replaces it and the old one says so.
 | 54 | 2026-10-19 | The review booklet PDF is published on the website | in force |
 | 55 | 2026-10-19 | Access to the review form is by request and the owner's reply | in force |
 | 56 | 2026-10-19 | Reviewers are credited on the website only with their consent | in force |
+| 57 | 2026-10-19 | Downloads for Windows and Linux only | in force |
+| 58 | 2026-10-19 | Test releases are not signed | in force |
+| 59 | 2026-10-19 | Local-only data may be packaged for the owner's own machines, never shared | in force |
+| 60 | 2026-10-19 | Releases come from version tags, as pre-releases below 1.0 | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -201,10 +205,10 @@ Design: [pathways, section 1](specs/2026-10-12-pathways-design.md).
 
 ## 20. Data without a licence is used in local builds only
 
-2026-10-12. A source whose files carry no licence is marked local only: `python -m tools.build_atlas
---local` includes it, the normal build leaves it out and stays shareable, and its authors are asked
-for permission. A source moves to the normal build once they agree. An installer must refuse a local
-package.
+2026-10-12. Changed by 59. A source whose files carry no licence is marked local only: `python -m
+tools.build_atlas --local` includes it, the normal build leaves it out and stays shareable, and its
+authors are asked for permission. A source moves to the normal build once they agree. An installer
+must refuse a local package.
 Why: some shapes exist nowhere else (pituitary, pineal, spinal cord, small brainstem nuclei), but
 nothing is shared without permission.
 Design: [endocrine glands, sections 1 and 4](specs/2026-10-12-endocrine-glands-design.md).
@@ -528,3 +532,40 @@ review form, with their name as they asked and their institution if they chose. 
 the list by hand; the website never reads the private answer sheet.
 Why: reviewers decide whether they are named, as the booklet promises.
 Design: [review pages, section 3](specs/2026-10-19-review-pages-design.md).
+
+## 57. Downloads for Windows and Linux only
+
+2026-10-19. Mnemosyn is packaged for 64-bit Windows (an installer) and Linux (an AppImage). There
+is no macOS version.
+Why: Apple's paid signing is out of reach for now, and an unsigned app is awkward to open on
+current macOS (System Settings, Privacy and Security, Open Anyway, and not at all on many school
+Macs).
+Design: [packaging, section 2](specs/2026-10-19-packaging-design.md).
+
+## 58. Test releases are not signed
+
+2026-10-19. While Mnemosyn is a test version, its packages are not code signed. Windows shows
+SmartScreen on first launch ("More info", then "Run anyway"), and some antivirus programs may flag
+the app; the Download page says how to open it. Signing, for example through the free SignPath
+Foundation programme, can be switched on later without changing the rest of the build.
+Why: this version is for testing, not production, and signing costs time or money that can wait.
+Design: [packaging, section 2](specs/2026-10-19-packaging-design.md).
+
+## 59. Local-only data may be packaged for the owner's own machines, never shared
+
+2026-10-19. Changes 20. `python -m tools.package --local` makes a full package with the local-only
+sources, named `local-not-for-sharing`, for the owner's own machines. It is made only on the
+owner's computers, never on GitHub Actions, never uploaded, attached to a release or offered on
+the website.
+Why: the owner needs to test the full atlas on his other machines, and keeping the package in his
+hands still honours the promise to the data authors that nothing is shared before they agree.
+Design: [packaging, sections 2 and 7](specs/2026-10-19-packaging-design.md).
+
+## 60. Releases come from version tags, as pre-releases below 1.0
+
+2026-10-19. Pushing a tag `v<version>` that matches `pyproject.toml` makes GitHub Actions build,
+smoke-test and publish the shareable Windows and Linux packages with a checksums file. Below
+version 1.0 a release is marked pre-release and called a test version in the app and on the
+Download page, whose buttons follow the version in `pyproject.toml`.
+Why: one reproducible path from a tag to the files students download, with no hand-made uploads.
+Design: [packaging, sections 5 and 6](specs/2026-10-19-packaging-design.md).

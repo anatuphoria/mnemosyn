@@ -27,6 +27,10 @@ renamed or moved, and a removal or rename stops the build unless you add `--acce
 
 On hybrid-GPU laptops, `prime-run .venv/bin/mnemosyn` uses the discrete GPU.
 
+Ready-made downloads for Windows and Linux are on the website's
+[Download page](https://mnemo.saeed.cool/download/). To make a package yourself, including a full
+local one for your own machines, see `docs/packaging.md`.
+
 ## Desktop app
 
 Drag rotates, right-drag pans, the wheel zooms, F frames the selection, a click selects. In the
@@ -151,8 +155,8 @@ setting it would ignore; mistakes of the same kind are listed together, each wit
 
 A source whose authors have not yet allowed sharing can be marked `local_only = true` in
 `recipe.toml`. A normal build leaves it out, so the result can be shared; `--local` includes it,
-and the app then shows "local build, not for sharing" in its title and About box. Such a
-package must never be published or bundled into an installer.
+and the app then shows "local build, not for sharing" in its title and About box. Such a package
+may be packaged for your own machines but must never be shared or published.
 
 Some sources cannot be downloaded by a script and are marked `manual = true`. The build then
 stops and names the page to download each file from and the folder to put it in
