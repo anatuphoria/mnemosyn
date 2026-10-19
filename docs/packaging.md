@@ -84,8 +84,9 @@ other than 3.14, Inno Setup not installed, or a source file with a different nam
 
 ## A public release
 
-1. Set the new version in `pyproject.toml` (for example `version = "0.2.0"`) and commit it.
-2. Tag the commit and push the tag:
+1. Set the new version in `pyproject.toml` (for example `version = "0.2.0"`), commit it and push
+   `main`.
+2. Tag that commit and push the tag:
 
    ```bash
    git tag v0.2.0
@@ -95,6 +96,6 @@ other than 3.14, Inno Setup not installed, or a source file with a different nam
 3. GitHub Actions builds the shareable package on Windows and Linux, opens each once to check it
    starts, and publishes a pre-release with both files and `SHA256SUMS.txt`. The tag must match
    the version in `pyproject.toml`, or the workflow stops.
-4. After the first release, set `released = true` in `site/download.toml` and push, so the
-   website's Download buttons point at the files. Later versions only need the version change;
-   the buttons follow the version in `pyproject.toml`.
+4. When the release is published, set `version = "0.2.0"` in `site/download.toml`, commit and push
+   `main`. The website's Download buttons then point at the new files. They never point at a
+   version before its files exist.

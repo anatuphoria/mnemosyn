@@ -111,27 +111,28 @@ def test_the_review_pages_are_in_the_navigation():
     assert "Download: download.md" in nav and "install.md" not in nav
 
 
-def download_settings(tmp_path, released):
+def download_settings(tmp_path, version):
     repo = review_settings(tmp_path)
-    (repo / "site/download.toml").write_text(f"released = {str(released).lower()}\n")
+    (repo / "site/download.toml").write_text(f'version = "{version}"\n')
     return repo
 
 
-def test_the_download_page_links_this_versions_files(tmp_path):
-    build_site(download_settings(tmp_path, True), tmp_path / "out")
+def test_the_download_page_links_the_published_versions_files(tmp_path):
+    build_site(download_settings(tmp_path, "0.4.2"), tmp_path / "out")
     page = (tmp_path / "out/download.md").read_text()
-    base = "https://github.com/anatuphoria/mnemosyn/releases/download/v0.1.0/"
-    assert f"]({base}Mnemosyn-0.1.0-Setup.exe)" in page
-    assert f"]({base}Mnemosyn-0.1.0-x86_64.AppImage)" in page
-    assert "releases/tag/v0.1.0" in page and "SHA256SUMS.txt" in page
-    assert "Windows 10" in page and "OpenGL 3.2" in page
+    base = "https://github.com/anatuphoria/mnemosyn/releases/download/v0.4.2/"
+    assert f"]({base}Mnemosyn-0.4.2-Setup.exe)" in page
+    assert f"]({base}Mnemosyn-0.4.2-x86_64.AppImage)" in page
+    assert "releases/tag/v0.4.2" in page and "SHA256SUMS.txt" in page
+    assert "Windows 10" in page and "OpenGL 3.2" in page and "Ubuntu 22.04" in page
     assert "Run anyway" in page and "chmod +x" in page
     assert "shareable" in page.lower() and "test version" in page.lower()
     assert "## Build from source" in page and "pip install" in page
+    assert "download.md" not in page and "docs/packaging.md" not in page
 
 
 def test_before_the_first_release_the_buttons_say_coming_soon(tmp_path):
-    build_site(download_settings(tmp_path, False), tmp_path / "out")
+    build_site(download_settings(tmp_path, ""), tmp_path / "out")
     page = (tmp_path / "out/download.md").read_text()
     assert "coming soon" in page.lower() and "releases/download" not in page
     assert "## Build from source" in page

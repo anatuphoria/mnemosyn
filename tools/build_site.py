@@ -118,9 +118,9 @@ def _review_page(settings: dict) -> str:
 RELEASES = "https://github.com/anatuphoria/mnemosyn/releases"
 
 
-def _download_page(version: str, released: bool, quickstart: str) -> str:
+def _download_page(version: str, quickstart: str) -> str:
     base = f"{RELEASES}/download/v{version}"
-    if released:
+    if version:
         buttons = (f"[:material-microsoft-windows: Windows installer]("
                    f"{base}/Mnemosyn-{version}-Setup.exe){{ .md-button .md-button--primary }} "
                    f"[:material-linux: Linux AppImage]({base}/Mnemosyn-{version}-x86_64.AppImage)"
@@ -129,18 +129,19 @@ def _download_page(version: str, released: bool, quickstart: str) -> str:
                    f"file are on the [release page]({RELEASES}/tag/v{version}).")
     else:
         buttons = "The first test version is coming soon."
-        details = f"Releases will appear on the [releases page]({RELEASES})."
+        details = "When it is out, it will appear here."
     return f"""# Download
 
 {buttons}
 
-{details} It contains the shareable atlas: the spinal cord, the glands and the brainstem bodies come
+{details} The download contains the shareable atlas: the spinal cord, the glands and the brainstem bodies come
 from sources that have not yet allowed sharing, so they are not included.
 
 ## Requirements
 
 - Windows: 64-bit Windows 10 or later.
-- Linux: a 64-bit distribution with a desktop.
+- Linux: a 64-bit distribution from 2022 or later with a desktop, such as Ubuntu 22.04, Debian 12
+  or Fedora 36.
 - Graphics that support OpenGL 3.2, which almost every computer from the last ten years has.
 
 ## Opening it the first time
@@ -195,10 +196,9 @@ def build_site(repo: Path, out: Path) -> None:
     (out / "review.toml").unlink()
     (out / "review.md").write_text(_review_page(review))
     (out / "reviewers.md").write_text(_reviewers_page(review))
-    version = tomllib.loads((repo / "pyproject.toml").read_text())["project"]["version"]
-    released = tomllib.loads((out / "download.toml").read_text()).get("released", False)
+    published = tomllib.loads((out / "download.toml").read_text()).get("version", "")
     (out / "download.toml").unlink()
-    (out / "download.md").write_text(_download_page(version, released, sections["Quickstart"]))
+    (out / "download.md").write_text(_download_page(published, sections["Quickstart"]))
     (out / "guide.md").write_text("# Using the app\n" + sections["Desktop app"])
     (out / "performance.md").write_text("# Performance\n" + sections["Performance"])
     (out / "atlas/structures.md").write_text(_structures_page(structures, local))

@@ -1,7 +1,7 @@
 # Packaging: downloads for Windows and Linux (sub-project F)
 
 Date: 2026-10-19
-Status: agreed with the owner in conversation on 2026-10-19; awaiting the owner's review of this text
+Status: approved by the owner on 2026-10-19
 Branch: `packaging`, merged into `main` when the first test release works
 
 ## 1. Why
@@ -64,14 +64,13 @@ AppImage.
 ## 6. The website
 
 - **Install** becomes **Download**: one button each for Windows and Linux, pointing at the files
-  of the version in `pyproject.toml` on GitHub Releases (GitHub's "latest" link skips
-  pre-releases, so the site build writes the version into the links; the page updates when the
-  version changes on `main`); requirements (64-bit Windows 10 or later; a 64-bit Linux with a
-  desktop; OpenGL 3.2 graphics); a link to the release page, which lists sizes and the checksums
-  file; the first-launch steps (SmartScreen on Windows, making the AppImage runnable on Linux); and
-  one plain line that this is the shareable atlas. Today's developer quickstart moves to a "Build
-  from source" section of the same page. Until the first release exists, the buttons say the
-  first test version is coming soon.
+  of the published version set in `site/download.toml` (set by hand once a release is published,
+  so the buttons never point at files that do not exist yet; GitHub's "latest" link skips
+  pre-releases); requirements (64-bit Windows 10 or later; a 64-bit Linux from 2022 or later;
+  OpenGL 3.2 graphics); a link to the release page, which lists sizes and the checksums file; the
+  first-launch steps; and one plain line that this is the shareable atlas. Today's developer
+  quickstart moves to a "Build from source" section of the same page. While no version is set, the
+  page says the first test version is coming soon.
 - The home page's Install button and first "Start here" card point at the Download page with the
   same look; the layout does not change.
 

@@ -11,7 +11,7 @@ import tomllib
 import urllib.request
 from pathlib import Path
 
-from cns_atlas import Atlas
+from cns_atlas import Atlas, AtlasError
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
@@ -48,7 +48,20 @@ def file_name(version: str, system: str, local: bool) -> str:
 
 
 def is_local(atlas: Path) -> bool:
-    return bool(Atlas.open(atlas).local_only)
+    try:
+        return bool(Atlas.open(atlas).local_only)
+    except AtlasError as exc:
+        raise PackageError(f"{atlas} cannot be read as an atlas ({exc}); rebuild it with "
+                           "python -m tools.build_atlas") from exc
+
+
+def _run(name: str, command: list[str], **kwargs) -> None:
+    try:
+        subprocess.run(command, check=True, capture_output=True, **kwargs)
+    except subprocess.CalledProcessError as exc:
+        output = (exc.stdout or b"") + (exc.stderr or b"")
+        tail = "\n".join(output.decode(errors="replace").strip().splitlines()[-15:])
+        raise PackageError(f"{name} failed (exit code {exc.returncode}):\n{tail}") from exc
 
 
 def check(atlas: Path, local: bool) -> None:
@@ -115,8 +128,8 @@ def wrap_linux(folder: Path, target: Path, log) -> Path:
     shutil.copy(HERE / "mnemosyn.png", appdir / "mnemosyn.png")
     log("making the AppImage")
     env = {**os.environ, "ARCH": "x86_64", "APPIMAGE_EXTRACT_AND_RUN": "1"}
-    subprocess.run([str(_download_appimagetool(log)), "--no-appstream", str(appdir), str(target)],
-                   env=env, check=True, capture_output=True)
+    _run("appimagetool", [str(_download_appimagetool(log)), "--no-appstream", str(appdir),
+                          str(target)], env=env)
     return target
 
 
@@ -125,10 +138,9 @@ def wrap_windows(folder: Path, target: Path, version: str, log) -> Path:
     if compiler is None:
         raise PackageError("Inno Setup 6 is not installed; install it from jrsoftware.org")
     log("making the installer")
-    subprocess.run([compiler, f"/DAppVersion={version}", f"/DSourceDir={folder}",
-                    f"/DOutputDir={target.parent}", f"/DOutputName={target.stem}",
-                    f"/DIconFile={HERE / 'mnemosyn.ico'}", str(HERE / "mnemosyn.iss")],
-                   check=True, capture_output=True)
+    _run("Inno Setup", [compiler, f"/DAppVersion={version}", f"/DSourceDir={folder}",
+                        f"/DOutputDir={target.parent}", f"/DOutputName={target.stem}",
+                        f"/DIconFile={HERE / 'mnemosyn.ico'}", str(HERE / "mnemosyn.iss")])
     return target
 
 

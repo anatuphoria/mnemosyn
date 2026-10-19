@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import tomllib
 
 import pytest
 
@@ -18,7 +19,27 @@ def test_file_names_say_the_system_and_whether_they_may_be_shared():
 
 
 def test_the_version_comes_from_the_project_file():
-    assert package.project_version() == "0.1.0"
+    project = tomllib.loads((package.ROOT / "pyproject.toml").read_text())
+    assert package.project_version() == project["project"]["version"]
+
+
+def failing_tool(*args, **kwargs):
+    raise subprocess.CalledProcessError(2, args[0], output=b"", stderr=b"line one\nreal reason")
+
+
+def test_a_failing_packaging_tool_says_why(tmp_path, monkeypatch):
+    monkeypatch.setattr(package.subprocess, "run", failing_tool)
+    monkeypatch.setattr(package, "_download_appimagetool", lambda log: tmp_path / "tool")
+    (tmp_path / "Mnemosyn").mkdir()
+    with pytest.raises(package.PackageError, match="(?s)appimagetool failed.*real reason"):
+        package.wrap_linux(tmp_path / "Mnemosyn", tmp_path / "out.AppImage", lambda *_: None)
+
+
+def test_an_unreadable_atlas_is_a_package_error(tmp_path, monkeypatch):
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    (tmp_path / "metadata.json").write_text("{not json")
+    with pytest.raises(package.PackageError, match="cannot be read"):
+        package.check(tmp_path, local=False)
 
 
 def toy_atlas(root, local):

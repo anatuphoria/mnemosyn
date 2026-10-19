@@ -566,6 +566,7 @@ Design: [packaging, sections 2 and 7](specs/2026-10-19-packaging-design.md).
 2026-10-19. Pushing a tag `v<version>` that matches `pyproject.toml` makes GitHub Actions build,
 smoke-test and publish the shareable Windows and Linux packages with a checksums file. Below
 version 1.0 a release is marked pre-release and called a test version in the app and on the
-Download page, whose buttons follow the version in `pyproject.toml`.
+Download page, whose buttons point at the version set in `site/download.toml` once its release
+is published.
 Why: one reproducible path from a tag to the files students download, with no hand-made uploads.
 Design: [packaging, sections 5 and 6](specs/2026-10-19-packaging-design.md).

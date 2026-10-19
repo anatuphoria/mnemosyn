@@ -27,6 +27,8 @@ renamed or moved, and a removal or rename stops the build unless you add `--acce
 
 On hybrid-GPU laptops, `prime-run .venv/bin/mnemosyn` uses the discrete GPU.
 
+## Downloads
+
 Ready-made downloads for Windows and Linux are on the website's
 [Download page](https://mnemo.saeed.cool/download/). To make a package yourself, including a full
 local one for your own machines, see `docs/packaging.md`.
