@@ -94,15 +94,16 @@ def large_atlas(tmp_path_factory):
                          lods=("lod0", "lod1", "lod2"))
 
 
-def test_open_5000_structures_under_200ms(large_atlas):
+def test_open_5000_structures_under_200ms(large_atlas, timing):
     assert len(Atlas.open(large_atlas).structures) == 5001
-    assert best_of(lambda: Atlas.open(large_atlas)) < 0.200
+    timing.assert_within({"open 5000 structures": (best_of(lambda: Atlas.open(large_atlas)),
+                                                   0.200)})
 
 
 @pytest.mark.parametrize("query", ["r", "region 4", "syn 4999", "group 7", "label_3000", "zzz"])
-def test_search_5000_structures_under_10ms(large_atlas, query):
+def test_search_5000_structures_under_10ms(large_atlas, query, timing):
     atlas = Atlas.open(large_atlas)
-    assert best_of(lambda: atlas.search(query)) < 0.010
+    timing.assert_within({f"search {query!r}": (best_of(lambda: atlas.search(query)), 0.010)})
 
 
 def real_atlas_or_skip() -> Path:
@@ -134,7 +135,7 @@ def test_real_atlas_memory_under_500mb():
 
 
 @pytest.mark.slow
-def test_desktop_first_frame_under_2s_and_own_memory_under_400mb():
+def test_desktop_first_frame_under_2s_and_own_memory_under_400mb(timing):
     pytest.importorskip("pyvistaqt")
     real_atlas_or_skip()
     env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
@@ -145,7 +146,7 @@ def test_desktop_first_frame_under_2s_and_own_memory_under_400mb():
                                 check=True, capture_output=True, text=True, timeout=120)
         runs.append(time.perf_counter() - start)
         output = result.stdout
-    assert runs[-1] < 2.0
+    timing.assert_within({"first frame": (runs[-1], 2.0)})
     own = [line for line in output.splitlines() if line.startswith("own memory:")]
     assert own and float(own[0].split()[2]) < 400
     warmed = [line for line in output.splitlines()
@@ -176,14 +177,19 @@ print(median([s[0] for s in singles]), median([s[1] for s in singles]), *groups)
 
 
 @pytest.mark.slow
-def test_selection_on_the_real_atlas_under_7ms(tmp_path):
+def test_selection_on_the_real_atlas_under_7ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     values = run_timing(SELECTION_TIMING, real_atlas_or_skip(), tmp_path)
     single_step, single_whole, *groups = values
-    assert single_step < 0.007 and single_whole < 0.016
     cns, brain, cord, tracts, spinal_tracts = zip(groups[0::2], groups[1::2])
-    assert all(step < 0.010 and whole < 0.020 for step, whole in (cns, brain, cord)), groups
-    assert tracts[1] < 0.040 and spinal_tracts[1] < 0.050, groups
+    timings = {"select a structure": (single_step, 0.007),
+               "select a structure with its redraw": (single_whole, 0.016),
+               "select Tracts with its redraw": (tracts[1], 0.040),
+               "select spinal tracts with its redraw": (spinal_tracts[1], 0.050)}
+    for name, (step, whole) in (("CNS", cns), ("Brain", brain), ("Spinal cord", cord)):
+        timings[f"select {name}"] = (step, 0.010)
+        timings[f"select {name} with its redraw"] = (whole, 0.020)
+    timing.assert_within(timings)
 
 
 @pytest.mark.slow
@@ -198,7 +204,7 @@ def test_real_atlas_quiz_levels():
 
 
 @pytest.mark.slow
-def test_answer_check_on_the_real_atlas_under_1ms():
+def test_answer_check_on_the_real_atlas_under_1ms(timing):
     from cns_study.answers import AnswerIndex
     from cns_study.items import group_items, structure_items
 
@@ -213,7 +219,7 @@ def test_answer_check_on_the_real_atlas_under_1ms():
         index.check("midle temporal gyrus", target)
         times.append(time.perf_counter() - start)
     times.sort()
-    assert times[len(times) // 2] < 0.001
+    timing.assert_within({"check a typed answer": (times[len(times) // 2], 0.001)})
 
 
 QUIZ_TIMING = """
@@ -258,12 +264,11 @@ print(started, times[len(times) // 2])
 
 
 @pytest.mark.slow
-def test_quiz_on_the_real_atlas_starts_under_100ms_and_moves_on_under_50ms(tmp_path):
+def test_quiz_on_the_real_atlas_starts_under_100ms_and_moves_on_under_50ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
     started, moved_on = run_timing(QUIZ_TIMING, atlas_path, tmp_path)
-    assert started < 0.100
-    assert moved_on < 0.050
+    timing.assert_within({"start a quiz": (started, 0.100), "move on in a quiz": (moved_on, 0.050)})
 
 
 TRACT_TIMING = """
@@ -314,14 +319,14 @@ print(first, median(toggles), median(redraws), median(lookups))
 
 
 @pytest.mark.slow
-def test_tracts_on_the_real_atlas_meet_their_budgets(tmp_path):
+def test_tracts_on_the_real_atlas_meet_their_budgets(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
     first, toggle, redraw, lookup = run_timing(TRACT_TIMING, atlas_path, tmp_path)
-    assert first < 0.500
-    assert toggle < 0.050
-    assert redraw < 0.010
-    assert lookup < 0.001
+    timing.assert_within({"show tracts the first time": (first, 0.500),
+                          "show or hide tracts": (toggle, 0.050),
+                          "redraw a slice with tracts": (redraw, 0.010),
+                          "look up a tract in a slice": (lookup, 0.001)})
 
 
 PATHWAY_TIMING = """
@@ -376,14 +381,14 @@ print(entered, switched, sorted(steps)[int(len(steps) * 0.9)], sorted(ticks)[len
 
 
 @pytest.mark.slow
-def test_pathways_on_the_real_atlas_meet_their_budgets(tmp_path):
+def test_pathways_on_the_real_atlas_meet_their_budgets(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     atlas_path = real_atlas_or_skip()
     entered, switched, step, tick = run_timing(PATHWAY_TIMING, atlas_path, tmp_path)
-    assert entered < 0.100
-    assert switched < 0.100
-    assert step < 0.030
-    assert tick < 0.005
+    timing.assert_within({"enter a pathway": (entered, 0.100),
+                          "switch a pathway's side": (switched, 0.100),
+                          "cerebellar pathway step, 90th percentile": (step, 0.030),
+                          "timeline tick": (tick, 0.005)})
 
 
 def sphere_scene(count: int):
@@ -407,7 +412,7 @@ def sphere_scene(count: int):
 
 
 @pytest.mark.slow
-def test_generated_3500_structure_scene_at_60_fps(tmp_path):
+def test_generated_3500_structure_scene_at_60_fps(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     from PySide6.QtWidgets import QApplication
 
@@ -428,9 +433,9 @@ def test_generated_3500_structure_scene_at_60_fps(tmp_path):
         view.camera.Azimuth(3)
         view.render()
         view.screenshot(return_img=True)
-    fps = 30 / (time.perf_counter() - start)
+    frame = (time.perf_counter() - start) / 30
     view.close()
-    assert fps >= 60
+    timing.assert_within({"frame of a 3,500-structure scene": (frame, 1 / 60)})
 
 
 ROUTE_TIMING = PRELUDE + """
@@ -459,10 +464,11 @@ print(first_cord, sorted(steps)[int(len(steps) * 0.9)])
 
 
 @pytest.mark.slow
-def test_every_route_step_meets_30ms_including_the_first_into_the_cord(tmp_path):
+def test_every_route_step_meets_30ms_including_the_first_into_the_cord(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     first_cord, step90 = run_timing(ROUTE_TIMING, real_atlas_or_skip(), tmp_path)
-    assert first_cord < 0.030 and step90 < 0.030
+    timing.assert_within({"first route step into the cord": (first_cord, 0.030),
+                          "route step, 90th percentile": (step90, 0.030)})
 
 
 GROUP_TIMING = PRELUDE + """
@@ -477,9 +483,11 @@ print(cns, brain, cord)
 
 
 @pytest.mark.slow
-def test_first_large_group_selections_meet_20ms_after_warm_up(tmp_path):
+def test_first_large_group_selections_meet_20ms_after_warm_up(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
-    assert max(run_timing(GROUP_TIMING, real_atlas_or_skip(), tmp_path)) < 0.020
+    values = run_timing(GROUP_TIMING, real_atlas_or_skip(), tmp_path)
+    timing.assert_within({f"first selection of {name}": (value, 0.020)
+                          for name, value in zip(("CNS", "Brain", "Spinal cord"), values)})
 
 
 VISIBILITY_TIMING = PRELUDE + """
@@ -499,9 +507,13 @@ print(*worst)
 
 
 @pytest.mark.slow
-def test_hiding_showing_and_isolating_groups_meet_30ms(tmp_path):
+def test_hiding_showing_and_isolating_groups_meet_30ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
-    assert max(run_timing(VISIBILITY_TIMING, real_atlas_or_skip(), tmp_path)) < 0.030
+    atlas_path = real_atlas_or_skip()
+    values = iter(run_timing(VISIBILITY_TIMING, atlas_path, tmp_path))
+    names = {s.id: s.name for s in Atlas.open(atlas_path).structures}
+    timing.assert_within({f"{action} {names[group]}": (next(values), 0.030)
+                          for group in (2, 3, 70, 30) for action in ("hide", "show", "isolate")})
 
 
 SLIDER_TIMING = PRELUDE + """
@@ -518,9 +530,12 @@ print(*results)
 
 
 @pytest.mark.slow
-def test_one_slider_step_meets_16ms(tmp_path):
+def test_one_slider_step_meets_16ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
-    assert max(run_timing(SLIDER_TIMING, real_atlas_or_skip(), tmp_path)) < 0.016
+    atlas_path = real_atlas_or_skip()
+    values = run_timing(SLIDER_TIMING, atlas_path, tmp_path)
+    timing.assert_within({f"slider step, {volume.name}": (value, 0.016)
+                          for volume, value in zip(Atlas.open(atlas_path).volumes, values)})
 
 
 TRACTS_GROUP_TIMING = PRELUDE + """
@@ -536,6 +551,7 @@ print(median(times))
 
 
 @pytest.mark.slow
-def test_tracts_group_selection_meets_40ms(tmp_path):
+def test_tracts_group_selection_meets_40ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
-    assert run_timing(TRACTS_GROUP_TIMING, real_atlas_or_skip(), tmp_path)[0] < 0.040
+    value = run_timing(TRACTS_GROUP_TIMING, real_atlas_or_skip(), tmp_path)[0]
+    timing.assert_within({"select Tracts after warm-up": (value, 0.040)})

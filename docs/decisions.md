@@ -49,6 +49,7 @@ entry replaces it and the old one says so.
 | 41 | 2026-10-18 | Colours that neighbours can tell apart | in force |
 | 42 | 2026-10-18 | Tiny spinal tracts stay in the atlas and the quizzes | in force |
 | 43 | 2026-10-18 | Speed limits for first use, groups, hiding and the slider | in force |
+| 44 | 2026-10-19 | Timing tests also catch a quarter slowdown under the limits | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -373,3 +374,13 @@ Timing tests run in fresh processes and judge medians, so only a real slowdown f
 Why: the owner cannot measure the app; every action a person takes must feel instant and be
 guarded by a test that does not cry wolf.
 Design: [speed](specs/2026-10-18-speed-design.md).
+
+## 44. Timing tests also catch a quarter slowdown under the limits
+
+2026-10-19. Every timing test records what each action takes in a file kept out of git
+(`.timing-baseline.json`, since the numbers belong to one computer and one build). Later runs fail
+when an action is at least 25% and at least 1 ms slower than its record, even under its limit. The
+record is written the first time and changes only when the owner runs the tests with
+`--reset-timing-baseline`; a faster run never lowers it.
+Why: an action can creep slower for many changes in a row and stay under its limit until the last
+one; the 1 ms floor keeps actions that take under a few milliseconds from failing on noise.

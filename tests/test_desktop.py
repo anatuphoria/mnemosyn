@@ -187,7 +187,7 @@ def test_main_reports_missing_atlas(tmp_path, capsys):
 
 
 @pytest.mark.perf
-def test_selection_updates_all_panels_under_7ms(window):
+def test_selection_updates_all_panels_under_7ms(window, timing):
     ids = list(window.state.geometry_ids)
     times = []
     for i in range(40):
@@ -198,7 +198,7 @@ def test_selection_updates_all_panels_under_7ms(window):
         window.state.select(target)
         times.append(time.perf_counter() - start)
     times.sort()
-    assert times[len(times) // 2] < 0.007
+    timing.assert_within({"toy atlas: select a structure": (times[len(times) // 2], 0.007)})
 
 
 def test_view_uses_the_packages_stored_normals(window, atlas):

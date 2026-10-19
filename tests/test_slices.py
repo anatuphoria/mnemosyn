@@ -112,7 +112,7 @@ def test_centre_mm():
 
 
 @pytest.mark.perf
-def test_compose_full_slice_under_5ms():
+def test_compose_full_slice_under_5ms(timing):
     rng = np.random.default_rng(1)
     labels = rng.integers(0, 2500, size=(217, 181))
     template = rng.integers(0, 255, size=(217, 181)).astype(np.uint8)
@@ -120,7 +120,7 @@ def test_compose_full_slice_under_5ms():
     hidden = mask_table(2501, range(0, 2500, 7))
     selected = mask_table(2501, range(100, 200))
     best = min(_time(lambda: compose(labels, template, colors, hidden, selected)) for _ in range(5))
-    assert best < 0.005
+    timing.assert_within({"compose a full slice": (best, 0.005)})
 
 
 def _time(fn) -> float:

@@ -23,6 +23,18 @@ if not importlib.util.find_spec("pyvista"):
     collect_ignore.append("test_build_atlas.py")
 
 
+def pytest_addoption(parser):
+    parser.addoption("--reset-timing-baseline", action="store_true",
+                     help="record today's timings as the new baseline")
+
+
+@pytest.fixture(scope="session")
+def timing(request):
+    from timing_baseline import TimingBaseline
+
+    return TimingBaseline(reset=request.config.getoption("--reset-timing-baseline"))
+
+
 @pytest.fixture(scope="session")
 def toy_atlas(tmp_path_factory):
     pytest.importorskip("pyvista")

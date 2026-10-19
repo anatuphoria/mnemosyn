@@ -10,3 +10,4 @@ dist/
 views.json
 atlases/
 .pytest_cache/
+.timing-baseline.json

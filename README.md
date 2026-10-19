@@ -172,7 +172,10 @@ slider under 16 ms; a generated 3,500-structure scene at 60 fps or more; a quiz 
 they are shown under 500 ms, then shown or hidden in under 50 ms, a slice with every tract
 outlined redrawn in under 10 ms; entering a pathway or switching its side under 100 ms, every
 step of every pathway under 30 ms, and a playing timeline updated in under 5 ms per tick. The
-build report records the build time and peak memory.
+build report records the build time and peak memory. Each timed action is also compared with its
+own record in `.timing-baseline.json` (written on the first run, kept out of git): one at least 25%
+and 1 ms slower than its record fails even under its limit. After a slowdown you accept, run the
+tests with `--reset-timing-baseline` to record the new times.
 
 ## Tests
 
