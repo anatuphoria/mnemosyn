@@ -26,7 +26,7 @@ entry replaces it and the old one says so.
 | 18 | 2026-10-11 | MNI template variants are combined without registration | in force |
 | 19 | 2026-10-12 | Pathways teach the route and lesions, one side at a time | in force |
 | 20 | 2026-10-12 | Data without a licence is used in local builds only | in force |
-| 21 | 2026-10-12 | Behaviour circuits as routes, with play and schematic hormone curves | in force |
+| 21 | 2026-10-12 | Behaviour circuits as routes, with play and schematic hormone curves | changed by 48 |
 | 22 | 2026-10-13 | Brainstem nuclei from three open sources, the Navigator local only | in force |
 | 23 | 2026-10-13 | The spinal cord from PAM50, local only | in force |
 | 24 | 2026-10-13 | The spinal cord waits on its branch until the whole audit is fixed | in force |
@@ -56,6 +56,7 @@ entry replaces it and the old one says so.
 | 48 | 2026-10-19 | Route play controls are media symbols in the Pathways panel | in force |
 | 49 | 2026-10-19 | Name it and Flashcards fade everything but the asked structure | in force |
 | 50 | 2026-10-19 | The status bar shows the selection and the mouse hint only | in force |
+| 51 | 2026-10-19 | Full names in the tree, the side only in the info panel, wrapped route lists | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -205,10 +206,10 @@ Design: [endocrine glands, sections 1 and 4](specs/2026-10-12-endocrine-glands-d
 
 ## 21. Behaviour circuits as routes, with play and schematic hormone curves
 
-2026-10-12. Ten behaviour circuits live in the Pathways panel under Behaviour, on both sides at once,
-with Role, Disorders and Drugs texts. Play steps any route; the stress axis, body clock and hunger
-show schematic hormone curves. A real simulation is a later project. The playback controls sit in
-the Activity panel, where the change is shown.
+2026-10-12. Changed by 48. Ten behaviour circuits live in the Pathways panel under Behaviour, on
+both sides at once, with Role, Disorders and Drugs texts. Play steps any route; the stress axis,
+body clock and hunger show schematic hormone curves. A real simulation is a later project. The
+playback controls sit in the Activity panel, where the change is shown.
 Design: [behaviour circuits, section 1](specs/2026-10-12-behaviour-circuits-design.md),
 [finishing pass, section 2](specs/2026-10-12-finishing-pass-design.md).
 
@@ -434,7 +435,7 @@ a text field.
 Why: every route uses these controls, not only the routes with a timeline, so they cannot live in
 the Activity panel once it appears only for timelines (decision 47); media symbols are what people
 already know from video and music players.
-Replaces the part of the earlier layout that put these controls in the Activity panel.
+Changes 21, which put these controls in the Activity panel.
 Design: [slices and looks, section 4a](specs/2026-10-19-slices-looks-design.md).
 
 ## 49. Name it and Flashcards fade everything but the asked structure
@@ -459,3 +460,14 @@ gone from it; `--bench` still prints the frame times and the GPU.
 Why: the old hint said right-drag zooms, which stopped being true when right-drag became pan, and
 the developer read-outs mean nothing to a student.
 Design: [slices and looks, section 6](specs/2026-10-19-slices-looks-design.md).
+
+## 51. Full names in the tree, the side only in the info panel, wrapped route lists
+
+2026-10-19, the builder's calls the owner accepted. The Structures panel opens 320 pixels wide,
+taking the room from the slice and info panels rather than the 3D view, with tree levels indented
+12 pixels, and every tree item shows its full name on hover. The info panel no longer names how a
+shape is drawn ("cover", "shell", "nucleus"); it keeps only the side, left or right. The route list
+and the step list wrap long names onto a second line instead of scrolling sideways.
+Why: names such as "Hippocampus (left)" were cut off at the old width, the drawing kind means
+nothing to a reader, and long route names hid behind a sideways scroll bar.
+Design: [slices and looks, section 7](specs/2026-10-19-slices-looks-design.md).

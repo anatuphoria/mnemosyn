@@ -47,8 +47,8 @@ slice the wheel zooms and right-drag pans too.
 
 Tree checkboxes show and hide structures; unticking a group hides its whole subtree. The info
 panel shows the description with numbered references, the geometry source and its licence.
-Entries marked **Draft** have not been reviewed yet. The Activity chart shows placeholder
-data until a real model exists.
+Entries marked **Draft** have not been reviewed yet. The Activity panel appears only for the
+routes with a hormone timeline.
 
 The **Slices** panel shows axial, coronal or sagittal cross-sections: coloured labels over the
 Colin27 MRI template, in neurological convention (the patient's left on the screen's left,

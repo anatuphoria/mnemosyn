@@ -1,7 +1,7 @@
 # Slices and looks (audit fix, project 5 of 6)
 
 Date: 2026-10-19
-Status: approved by the owner on 2026-10-19
+Status: approved by the owner on 2026-10-19; built on `spinal-cord`
 Branch: `spinal-cord` (C2 stays unmerged until every audit item is fixed)
 Audit: the 2026-10-18 audit, sections 3 and 4 (old audit item 24)
 
