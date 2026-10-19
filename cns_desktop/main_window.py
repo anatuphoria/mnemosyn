@@ -6,9 +6,10 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import QStandardPaths, Qt, QTimer
+from PySide6.QtCore import QEvent, QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QCheckBox, QDockWidget, QLabel, QMainWindow, QMessageBox
+from PySide6.QtWidgets import (QAbstractItemView, QAbstractSlider, QAbstractSpinBox, QCheckBox,
+                               QDockWidget, QLabel, QMainWindow, QMessageBox)
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_study.answers import AnswerIndex
@@ -37,6 +38,7 @@ HOVER_MS = 1500
 GREY_DIMMED = 0.15
 MOUSE_HINT = "drag rotates · right-drag pans · wheel zooms · F frames · click selects"
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
+ARROW_WIDGETS = (QAbstractSlider, QAbstractItemView, QAbstractSpinBox)
 ROUTE_KEYS = ("Play or pause", "Back", "Next")
 PATHWAY_LOCKED = ("Hide", "Isolate", "Show all", "Tracts")
 RECOVERED = {
@@ -124,6 +126,9 @@ class MainWindow(QMainWindow):
         self._sync_chart()
 
         self._add_actions()
+        for kind in ARROW_WIDGETS:
+            for widget in self.findChildren(kind):
+                widget.installEventFilter(self)
         self.status = QLabel()
         self.statusBar().addWidget(self.status, 1)
         self.slices.hovered.connect(self._show_hover)
@@ -432,6 +437,13 @@ class MainWindow(QMainWindow):
         selected = self.state.selected
         name = self.state.atlas.get(selected).name if selected else "-"
         self.status.setText(f"selected: {name}   │   {MOUSE_HINT}")
+
+    def eventFilter(self, watched, event) -> bool:
+        if (event.type() == QEvent.Type.ShortcutOverride
+                and event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right)):
+            event.accept()
+            return True
+        return super().eventFilter(watched, event)
 
     def closeEvent(self, event) -> None:
         self._warm_up.stop()

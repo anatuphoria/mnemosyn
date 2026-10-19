@@ -62,3 +62,17 @@ def test_a_normal_build_over_a_local_one_is_not_a_removal(tmp_path):
     out = quiet_build(src, tmp_path / "out", tmp_path / "cache")
     text = report(out)
     assert "- changes since the previous build:" in text and "removed" not in text
+
+
+def test_an_unreadable_previous_build_is_a_build_error(tmp_path):
+    import json
+
+    src = toy_src(tmp_path)
+    out = quiet_build(src, tmp_path / "out", tmp_path / "cache")
+    metadata = json.loads((out / "metadata.json").read_text())
+    metadata["format_version"] = 99
+    (out / "metadata.json").write_text(json.dumps(metadata))
+    with pytest.raises(BuildError) as error:
+        quiet_build(src, tmp_path / "out", tmp_path / "cache")
+    assert "the previous build cannot be read" in error.value.problems[0]
+    assert "move it aside" in error.value.problems[0]

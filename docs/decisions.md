@@ -490,10 +490,10 @@ Design: [build checks and finish, section 2](specs/2026-10-19-build-checks-finis
 ## 53. Lint stays at zero, with settings that match the code
 
 2026-10-19. Ruff reports nothing, and a fast test fails on any new finding. The settings follow the
-code's existing style rather than the other way round: the test helper modules count as the
-project's own, strings split over lines inside lists are allowed, and import order is kept by hand
-because ruff cannot write the code's wrapped import style. The review folder, which is never
-committed, is left out.
+code's existing style rather than the other way round: strings split over lines inside lists are
+allowed, and import order is kept by hand because ruff cannot write the code's wrapped import
+style. Ruff is pinned to the 0.17 series, since a newer one may check more rules. The review
+folder, which is never committed, is left out. The code needs numpy 2 or later.
 Why: 138 findings nobody read hid the few real ones (unused imports, an unused import that a test
 relied on, needless casts).
 Design: [build checks and finish, section 4](specs/2026-10-19-build-checks-finish-design.md).

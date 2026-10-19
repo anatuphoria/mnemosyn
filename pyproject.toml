@@ -6,12 +6,12 @@ readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.11"
 dependencies = [
-  "numpy>=1.26",
+  "numpy>=2.0",
   "nibabel>=5.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.4"]
+dev = ["pytest>=8.0", "ruff>=0.17,<0.18"]
 desktop = [
   "PySide6-Essentials>=6.8",
   "vtk>=9.4",
@@ -39,10 +39,6 @@ extend-exclude = ["review"]
 
 [tool.ruff.lint]
 ignore = ["I001", "ISC004"]
-
-[tool.ruff.lint.isort]
-known-first-party = ["atlas_fixtures", "atlas_package", "cns_atlas", "cns_desktop", "cns_study",
-                     "study_atlas", "timing_baseline", "tools"]
 
 [tool.pytest.ini_options]
 markers = [

@@ -439,3 +439,12 @@ def test_arrow_keys_in_a_text_field_stay_in_the_field_during_a_route(window, qap
     QTest.keyClicks(box, "ab")
     QTest.keyClick(box, Qt.Key.Key_Left)
     assert box.cursorPosition() == 1 and window.pathways.index == 0
+
+
+def test_a_focused_slider_keeps_its_arrow_keys_during_a_route(window, qapp):
+    window.pathways.open("loop")
+    slider = window.slices.slider
+    slider.setFocus()
+    before = slider.value()
+    QTest.keyClick(slider, Qt.Key.Key_Right)
+    assert slider.value() == before + 1 and window.pathways.index == 0

@@ -124,8 +124,8 @@ review.
 The atlas package (`atlases/cns/`, built locally, not committed) contains `metadata.json`,
 `structures.json`, `sources.json`, `collections.json`, `pathways.json`, the labelled volumes and
 their MRI templates in `volumes/`, packed meshes at three levels of detail in `meshes/`, and
-descriptions in `knowledge/`. The format is described in `docs/specs/2026-10-11-atlas-foundation-
-design.md`.
+descriptions in `knowledge/`. The format is described in
+`docs/specs/2026-10-11-atlas-foundation-design.md`.
 
 To change the atlas, edit `atlas_src/` and rebuild:
 
@@ -147,7 +147,7 @@ The build refuses to package a source without a redistribution licence, a descri
 cites a missing reference, a reference without a DOI, URL or ISBN, a changed or reused id,
 a labelled structure without voxels, or a pathway with an unknown structure, a station with
 no shape on a side, or a description that does not match its route. It never accepts a recipe
-setting it would ignore, and it lists every problem it finds in one run, each with what to do.
+setting it would ignore; mistakes of the same kind are listed together, each with what to do.
 
 A source whose authors have not yet allowed sharing can be marked `local_only = true` in
 `recipe.toml`. A normal build leaves it out, so the result can be shared; `--local` includes it,
@@ -184,10 +184,10 @@ moving on under 50 ms and checking a typed answer under 1 ms; tracts built the f
 shown under 500 ms, then shown or hidden in under 50 ms, a slice with every tract outlined redrawn
 in under 10 ms; entering a pathway or switching its side under 100 ms, every step of every pathway
 under 30 ms, and a playing timeline updated in under 5 ms per tick. The build report records the
-build time and peak memory. Each timed action is also compared with its own record in `.timing-
-baseline.json` (written on the first run, kept out of git): one at least 25% and 1 ms slower than
-its record fails even under its limit. After a slowdown you accept, run the tests with `--reset-
-timing-baseline` to record the new times.
+build time and peak memory. Each timed action is also compared with its own record in
+`.timing-baseline.json` (written on the first run, kept out of git): one at least 25% and 1 ms
+slower than its record fails even under its limit. After a slowdown you accept, run the tests with
+`--reset-timing-baseline` to record the new times.
 
 ## Tests
 

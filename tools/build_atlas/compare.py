@@ -6,10 +6,10 @@ from pathlib import Path
 
 import numpy as np
 
-from cns_atlas import Atlas
+from cns_atlas import Atlas, AtlasError
 from cns_atlas.model import Structure
 
-from .recipe import VolumeSpec
+from .recipe import BuildError, VolumeSpec
 
 MOVED_COUNT = 0.05
 MOVED_MM = 1.0
@@ -62,7 +62,16 @@ def compare(previous: Path, structures: list[Structure],
             ignore: set[int]) -> Changes | None:
     if not _is_package(previous):
         return None
-    old = Atlas.open(previous)
+    try:
+        return _compare(Atlas.open(previous), structures, volumes, ignore)
+    except (AtlasError, OSError, ValueError) as exc:
+        raise BuildError([f"{previous}: the previous build cannot be read ({exc}); move it aside "
+                          "or delete it, then build again"]) from exc
+
+
+def _compare(old: Atlas, structures: list[Structure],
+             volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]],
+             ignore: set[int]) -> Changes:
     names = {s.id: s.name for s in structures}
     before = {s.id: s.name for s in old.structures}
     removed = tuple(f"{name} ({i})" for i, name in sorted(before.items())

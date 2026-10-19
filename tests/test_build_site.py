@@ -34,3 +34,12 @@ def test_site_marks_local_only_sources(tmp_path):
     local = [s for s in sources if s.get("local_only")]
     page = (tmp_path / "atlas/sources.md").read_text()
     assert page.count("Local builds only") == len(local)
+
+
+def test_readme_code_spans_stay_on_one_line():
+    in_code = False
+    for number, line in enumerate((REPO / "README.md").read_text().splitlines(), 1):
+        if line.startswith("```"):
+            in_code = not in_code
+        elif not in_code:
+            assert line.count("`") % 2 == 0, f"README.md:{number}: {line}"
