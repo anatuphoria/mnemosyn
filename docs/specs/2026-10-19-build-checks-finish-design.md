@@ -1,7 +1,7 @@
 # Build checks and finish (audit fix, project 6 of 6)
 
 Date: 2026-10-19
-Status: written from the audits at the owner's request; approved by the owner on 2026-10-19
+Status: written from the audits at the owner's request; approved by the owner on 2026-10-19; built on `spinal-cord`
 Branch: `spinal-cord` (C2 merges only after this project and the owner's yes)
 Audit: the 2026-10-18 audit, sections 5 and 6 (old audit items 28 to 31, 33 and 35), plus the
 minors deferred from projects 2, 3 and 5
