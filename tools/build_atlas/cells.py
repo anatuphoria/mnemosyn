@@ -66,8 +66,9 @@ def _keyed(items, where: str, kind: str) -> tuple[dict[str, dict], list[str]]:
 
 def _layer_problems(key: str, layer: dict, where: str) -> list[str]:
     here = f"{where}: layer {key!r}"
-    problems = [f"{here}: needs {name}" for name in ("name", "region")
-                if not _text(layer.get(name))]
+    problems = [] if _text(layer.get("name")) else [f"{here}: needs name"]
+    if not isinstance(layer.get("region", ""), str):
+        problems.append(f"{here}: region must be text")
     colour = layer.get("colour")
     if not (isinstance(colour, list) and len(colour) == 3
             and all(isinstance(c, int) and 0 <= c <= 255 for c in colour)):
@@ -308,7 +309,7 @@ def _view(data: dict, cache: Path, log) -> CellView:
                               tuple(Placement(p["layer"], float(p["start"]), float(p["end"]),
                                               p["copies"], p["towards"])
                                     for p in cell["placements"]), found))
-    layers = tuple(Layer(d["key"], d["name"], d["region"], tuple(d["colour"]),
+    layers = tuple(Layer(d["key"], d["name"], d.get("region", ""), tuple(d["colour"]),
                          tuple((float(x), float(y)) for x, y in d["points"]), float(d["width"]))
                    for d in data["layers"])
     boxes = tuple(Box(d["key"], d["name"], tuple(map(float, d["centre"])),
