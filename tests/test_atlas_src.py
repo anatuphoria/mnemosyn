@@ -10,6 +10,7 @@ from cns_atlas import Atlas
 from cns_atlas.knowledge import CITATION, load_references, parse_entry
 from cns_atlas.model import Relay, Station
 from cns_atlas.pathways import lights
+from tools.build_atlas.cells import check_cell_sources, check_cell_texts, load_cell_sources
 from tools.build_atlas.colours import NEAR_MM, delta_e
 from tools.build_atlas.hierarchy import build_tree, load_structures
 from tools.build_atlas.pathways import check_pathway_texts, check_pathways, load_pathways
@@ -38,6 +39,7 @@ def test_hierarchy_sources_and_knowledge_are_valid():
     assert check_sources(raws, recipe, SRC) == []
     concepts = {r.id: r.concept for r in raws}
     keys = {f"pathway-{p.key}" for p in load_pathways(SRC / "pathways.toml")}
+    keys |= {f"cells-{v['key']}" for v in load_cell_sources(SRC / "cells")}
     assert check_knowledge(SRC / "knowledge", references, concepts, keys) == []
 
 
@@ -91,7 +93,7 @@ def test_acronyms_are_unique():
 
 def test_every_description_cites_a_reference():
     paths = sorted((SRC / "knowledge").glob("*/*.md"))
-    assert len(paths) == 25
+    assert len(paths) == 26
     for path in paths:
         assert parse_entry(path.read_text(encoding="utf-8"), str(path)).citations, path
 
@@ -503,3 +505,20 @@ def test_segment_regions_alternate_and_crowded_groups_get_distinct_colours():
     assert all(raws[g].palette == "alternate" and raws[g].color for g in (5, 6, 7, 8))
     assert len({raws[g].color for g in (5, 6, 7, 8)}) == 4
     assert all(raws[g].palette == "distinct" for g in (21, 22, 30, 43))
+
+
+def test_hippocampus_cell_view_is_complete():
+    raw = load_cell_sources(SRC / "cells")
+    assert [v["key"] for v in raw] == ["hippocampus"]
+    assert check_cell_sources(raw, {r.id for r in load_structures(SRC / "structures.toml")}) == []
+    assert check_cell_texts(SRC / "knowledge", raw) == []
+    view = raw[0]
+    assert view["structures"] == [1350]
+    assert {c["key"] for c in view["cells"]} == {"granule", "ca3-pyramidal", "ca1-pyramidal",
+                                                 "basket", "olm", "hipp"}
+    assert len(view["levels"]["basic"]["steps"]) == 4
+    assert len(view["levels"]["full"]["steps"]) == 8
+    assert all(r["download"].startswith("https://neuromorpho.org/") for c in view["cells"]
+               for r in c["reconstructions"])
+    basket = next(c for c in view["cells"] if c["key"] == "basket")
+    assert len(basket["placements"]) == 2

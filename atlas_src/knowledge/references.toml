@@ -184,3 +184,91 @@ volume = "264(5162)"
 pages = "1102-1105"
 year = 1994
 doi = "10.1126/science.8178168"
+
+[amaral1989]
+authors = "Amaral DG, Witter MP"
+title = "The three-dimensional organization of the hippocampal formation: a review of anatomical data"
+journal = "Neuroscience"
+volume = "31"
+pages = "571-591"
+year = 1989
+doi = "10.1016/0306-4522(89)90424-7"
+
+[freund1996]
+authors = "Freund TF, Buzsáki G"
+title = "Interneurons of the hippocampus"
+journal = "Hippocampus"
+volume = "6"
+pages = "347-470"
+year = 1996
+doi = "10.1002/(SICI)1098-1063(1996)6:4<347::AID-HIPO1>3.0.CO;2-I"
+
+[klausberger2008]
+authors = "Klausberger T, Somogyi P"
+title = "Neuronal diversity and temporal dynamics: the unity of hippocampal circuit operations"
+journal = "Science"
+volume = "321"
+pages = "53-57"
+year = 2008
+doi = "10.1126/science.1149381"
+
+[benavides2019]
+authors = "Benavides-Piccione R, Regalado-Reyes M, Fernaud-Espinosa I, et al."
+title = "Differential structure of hippocampal CA1 pyramidal neurons in the human and mouse"
+journal = "Cerebral Cortex"
+year = 2019
+doi = "10.1093/cercor/bhz122"
+
+[ishizuka1995]
+authors = "Ishizuka N, Cowan WM, Amaral DG"
+title = "A quantitative analysis of the dendritic organization of pyramidal cells in the rat hippocampus"
+journal = "Journal of Comparative Neurology"
+volume = "362"
+pages = "17-45"
+year = 1995
+doi = "10.1002/cne.903620103"
+
+[oreilly2018]
+authors = "O'Reilly KC, Levy ERJ, Patino AV, Perica MI, Fenton AA"
+title = "Sub-circuit alterations in dorsal hippocampus structure and function after global neurodevelopmental insult"
+journal = "Brain Structure and Function"
+volume = "223"
+pages = "3543-3556"
+year = 2018
+doi = "10.1007/s00429-018-1704-3"
+
+[forro2015]
+authors = "Forro T, Valenti O, Lasztoczi B, Klausberger T"
+title = "Temporal organization of GABAergic interneurons in the intermediate CA1 hippocampus during network oscillations"
+journal = "Cerebral Cortex"
+volume = "25"
+pages = "1228-1240"
+year = 2015
+doi = "10.1093/cercor/bht316"
+
+[degro2022]
+authors = "Degro CE, Bolduan F, Vida I, Booker SA"
+title = "Interneuron diversity in the rat dentate gyrus: an unbiased in vitro classification"
+journal = "Hippocampus"
+volume = "32"
+pages = "310-331"
+year = 2022
+doi = "10.1002/hipo.23408"
+
+[katona2014]
+authors = "Katona L, Lapray D, Viney TJ, Oulhaj A, Borhegyi Z, Micklem BR, et al."
+title = "Sleep and movement differentiates actions of two types of somatostatin-expressing GABAergic interneuron in rat hippocampus"
+journal = "Neuron"
+volume = "82"
+pages = "872-886"
+year = 2014
+doi = "10.1016/j.neuron.2014.04.007"
+
+[tecuatl2024]
+authors = "Tecuatl C, Ljungquist B, Ascoli GA"
+title = "Accelerating the continuous community sharing of digital neuromorphology data"
+journal = "FASEB BioAdvances"
+volume = "6"
+pages = "207-221"
+year = 2024
+doi = "10.1096/fba.2024-00048"

@@ -68,6 +68,8 @@ entry replaces it and the old one says so.
 | 60 | 2026-10-19 | Releases come from version tags, as pre-releases below 1.0 | in force |
 | 61 | 2026-10-19 | ΜΝΗΜΟΣΥΝΗ is the project's identity | in force |
 | 62 | 2026-10-19 | The README is a clean front page; the website holds the details | in force |
+| 63 | 2026-10-25 | The neuron scale starts as flat cell views with traced shapes | in force |
+| 64 | 2026-10-25 | Cell shapes come from NeuroMorpho, human first | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -594,3 +596,28 @@ and no longer builds pages from README sections.
 Why: since the website exists it is the full documentation, and the README had grown into a second
 copy of it.
 Design: [identity, sections 4 and 5](specs/2026-10-19-identity-design.md).
+
+## 63. The neuron scale starts as flat cell views with traced shapes
+
+2026-10-25, chosen by the owner from mockups. Sub-project E opens a structure down to its cells as a
+flat slice in the app's dark colours: the layers as named coloured bands, every cell drawn from a
+real traced neuron, arrows for the pathways, a pulse that plays the signal through and a text for
+every cell, layer and box. The hippocampus comes first, and later structures come in as data, not
+new code. A Cajal style ink drawing and cells in 3D are later work; there is no quiz on cells yet.
+Why: the owner wants the cell shapes and the arrows of Cajal's drawing of the hippocampus, and a
+flat slice keeps the whole circuit in view, which cells in 3D would hide behind each other.
+Design: [hippocampus cells, sections 2 and 3](specs/2026-10-25-hippocampus-cells-design.md).
+
+## 64. Cell shapes come from NeuroMorpho, human first
+
+2026-10-25. Traced neurons come from NeuroMorpho.Org (CC BY 4.0), downloaded and pinned by checksum
+at build time and flattened into drawings. For each cell type the build uses a human cell when
+NeuroMorpho has one that is adult (adult or young adult), labelled control and whose dendrites are
+complete or moderately complete, otherwise rat, otherwise mouse; each cell's text says which. Cells
+are scaled to fit their layer, not drawn at true size, and the arrows stand for the axons.
+NeuroMorpho is one source naming the papers used; each cell's own citation shows in the Cells
+panel. Of the hippocampus cells only the CA1 pyramidal cells qualify as human: the human dentate
+granule cells in NeuroMorpho come from epilepsy surgery.
+Why: real shapes are what the owner asked for, the licence allows sharing them in the public
+downloads, and true scale would mislead in a drawing that mixes human and rat cells.
+Design: [hippocampus cells, section 5](specs/2026-10-25-hippocampus-cells-design.md).
