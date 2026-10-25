@@ -1,4 +1,5 @@
 import math
+from itertools import pairwise
 
 import numpy as np
 
@@ -9,7 +10,7 @@ from cns_desktop.cell_layout import normal_at, place_cells, point_along, to_fram
 def distance_to_curve(points, p) -> float:
     pts, p = np.asarray(points, float), np.asarray(p, float)
     best = math.inf
-    for a, b in zip(pts[:-1], pts[1:]):
+    for a, b in pairwise(pts):
         t = np.clip(np.dot(p - a, b - a) / np.dot(b - a, b - a), 0, 1)
         best = min(best, float(np.linalg.norm(a + t * (b - a) - p)))
     return best

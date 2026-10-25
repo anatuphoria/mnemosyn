@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from itertools import pairwise
 from dataclasses import dataclass
 
 from cns_atlas.cells import CellView, Point
@@ -24,7 +25,7 @@ class PlacedCell:
 
 def _lengths(points) -> list[float]:
     total, lengths = 0.0, [0.0]
-    for (ax, ay), (bx, by) in zip(points, points[1:]):
+    for (ax, ay), (bx, by) in pairwise(points):
         total += math.hypot(bx - ax, by - ay)
         lengths.append(total)
     return lengths
@@ -55,7 +56,7 @@ def normal_at(points, fraction: float) -> Point:
 
 def _distance(points, p: Point) -> float:
     best = math.inf
-    for (ax, ay), (bx, by) in zip(points, points[1:]):
+    for (ax, ay), (bx, by) in pairwise(points):
         dx, dy = bx - ax, by - ay
         span = dx * dx + dy * dy
         t = 0.0 if span == 0 else min(max(((p[0] - ax) * dx + (p[1] - ay) * dy) / span, 0.0), 1.0)

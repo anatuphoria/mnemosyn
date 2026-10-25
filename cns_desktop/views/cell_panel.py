@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from itertools import pairwise
 import re
 from html import escape
 
@@ -38,7 +39,7 @@ HINT = "Click a cell, layer or box to learn it."
 
 def smooth_path(points) -> QPainterPath:
     path = QPainterPath(QPointF(*points[0]))
-    for (ax, ay), (bx, by) in zip(points[1:-1], points[2:]):
+    for (ax, ay), (bx, by) in pairwise(points[1:]):
         path.quadTo(QPointF(ax, ay), QPointF((ax + bx) / 2, (ay + by) / 2))
     path.lineTo(QPointF(*points[-1]))
     return path
