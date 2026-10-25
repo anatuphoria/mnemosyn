@@ -70,6 +70,7 @@ entry replaces it and the old one says so.
 | 62 | 2026-10-19 | The README is a clean front page; the website holds the details | in force |
 | 63 | 2026-10-25 | The neuron scale starts as flat cell views with traced shapes | in force |
 | 64 | 2026-10-25 | Cell shapes come from NeuroMorpho, human first | in force |
+| 65 | 2026-10-25 | Cell views have two levels, Basic and Full | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -621,3 +622,16 @@ granule cells in NeuroMorpho come from epilepsy surgery.
 Why: real shapes are what the owner asked for, the licence allows sharing them in the public
 downloads, and true scale would mislead in a drawing that mixes human and rat cells.
 Design: [hippocampus cells, section 5](specs/2026-10-25-hippocampus-cells-design.md).
+
+## 65. Cell views have two levels, Basic and Full
+
+2026-10-25. Basic shows the classic loop in four steps: entorhinal cortex to granule cells, granule
+cells to CA3, CA3 to CA1, CA1 out through the subiculum. Full adds the rest of the circuit in eight
+steps: the perforant path to CA3, CA3 recurrent collaterals, the direct entorhinal path to CA1, and
+three interneurons (the parvalbumin basket cell as one type drawn in CA1 and the dentate gyrus, the
+O-LM cell and the HIPP cell). Play sends a pulse along each step's arrows and lights the cells that
+receive it; the speed menu and Space work as for routes.
+The HIPP cell stands in for the hilar mossy cell named in the design, because NeuroMorpho holds no
+traced mossy cells and cells are never drawn by hand.
+Why: the owner wants to learn the simple loop first and then see the real circuit.
+Design: [hippocampus cells, sections 2 and 4](specs/2026-10-25-hippocampus-cells-design.md).

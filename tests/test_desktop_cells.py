@@ -113,3 +113,103 @@ def test_only_the_level_s_flows_are_drawn(cells_panel):
     assert cells_panel.items("flow:f2") and not cells_panel.items("flow:f3")
     cells_panel.set_level("full")
     assert cells_panel.items("flow:f3")
+
+
+def run_through(panel) -> list[str]:
+    seen = []
+    panel.play()
+    for _ in range(1000):
+        panel.advance(0.1)
+        if not panel.playing:
+            break
+        if not seen or seen[-1] != panel.caption.text():
+            seen.append(panel.caption.text())
+    return seen
+
+
+def test_play_walks_the_basic_captions_in_order(cells_panel):
+    assert run_through(cells_panel) == ["Basic one", "Basic two"]
+    assert not cells_panel.playing and cells_panel.caption.text().startswith("Done")
+    assert cells_panel.index == 0
+
+
+def test_full_level_has_its_own_steps(cells_panel):
+    cells_panel.set_level("full")
+    assert run_through(cells_panel) == ["Full one", "Full two", "Full three"]
+
+
+def test_speed_halves_the_step_time(cells_panel):
+    cells_panel.set_speed(2.0)
+    cells_panel.play()
+    cells_panel.advance(1.25)
+    assert cells_panel.index == 1
+
+
+def test_lit_cells_light_at_the_end_of_a_step(cells_panel):
+    cells_panel.play()
+    cells_panel.advance(0.5)
+    assert all(item.opacity() < 0.5 for item in cells_panel.items("cell:small"))
+    cells_panel.advance(1.2)
+    assert all(item.opacity() == 1 for item in cells_panel.items("cell:small"))
+    assert all(item.opacity() < 0.5 for item in cells_panel.items("cell:big"))
+
+
+def test_a_pulse_travels_the_step_s_arrow(cells_panel):
+    cells_panel.play()
+    cells_panel.advance(0.4)
+    first = cells_panel.pulses()[0].pos()
+    cells_panel.advance(0.4)
+    assert cells_panel.pulses()[0].pos() != first and cells_panel.pulses()[0].isVisible()
+
+
+def test_pause_keeps_the_place(cells_panel):
+    cells_panel.play()
+    cells_panel.advance(1.0)
+    cells_panel.pause()
+    before = cells_panel.progress
+    cells_panel.advance(1.0)
+    assert cells_panel.progress == before and not cells_panel.playing
+
+
+def test_next_and_back_move_one_step_and_stop(cells_panel):
+    cells_panel.set_level("full")
+    cells_panel.play()
+    cells_panel.next()
+    assert cells_panel.index == 1 and not cells_panel.playing
+    assert cells_panel.caption.text() == "Full two"
+    cells_panel.back()
+    cells_panel.back()
+    assert cells_panel.index == 0 and cells_panel.caption.text() == "Full one"
+
+
+def test_restart_clears_the_run(cells_panel):
+    cells_panel.play()
+    cells_panel.advance(3.0)
+    cells_panel.restart()
+    assert cells_panel.index == 0 and not cells_panel.playing
+    assert all(item.opacity() == 1 for item in cells_panel.items("cell:big"))
+
+
+def test_a_click_stops_playback(cells_panel):
+    cells_panel.play()
+    click_item(cells_panel, "cell:big")
+    assert not cells_panel.playing and cells_panel.selected == "cell:big"
+
+
+def test_switching_to_basic_drops_a_full_only_selection(cells_panel):
+    cells_panel.set_level("full")
+    click_item(cells_panel, "cell:stop")
+    cells_panel.play()
+    cells_panel.set_level("basic")
+    assert cells_panel.selected is None and not cells_panel.playing
+
+
+def test_switching_level_keeps_a_shared_selection(cells_panel):
+    click_item(cells_panel, "cell:big")
+    cells_panel.set_level("full")
+    assert cells_panel.selected == "cell:big"
+
+
+def test_level_buttons_switch_the_level(cells_panel):
+    cells_panel.level_buttons["full"].click()
+    assert cells_panel.level == "full" and cells_panel.items("cell:stop")

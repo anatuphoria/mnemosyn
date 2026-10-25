@@ -93,7 +93,9 @@ Full level adds:
    DG; clicking it lights both, and it has one text.
 2. Oriens lacunosum moleculare (O-LM) cell (stratum oriens of CA1): its axon inhibits the
    distal dendrites in lacunosum moleculare.
-3. Hilar mossy cell (hilus): excitatory, feeds back onto granule cells.
+3. Hilar mossy cell (hilus): excitatory, feeds back onto granule cells. Amended while building:
+   NeuroMorpho holds no traced mossy cells, so the HIPP cell (hilar perforant path associated
+   cell, inhibitory, its axon in the outer molecular layer) takes its place (decision 65).
 
 ### 4.3 Steps
 
@@ -109,7 +111,8 @@ Full:
 1. Entorhinal cortex layer II to granule cells, and on to CA3, along the perforant path.
 2. Granule cells to CA3 pyramidal cells (mossy fibres), and to mossy cells and basket cells in
    the hilus.
-3. Mossy cells back onto granule cells; basket cells inhibit the granule cells.
+3. Mossy cells back onto granule cells; basket cells inhibit the granule cells. As built: basket
+   cells inhibit the granule cell bodies and HIPP cells their outer dendrites.
 4. CA3 pyramidal cells excite each other through recurrent collaterals.
 5. CA3 pyramidal cells to CA1 pyramidal cells (Schaffer collaterals); basket cells inhibit CA1
    around the cell bodies.

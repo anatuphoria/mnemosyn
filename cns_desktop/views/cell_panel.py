@@ -5,17 +5,19 @@ from itertools import pairwise
 import re
 from html import escape
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (QBrush, QColor, QFont, QPainter, QPainterPath, QPainterPathStroker,
-                           QPen, QPolygonF, QTransform)
-from PySide6.QtWidgets import (QGraphicsItem, QGraphicsPathItem, QGraphicsScene,
-                               QGraphicsSimpleTextItem, QGraphicsView, QTextBrowser, QVBoxLayout,
-                               QWidget)
+                           QPen, QPolygonF, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QButtonGroup, QComboBox, QGraphicsEllipseItem, QGraphicsItem,
+                               QGraphicsPathItem, QGraphicsScene, QGraphicsSimpleTextItem,
+                               QGraphicsView, QHBoxLayout, QLabel, QStyle, QTextBrowser,
+                               QToolButton, QVBoxLayout, QWidget)
 
 from cns_atlas.cells import CellText, CellView, Reconstruction
 
 from ..cell_layout import normal_at, place_cells, point_along
 from ..state import AppState
+from .pathway_panel import SPEEDS
 
 BACKGROUND = "#141a22"
 CELL_COLOURS = {"basic": QColor("#dbe6f2"), "full": QColor("#a9d2ff")}
@@ -35,6 +37,14 @@ NEUROMORPHO_NOTE = ("Shapes from NeuroMorpho.Org (RRID:SCR_002145); Tecuatl C, L
                     "Ascoli GA (2024). Accelerating the continuous community sharing of digital "
                     "neuromorphology data. FASEB BioAdvances 6: 207-221.")
 HINT = "Click a cell, layer or box to learn it."
+TRAVEL_SECONDS = 1.6
+HOLD_SECONDS = 0.8
+STEP_SECONDS = TRAVEL_SECONDS + HOLD_SECONDS
+TICK_MS = 16
+PULSE_RADIUS = 10.0
+READY = "Press Play to follow the signal"
+DONE = "Done. Press Play to run it again"
+LEVEL_NAMES = (("basic", "Basic"), ("full", "Full"))
 
 
 def smooth_path(points) -> QPainterPath:
@@ -135,6 +145,8 @@ class CellGraphicsView(QGraphicsView):
 
 
 class CellPanel(QWidget):
+    playing_changed = Signal(bool)
+
     def __init__(self, state: AppState, parent=None) -> None:
         super().__init__(parent)
         self.state = state
@@ -156,11 +168,66 @@ class CellPanel(QWidget):
         self.text.setOpenExternalLinks(True)
         self.text.setMinimumHeight(140)
         self.text.setMaximumHeight(220)
+        self.index = 0
+        self.speed = 1.0
+        self._time = 0.0
+        self._running = False
+        self._pulses: list[QGraphicsEllipseItem] = []
+        self.timer = QTimer(self, interval=TICK_MS, timeout=lambda: self.advance(TICK_MS / 1000))
+        levels = QHBoxLayout()
+        group = QButtonGroup(self)
+        self.level_buttons = {}
+        for level, name in LEVEL_NAMES:
+            button = QToolButton()
+            button.setText(name)
+            button.setCheckable(True)
+            button.setChecked(level == self.level)
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.clicked.connect(lambda _=False, chosen=level: self.set_level(chosen))
+            group.addButton(button)
+            levels.addWidget(button)
+            self.level_buttons[level] = button
+        levels.addStretch(1)
+        icon = self.style().standardIcon
+        self._play_icon = icon(QStyle.StandardPixmap.SP_MediaPlay)
+        self._pause_icon = icon(QStyle.StandardPixmap.SP_MediaPause)
+        self.restart_button = self._control(icon(QStyle.StandardPixmap.SP_MediaSkipBackward),
+                                            "Back to the start", self.restart)
+        self.play_button = self._control(self._play_icon, "Play (Space)", self.toggle_play)
+        self.speed_picker = QComboBox()
+        for value, label in SPEEDS:
+            self.speed_picker.addItem(label, value)
+        self.speed_picker.setCurrentIndex(1)
+        self.speed_picker.setToolTip("Speed")
+        self.speed_picker.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.speed_picker.currentIndexChanged.connect(
+            lambda i: self.set_speed(float(self.speed_picker.itemData(i))))
+        self.caption = QLabel(READY)
+        self.caption.setWordWrap(True)
+        controls = QHBoxLayout()
+        for widget in (self.restart_button, self.play_button, self.speed_picker):
+            controls.addWidget(widget)
+        controls.addWidget(self.caption, 1)
+        self.playing_changed.connect(self._show_playing)
         self.layout_box = QVBoxLayout(self)
         self.layout_box.setContentsMargins(0, 0, 0, 0)
         self.layout_box.setSpacing(4)
+        self.layout_box.addLayout(levels)
         self.layout_box.addWidget(self.view, 1)
+        self.layout_box.addLayout(controls)
         self.layout_box.addWidget(self.text)
+
+    def _control(self, icon, tip: str, action) -> QToolButton:
+        button = QToolButton()
+        button.setIcon(icon)
+        button.setToolTip(tip)
+        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        button.clicked.connect(action)
+        return button
+
+    def _show_playing(self, playing: bool) -> None:
+        self.play_button.setIcon(self._pause_icon if playing else self._play_icon)
+        self.play_button.setToolTip("Pause (Space)" if playing else "Play (Space)")
 
     def show_view(self, key: str) -> None:
         self.cell_view = next(v for v in self.state.atlas.cell_views() if v.key == key)
@@ -170,8 +237,10 @@ class CellPanel(QWidget):
         self.fit()
 
     def set_level(self, level: str) -> None:
+        self.level_buttons[level].setChecked(True)
         if level == self.level:
             return
+        self.restart()
         self.level = level
         self.redraw()
 
@@ -344,6 +413,7 @@ class CellPanel(QWidget):
     def redraw(self) -> None:
         self.scene.clear()
         self._items = {}
+        self._pulses = []
         if self.cell_view is None:
             return
         self.placed = place_cells(self.cell_view, self.level)
@@ -361,16 +431,153 @@ class CellPanel(QWidget):
         self.select(self.selected)
 
     def _on_clicked(self, key: str | None) -> None:
+        if self._running:
+            self.pause()
+            self._running = False
+            self._show_run()
         self.select(key)
 
     def select(self, key: str | None) -> None:
         self.selected = key
-        fade = key is not None and key.startswith("cell:")
+        self._apply_look()
+        self.text.setHtml(self.html_for(key))
+
+    def _apply_look(self) -> None:
+        if self._running:
+            lit = self._lit()
+            for name, items in self._items.items():
+                if name.startswith("cell:"):
+                    for item in items:
+                        item.setOpacity(1.0 if name.partition(":")[2] in lit else FADED)
+            return
+        fade = self.selected is not None and self.selected.startswith("cell:")
         for name, items in self._items.items():
             if name.startswith("cell:"):
                 for item in items:
-                    item.setOpacity(FADED if fade and name != key else 1.0)
-        self.text.setHtml(self.html_for(key))
+                    item.setOpacity(FADED if fade and name != self.selected else 1.0)
+
+    @property
+    def steps(self):
+        return self.cell_view.levels[self.level] if self.cell_view is not None else ()
+
+    @property
+    def playing(self) -> bool:
+        return self.timer.isActive()
+
+    @property
+    def progress(self) -> float:
+        return self._time / STEP_SECONDS
+
+    def pulses(self) -> list[QGraphicsEllipseItem]:
+        return list(self._pulses)
+
+    def _lit(self) -> set[str]:
+        steps = self.steps
+        done = steps[:self.index] if self._time < TRAVEL_SECONDS else steps[:self.index + 1]
+        return {key for step in done for key in step.lit}
+
+    def _step_caption(self) -> str:
+        if self.cell_text is None:
+            return f"Step {self.index + 1}"
+        captions = self.cell_text.steps.get(self.level, ())
+        return captions[self.index] if self.index < len(captions) else f"Step {self.index + 1}"
+
+    def _pulse(self) -> QGraphicsEllipseItem:
+        gradient = QRadialGradient(QPointF(0, 0), PULSE_RADIUS)
+        gradient.setColorAt(0.0, QColor("#fff3d6"))
+        gradient.setColorAt(0.4, QColor("#ffc35a"))
+        gradient.setColorAt(1.0, QColor(255, 182, 72, 0))
+        item = QGraphicsEllipseItem(-PULSE_RADIUS, -PULSE_RADIUS, 2 * PULSE_RADIUS,
+                                    2 * PULSE_RADIUS)
+        item.setBrush(QBrush(gradient))
+        item.setPen(QPen(Qt.PenStyle.NoPen))
+        item.setZValue(Z_BOX + 1)
+        item.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        self.scene.addItem(item)
+        return item
+
+    def _show_run(self) -> None:
+        live = set(self.steps[self.index].flows) if self._running and self.steps else set()
+        travelling = self._running and self._time < TRAVEL_SECONDS
+        for name, items in self._items.items():
+            if name.startswith("flow:"):
+                for item in items:
+                    item.setOpacity(1.0 if name.partition(":")[2] in live else 0.7)
+        keys = [key for key in self.steps[self.index].flows if key in self.flow_paths] \
+            if travelling else []
+        while len(self._pulses) < len(keys):
+            self._pulses.append(self._pulse())
+        for n, item in enumerate(self._pulses):
+            item.setVisible(n < len(keys))
+            if n < len(keys):
+                item.setPos(self.flow_paths[keys[n]].pointAtPercent(
+                    self._time / TRAVEL_SECONDS))
+        self._apply_look()
+
+    def toggle_play(self) -> None:
+        self.pause() if self.playing else self.play()
+
+    def play(self) -> None:
+        if not self.steps:
+            return
+        if not self._running:
+            self.index, self._time = 0, 0.0
+            self._running = True
+            self.caption.setText(self._step_caption())
+        self.timer.start()
+        self.playing_changed.emit(True)
+        self._show_run()
+
+    def pause(self) -> None:
+        was = self.timer.isActive()
+        self.timer.stop()
+        if was:
+            self.playing_changed.emit(False)
+
+    def set_speed(self, speed: float) -> None:
+        self.speed = speed
+
+    def advance(self, seconds: float) -> None:
+        if not self.playing:
+            return
+        self._time += seconds * self.speed
+        while self._time >= STEP_SECONDS:
+            self._time -= STEP_SECONDS
+            self.index += 1
+            if self.index >= len(self.steps):
+                self._finish()
+                return
+            self.caption.setText(self._step_caption())
+        self._show_run()
+
+    def _finish(self) -> None:
+        self.pause()
+        self._running = False
+        self.index, self._time = 0, 0.0
+        self.caption.setText(DONE)
+        self._show_run()
+
+    def _jump(self, index: int) -> None:
+        self.pause()
+        self._running = True
+        self.index, self._time = index, 0.0
+        self.caption.setText(self._step_caption())
+        self._show_run()
+
+    def next(self) -> None:
+        if self.steps:
+            self._jump(min(self.index + 1, len(self.steps) - 1))
+
+    def back(self) -> None:
+        if self.steps:
+            self._jump(max(self.index - 1, 0))
+
+    def restart(self) -> None:
+        self.pause()
+        self._running = False
+        self.index, self._time = 0, 0.0
+        self.caption.setText(READY)
+        self._show_run()
 
     def _cited(self, texts) -> str:
         if self.cell_text is None:
