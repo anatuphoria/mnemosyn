@@ -213,3 +213,18 @@ def test_switching_level_keeps_a_shared_selection(cells_panel):
 def test_level_buttons_switch_the_level(cells_panel):
     cells_panel.level_buttons["full"].click()
     assert cells_panel.level == "full" and cells_panel.items("cell:stop")
+
+
+def test_a_layer_is_clicked_only_on_its_band(cells_panel):
+    upper = cells_panel.items("layer:upper")[0]
+    assert upper.shape().contains(QPointF(450, 169))
+    assert not upper.shape().contains(QPointF(500, 199))
+
+
+def test_every_cell_can_be_clicked_near_its_soma(cells_panel):
+    cells_panel.set_level("full")
+    for key in ("cell:big", "cell:small", "cell:stop"):
+        for item in cells_panel.items(key):
+            soma = item.mapToScene(QPointF(0, 0))
+            for dx, dy in ((4, 0), (0, 4), (-4, 0), (0, -4)):
+                assert item.shape().contains(item.mapFromScene(soma + QPointF(dx, dy))), key

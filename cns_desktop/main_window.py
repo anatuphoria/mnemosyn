@@ -297,7 +297,9 @@ class MainWindow(QMainWindow):
         self.quiz.start(session, choice.mode, self.answer_index(), pool, rng)
 
     def _quiz_locked(self) -> list[QAction]:
-        docks = (self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock)
+        docks = [self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock]
+        if self.cell_dock is not None:
+            docks.append(self.cell_dock)
         return [*(self.shortcuts[name] for name in QUIZ_LOCKED),
                 *(dock.toggleViewAction() for dock in docks)]
 
@@ -427,6 +429,9 @@ class MainWindow(QMainWindow):
         if self.cells is None:
             self.cells = CellPanel(self.state)
             self.cell_dock = self._dock("Cells", self.cells, Qt.DockWidgetArea.RightDockWidgetArea)
+            self.tabifyDockWidget(self.slice_dock, self.cell_dock)
+            self.cell_dock.toggleViewAction().triggered.connect(
+                lambda shown: shown and self.cell_dock.raise_())
             self.cell_dock.visibilityChanged.connect(self._on_cells_visibility)
             self.state.cell_side_changed.connect(self.cells.set_side)
             for kind in ARROW_WIDGETS:
@@ -442,9 +447,7 @@ class MainWindow(QMainWindow):
         self.pathways.pause()
         self.cell_dock.show()
         self.cell_dock.raise_()
-        self.state.open_cells(key)
-        self._set_route_keys()
-        self._sync_cells_action()
+        self._on_cells_visibility(True)
 
     def close_cells(self) -> None:
         if self.cell_dock is not None:
@@ -452,10 +455,14 @@ class MainWindow(QMainWindow):
             self._on_cells_visibility(False)
 
     def _on_cells_visibility(self, shown: bool) -> None:
-        if shown or self.cell_dock is None or self.cell_dock.isVisible():
+        if self.cell_dock is None or self.cells.cell_view is None:
             return
-        self.cells.pause()
-        self.state.open_cells(None)
+        if shown and self.cell_dock.isVisible():
+            self.pathways.pause()
+            self.state.open_cells(self.cells.cell_view.key)
+        elif not shown and not self.cell_dock.isVisible():
+            self.cells.pause()
+            self.state.open_cells(None)
         self._set_route_keys()
         self._sync_cells_action()
 

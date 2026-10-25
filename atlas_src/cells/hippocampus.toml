@@ -144,7 +144,7 @@ key = "basket"
 name = "Parvalbumin basket cell"
 level = "full"
 height = 70
-placements = [{ layer = "ca1-pyramidale", start = 0.3, end = 0.7, copies = 2, towards = "radiatum" }, { layer = "dg-granule", start = 0.35, end = 0.65, copies = 2, towards = "dg-molecular" }]
+placements = [{ layer = "ca1-pyramidale", start = 0.3, end = 0.7, copies = 2, towards = "radiatum" }, { layer = "ca3-pyramidale", start = 0.3, end = 0.6, copies = 2, towards = "radiatum" }, { layer = "dg-granule", start = 0.35, end = 0.65, copies = 2, towards = "dg-molecular" }]
 reconstructions = [
   { id = 35830, name = "TF29-PV-basket-cell", species = "rat", archive = "Klausberger", doi = "10.1093/cercor/bht316", citation = "Forro T, Valenti O, Lasztoczi B, Klausberger T (2015), Cerebral Cortex 25: 1228-1240", download = "https://neuromorpho.org/dableFiles/klausberger/CNG%20version/TF29-PV-basket-cell.CNG.swc", sha256 = "3caa56f44d144e6efa2b325d9bf017c880533ed6065faf17933cb1c09072bb2d" },
   { id = 252233, name = "Degro_Vidal-cell-37", species = "rat", archive = "Vida", doi = "10.1002/hipo.23408", citation = "Degro CE, Bolduan F, Vida I, Booker SA (2022), Hippocampus 32: 310-331", download = "https://neuromorpho.org/dableFiles/vida/CNG%20version/Degro_Vidal-cell-37.CNG.swc", sha256 = "cf197f9d8e9059fa88b8489d91e9013106e847b4ce4c9b5fca4f47e0764ec166" },

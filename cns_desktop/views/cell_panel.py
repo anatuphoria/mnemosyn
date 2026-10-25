@@ -29,6 +29,8 @@ ZOOM_RANGE = (0.5, 12.0)
 FIT_MARGIN = 24.0
 HIT_WIDTH = 0.05
 SOMA_RADIUS = 0.035
+MIN_HIT = 6.0
+MIN_SOMA = 5.0
 KEY, ANCHOR = 0, 1
 LAYER_ANCHOR = 0.02
 Z_LAYER, Z_LABEL, Z_CELL, Z_FLOW, Z_BOX = 0, 1, 2, 3, 4
@@ -80,8 +82,18 @@ class CellItem(QGraphicsPathItem):
         return self._hit
 
 
+class LayerItem(QGraphicsPathItem):
+    def shape(self) -> QPainterPath:
+        stroker = QPainterPathStroker()
+        stroker.setWidth(self.pen().widthF())
+        stroker.setCapStyle(Qt.PenCapStyle.RoundCap)
+        stroker.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        return stroker.createStroke(self.path())
+
+
 class CellGraphicsView(QGraphicsView):
     clicked = Signal(object)
+    resized = Signal()
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -117,6 +129,10 @@ class CellGraphicsView(QGraphicsView):
         after = self.mapToScene(point)
         self.centerOn(centre - (after - before))
         self.user_zoomed = True
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.resized.emit()
 
     def wheelEvent(self, event) -> None:
         self.zoom_at(event.position(), event.angleDelta().y())
@@ -164,6 +180,7 @@ class CellPanel(QWidget):
         self.view = CellGraphicsView()
         self.view.setScene(self.scene)
         self.view.clicked.connect(self._on_clicked)
+        self.view.resized.connect(self._on_view_resized)
         self.text = QTextBrowser()
         self.text.setOpenExternalLinks(True)
         self.text.setMinimumHeight(140)
@@ -269,8 +286,7 @@ class CellPanel(QWidget):
     def zoom_by(self, factor: float) -> None:
         self.view.zoom_by_factor(QPointF(self.view.viewport().rect().center()), factor)
 
-    def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
+    def _on_view_resized(self) -> None:
         if not self.view.user_zoomed:
             self.fit()
 
@@ -305,7 +321,7 @@ class CellPanel(QWidget):
         self._items.setdefault("label", []).append(item)
         return item
 
-    def _shape(self, cell: str, index: int, reconstruction: Reconstruction):
+    def _shape(self, cell: str, index: int, reconstruction: Reconstruction, scale: float):
         key = (cell, index)
         if key not in self._shapes:
             path = QPainterPath()
@@ -314,9 +330,10 @@ class CellPanel(QWidget):
                 for x, y, _ in line.points[1:]:
                     path.lineTo(x, -y)
             soma = QPainterPath()
-            soma.addEllipse(QPointF(0, 0), SOMA_RADIUS, SOMA_RADIUS)
+            radius = max(SOMA_RADIUS, MIN_SOMA / scale)
+            soma.addEllipse(QPointF(0, 0), radius, radius)
             stroker = QPainterPathStroker()
-            stroker.setWidth(HIT_WIDTH)
+            stroker.setWidth(max(HIT_WIDTH, MIN_HIT / scale))
             hit = stroker.createStroke(path)
             hit.addPath(soma)
             self._shapes[key] = (path, soma, hit)
@@ -334,7 +351,7 @@ class CellPanel(QWidget):
             pen = QPen(colour, layer.width)
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            item = QGraphicsPathItem(smooth_path(self._points(layer.points)))
+            item = LayerItem(smooth_path(self._points(layer.points)))
             item.setPen(pen)
             self._keep(f"layer:{layer.key}", item,
                        self._mirror(*point_along(layer.points, LAYER_ANCHOR)), Z_LAYER)
@@ -356,7 +373,8 @@ class CellPanel(QWidget):
         for placed in self.placed:
             cell = cells[placed.cell]
             path, soma, hit = self._shape(cell.key, placed.reconstruction,
-                                          cell.reconstructions[placed.reconstruction])
+                                          cell.reconstructions[placed.reconstruction],
+                                          placed.scale)
             item = CellItem(path, hit)
             pen = QPen(CELL_COLOURS[cell.level], 0.9)
             pen.setCosmetic(True)

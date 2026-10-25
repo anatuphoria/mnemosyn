@@ -631,7 +631,7 @@ Design: [hippocampus cells, section 5](specs/2026-10-25-hippocampus-cells-design
 2026-10-25. Basic shows the classic loop in four steps: entorhinal cortex to granule cells, granule
 cells to CA3, CA3 to CA1, CA1 out through the subiculum. Full adds the rest of the circuit in eight
 steps: the perforant path to CA3, CA3 recurrent collaterals, the direct entorhinal path to CA1, and
-three interneurons (the parvalbumin basket cell as one type drawn in CA1 and the dentate gyrus, the
+three interneurons (the parvalbumin basket cell as one type drawn in CA1, CA3 and the dentate gyrus, the
 O-LM cell and the HIPP cell). Play sends a pulse along each step's arrows and lights the cells that
 receive it; the speed menu and Space work as for routes.
 The HIPP cell stands in for the hilar mossy cell named in the design, because NeuroMorpho holds no
@@ -641,7 +641,7 @@ Design: [hippocampus cells, sections 2 and 4](specs/2026-10-25-hippocampus-cells
 
 ## 66. The Cells dock
 
-2026-10-25. A cell view opens in a Cells dock on the right, from the "Show cells" link in the Info
+2026-10-25. A cell view opens in a Cells dock, a tab beside Slices, from the "Show cells" link in the Info
 panel or the Cells action (N) when the selected structure has a cell view. The dock stays open when
 another structure is selected; while it is visible Space, Left and Right play and step it instead of
 a route, and opening it pauses a playing route. Selecting the right hippocampus mirrors the drawing

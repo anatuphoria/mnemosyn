@@ -189,3 +189,35 @@ def test_plane_is_not_pickable(cells_window):
 
 def test_no_plane_before_cells_open(cells_window):
     assert cells_window.view.cell_plane_actor is None
+
+
+def test_the_dock_opens_large_enough_and_fitted(cells_window):
+    open_toy(cells_window)
+    QApplication.processEvents()
+    panel = cells_window.cells
+    assert panel.view.viewport().height() >= 300
+    shown = panel.view.mapToScene(panel.view.viewport().rect()).boundingRect()
+    content = panel.content_rect()
+    both = shown.intersected(content)
+    assert both.width() * both.height() / (content.width() * content.height()) > 0.95
+
+
+def test_reopening_the_dock_from_its_menu_restores_everything(cells_window):
+    open_toy(cells_window)
+    cells_window.close_cells()
+    QApplication.processEvents()
+    cells_window.cell_dock.toggleViewAction().trigger()
+    QApplication.processEvents()
+    assert cells_window.state.cell_view == "toy"
+    assert cells_window.view.cell_plane_actor.GetVisibility()
+    assert cells_window.shortcuts["Play or pause"].isEnabled()
+
+
+def test_the_cells_dock_cannot_be_reopened_during_a_quiz(cells_window):
+    open_toy(cells_window)
+    cells_window.start_quiz(QuizChoice("name-typed", "structures", None, False),
+                            rng=random.Random(1))
+    assert not cells_window.cell_dock.toggleViewAction().isEnabled()
+    cells_window.quiz.stop()
+    QApplication.processEvents()
+    assert cells_window.cell_dock.toggleViewAction().isEnabled()

@@ -521,4 +521,5 @@ def test_hippocampus_cell_view_is_complete():
     assert all(r["download"].startswith("https://neuromorpho.org/") for c in view["cells"]
                for r in c["reconstructions"])
     basket = next(c for c in view["cells"] if c["key"] == "basket")
-    assert len(basket["placements"]) == 2
+    assert {p["layer"] for p in basket["placements"]} == {"ca1-pyramidale", "ca3-pyramidale",
+                                                          "dg-granule"}
