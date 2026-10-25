@@ -72,6 +72,7 @@ entry replaces it and the old one says so.
 | 64 | 2026-10-25 | Cell shapes come from NeuroMorpho, human first | in force |
 | 65 | 2026-10-25 | Cell views have two levels, Basic and Full | in force |
 | 66 | 2026-10-25 | The Cells dock | in force |
+| 67 | 2026-10-25 | A plane in the 3D view shows where a cell view is cut | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -649,3 +650,12 @@ view.
 Why: the owner wants to move between the 3D brain and its cells without losing either, and keep
 the app starting as fast as before.
 Design: [hippocampus cells, sections 3 and 8](specs/2026-10-25-hippocampus-cells-design.md).
+
+## 67. A plane in the 3D view shows where a cell view is cut
+
+2026-10-25. While the Cells dock is open, the 3D view draws a translucent amber square through the
+structure on the side last selected: across its long axis (the first principal axis of its mesh),
+through the middle third of its body. It cannot be clicked and goes away when the dock closes.
+Why: it ties the flat drawing to the real brain, so the person knows which slice they are looking
+at.
+Design: [hippocampus cells, sections 2 and 3](specs/2026-10-25-hippocampus-cells-design.md).

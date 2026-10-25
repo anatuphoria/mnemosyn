@@ -160,3 +160,32 @@ def test_leaving_a_quiz_keeps_cells_off_without_a_view(cells_window):
     QApplication.processEvents()
     cells_window.state.select(110)
     assert not cells_window.shortcuts["Cells"].isEnabled()
+
+
+def plane_centre(w):
+    return tuple(round(c, 3) for c in w.view.cell_plane_actor.GetCenter())
+
+
+def test_plane_appears_on_open_and_goes_on_close(cells_window):
+    open_toy(cells_window)
+    assert cells_window.view.cell_plane_actor.GetVisibility()
+    cells_window.close_cells()
+    QApplication.processEvents()
+    assert not cells_window.view.cell_plane_actor.GetVisibility()
+
+
+def test_plane_follows_the_side(cells_window):
+    open_toy(cells_window)
+    left = plane_centre(cells_window)
+    cells_window.state.select(102)
+    QApplication.processEvents()
+    assert plane_centre(cells_window) != left
+
+
+def test_plane_is_not_pickable(cells_window):
+    open_toy(cells_window)
+    assert not cells_window.view.cell_plane_actor.GetPickable()
+
+
+def test_no_plane_before_cells_open(cells_window):
+    assert cells_window.view.cell_plane_actor is None

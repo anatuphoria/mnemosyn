@@ -9,11 +9,13 @@ from PySide6.QtCore import QTimer
 from pyvistaqt import QtInteractor
 from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkFiltersCore import vtkImplicitPolyDataDistance
+from vtkmodules.vtkFiltersSources import vtkPlaneSource
 from vtkmodules.vtkRenderingCore import vtkActor, vtkHardwarePicker, vtkPolyDataMapper
 
 from ..lod import choose_lod, face_totals
 from ..slices import AXIS_INDEX
 from ..state import AppState
+from .cell_plane import mid_body_plane, side_structure
 from .chunks import Chunks
 from .navigation import install_navigation
 from .outline import OutlineLayer
@@ -22,6 +24,8 @@ BACKGROUND = "#0a0a10"
 CLICK_TOLERANCE_PX = 3
 FAINT = 0.08
 PLANE_OPACITY = 0.18
+CELL_PLANE_COLOR = (1.0, 0.85, 0.45)
+CELL_PLANE_OPACITY = 0.35
 SHELL_OPACITY = 0.25
 
 
@@ -98,6 +102,7 @@ class BrainView(QtInteractor):
         self._plane_key = None
         self.plane = self.add_mesh(pv.Plane(), color="white", opacity=PLANE_OPACITY,
                                    pickable=False, reset_camera=False, lighting=False)
+        self.cell_plane_actor: vtkActor | None = None
 
         self._picker = vtkHardwarePicker()
         self.pick_position = np.zeros(3)
@@ -121,9 +126,46 @@ class BrainView(QtInteractor):
         state.slice_volume_changed.connect(
             lambda _name: self._on_slice_changed(state.slice_axis, state.slice_mm))
         state.focus_changed.connect(self._on_focus_changed)
+        state.cell_view_changed.connect(self._on_cell_view)
+        state.cell_side_changed.connect(lambda _side: self._on_cell_view(state.cell_view))
         self.reset_view()
         self._on_slice_changed(state.slice_axis, state.slice_mm)
         install_navigation(self)
+
+    def _on_cell_view(self, key: str | None) -> None:
+        if key is None:
+            self.show_cell_plane(None)
+            return
+        view = next(v for v in self.state.atlas.cell_views() if v.key == key)
+        self.show_cell_plane(side_structure(self.state.atlas, view, self.state.cell_side))
+
+    def show_cell_plane(self, structure_id: int | None) -> None:
+        mesh = None if structure_id is None else self.state.atlas.mesh(structure_id, 0)
+        if mesh is None:
+            if self.cell_plane_actor is not None:
+                self.cell_plane_actor.SetVisibility(False)
+                self._request_render()
+            return
+        plane = mid_body_plane(mesh.vertices)
+        origin = plane.centre - (plane.u + plane.v) * plane.size / 2
+        source = vtkPlaneSource()
+        source.SetOrigin(*origin)
+        source.SetPoint1(*(origin + plane.u * plane.size))
+        source.SetPoint2(*(origin + plane.v * plane.size))
+        source.Update()
+        if self.cell_plane_actor is None:
+            mapper = vtkPolyDataMapper()
+            self.cell_plane_actor = vtkActor()
+            self.cell_plane_actor.SetMapper(mapper)
+            self.cell_plane_actor.SetPickable(False)
+            prop = self.cell_plane_actor.GetProperty()
+            prop.SetColor(*CELL_PLANE_COLOR)
+            prop.SetOpacity(CELL_PLANE_OPACITY)
+            prop.LightingOff()
+            self.renderer.AddActor(self.cell_plane_actor)
+        self.cell_plane_actor.GetMapper().SetInputData(source.GetOutput())
+        self.cell_plane_actor.SetVisibility(True)
+        self._request_render()
 
     def reset_view(self) -> None:
         """World frame is MNI millimetres: x right, y anterior, z superior."""
