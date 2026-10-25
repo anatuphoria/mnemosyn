@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .cells import CellText, CellView
+from .cells import text_for as cell_text_for
 from .knowledge import Entry, KnowledgeError, Reference, load_references, parse_entry, resolve
 from .meshes import LODS, MeshData, MeshLod
 from .model import FORMAT_VERSION, Collection, Pathway, Source, Structure
@@ -99,6 +101,7 @@ class Atlas:
                 raise AtlasError(f"{root / record['file']}: {exc}") from exc
             break
         self._references: dict[str, Reference] | None = None
+        self._cell_views: tuple[CellView, ...] | None = None
         self._entries: dict[tuple[str, int | str], Entry | None] = {}
         self._search_rows = []
         for s in structures:
@@ -239,6 +242,29 @@ class Atlas:
         if entry is None:
             return None
         return text_for(entry, len(pathway.steps), side, pathway.sides)
+
+    def cell_views(self) -> tuple[CellView, ...]:
+        if self._cell_views is None:
+            path = self.root / "cells.json"
+            if not path.exists():
+                self._cell_views = ()
+            else:
+                try:
+                    self._cell_views = tuple(map(CellView.from_json, _read_json(path)))
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise AtlasError(f"{path}: malformed record ({exc!r})") from exc
+        return self._cell_views
+
+    def cell_view_for(self, structure_id: int) -> CellView | None:
+        if structure_id not in self._position:
+            return None
+        path = set(self.get(structure_id).structure_id_path)
+        return next((v for v in self.cell_views() if path.intersection(v.structures)), None)
+
+    def cell_text(self, key: str, lang: str = "en") -> CellText | None:
+        view = next((v for v in self.cell_views() if v.key == key), None)
+        entry = None if view is None else self.knowledge(f"cells-{key}", lang)
+        return None if entry is None else cell_text_for(entry, view)
 
     def label_at(self, point) -> int | None:
         for volume in self.volumes:

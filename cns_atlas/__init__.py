@@ -1,4 +1,5 @@
 from .atlas import DISCLAIMER, Atlas, AtlasError
+from .cells import CellText, CellView
 from .knowledge import Entry, KnowledgeError, Reference
 from .meshes import MeshData
 from .model import FORMAT_VERSION, Collection, Crossing, Pathway, Relay, Source, Station, Structure
@@ -9,6 +10,8 @@ __all__ = [
     "FORMAT_VERSION",
     "Atlas",
     "AtlasError",
+    "CellText",
+    "CellView",
     "Collection",
     "Crossing",
     "Entry",

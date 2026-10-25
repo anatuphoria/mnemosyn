@@ -35,7 +35,7 @@ def tiny_structures() -> list[Structure]:
 def write_package(root: Path, structures: list[Structure], *, meshes=None, lods=("lod0",),
                   volume=None, affine=None, sources=(), entries=None, references="",
                   format_version=FORMAT_VERSION, template=None, meshes_by_lod=None,
-                  pathways=None) -> Path:
+                  pathways=None, cells=None) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     volumes = []
     if volume is not None:
@@ -57,6 +57,8 @@ def write_package(root: Path, structures: list[Structure], *, meshes=None, lods=
     (root / "sources.json").write_text(json.dumps([s.to_json() for s in sources]))
     (root / "collections.json").write_text("[]")
     (root / "pathways.json").write_text(json.dumps([p.to_json() for p in pathways or ()]))
+    if cells is not None:
+        (root / "cells.json").write_text(json.dumps([c.to_json() for c in cells]))
     if meshes_by_lod is not None:
         for name, level in meshes_by_lod.items():
             write_lod(root / "meshes" / name, level)
@@ -74,3 +76,87 @@ def write_package(root: Path, structures: list[Structure], *, meshes=None, lods=
 
 
 TOY_SOURCE = Source("toy", "Toy labelled atlas", "Test A", 2024, "1", "CC0 1.0", True)
+
+
+TOY_REFERENCE = """\
+[toy2020]
+authors = "Author T"
+title = "Toy cells"
+year = 2020
+doi = "10.1000/toy"
+"""
+
+TOY_CELLS_TEXT = """\
++++
+key = "cells-toy"
+status = "draft"
++++
+## Overview
+A toy circuit.
+
+## Cell big
+Big cells receive from small cells [toy2020].
+
+## Cell small
+Small cells receive the input.
+
+## Cell stop
+Stop cells hold big cells back.
+
+## Layer upper
+The upper layer holds big cells.
+
+## Layer lower
+The lower layer holds small cells.
+
+## Box input
+The input arrives here.
+
+## Basic step 1
+Basic one
+
+## Basic step 2
+Basic two
+
+## Full step 1
+Full one
+
+## Full step 2
+Full two
+
+## Full step 3
+Full three
+"""
+
+
+def toy_cell_view():
+    from cns_atlas.cells import (Box, CellStep, CellType, CellView, Flow, Layer, Placement,
+                                 Polyline, Reconstruction)
+
+    def shape(n: int) -> Reconstruction:
+        return Reconstruction(n, f"toy-{n}", "rat", "Toy", "10.1000/toy", "Author T (2020)", (
+            Polyline(((0.0, 0.0, 0.02), (0.0, 0.6, 0.01))),
+            Polyline(((0.0, 0.6, 0.01), (-0.2, 1.0, 0.01))),
+            Polyline(((0.0, 0.6, 0.01), (0.2, 1.0, 0.01)))))
+
+    layers = (Layer("upper", "Upper layer", "top", (90, 140, 230),
+                    ((100.0, 200.0), (500.0, 150.0), (900.0, 200.0)), 40.0),
+              Layer("lower", "Lower layer", "bottom", (160, 110, 200),
+                    ((100.0, 500.0), (500.0, 550.0), (900.0, 500.0)), 40.0))
+    cells = (CellType("big", "Big cell", "basic", 120.0,
+                      (Placement("upper", 0.1, 0.9, 3, "lower"),), (shape(1), shape(2))),
+             CellType("small", "Small cell", "basic", 60.0,
+                      (Placement("lower", 0.1, 0.9, 4, "upper"),), (shape(3),)),
+             CellType("stop", "Stop cell", "full", 50.0,
+                      (Placement("lower", 0.3, 0.7, 2, "upper"),), (shape(4),)))
+    flows = (Flow("f1", "excitatory", "box:input.out", "cell:small", "input path",
+                  ((60.0, 640.0), (300.0, 600.0), (400.0, 540.0))),
+             Flow("f2", "excitatory", "cell:small", "cell:big", "up path",
+                  ((600.0, 520.0), (650.0, 350.0), (600.0, 210.0))),
+             Flow("f3", "inhibitory", "cell:stop", "cell:big", "hold back",
+                  ((450.0, 520.0), (420.0, 350.0), (450.0, 210.0))))
+    basic = (CellStep(("f1",), ("small",)), CellStep(("f2",), ("big",)))
+    full = (*basic, CellStep(("f3",), ("big",)))
+    return CellView("toy", "Toy cells", (100,), "mid-body", (1000.0, 700.0), layers,
+                    (Box("input", "Input", (60.0, 660.0), (100.0, 40.0), {"out": (60.0, 640.0)}),),
+                    cells, flows, {"basic": basic, "full": full})

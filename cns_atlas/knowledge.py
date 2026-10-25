@@ -11,11 +11,14 @@ STATUSES = ("draft", "reviewed")
 BOM = codecs.BOM_UTF8.decode()
 CITATION = re.compile(r"\[([a-z][a-z0-9_-]*)\](?!\()")
 STEP_SECTION = re.compile(r"Step [1-9][0-9]*")
+CELLS_SECTION = re.compile(r"(Cell|Layer|Box) [a-z0-9][a-z0-9-]*|(Basic|Full) step [1-9][0-9]*")
 
 
 def _section_allowed(name: str, target: int | str) -> bool:
     if isinstance(target, str) and target.startswith("pathway-"):
         return name == "Overview" or STEP_SECTION.fullmatch(name) is not None
+    if isinstance(target, str) and target.startswith("cells-"):
+        return name == "Overview" or CELLS_SECTION.fullmatch(name) is not None
     return name in SECTIONS
 
 
