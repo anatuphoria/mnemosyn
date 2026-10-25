@@ -11,12 +11,13 @@ slice the wheel zooms and right-drag pans too.
 | `T` | Show or hide all tracts |
 | `R` | Reset the view |
 | `C` | Centre the slice on the selection |
-| `F` | Frame the selection (with the pointer over the slice: fit the whole slice) |
+| `N` | Open or close the cells of the selection (the hippocampus for now) |
+| `F` | Frame the selection (with the pointer over the slice or the cells: fit them) |
 | `F1` | About, data sources and licences |
 | `Q` | Start a quiz (Study menu) |
-| `Left` / `Right` | Previous or next step of a pathway, anywhere but a text field |
+| `Left` / `Right` | Previous or next step of a pathway or of the open cells, anywhere but a text field |
 | `Esc` | Leave the pathway, or end a quiz |
-| `Space` | Play or pause the current pathway |
+| `Space` | Play or pause the current pathway, or the cells while they are open |
 | `Ctrl+F` | Filter the structure tree (names, abbreviations, synonyms, atlas labels) |
 
 Tree checkboxes show and hide structures; unticking a group hides its whole subtree. The info
@@ -73,3 +74,14 @@ cursor follows the steps, the time is shown above the chart, the note and refere
 and a click in the plot jumps to that moment. All pathway texts and timelines are drafts awaiting
 review.
 
+The **Cells** panel opens a structure down to its cells. Select the hippocampus and click
+**Show cells** in the info panel, or press `N`. You see a slice across the hippocampus in the
+style of Cajal's drawing: the layers as named bands and every cell drawn from a real traced neuron
+(from NeuroMorpho.Org, human where a suitable human cell exists, otherwise rat), scaled to fit its
+layer. **Play** (or `Space`) sends a pulse through the circuit one step at a time and lights the cells
+that receive it; `Left` and `Right` step, and the speed menu sets the pace. **Basic** shows the
+classic loop of four steps; **Full** adds the direct path from the entorhinal cortex to CA1, the CA3
+cells exciting each other and three kinds of inhibitory interneurons. Click a cell, a layer or a box
+to read about it, with the source of the traced cell. The wheel zooms, right drag pans and `F` over
+the drawing fits it again. While the panel is open, an amber plane in the 3D view marks where the
+slice is cut; selecting the right hippocampus mirrors the drawing to match.

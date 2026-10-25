@@ -317,7 +317,9 @@ class CellPanel(QWidget):
             soma.addEllipse(QPointF(0, 0), SOMA_RADIUS, SOMA_RADIUS)
             stroker = QPainterPathStroker()
             stroker.setWidth(HIT_WIDTH)
-            self._shapes[key] = (path, soma, stroker.createStroke(path).united(soma))
+            hit = stroker.createStroke(path)
+            hit.addPath(soma)
+            self._shapes[key] = (path, soma, hit)
         return self._shapes[key]
 
     def _draw_layers(self) -> None:

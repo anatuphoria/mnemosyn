@@ -21,6 +21,10 @@ To change the atlas, edit `atlas_src/` and rebuild:
   `texts = "behaviour"`) use one `Role:`, one `Disorders:` and at most one `Drugs:` line.
 - `timelines/<route>.toml`: a schematic hormone timeline for a route: curves of relative level
   over time and marks that tie moments to steps.
+- `cells/<key>.toml`: a cell view: the structures it belongs to, its layers as curves on a flat
+  drawing, the cell types with where they sit and which traced neurons to draw them from
+  (NeuroMorpho id, paper, download address and checksum), the arrows, and the steps of its Basic
+  and Full levels. `knowledge/en/cells-<key>.md` holds one section per cell, layer, box and step.
 
 The build refuses to package a source without a redistribution licence, a description that
 cites a missing reference, a reference without a DOI, URL or ISBN, a changed or reused id,
@@ -38,3 +42,9 @@ stops and names the page to download each file from and the folder to put it in
 (`~/.cache/cns-atlas/sources/<checksum>/`); `--manual-dir <folder>` takes them from a folder
 instead. Every build needs the Harvard Ascending Arousal Network Atlas (CC0, from Dryad); only
 `--local` needs the Brainstem Navigator (from NITRC, after accepting its licence).
+
+Traced neurons for cell views come from NeuroMorpho.Org under CC BY 4.0. The build downloads each
+file, checks its checksum, keeps only the cell body and dendrites, lays the cell flat on its two
+widest axes with its main dendrite pointing up, and simplifies the lines; the result goes into
+`cells.json`. A view naming an unknown layer, cell, arrow or structure, a step that uses a cell
+of the other level, or a text missing a section stops the build with the file and item named.

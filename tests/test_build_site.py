@@ -155,3 +155,13 @@ def test_the_website_wears_the_mark():
     config = (REPO / "mkdocs.yml").read_text()
     assert "logo: assets/mark.svg" in config and "favicon: assets/favicon.png" in config
     assert "assets/divider.svg" in (REPO / "site/stylesheets/extra.css").read_text()
+
+
+def test_neuromorpho_is_listed_with_every_paper_used(tmp_path):
+    build_site(REPO, tmp_path)
+    page = (tmp_path / "atlas/sources.md").read_text()
+    assert "{ #neuromorpho }" in page and "CC BY 4.0" in page
+    cells = tomllib.loads((REPO / "atlas_src/cells/hippocampus.toml").read_text())
+    for cell in cells["cells"]:
+        for item in cell["reconstructions"]:
+            assert item["citation"] in page and item["doi"] in page

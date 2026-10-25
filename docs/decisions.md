@@ -73,6 +73,7 @@ entry replaces it and the old one says so.
 | 65 | 2026-10-25 | Cell views have two levels, Basic and Full | in force |
 | 66 | 2026-10-25 | The Cells dock | in force |
 | 67 | 2026-10-25 | A plane in the 3D view shows where a cell view is cut | in force |
+| 68 | 2026-10-25 | Budgets for cell views | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -659,3 +660,11 @@ through the middle third of its body. It cannot be clicked and goes away when th
 Why: it ties the flat drawing to the real brain, so the person knows which slice they are looking
 at.
 Design: [hippocampus cells, sections 2 and 3](specs/2026-10-25-hippocampus-cells-design.md).
+
+## 68. Budgets for cell views
+
+2026-10-25. Opening the Cells dock takes at most 300 ms the first time and 50 ms after that; each
+playback frame takes at most 16 ms; `cells.json` stays at most 2 MB; and the app's startup does not
+change, because nothing about cells is read before the first frame. Tests hold all four.
+Why: the cell view must feel as quick as the rest of the app (decision 9).
+Design: [hippocampus cells, section 9](specs/2026-10-25-hippocampus-cells-design.md).

@@ -69,6 +69,21 @@ def _sources_page(sources: list[dict], local: set[str]) -> str:
     return "\n".join(lines)
 
 
+def _neuron_sources(views: list[dict]) -> list[str]:
+    papers = {(item["citation"], item["doi"]) for view in views for cell in view["cells"]
+              for item in cell["reconstructions"]}
+    if not papers:
+        return []
+    lines = ["## Neuron shapes { #neuromorpho }\n",
+             "Tecuatl C, Ljungquist B, Ascoli GA (2024). *NeuroMorpho.Org (RRID:SCR_002145)*. "
+             "[doi:10.1096/fba.2024-00048](https://doi.org/10.1096/fba.2024-00048)\n",
+             "- **Licence:** CC BY 4.0", "- **Page:** <https://neuromorpho.org>",
+             "- **Id:** `neuromorpho`", "- **Traced neurons from:**"]
+    lines += [f"    - {citation}, [doi:{doi}](https://doi.org/{doi})"
+              for citation, doi in sorted(papers)]
+    return [*lines, ""]
+
+
 def _review_page(settings: dict) -> str:
     editions = settings.get("editions", [])
     latest = editions[0]
@@ -179,9 +194,10 @@ def build_site(repo: Path, out: Path) -> None:
     structures = tomllib.loads((repo / "atlas_src/structures.toml").read_text())
     sources = _sources(tomllib.loads((repo / "atlas_src/recipe.toml").read_text()))
     local = {s["id"] for s in sources if s.get("local_only")}
+    views = [tomllib.loads(p.read_text()) for p in sorted((repo / "atlas_src/cells").glob("*.toml"))]
     decisions = (repo / "docs/decisions.md").read_text()
     counts = {"structures": len(structures["concepts"]), "groups": len(structures["groups"]),
-              "shared": len(sources) - len(local),
+              "shared": len(sources) - len(local) + (1 if views else 0),
               "decisions": len(re.findall(r"^\| \d+ \|", decisions, re.MULTILINE))}
     home = (out / "index.md").read_text()
     for key, value in counts.items():
@@ -197,7 +213,8 @@ def build_site(repo: Path, out: Path) -> None:
     (out / "build-from-source.md").unlink()
     (out / "download.md").write_text(_download_page(published, from_source))
     (out / "atlas/structures.md").write_text(_structures_page(structures, local))
-    (out / "atlas/sources.md").write_text(_sources_page(sources, local))
+    (out / "atlas/sources.md").write_text(_sources_page(sources, local)
+                                          + "\n".join(_neuron_sources(views)))
     (out / "decisions.md").write_text(decisions.replace("](specs/", "](design/"))
     index = ["# Design documents\n", "The full design behind each part of Mnemosyn, oldest first.\n"]
     for spec in sorted((repo / "docs/specs").glob("*.md")):

@@ -38,7 +38,7 @@ Axial, coronal and sagittal sections over an MRI, linked to 3D.
 
 **Pathways and circuits**
 
-Follow a route station by station, with what a lesion causes.
+Follow a route station by station, or watch the hippocampus circuit play through real cells.
 </div>
 
 <div markdown>

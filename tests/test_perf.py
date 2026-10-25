@@ -568,3 +568,49 @@ def test_tracts_group_selection_meets_40ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     value = run_timing(TRACTS_GROUP_TIMING, real_atlas_or_skip(), tmp_path)[0]
     timing.assert_within({"select Tracts after warm-up": (value, 0.040)})
+
+
+CELLS_TIMING = PRELUDE + """
+left = next(s.id for s in state.atlas.structures
+            if s.name.startswith("Hippocampus") and s.side == "left" and state.atlas.has_mesh(s.id))
+state.select(left)
+app.processEvents()
+
+
+def open_cells():
+    window.open_cells("hippocampus")
+    app.processEvents()
+    window.cells.view.viewport().repaint()
+
+
+first = timed(open_cells)
+window.close_cells()
+app.processEvents()
+again = timed(open_cells)
+panel = window.cells
+panel.set_level("full")
+panel.play()
+app.processEvents()
+frames = []
+for _ in range(120):
+    start = time.perf_counter()
+    panel.advance(1 / 60)
+    panel.view.viewport().repaint()
+    frames.append(time.perf_counter() - start)
+window.close()
+print(first, again, median(frames))
+"""
+
+
+@pytest.mark.slow
+def test_cells_dock_opens_under_300ms_then_50ms_and_plays_under_16ms(tmp_path, timing):
+    pytest.importorskip("pyvistaqt")
+    first, again, frame = run_timing(CELLS_TIMING, real_atlas_or_skip(), tmp_path)
+    timing.assert_within({"open cells the first time": (first, 0.300),
+                          "open cells again": (again, 0.050),
+                          "cells playback frame": (frame, 1 / 60)})
+
+
+def test_cells_json_under_2mb():
+    atlas = real_atlas_or_skip()
+    assert (atlas / "cells.json").stat().st_size <= 2_000_000
