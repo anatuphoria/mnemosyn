@@ -22,6 +22,7 @@ from .state import AppState
 from .views.about_dialog import AboutDialog
 from .views.activity_chart import ActivityChart
 from .views.brain_view import BrainView
+from .views.cell_panel import CellPanel
 from .views.info_panel import InfoPanel
 from .views.pathway_panel import PathwayPanel
 from .views.progress_dialog import ProgressDialog
@@ -37,7 +38,7 @@ OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
 GREY_DIMMED = 0.15
 MOUSE_HINT = "drag rotates · right-drag pans · wheel zooms · F frames · click selects"
-QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
+QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts", "Cells")
 ARROW_WIDGETS = (QAbstractSlider, QAbstractItemView, QAbstractSpinBox)
 ROUTE_KEYS = ("Play or pause", "Back", "Next")
 PATHWAY_LOCKED = ("Hide", "Isolate", "Show all", "Tracts")
@@ -100,6 +101,8 @@ class MainWindow(QMainWindow):
         self.pathway_active = False
         self._pathway_saved: tuple | None = None
         self.shortcuts: dict[str, QAction] = {}
+        self.cells: CellPanel | None = None
+        self.cell_dock: QDockWidget | None = None
 
         self.view = BrainView(self.state, self)
         self.setCentralWidget(self.view)
@@ -138,6 +141,8 @@ class MainWindow(QMainWindow):
         self.quiz.dim_grey.connect(
             lambda dim: self.view.set_grey_opacity(GREY_DIMMED if dim else 1.0))
         self.pathways.entered.connect(self.enter_pathway)
+        self.info.cells_requested.connect(self.open_cells)
+        self.state.selection_changed.connect(self._on_cells_selection)
         self.pathways.left.connect(self.leave_pathway)
         self.pathways.centre_requested.connect(self.slices.centre_on_selection)
         self.pathways.timeline_changed.connect(self._on_timeline)
@@ -205,6 +210,7 @@ class MainWindow(QMainWindow):
         action("Reset view", "R", self.view.reset_view)
         action("Frame selection", "F", self.frame)
         action("Centre slice", "C", self.slices.centre_on_selection)
+        action("Cells", "N", self.toggle_cells)
         action("About", "F1", self.show_about)
         focus_filter = QAction(self, shortcut=QKeySequence.StandardKey.Find,
                                triggered=lambda: self.tree.filter_box.setFocus())
@@ -222,10 +228,9 @@ class MainWindow(QMainWindow):
         leave.setEnabled(False)
         self.addAction(leave)
         self.shortcuts["Leave pathway"] = leave
-        for name, key, slot in (("Play or pause", "Space", self.pathways.toggle_play),
-                                ("Back", "Left", self.pathways.back),
-                                ("Next", "Right", self.pathways.next)):
-            route_key = QAction(name, self, shortcut=QKeySequence(key), triggered=slot)
+        for name, key in (("Play or pause", "Space"), ("Back", "Left"), ("Next", "Right")):
+            route_key = QAction(name, self, shortcut=QKeySequence(key),
+                                triggered=lambda _=False, chosen=name: self._route_key(chosen))
             route_key.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
             route_key.setEnabled(False)
             self.addAction(route_key)
@@ -299,6 +304,7 @@ class MainWindow(QMainWindow):
     def enter_quiz(self) -> None:
         if self.quiz_active:
             return
+        self.close_cells()
         state = self.state
         self._saved = (self.saveState(), *self._snapshot(),
                        [(w, w.focusPolicy()) for w in (self.view, self.slices.view)])
@@ -361,8 +367,7 @@ class MainWindow(QMainWindow):
             self.shortcuts[name].setEnabled(False)
         self.shortcuts["Leave pathway"].setEnabled(True)
         self._sync_chart()
-        for name in ROUTE_KEYS:
-            self.shortcuts[name].setEnabled(True)
+        self._set_route_keys()
         self._update_status()
 
     def leave_pathway(self) -> None:
@@ -375,10 +380,84 @@ class MainWindow(QMainWindow):
         with self._held():
             self.state.set_focus(None)
             self._restore(*self._pathway_saved)
-        for name in ROUTE_KEYS:
-            self.shortcuts[name].setEnabled(False)
+        self._set_route_keys()
         self._sync_chart()
         self._update_status()
+
+    def cells_open(self) -> bool:
+        return self.cell_dock is not None and self.cell_dock.isVisible()
+
+    def _route_key(self, name: str) -> None:
+        panel = self.cells if self.cells_open() else self.pathways
+        {"Play or pause": panel.toggle_play, "Back": panel.back, "Next": panel.next}[name]()
+
+    def _set_route_keys(self) -> None:
+        for name in ROUTE_KEYS:
+            self.shortcuts[name].setEnabled(self.pathway_active or self.cells_open())
+
+    def _cell_side(self, key: str, structure_id: int | None) -> str | None:
+        if structure_id is None or self.state.atlas.cell_view_key(structure_id) != key:
+            return None
+        side = self.state.atlas.get(structure_id).side
+        return side if side in ("left", "right") else None
+
+    def _on_cells_selection(self, structure_id: int | None) -> None:
+        if self.cells_open():
+            side = self._cell_side(self.state.cell_view, structure_id)
+            if side is not None:
+                self.state.set_cell_side(side)
+        self._sync_cells_action()
+
+    def _sync_cells_action(self) -> None:
+        if "Cells" not in self.shortcuts or self.quiz_active:
+            return
+        selected = self.state.selected
+        has_view = selected is not None and self.state.atlas.cell_view_key(selected) is not None
+        self.shortcuts["Cells"].setEnabled(has_view or self.cells_open())
+
+    def toggle_cells(self) -> None:
+        if self.cells_open():
+            self.close_cells()
+        elif self.state.selected is not None:
+            key = self.state.atlas.cell_view_key(self.state.selected)
+            if key is not None:
+                self.open_cells(key)
+
+    def open_cells(self, key: str) -> None:
+        if self.cells is None:
+            self.cells = CellPanel(self.state)
+            self.cell_dock = self._dock("Cells", self.cells, Qt.DockWidgetArea.RightDockWidgetArea)
+            self.cell_dock.visibilityChanged.connect(self._on_cells_visibility)
+            self.state.cell_side_changed.connect(self.cells.set_side)
+            for kind in ARROW_WIDGETS:
+                for widget in self.cells.findChildren(kind):
+                    widget.installEventFilter(self)
+        side = self._cell_side(key, self.state.selected)
+        if side is not None:
+            self.state.set_cell_side(side)
+        self.cells.set_side(self.state.cell_side)
+        if self.cells.cell_view is None or self.cells.cell_view.key != key:
+            self.cells.show_view(key)
+        self.cell_dock.setWindowTitle(f"Cells: {self.cells.cell_view.name}")
+        self.pathways.pause()
+        self.cell_dock.show()
+        self.cell_dock.raise_()
+        self.state.open_cells(key)
+        self._set_route_keys()
+        self._sync_cells_action()
+
+    def close_cells(self) -> None:
+        if self.cell_dock is not None:
+            self.cell_dock.hide()
+            self._on_cells_visibility(False)
+
+    def _on_cells_visibility(self, shown: bool) -> None:
+        if shown or self.cell_dock is None or self.cell_dock.isVisible():
+            return
+        self.cells.pause()
+        self.state.open_cells(None)
+        self._set_route_keys()
+        self._sync_cells_action()
 
     def _on_timeline(self, timeline) -> None:
         self.chart.show_timeline(timeline, self.pathways.pathway.name if self.pathways.pathway
@@ -399,7 +478,9 @@ class MainWindow(QMainWindow):
             self.chart_dock.hide()
 
     def frame(self) -> None:
-        if self.slices.layer is not None and self.slices.view.underMouse():
+        if self.cells_open() and self.cells.view.underMouse():
+            self.cells.fit()
+        elif self.slices.layer is not None and self.slices.view.underMouse():
             self.slices.fit_volume()
         else:
             self.view.frame_selection()
@@ -451,6 +532,8 @@ class MainWindow(QMainWindow):
             self.quiz.stop()
         self._status_timer.stop()
         self.pathways.pause()
+        if self.cells is not None:
+            self.cells.pause()
         if self._store is not None:
             self._store.close()
         self.view.close()

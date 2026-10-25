@@ -261,6 +261,17 @@ class Atlas:
         path = set(self.get(structure_id).structure_id_path)
         return next((v for v in self.cell_views() if path.intersection(v.structures)), None)
 
+    def cell_view_key(self, structure_id: int) -> str | None:
+        if structure_id not in self._position:
+            return None
+        index = self.metadata.get("cell_views")
+        if not isinstance(index, list):
+            view = self.cell_view_for(structure_id)
+            return None if view is None else view.key
+        path = set(self.get(structure_id).structure_id_path)
+        return next((str(v["key"]) for v in index
+                     if path.intersection(int(i) for i in v.get("structures", ()))), None)
+
     def cell_text(self, key: str, lang: str = "en") -> CellText | None:
         view = next((v for v in self.cell_views() if v.key == key), None)
         entry = None if view is None else self.knowledge(f"cells-{key}", lang)

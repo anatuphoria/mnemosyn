@@ -71,6 +71,7 @@ entry replaces it and the old one says so.
 | 63 | 2026-10-25 | The neuron scale starts as flat cell views with traced shapes | in force |
 | 64 | 2026-10-25 | Cell shapes come from NeuroMorpho, human first | in force |
 | 65 | 2026-10-25 | Cell views have two levels, Basic and Full | in force |
+| 66 | 2026-10-25 | The Cells dock | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -635,3 +636,16 @@ The HIPP cell stands in for the hilar mossy cell named in the design, because Ne
 traced mossy cells and cells are never drawn by hand.
 Why: the owner wants to learn the simple loop first and then see the real circuit.
 Design: [hippocampus cells, sections 2 and 4](specs/2026-10-25-hippocampus-cells-design.md).
+
+## 66. The Cells dock
+
+2026-10-25. A cell view opens in a Cells dock on the right, from the "Show cells" link in the Info
+panel or the Cells action (N) when the selected structure has a cell view. The dock stays open when
+another structure is selected; while it is visible Space, Left and Right play and step it instead of
+a route, and opening it pauses a playing route. Selecting the right hippocampus mirrors the drawing
+to match the 3D view seen from the front, with its text kept readable. Starting a quiz closes it.
+Nothing about cells is read at startup: the package's metadata lists which structures have a cell
+view.
+Why: the owner wants to move between the 3D brain and its cells without losing either, and keep
+the app starting as fast as before.
+Design: [hippocampus cells, sections 3 and 8](specs/2026-10-25-hippocampus-cells-design.md).

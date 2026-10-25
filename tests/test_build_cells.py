@@ -115,3 +115,10 @@ def test_failed_download_names_the_reconstruction_and_cache_is_reused(tmp_path):
     build(root / "src", root / "out" / "b", cache=root / "cache", log=quiet)
     with pytest.raises(BuildError, match="reconstruction 1: download failed"):
         build(root / "src", root / "out" / "c", cache=root / "empty", log=quiet)
+
+
+def test_metadata_lists_cell_views_without_reading_cells_json(toy_cells_atlas, tmp_path):
+    copy = shutil.copytree(toy_cells_atlas, tmp_path / "copy")
+    (copy / "cells.json").write_text("not json")
+    atlas = Atlas.open(copy)
+    assert atlas.cell_view_key(101) == "toy" and atlas.cell_view_key(110) is None

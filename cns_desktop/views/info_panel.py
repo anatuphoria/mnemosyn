@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from html import escape
 
-from PySide6.QtGui import QTextDocument
+from PySide6.QtCore import QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QTextDocument
 from PySide6.QtWidgets import QTextBrowser
 
 from cns_atlas import DISCLAIMER, Entry, Structure
@@ -34,12 +35,21 @@ def entry_html(entry: Entry | None) -> list[str]:
 
 
 class InfoPanel(QTextBrowser):
+    cells_requested = Signal(str)
+
     def __init__(self, state: AppState, parent=None) -> None:
         super().__init__(parent)
         self.state = state
-        self.setOpenExternalLinks(True)
+        self.setOpenLinks(False)
+        self.anchorClicked.connect(self._on_link)
         state.selection_changed.connect(self.show_structure)
         self.show_structure(state.selected)
+
+    def _on_link(self, url: QUrl) -> None:
+        if url.scheme() == "cells":
+            self.cells_requested.emit(url.path())
+        else:
+            QDesktopServices.openUrl(url)
 
     def show_structure(self, structure_id: int | None) -> None:
         self.setHtml(self.html_for(structure_id))
@@ -60,6 +70,9 @@ class InfoPanel(QTextBrowser):
                  f"{escape(s.name)}</h2>"]
         if s.side in ("left", "right"):
             parts.append(f"<p>{s.side}</p>")
+        cells = self.state.atlas.cell_view_key(structure_id)
+        if cells is not None:
+            parts.append(f"<p><a href='cells:{escape(cells)}'>Show cells</a></p>")
         parts += entry_html(self.state.atlas.knowledge(structure_id))
         parts += self._sources_html(s)
         parts.append(f"<p style='color:#c55'><small>{escape(DISCLAIMER)}</small></p>")

@@ -16,6 +16,8 @@ class AppState(QObject):
     visibility_changed = Signal(object)
     slice_changed = Signal(str, float)
     focus_changed = Signal(object)
+    cell_view_changed = Signal(object)
+    cell_side_changed = Signal(str)
 
     def __init__(self, atlas: Atlas) -> None:
         super().__init__()
@@ -34,6 +36,8 @@ class AppState(QObject):
         self.slice_volume = atlas.volumes[0].name if atlas.volumes else ""
         self.focus: frozenset[int] | None = None
         self.emphasis: tuple[int, ...] = ()
+        self.cell_view: str | None = None
+        self.cell_side = "left"
 
     @property
     def selected(self) -> int | None:
@@ -130,3 +134,15 @@ class AppState(QObject):
         if (axis, mm) != (self.slice_axis, self.slice_mm):
             self.slice_axis, self.slice_mm = axis, mm
             self.slice_changed.emit(axis, mm)
+
+    def open_cells(self, key: str | None) -> None:
+        if key != self.cell_view:
+            self.cell_view = key
+            self.cell_view_changed.emit(key)
+
+    def set_cell_side(self, side: str) -> None:
+        if side not in ("left", "right"):
+            raise ValueError(f"unknown side {side!r}")
+        if side != self.cell_side:
+            self.cell_side = side
+            self.cell_side_changed.emit(side)

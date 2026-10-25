@@ -75,8 +75,8 @@ def toy_cells_atlas(tmp_path_factory):
     pytest.importorskip("pyvista")
     from atlas_fixtures import build_extended_toy_atlas
 
-    return build_extended_toy_atlas(tmp_path_factory.mktemp("toycells"), tracts=False,
-                                    cells=True)
+    return build_extended_toy_atlas(tmp_path_factory.mktemp("toycells"), tracts=True,
+                                    pathways=True, cells=True)
 
 
 @pytest.fixture(scope="session")

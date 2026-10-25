@@ -68,3 +68,8 @@ def test_unknown_cells_section_is_refused():
 def test_cells_sections_are_accepted():
     entry = parse_entry(TOY_CELLS_TEXT, "t")
     assert "Cell big" in entry.sections and "Full step 3" in entry.sections
+
+
+def test_cell_view_key_falls_back_to_cells_json(tmp_path):
+    atlas = Atlas.open(write_package(tmp_path / "a", tiny_structures(), cells=[toy_cell_view()]))
+    assert atlas.cell_view_key(102) == "toy" and atlas.cell_view_key(110) is None

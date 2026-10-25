@@ -87,6 +87,9 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
     }
     if local_only:
         metadata["local_only"] = list(local_only)
+    if cell_views:
+        metadata["cell_views"] = [{"key": v.key, "structures": list(v.structures)}
+                                  for v in cell_views]
     write_json(out / "metadata.json", metadata)
     write_json(out / "structures.json", [s.to_json() for s in structures])
     write_json(out / "sources.json", [s.to_json() for s in sources])
