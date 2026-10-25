@@ -22,16 +22,16 @@ def sha256_of(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _download(spec: SourceSpec, target: Path) -> None:
-    url = urlparse(spec.download)
-    if url.scheme in ("", "file"):
-        shutil.copyfile(Path(url.path), target)
+def _download(url: str, target: Path, verify_tls: bool = True) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme in ("", "file"):
+        shutil.copyfile(Path(parsed.path), target)
         return
     context = ssl.create_default_context()
-    if not spec.verify_tls:
+    if not verify_tls:
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
-    with (urllib.request.urlopen(spec.download, context=context, timeout=60) as response,
+    with (urllib.request.urlopen(url, context=context, timeout=60) as response,
           target.open("wb") as out):
         shutil.copyfileobj(response, out)
 
@@ -78,22 +78,26 @@ def fetch(spec: SourceSpec, cache: Path = DEFAULT_CACHE, manual_dir: Path | None
                               f"delete it and download {target.name} again from "
                               f"{spec.source.url}"])
         raise BuildError(missing_manual([spec], cache, manual_dir))
-    folder = Path(cache) / spec.sha256
-    archive = folder / Path(urlparse(spec.download).path).name
-    if archive.exists() and sha256_of(archive) == spec.sha256:
+    return fetch_file(spec.download, spec.sha256, cache, f"source {spec.source.id}",
+                      spec.verify_tls)
+
+
+def fetch_file(url: str, sha256: str, cache: Path, label: str, verify_tls: bool = True) -> Path:
+    folder = Path(cache) / sha256
+    archive = folder / Path(urlparse(url).path).name
+    if archive.exists() and sha256_of(archive) == sha256:
         return archive
     folder.mkdir(parents=True, exist_ok=True)
     partial = archive.with_name(archive.name + ".part")
     try:
-        _download(spec, partial)
+        _download(url, partial, verify_tls)
     except OSError as exc:
         partial.unlink(missing_ok=True)
-        raise BuildError([f"source {spec.source.id}: download failed: {exc}"]) from exc
+        raise BuildError([f"{label}: download failed: {exc}"]) from exc
     actual = sha256_of(partial)
-    if actual != spec.sha256:
+    if actual != sha256:
         partial.unlink()
-        raise BuildError([f"source {spec.source.id}: checksum mismatch "
-                          f"(expected {spec.sha256}, got {actual})"])
+        raise BuildError([f"{label}: checksum mismatch (expected {sha256}, got {actual})"])
     partial.replace(archive)
     return archive
 

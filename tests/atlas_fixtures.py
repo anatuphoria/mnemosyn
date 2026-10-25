@@ -613,10 +613,132 @@ def hyp_volume() -> np.ndarray:
     return volume
 
 
+TOY_SWC = """\
+1 1 0 0 0 4 -1
+2 4 0 10 0 1.5 1
+3 4 0 20 0 1.2 2
+4 4 -6 30 1 0.8 3
+5 4 6 30 -1 0.8 3
+6 3 -4 -6 0 0.8 1
+7 3 4 -6 0 0.8 1
+8 2 0 -20 0 0.4 1
+"""
+
+TOY_CELLS_TOML = """\
+key = "toy"
+name = "Toy cells"
+structures = [100]
+plane = "mid-body"
+frame = [1000, 700]
+
+[[layers]]
+key = "upper"
+name = "Upper layer"
+region = "top"
+colour = [90, 140, 230]
+width = 40
+points = [[100, 200], [500, 150], [900, 200]]
+
+[[layers]]
+key = "lower"
+name = "Lower layer"
+region = "bottom"
+colour = [160, 110, 200]
+width = 40
+points = [[100, 500], [500, 550], [900, 500]]
+
+[[boxes]]
+key = "input"
+name = "Input"
+centre = [60, 660]
+size = [100, 40]
+ports = {{ out = [60, 640] }}
+
+[[cells]]
+key = "big"
+name = "Big cell"
+level = "basic"
+height = 120
+placements = [{{ layer = "upper", start = 0.1, end = 0.9, copies = 3, towards = "lower" }}]
+reconstructions = [
+  {{ id = 1, name = "toy-1", species = "rat", archive = "Toy", doi = "10.1000/toy", citation = "Author T (2020)", download = "{swc1}", sha256 = "{sha1}" }},
+]
+
+[[cells]]
+key = "small"
+name = "Small cell"
+level = "basic"
+height = 60
+placements = [{{ layer = "lower", start = 0.1, end = 0.9, copies = 4, towards = "upper" }}]
+reconstructions = [
+  {{ id = 2, name = "toy-2", species = "human", archive = "Toy", doi = "10.1000/toy", citation = "Author T (2020)", download = "{swc2}", sha256 = "{sha2}" }},
+]
+
+[[cells]]
+key = "stop"
+name = "Stop cell"
+level = "full"
+height = 50
+placements = [{{ layer = "lower", start = 0.3, end = 0.7, copies = 2, towards = "upper" }}]
+reconstructions = [
+  {{ id = 1, name = "toy-1", species = "rat", archive = "Toy", doi = "10.1000/toy", citation = "Author T (2020)", download = "{swc1}", sha256 = "{sha1}" }},
+]
+
+[[flows]]
+key = "f1"
+kind = "excitatory"
+source = "box:input.out"
+target = "cell:small"
+label = "input path"
+points = [[60, 640], [300, 600], [400, 540]]
+
+[[flows]]
+key = "f2"
+kind = "excitatory"
+source = "cell:small"
+target = "cell:big"
+label = "up path"
+points = [[600, 520], [650, 350], [600, 210]]
+
+[[flows]]
+key = "f3"
+kind = "inhibitory"
+source = "cell:stop"
+target = "cell:big"
+label = "hold back"
+points = [[450, 520], [420, 350], [450, 210]]
+
+[levels.basic]
+steps = [{{ flows = ["f1"], lit = ["small"] }}, {{ flows = ["f2"], lit = ["big"] }}]
+
+[levels.full]
+steps = [{{ flows = ["f1"], lit = ["small"] }}, {{ flows = ["f2"], lit = ["big"] }}, {{ flows = ["f3"], lit = ["big"] }}]
+"""
+
+
+def write_toy_cells(root: Path, src: Path) -> None:
+    from atlas_package import TOY_CELLS_TEXT, TOY_REFERENCE
+
+    folder = root / "upstream" / "neurons"
+    folder.mkdir(parents=True, exist_ok=True)
+    first, second = folder / "toy-1.CNG.swc", folder / "toy-2.CNG.swc"
+    first.write_text(TOY_SWC)
+    second.write_text(TOY_SWC.replace("6 30 -1", "8 28 -1"))
+    (src / "cells").mkdir()
+    (src / "cells" / "toy.toml").write_text(TOY_CELLS_TOML.format(
+        swc1=first, sha1=sha256_file(first), swc2=second, sha2=sha256_file(second)))
+    (src / "knowledge" / "en" / "cells-toy.md").write_text(TOY_CELLS_TEXT)
+    references = src / "knowledge" / "references.toml"
+    references.write_text(references.read_text() + "\n" + TOY_REFERENCE)
+    (src / "LICENSES").mkdir(exist_ok=True)
+    (src / "LICENSES" / "CC-BY-4.0.txt").write_text("CC BY 4.0 notice\n")
+
+
 def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
                                local: bool = False, behaviour: bool = False,
                                members: str = "", spine: bool = False,
-                               shells: bool = False, cord: bool = False) -> Path:
+                               shells: bool = False, cord: bool = False,
+                               cells: bool = False) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -695,12 +817,15 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
             (src / "knowledge" / "en" / "pathway-gland.md").write_text(TOY_GLAND_TEXT)
         (src / "timelines").mkdir(exist_ok=True)
         (src / "timelines" / "mood.toml").write_text(TOY_TIMELINE)
+    if cells:
+        write_toy_cells(root, src)
     return src
 
 
 def build_extended_toy_atlas(root: Path, tracts: bool = True, pathways: bool = False,
-                             local: bool = False, behaviour: bool = False) -> Path:
+                             local: bool = False, behaviour: bool = False,
+                             cells: bool = False) -> Path:
     from tools.build_atlas.build import build
 
-    src = write_extended_source_tree(root, tracts, pathways, local, behaviour)
+    src = write_extended_source_tree(root, tracts, pathways, local, behaviour, cells=cells)
     return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)

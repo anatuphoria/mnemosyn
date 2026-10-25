@@ -24,6 +24,8 @@ from .labels import (clip_z, crop, keep_inside, load_label_image, load_members, 
                      load_tiles, mapping_for, merge, read_label_names, relabel, separate_natives,
                      source_values, tile_fields, trim_against, z_extent)
 from .meshing import bands, cut_levels, field_surface, levels, surface
+from .cells import (LICENCE_FILE, build_cell_views, check_cell_shapes, check_cell_sources,
+                    check_cell_texts, load_cell_sources)
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
 from .templates import covers, on_grid, to_uint8
@@ -69,7 +71,7 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
                  volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]], templates=(),
                  tracts=None, shape_only=(), per_source=None, pathways: int = 0,
                  local_note: str = "", sources=None, repaired: int = 0,
-                 overlaps: dict[str, int] | None = None, small=()) -> str:
+                 overlaps: dict[str, int] | None = None, small=(), cell_views: int = 0) -> str:
     kinds: dict[str, int] = {}
     for s in structures:
         kinds[s.kind] = kinds.get(s.kind, 0) + 1
@@ -78,6 +80,7 @@ def build_report(recipe: Recipe, structures: list[Structure], meshes: list[dict[
     lines += [f"- {kind}: {count}" for kind, count in sorted(kinds.items())]
     lines.append(f"- with geometry: {len(meshes[0])}")
     lines.append(f"- pathways: {pathways}")
+    lines.append(f"- cell views: {cell_views}")
     lines += [f"- {name} faces: {sum(len(m.faces) for m in level.values())}"
               for name, level in zip(LODS, meshes)]
     lines += [f"- volume {spec.name}: shape {list(data.shape)}, space {spec.space}"
@@ -142,13 +145,22 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     except KnowledgeError as exc:
         raise BuildError([str(exc)]) from exc
     timelines = load_timelines(src / "timelines", pathways, references)
+    cell_sources = load_cell_sources(src / "cells")
     problems = check_hierarchy(raws) + check_ids(raws, lock) + check_sources(raws, recipe, src)
     problems += check_templates(recipe, src)
     problems += check_knowledge(src / "knowledge", references, {r.id: r.concept for r in raws},
-                                {f"pathway-{p.key}" for p in pathways})
+                                {f"pathway-{p.key}" for p in pathways}
+                                | {f"cells-{v.get('key')}" for v in cell_sources})
     problems += check_pathway_texts(src / "knowledge", pathways)
+    problems += check_cell_sources(cell_sources, {r.id for r in raws})
+    if cell_sources and not (src / LICENCE_FILE).exists():
+        problems.append(f"{src / LICENCE_FILE}: file is missing (needed for neuron shapes)")
     if problems:
         raise BuildError(problems)
+    problems = check_cell_texts(src / "knowledge", cell_sources)
+    if problems:
+        raise BuildError(problems)
+    cell_views, neuron_source = build_cell_views(cell_sources, cache, log)
     raws = resolve_members(raws, {s.source.id: s.member_values
                                   for s in recipe.sources if s.members})
     skipped = set() if local else {s.source.id for s in recipe.sources if s.local_only}
@@ -340,10 +352,14 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                           {r.id for r in raws if r.palette == "distinct"},
                           {r.id for r in raws if r.color is not None}, meshes[0])
     problems = check_pathways(pathways, structures, set(meshes[0]), left_out)
+    problems += check_cell_shapes(cell_sources, structures, set(meshes[0]))
     if problems:
         raise BuildError(problems)
     specs = (*sources, *templates_used, *recipe.tracts)
     licence_files = [src / s.licence_file for s in specs if s.licence_file]
+    if cell_views and src / LICENCE_FILE not in licence_files:
+        licence_files.append(src / LICENCE_FILE)
+    written_sources = [s.source for s in specs] + ([neuron_source] if neuron_source else [])
     per_source = {spec.source.id: sum(any(ref.source == spec.source.id for ref in p.labels)
                                       for p in planned)
                   for spec in (*sources, *recipe.tracts)}
@@ -360,15 +376,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         raise BuildError([*changes.blocking, ACCEPT_HINT])
     report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
                           per_source, len(pathways), local_note, sources, repaired,
-                          overlaps=overlaps, small=small)
+                          overlaps=overlaps, small=small, cell_views=len(cell_views))
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:
         package = staging / "package"
-        write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
+        write_package(package, recipe, structures, written_sources, volumes, meshes,
                       src / "knowledge", licence_files, report, templates, tracts,
                       for_package(pathways, {r.id: r.name for r in raws}, left_out), included,
-                      timelines=timelines, fills=fills)
+                      timelines=timelines, fills=fills, cell_views=cell_views)
         size = sum(p.stat().st_size for p in package.rglob("*") if p.is_file())
         with (package / "build-report.md").open("a", encoding="utf-8") as report_file:
             report_file.write("".join(f"{line}\n" for line in report_lines(changes)))
