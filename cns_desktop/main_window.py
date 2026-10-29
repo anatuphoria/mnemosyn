@@ -18,6 +18,7 @@ from cns_study.items import (group_items, items, structure_items, tract_items,
 from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, Session, utc_now
 
+from .lab.viewport import Viewport
 from .state import AppState
 from .views.about_dialog import AboutDialog
 from .views.activity_chart import ActivityChart
@@ -30,6 +31,7 @@ from .views.quiz_setup import QuizSetup
 from .views.slice_panel import SlicePanel
 from .views.structure_tree import StructureTree
 from .warm_up import WarmUp
+from .workspaces import Workspaces
 
 APP_NAME = "Mnemosyn"
 APP_FOLDER = "mnemosyn"
@@ -83,7 +85,7 @@ def gpu_name(view: BrainView) -> str:
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, atlas: Atlas, progress_path: Path | None = None) -> None:
+    def __init__(self, atlas: Atlas, progress_path: Path | None = None, settings=None) -> None:
         super().__init__()
         title = f"{APP_NAME} - {atlas.metadata.get('name', 'atlas')}"
         if atlas.local_only:
@@ -101,8 +103,10 @@ class MainWindow(QMainWindow):
         self._pathway_saved: tuple | None = None
         self.shortcuts: dict[str, QAction] = {}
 
+        self.settings = settings
         self.view = BrainView(self.state, self)
-        self.setCentralWidget(self.view)
+        self.viewport = Viewport(self.view)
+        self.setCentralWidget(self.viewport)
         self.tree = StructureTree(self.state)
         self.slices = SlicePanel(self.state)
         self.info = InfoPanel(self.state)
@@ -126,6 +130,10 @@ class MainWindow(QMainWindow):
         self._sync_chart()
 
         self._add_actions()
+        self.workspaces = Workspaces(self, settings)
+        self._add_window_menu()
+        self.workspaces.capture_defaults({"Slices": self._arrange_slices,
+                                          "Pathways": self._arrange_pathways})
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
                 widget.installEventFilter(self)
@@ -231,6 +239,29 @@ class MainWindow(QMainWindow):
             self.addAction(route_key)
             self.shortcuts[name] = route_key
 
+    def _add_window_menu(self) -> None:
+        self.window_menu = self.menuBar().addMenu("Window")
+        for dock in (self.tree_dock, self.pathway_dock, self.slice_dock, self.info_dock,
+                     self.chart_dock):
+            self.window_menu.addAction(dock.toggleViewAction())
+        self.window_separator = self.window_menu.addSeparator()
+        self.window_menu.addAction(QAction("Reset layout", self,
+                                           triggered=lambda: self.workspaces.reset()))
+
+    def _arrange_slices(self) -> None:
+        self.splitDockWidget(self.slice_dock, self.info_dock, Qt.Orientation.Vertical)
+        width = max(self.width(), 1500)
+        self.resizeDocks([self.tree_dock, self.slice_dock], [280, int(width * 0.6)],
+                         Qt.Orientation.Horizontal)
+
+    def _arrange_pathways(self) -> None:
+        self.pathway_dock.raise_()
+
+    def sync_after_layout(self, name: str) -> None:
+        if name == "Pathways" and self.pathway_dock.isVisible():
+            self.pathway_dock.raise_()
+        self._sync_chart()
+
     def _show_hover(self, name: str) -> None:
         if self.quiz_active:
             return
@@ -303,6 +334,7 @@ class MainWindow(QMainWindow):
         self._saved = (self.saveState(), *self._snapshot(),
                        [(w, w.focusPolicy()) for w in (self.view, self.slices.view)])
         self.quiz_active = True
+        self.workspaces.set_locked(True)
         for action in self._quiz_locked():
             action.setEnabled(False)
         state.set_hidden([i for i in state.geometry_ids if not state.is_tract(i)], False)
@@ -321,6 +353,7 @@ class MainWindow(QMainWindow):
             return
         layout, hidden, selected, axis, mm, volume, focus = self._saved
         self.quiz_active = False
+        self.workspaces.set_locked(False)
         for action in self._quiz_locked():
             action.setEnabled(True)
         for widget, policy in focus:
@@ -446,6 +479,9 @@ class MainWindow(QMainWindow):
         return super().eventFilter(watched, event)
 
     def closeEvent(self, event) -> None:
+        self.workspaces.save()
+        if self.settings is not None:
+            self.settings.sync()
         self._warm_up.stop()
         if self.quiz_active:
             self.quiz.stop()

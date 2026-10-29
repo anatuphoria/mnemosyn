@@ -70,6 +70,7 @@ entry replaces it and the old one says so.
 | 62 | 2026-10-19 | The README is a clean front page; the website holds the details | in force |
 | 63 | 2026-10-29 | The physiology layer is a Lab workspace driven by model files, starting with the stress axis | in force |
 | 64 | 2026-10-29 | Lab results are computed from cited models in real units, and the Why chain comes only from declared links | in force |
+| 65 | 2026-10-29 | Workspaces arrange the window; behaviour inside the existing ones does not change | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -630,3 +631,16 @@ under 400 ms.
 Why: the owner asked that the Lab be real and honest: computed, sourced, and plain about what it
 leaves out.
 Design: [simulation Lab, section 5](specs/2026-10-29-simulation-lab-design.md).
+
+## 65. Workspaces arrange the window; behaviour inside the existing ones does not change
+
+2026-10-29, chosen by the owner from mockups. Explore, Slices, Pathways and Lab sit at the right end
+of the menu bar and on Ctrl+1 to Ctrl+4. Each is an arrangement of the window's panels, remembered
+between sessions (a stored arrangement from another layout version is dropped), with Reset layout in
+the Window menu. Explore is the arrangement the app always had; Slices gives the slice panel most of
+the width; Pathways raises the Pathways panel, and the Activity panel still follows decision 47. The
+3D view stays the fixed centre. Switching is locked during a quiz, and switching to the Lab leaves an
+open route first.
+Why: a professional program arranges its panels by task, like Premiere's workspaces, while the
+existing views keep working exactly as before.
+Design: [simulation Lab, section 7](specs/2026-10-29-simulation-lab-design.md).
