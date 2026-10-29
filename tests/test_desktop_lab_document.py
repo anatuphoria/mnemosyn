@@ -167,3 +167,12 @@ def test_loading_keeps_blocks_inside_the_run(doc):
     doc.load(outside, None)
     (block,) = doc.experiment.blocks
     assert block.start == DAY - 1 and block.length == 1.0
+
+
+def test_deleting_an_earlier_block_keeps_the_same_block_selected(doc):
+    doc.add_block("pill", 10.0)
+    doc.add_block("stress", 20.0)
+    doc.select(("block", 1))
+    doc.delete_block(0)
+    assert doc.selection == ("block", 0)
+    assert doc.experiment.blocks[doc.selection[1]].experiment == "stress"

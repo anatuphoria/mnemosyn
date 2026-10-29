@@ -159,6 +159,9 @@ class LabDocument(QObject):
         if self.selection == ("block", index):
             self.selection = None
             self.selection_changed.emit(None)
+        elif self.selection and self.selection[0] == "block" and self.selection[1] > index:
+            self.selection = ("block", self.selection[1] - 1)
+            self.selection_changed.emit(self.selection)
         self.apply(self.experiment.replace(blocks=tuple(blocks)),
                    f"Delete {self.name_of(block.experiment)}")
 
