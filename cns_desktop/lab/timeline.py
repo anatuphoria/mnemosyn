@@ -133,7 +133,10 @@ class Timeline(QWidget):
         return QRectF(x0, RULER_HEIGHT + 4, x1 - x0, CHANGES_HEIGHT - 8)
 
     def _block_at(self, pos: QPointF) -> int | None:
-        for index in reversed(range(len(self.document.experiment.blocks))):
+        blocks = self.document.experiment.blocks
+        newest_first = list(reversed(range(len(blocks))))
+        order = [i for i in newest_first if not blocks[i].present]
+        for index in order + [i for i in newest_first if blocks[i].present]:
             if self.block_rect(index).contains(pos):
                 return index
         return None
@@ -197,7 +200,9 @@ class Timeline(QWidget):
 
     def _paint_blocks(self, painter: QPainter) -> None:
         doc = self.document
-        for index, block in enumerate(doc.experiment.blocks):
+        blocks = doc.experiment.blocks
+        for index in sorted(range(len(blocks)), key=lambda i: not blocks[i].present):
+            block = blocks[index]
             preview = None
             if self._press and self._press.get("block") == index and "preview" in self._press:
                 preview = self._press["preview"]

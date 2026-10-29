@@ -155,3 +155,13 @@ def test_lanes_draw_the_normal_run_behind(timeline):
 def test_hidden_lanes_are_skipped(timeline):
     timeline.hide_lane("y")
     assert timeline.lane_keys() == ["x", "m"]
+
+
+def test_timed_blocks_stay_reachable_under_a_present_one(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 300.0)
+    doc.add_block("remove_b", 0.0)
+    middle = timeline.block_rect(0).center().toPoint()
+    mouse(timeline, QMouseEvent.Type.MouseButtonPress, middle)
+    mouse(timeline, QMouseEvent.Type.MouseButtonRelease, middle)
+    assert doc.selection == ("block", 0)
