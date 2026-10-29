@@ -709,3 +709,13 @@ panel's pages into the left panel, and a layout the person arranged is never cha
 Why: a panel shown twice, or a panel that belongs to another task, crowds the view and confuses what
 the workspace is for.
 Design: [design system, sections 7 and 9](specs/2026-10-29-design-system-design.md).
+
+## 72. The top bar's mark is one turn of the Greek key
+
+2026-10-29, chosen by the owner from mockups. The top bar shows a single blue turn of the meander,
+20 px square, in place of the full ΜΝΗΜΟΣΥΝΗ wordmark, which stays for the website, About and the
+installer. The mark is drawn in code from a list of points (`cns_desktop/design/brand.py`) in a colour
+role of the theme, so a future theme recolours it, and its path can be reused for other sizes,
+variants and animation.
+Why: the full wordmark was too large and too detailed for a 40 px bar, and the endless line of the
+key carries the idea of memory on its own.

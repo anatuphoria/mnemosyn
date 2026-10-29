@@ -1,5 +1,6 @@
 import pytest
 from PySide6.QtCore import QSettings
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
@@ -136,3 +137,55 @@ def test_closing_the_window_stops_the_lab(qapp, toy_lab_atlas, tmp_path, capfd):
     while time.monotonic() < end:
         qapp.processEvents()
     assert "already deleted" not in capfd.readouterr().err
+
+
+def test_menu_items_are_centred_in_the_top_bar(window, qapp):
+    from PySide6.QtCore import QRectF
+
+    bar = window.topbar
+    middle = (bar.height() - 1) / 2
+
+    def centre_of(widget, rect):
+        box = QRectF(rect)
+        return widget.mapTo(bar, box.topLeft().toPoint()).y() + box.height() / 2
+
+    for action in bar.menus.actions():
+        if action.isVisible():
+            centre = centre_of(bar.menus, bar.menus.actionGeometry(action))
+            assert abs(centre - middle) <= 1.0, (action.text(), centre, middle)
+    for widget in (bar.mark, bar.switch):
+        assert abs(centre_of(widget, widget.rect()) - middle) <= 1.0, widget
+
+
+def test_the_top_bar_mark_is_one_greek_key_in_the_accent_role(window, qapp):
+    from cns_desktop.design.brand import KeyMark
+    from cns_desktop.design.tokens import COLOURS
+
+    mark = window.topbar.mark
+    assert isinstance(mark, KeyMark)
+    assert (mark.width(), mark.height()) == (20, 20)
+    assert mark.role == "accent"
+    assert mark.toolTip() == "Mnemosyn"
+
+    def ink(widget):
+        image = widget.grab().toImage()
+        best = max((image.pixelColor(x, y) for x in range(image.width())
+                    for y in range(image.height())),
+                   key=lambda c: abs(c.red() - c.blue()) + c.lightness())
+        return best
+
+    colour = ink(mark)
+    want = QColor(COLOURS["accent"])
+    assert abs(colour.red() - want.red()) < 24 and abs(colour.blue() - want.blue()) < 24
+    mark.set_role("text")
+    colour = ink(mark)
+    assert colour.lightness() > 200
+
+
+def test_tree_branches_show_chevrons():
+    from cns_desktop.design import stylesheet
+
+    css = stylesheet.build()
+    assert "QTreeView::branch:has-children:!has-siblings:closed" in css or \
+        "QTreeView::branch:has-children:closed" in css
+    assert "chevron-right" in css and "chevron-down" in css

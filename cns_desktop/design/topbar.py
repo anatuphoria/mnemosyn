@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer
-from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QMenuBar, QToolButton, QWidget
 
+from cns_desktop.design.brand import KeyMark
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.design.widgets import button_icon
 
-WORDMARK = Path(__file__).resolve().parents[1] / "resources" / "wordmark.svg"
-WORDMARK_HEIGHT = 20
+MARK_SIZE = 20
 MENUS = ("File", "Edit", "View", "Study", "Experiment", "Window", "Help")
 
 
@@ -26,10 +23,7 @@ class TopBar(QFrame):
         super().__init__(parent)
         self.setProperty("topbar", "true")
         self.setFixedHeight(SIZE["header"])
-        self.wordmark = QSvgWidget(str(WORDMARK))
-        natural = self.wordmark.renderer().defaultSize()
-        self.wordmark.setFixedSize(round(WORDMARK_HEIGHT * natural.width() / natural.height()),
-                                   WORDMARK_HEIGHT)
+        self.mark = KeyMark(MARK_SIZE)
         self.menus = QMenuBar()
         self.menus.setNativeMenuBar(False)
         self._menus: dict[str, QMenu] = {}
@@ -53,9 +47,9 @@ class TopBar(QFrame):
         self._row = QHBoxLayout(self)
         self._row.setContentsMargins(SIZE["panel_pad"], 0, 8, 0)
         self._row.setSpacing(8)
-        self._row.addWidget(self.wordmark)
-        self._row.addWidget(self.menu_button)
-        self._row.addWidget(self.menus)
+        self._row.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._row.addWidget(self.menu_button, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._row.addWidget(self.menus, 0, Qt.AlignmentFlag.AlignVCenter)
         self._groups_row = QHBoxLayout()
         self._groups_row.setContentsMargins(0, 0, 0, 0)
         self._groups_row.setSpacing(0)
@@ -82,7 +76,6 @@ class TopBar(QFrame):
         self.compact = level >= 2
         self.menus.setVisible(level < 2)
         self.menu_button.setVisible(level >= 2)
-        self.wordmark.setVisible(level < 2)
         if self.switch is not None and hasattr(self.switch, "set_compact"):
             self.switch.set_compact(level >= 1)
 

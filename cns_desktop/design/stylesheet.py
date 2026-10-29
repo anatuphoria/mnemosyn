@@ -114,6 +114,10 @@ QTreeView::item:hover, QListView::item:hover { background: $s2; }
 QTreeView::item:selected, QListView::item:selected { background: $sel;
     border-left: 2px solid $accent; color: $text; }
 QTreeView::branch { background: transparent; }
+QTreeView::branch:has-children:!has-siblings:closed,
+QTreeView::branch:closed:has-children:has-siblings { image: $branch_closed; }
+QTreeView::branch:open:has-children:!has-siblings,
+QTreeView::branch:open:has-children:has-siblings { image: $branch_open; }
 QTreeView::branch:selected { background: transparent; }
 QHeaderView::section { background: $s1; color: $text2; border: none;
     border-bottom: 1px solid $line; padding: 4px 8px; }
@@ -190,6 +194,7 @@ def build() -> str:
         inner=SIZE["control"] - 2, spin=SIZE["control"] - 5, row=SIZE["row"], status=SIZE["status"],
         sel=_rgba("accent", 0.15), roles=_roles(),
         down=_image("chevron-down"), up=_image("chevron-up"), check=_image("check", "text"),
-        minus=_image("minus", "text"),
+        minus=_image("minus", "text"), branch_closed=_image("chevron-right"),
+        branch_open=_image("chevron-down"),
     )
     return SHEET.substitute(values).strip() + "\n"

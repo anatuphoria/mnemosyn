@@ -272,7 +272,7 @@ def test_the_top_bar_compacts_step_by_step(window, qapp):
     assert not bar.menus.isVisible() and bar.menu_button.isVisible()
     titles = [a.text() for a in bar.menu_button.menu().actions() if a.isVisible()]
     assert titles == ["File", "Edit", "View", "Study", "Experiment", "Window", "Help"]
-    assert not bar.wordmark.isVisible()
+    assert bar.mark.isVisible()
     assert bar.sizeHint().width() <= 900
 
 
