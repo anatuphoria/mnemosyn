@@ -61,9 +61,9 @@ def test_reading_drops_unknown_and_clamps_out_of_range_with_a_report(tmp_path, m
         "This file was made with version 2 of the model; this is version 1.",
         "Feedback halfway point was 20 model units, outside 0.1 to 10; it is now 10.",
         "The value q is not in this model and was left out.",
-        "The change fever is not in this model and was left out.",
-        "The option colour of Y pill is not in this model and was left out.",
         "Dose of Y pill was 11 units, outside 0 to 10; it is now 10.",
+        "The option colour of Y pill is not in this model and was left out.",
+        "The change fever is not in this model and was left out.",
     )
     assert experiment.value_map == {"k": 10.0}
     assert [b.experiment for b in experiment.blocks] == ["pill", "remove_b"]
