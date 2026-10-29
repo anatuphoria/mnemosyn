@@ -1,7 +1,7 @@
 # Design system and interface redesign
 
 Date: 2026-10-29
-Status: approved by the owner on 2026-10-29
+Status: approved by the owner on 2026-10-29; built on the design-system branch on 2026-10-29
 Mockups: `.superpowers/brainstorm/940189-1793263360/content/` (`foundations.html`, `dark-variants.html`, `tab-styles.html`, `lab-screen.html`; not committed). `lab-screen.html` is the reference screen.
 
 ## 1. Why
