@@ -263,13 +263,17 @@ class Atlas:
             self._lab_texts[key] = table
         return self._lab_texts[key]
 
-    def lab_text(self, model: str, key: str,
-                 lang: str = "en") -> tuple[str, tuple[Reference, ...]] | None:
+    def lab_source(self, model: str, key: str, lang: str = "en") -> str | None:
         for language in dict.fromkeys((lang, "en")):
             table = self._lab_table(language, model)
             if table is not None and key in table:
-                return note_parts(table[key], self.references)
+                return table[key]
         return None
+
+    def lab_text(self, model: str, key: str,
+                 lang: str = "en") -> tuple[str, tuple[Reference, ...]] | None:
+        source = self.lab_source(model, key, lang)
+        return None if source is None else note_parts(source, self.references)
 
     def pathway_text(self, key: str, side: str, lang: str = "en") -> PathwayText | None:
         pathway = next((p for p in self.pathways if p.key == key), None)

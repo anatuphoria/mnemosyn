@@ -23,7 +23,7 @@ class Step:
     since: float | None
 
 
-def phrase(value: Value, ratio: float) -> str:
+def phrase(value: Value | None, ratio: float) -> str:
     if not math.isfinite(ratio):
         return "rises from nothing"
     if abs(ratio - 1.0) <= 0.02:
