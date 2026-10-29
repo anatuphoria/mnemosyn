@@ -883,7 +883,7 @@ key = "pill_test"
 doses = [{ value = "y", amount = "2" }]
 readings = [{ value = "x", after = "1 h" }]
 rule = "below"
-cutoff = 9
+cutoff = 10.8
 
 [[checks]]
 key = "rhythm"
