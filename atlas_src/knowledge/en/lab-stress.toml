@@ -149,4 +149,4 @@
 "check.cushing_disease" = "In Cushing's disease ACTH and cortisol are high, the low dose test is not suppressed, and the high dose test is [nieman2008] [tyrrell1986]."
 "check.adrenal_tumour" = "An adrenal tumour makes cortisol high and ACTH low, and the rest of the adrenal cortex shrinks [nieman2008]."
 "check.atrophy_after_hypophysectomy" = "Hours after the pituitary is removed the ACTH test is still normal; four weeks later the adrenal cortex has shrunk and the test is abnormal [karin2020] [bornstein2016]."
-"check.recovery_after_hydrocortisone" = "After four weeks of daily hydrocortisone the adrenal cortex has shrunk, cortisol stays low after stopping, and it recovers over the following weeks [karin2020]."
+"check.recovery_after_hydrocortisone" = "After four weeks of daily hydrocortisone the adrenal cortex has shrunk, cortisol stays low after stopping, and it recovers over the following weeks [karin2020]. In this model the ACTH test after such a course is lower than normal but stays above its cut off; it becomes abnormal after the pituitary is removed."

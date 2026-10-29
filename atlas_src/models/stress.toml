@@ -551,6 +551,7 @@ asserts = [
   { kind = "peak_before", first = "acth", then = "cortisol", window = ["day 1 14:00", "day 1 17:00"] },
   { kind = "vs_normal", value = "cortisol", at = "day 1 15:00", rises = 1.2 },
   { kind = "back_to_normal", value = "cortisol", by = "day 1 20:00", tolerance = 0.1 },
+  { kind = "back_to_normal", value = "acth", by = "day 1 20:00", tolerance = 0.1 },
 ]
 
 [[checks]]
@@ -601,6 +602,7 @@ asserts = [
   { kind = "vs_normal", value = "cortisol", at = "day 1 20:00", rises = 1.5 },
   { kind = "test_result", block = 1, expect = "abnormal" },
   { kind = "test_result", block = 2, expect = "normal" },
+  { kind = "vs_normal", value = "adrenal", at = "day 2 08:00", rises = 1.3 },
 ]
 
 [[checks]]
