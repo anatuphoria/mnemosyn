@@ -8,6 +8,8 @@
 <p align="center"><b>Mnemosyn</b> is a free 3D atlas of the human brain and spinal cord, with a lab<br>
 for the body's control systems. Made for students; every shape and sentence cites its source.</p>
 
+<p align="center"><picture><source srcset="brand/teaser.avif" type="image/avif"><img src="brand/teaser.webp" alt="Mnemosyn in 17 seconds: the brain turning in 3D, an axial slice gliding through it, the cerebellar loop lit station by station, and the Lab cutting the pituitary stalk while the curves and the Why chain follow" width="900"></picture></p>
+
 <p align="center">
   <a href="https://github.com/anatuphoria/mnemosyn/releases"><img src="brand/badge-release.svg" alt="Release" height="28"></a>
   <a href="LICENSE"><img src="brand/badge-licence.svg" alt="Licence: GPL 3.0" height="28"></a>
@@ -23,8 +25,6 @@ for the body's control systems. Made for students; every shape and sentence cite
   <a href="https://mnemo.saeed.cool/review/">Review</a> ·
   <a href="https://mnemo.saeed.cool/decisions/">Decisions</a>
 </p>
-
-<p align="center"><img src="brand/screenshot.png" alt="Mnemosyn following the cerebellar motor loop: the dentate nucleus lit in 3D, outlined in an axial slice, with its role and the effect of a lesion" width="900"></p>
 
 ## What it is
 
@@ -170,6 +170,7 @@ Specialists can help: download the review booklet and ask for access to the answ
 pip install "mkdocs>=1.6,<2" "mkdocs-material>=9.5,<10"
 python -m tools.build_site && mkdocs serve   # preview the website
 .venv/bin/pip install -e ".[brand]" && .venv/bin/python -m tools.brand   # redraw logos and badges
+.venv/bin/python -m tools.teaser      # record the README teaser from the app (needs a display)
 ```
 
 ```
