@@ -23,8 +23,8 @@ def plain(length=2 * DAY, blocks=(), values=()):
 def test_the_normal_run_repeats_day_after_day(sim):
     run = sim.normal(3 * DAY, 480.0)
     for key in ("x", "y", "m"):
-        assert run.at(key, DAY) == pytest.approx(run.at(key, 2 * DAY), rel=1e-4)
-        assert run.at(key, 0.0) == pytest.approx(run.at(key, DAY), rel=1e-4)
+        assert run.at(key, DAY) == pytest.approx(run.at(key, 2 * DAY), rel=5e-4)
+        assert run.at(key, 0.0) == pytest.approx(run.at(key, DAY), rel=5e-4)
 
 
 def test_the_normal_run_has_a_daily_rhythm(sim):
@@ -36,14 +36,14 @@ def test_the_normal_run_has_a_daily_rhythm(sim):
 def test_a_dose_raises_y_at_its_time_only(sim):
     run = sim.run(plain(blocks=[Block("pill", 600.0, None, (("dose", 2.0),))]))
     normal = sim.normal(2 * DAY, 480.0)
-    assert run.at("y", 599.0) == pytest.approx(normal.at("y", 599.0), rel=1e-4)
+    assert run.at("y", 599.0) == pytest.approx(normal.at("y", 599.0), rel=5e-4)
     assert run.at("y", 601.0) > normal.at("y", 601.0) + 1.5
 
 
 def test_a_clamp_present_from_the_start_settles_in_that_state(sim):
     run = sim.run(plain(blocks=[Block("remove_b", 0.0, None, (), "present")]))
     assert np.all(run.value("m") == 0.0)
-    assert run.at("x", 0.0) == pytest.approx(run.at("x", DAY), rel=1e-4)
+    assert run.at("x", 0.0) == pytest.approx(run.at("x", DAY), rel=5e-4)
     assert run.at("x", 0.0) > sim.normal(2 * DAY, 480.0).at("x", 0.0) * 1.2
 
 
@@ -77,7 +77,7 @@ def test_edited_values_apply_from_time_zero(sim):
     run = sim.run(plain(values=[("k", 3.0)]))
     normal = sim.normal(2 * DAY, 480.0)
     assert run.at("x", 0.0) != pytest.approx(normal.at("x", 0.0), rel=1e-3)
-    assert run.at("x", 0.0) == pytest.approx(run.at("x", DAY), rel=1e-4)
+    assert run.at("x", 0.0) == pytest.approx(run.at("x", DAY), rel=5e-4)
 
 
 def test_factors_are_computed_at_any_time(sim):

@@ -67,7 +67,8 @@ def names(text: str) -> frozenset[str]:
     return frozenset(found)
 
 
-def compile_function(exprs: dict[str, str], args: tuple[str, ...]) -> Callable[..., tuple]:
+def compile_function(exprs: dict[str, str], args: tuple[str, ...],
+                     returns: tuple[str, ...] | None = None) -> Callable[..., tuple]:
     bad = [n for n in (*args, *exprs) if not n.isidentifier() or keyword.iskeyword(n)
            or n in _GLOBALS]
     if bad:
@@ -80,7 +81,7 @@ def compile_function(exprs: dict[str, str], args: tuple[str, ...]) -> Callable[.
         known.add(key)
     source = "\n".join([f"def _f({', '.join(args)}):",
                          *(f"    {key} = {text.strip()}" for key, text in exprs.items()),
-                         f"    return ({''.join(f'{key}, ' for key in exprs)})"])
+                         f"    return ({''.join(f'{key}, ' for key in returns or exprs)})"])
     module = compile(source, "<model>", "exec")
     code = next(c for c in module.co_consts if isinstance(c, types.CodeType))
     return types.FunctionType(code, dict(_GLOBALS))

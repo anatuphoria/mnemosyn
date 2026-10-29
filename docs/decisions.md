@@ -68,6 +68,8 @@ entry replaces it and the old one says so.
 | 60 | 2026-10-19 | Releases come from version tags, as pre-releases below 1.0 | in force |
 | 61 | 2026-10-19 | ΜΝΗΜΟΣΥΝΗ is the project's identity | in force |
 | 62 | 2026-10-19 | The README is a clean front page; the website holds the details | in force |
+| 63 | 2026-10-29 | The physiology layer is a Lab workspace driven by model files, starting with the stress axis | in force |
+| 64 | 2026-10-29 | Lab results are computed from cited models in real units, and the Why chain comes only from declared links | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -594,3 +596,37 @@ and no longer builds pages from README sections.
 Why: since the website exists it is the full documentation, and the README had grown into a second
 copy of it.
 Design: [identity, sections 4 and 5](specs/2026-10-19-identity-design.md).
+
+## 63. The physiology layer is a Lab workspace driven by model files, starting with the stress axis
+
+2026-10-29, chosen by the owner. Sub-project D becomes the Lab: a workspace of its own where anyone
+changes a system freely (removing parts, drugs, diseases, stressors, clinical tests, or any model
+value) and sees what follows over minutes to weeks. A system is a model file in `atlas_src/models/`
+with its texts in `atlas_src/knowledge/en/lab-<key>.toml`; a general engine (`cns_lab`) runs any
+model, so a new system is a new file. The first system is the stress axis.
+Why: the owner wants a real simulation lab for people as well as for themselves, not effects added on
+top of the current app, and a foundation that later systems reuse.
+Design: [simulation Lab, sections 1 to 5](specs/2026-10-29-simulation-lab-design.md).
+
+## 64. Lab results are computed from cited models in real units, and the Why chain comes only from declared links
+
+2026-10-29. The stress axis follows Karin et al. (2020), with clearance rates from Andersen et al.
+(2013) and the paper's own values for feedback and gland turnover. Every effect and term of the
+equations is declared once with its explanation and source, and the Why chain is built only from
+those, so it cannot disagree with the charts. Values that are not measured in people (CRH in portal
+blood, the gland masses) or whose reference range depends on the assay (ACTH) are shown as multiples
+of normal; cortisol is in µg/dL with nmol/L. Settling finds the exact repeating day with Newton's
+method. Three assumptions of this project are added and named in the model's scope text: the MR
+brake follows a Michaelis Menten curve (K_MR 0.15) so it stays finite without cortisol, the adrenal
+answer to ACTH levels off (K_sat 4), and gland growth slows smoothly toward a ceiling (3 times
+normal for corticotrophs, 2 for the adrenal cortex). Values fitted to cited data, each named in its
+text: the daily rhythm (depth 1, a second twice daily term 0.3, phases 08:20 and 06:10) to Debono et
+al. (2009), giving a cortisol peak of 15.5 µg/dL at 08:38 and a low of 1.6 µg/dL at 23:50;
+dexamethasone strength 35 so the overnight 1 mg test is normal (Nieman et al. 2008);
+hydrocortisone so 20 mg peaks near the measured level (Möllmann et al. 1991); the ACTH test given as
+an ACTH level 40 times normal. Metyrapone and mifepristone are left out until their behaviour can be
+tied to checked sources. Speed limits: one day under 30 ms, eight weeks under 450 ms, a first settle
+under 400 ms.
+Why: the owner asked that the Lab be real and honest: computed, sourced, and plain about what it
+leaves out.
+Design: [simulation Lab, section 5](specs/2026-10-29-simulation-lab-design.md).

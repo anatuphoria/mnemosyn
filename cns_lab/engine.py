@@ -13,9 +13,11 @@ from .experiment import Block, Experiment
 from .solver import integrate
 from .times import DAY
 
-SETTLE_TOLERANCE = 1e-6
-SETTLE_MAX_DAYS = 60
+SETTLE_TOLERANCE = 2e-5
+SETTLE_NEWTON = 12
 CACHE_SIZE = 32
+RUN_RTOL = 1e-5
+SETTLE_RTOL = 1e-6
 
 
 class SettleError(ArithmeticError):
@@ -79,6 +81,7 @@ class Simulator:
         self._experiments = {e.key: e for e in model.experiments}
         self._tests = {t.key: t for t in model.tests}
         self._option_args = {}
+        self._rate_functions: dict = {}
         self._runs: OrderedDict = OrderedDict()
         self._settled: OrderedDict = OrderedDict()
 
@@ -178,25 +181,33 @@ class Simulator:
                 points.add(block.end(experiment.length))
         return sorted(p for p in points if t0 <= p <= t1)
 
+    def _rates(self, clamped: frozenset[int]):
+        function = self._rate_functions.get(clamped)
+        if function is None:
+            exprs = {e.key: e.expr for e in self.model.effects}
+            exprs.update({t.key: t.expr for t in self.model.terms})
+            names = []
+            for i, members in enumerate(self._terms):
+                name = f"_rate{i}"
+                names.append(name)
+                total = " + ".join(f"{'' if sign > 0 else '-'}{self.factor_names[index]}"
+                                   for index, sign in members)
+                if i in clamped or not total:
+                    exprs[name] = "0"
+                else:
+                    exprs[name] = f"({total}) * _speed" if self._slow[i] else f"{total}"
+            args = ("t", "clock", *self.keys, *self.parameter_keys, "_speed")
+            function = compile_function(exprs, args, tuple(names))
+            self._rate_functions[clamped] = function
+        return function
+
     def _derivative(self, params: list[float], clamps: dict[int, float], speedup: float,
                     clock0: float):
-        function = self.factor_function
-        terms = self._terms
-        slow = self._slow
-        clamped = set(clamps)
+        function = self._rates(frozenset(clamps))
+        tail = (*params, speedup)
 
         def f(t: float, y: list[float]) -> list[float]:
-            out = function(t, (clock0 + t) % DAY, *y, *params)
-            rates = []
-            for i, members in enumerate(terms):
-                if i in clamped:
-                    rates.append(0.0)
-                    continue
-                rate = 0.0
-                for index, sign in members:
-                    rate += sign * out[index]
-                rates.append(rate * speedup if slow[i] else rate)
-            return rates
+            return list(function(t, (clock0 + t) % DAY, *y, *tail))
 
         return f
 
@@ -217,7 +228,8 @@ class Simulator:
                 times.append(a)
                 states.append(list(y))
             f = self._derivative(params, clamps, speedup, experiment.start_clock)
-            step_times, step_states = integrate(f, a, y, b, self.model.max_step)
+            rtol = RUN_RTOL if times is not None else SETTLE_RTOL
+            step_times, step_states = integrate(f, a, y, b, self.model.max_step, rtol=rtol)
             y = step_states[-1]
             if times is not None:
                 times.extend(step_times[1:])
@@ -232,25 +244,55 @@ class Simulator:
         experiment = Experiment(self.model.key, self.model.version, math.inf,
                                 self.model.start_clock, present, values)
         y = [self.values[k].start for k in self.keys]
-        days = self.model.settle_days
-        y = self._march(experiment, 0.0, days * DAY, y, self.model.settle_speedup, True)
-        t = days * DAY
-        for _ in range(SETTLE_MAX_DAYS):
-            nxt = self._march(experiment, t, t + DAY, y, 1.0, True)
-            t += DAY
-            change = max((abs(a - b) / max(abs(a), abs(b), 1e-9) for a, b in zip(y, nxt)),
-                         default=0.0)
-            y = nxt
-            if not all(map(math.isfinite, y)):
-                raise SettleError()
-            if change < SETTLE_TOLERANCE:
-                break
-        else:
-            raise SettleError()
+        speedup = self.model.settle_speedup
+        y = self._march(experiment, 0.0, self.model.settle_days * DAY, y, speedup, True)
+        y = self._periodic(experiment, y)
         self._settled[key] = y
         while len(self._settled) > CACHE_SIZE:
             self._settled.popitem(last=False)
         return y
+
+    def _periodic(self, experiment: Experiment, y: list[float]) -> list[float]:
+        def day(state):
+            return np.asarray(self._march(experiment, 0.0, DAY, list(state), 1.0, True))
+
+        held = set(self.clamps_at(experiment, 0.0, self.parameters_at(experiment, 0.0)))
+        state = np.asarray(y, dtype=float)
+        image = day(state)
+        free = [i for i in range(len(y))
+                if i not in held and not (state[i] == 0.0 and image[i] == 0.0)]
+
+        def size(state, image):
+            gap = (image - state)[free]
+            scale = np.maximum(np.maximum(np.abs(image), np.abs(state))[free], 1.0)
+            return gap, float(np.max(np.abs(gap) / scale, initial=0.0))
+
+        for _ in range(SETTLE_NEWTON):
+            if not np.all(np.isfinite(image)):
+                raise SettleError()
+            gap, error = size(state, image)
+            if error < SETTLE_TOLERANCE:
+                return [float(v) for v in image]
+            jacobian = np.empty((len(free), len(free)))
+            for column, i in enumerate(free):
+                step = 1e-4 * max(1.0, abs(state[i]))
+                nudged = state.copy()
+                nudged[i] += step
+                jacobian[:, column] = (day(nudged)[free] - image[free]) / step
+            jacobian -= np.eye(len(free))
+            try:
+                move = np.linalg.solve(jacobian, -gap)
+            except np.linalg.LinAlgError as exc:
+                raise SettleError() from exc
+            for _ in range(6):
+                trial = state.copy()
+                trial[free] += move
+                trial_image = day(trial)
+                if np.all(np.isfinite(trial_image)) and size(trial, trial_image)[1] < error:
+                    break
+                move /= 2
+            state, image = trial, trial_image
+        raise SettleError()
 
     def run(self, experiment: Experiment) -> Run:
         if experiment in self._runs:

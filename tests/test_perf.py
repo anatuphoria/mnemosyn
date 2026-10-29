@@ -568,3 +568,36 @@ def test_tracts_group_selection_meets_40ms(tmp_path, timing):
     pytest.importorskip("pyvistaqt")
     value = run_timing(TRACTS_GROUP_TIMING, real_atlas_or_skip(), tmp_path)[0]
     timing.assert_within({"select Tracts after warm-up": (value, 0.040)})
+
+
+def test_lab_runs_meet_their_budgets(timing):
+    from cns_lab.engine import Simulator
+    from cns_lab.experiment import Block, Experiment
+    from cns_lab.why import chain
+    from test_lab_stress import load_stress
+
+    model = load_stress()
+    day = Experiment("stress", 1, 1440.0, 480.0, (Block("short_stressor", 360.0, 60.0),))
+    weeks = Experiment("stress", 1, 8 * 7 * 1440.0, 480.0,
+                       (Block("hydrocortisone_course", 0.0, 4 * 7 * 1440.0, (("dose", 40.0),)),))
+
+    def settle():
+        Simulator(model).settle((), ())
+
+    warm = Simulator(model)
+    warm.settle((), ())
+
+    def fresh_run(experiment):
+        sim = Simulator(model)
+        sim._settled = warm._settled
+        sim.run(experiment)
+
+    cached = Simulator(model)
+    run = cached.run(weeks)
+    cached.normal(weeks.length, weeks.start_clock)
+    timing.assert_within({
+        "Lab settle": (best_of(settle, runs=3), 0.400),
+        "Lab one day run": (best_of(lambda: fresh_run(day)), 0.030),
+        "Lab eight week run": (best_of(lambda: fresh_run(weeks), runs=3), 0.450),
+        "Lab Why chain": (best_of(lambda: chain(cached, run, 3000.0)), 0.005),
+    })

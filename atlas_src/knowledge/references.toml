@@ -184,3 +184,84 @@ volume = "264(5162)"
 pages = "1102-1105"
 year = 1994
 doi = "10.1126/science.8178168"
+
+[karin2020]
+authors = "Karin O, Raz M, Tendler A, Bar A, Korem Kohanim Y, Milo T, Alon U"
+title = "A new model for the HPA axis explains dysregulation of stress hormones on the timescale of weeks"
+journal = "Molecular Systems Biology"
+volume = "16"
+pages = "e9510"
+year = 2020
+doi = "10.15252/msb.20209510"
+
+[andersen2013]
+authors = "Andersen M, Vinther F, Ottesen JT"
+title = "Mathematical modeling of the hypothalamic-pituitary-adrenal gland (HPA) axis, including hippocampal mechanisms"
+journal = "Mathematical Biosciences"
+volume = "246"
+pages = "122-138"
+year = 2013
+doi = "10.1016/j.mbs.2013.08.010"
+
+[debono2009]
+authors = "Debono M, Ghobadi C, Rostami-Hodjegan A, Huatan H, Campbell MJ, Newell-Price J, Darzy K, Merke DP, Arlt W, Ross RJ"
+title = "Modified-release hydrocortisone to provide circadian cortisol profiles"
+journal = "The Journal of Clinical Endocrinology and Metabolism"
+volume = "94(5)"
+pages = "1548-1554"
+year = 2009
+doi = "10.1210/jc.2008-2380"
+
+[nieman2008]
+authors = "Nieman LK, Biller BMK, Findling JW, Newell-Price J, Savage MO, Stewart PM, Montori VM"
+title = "The diagnosis of Cushing's syndrome: an Endocrine Society clinical practice guideline"
+journal = "The Journal of Clinical Endocrinology and Metabolism"
+volume = "93(5)"
+pages = "1526-1540"
+year = 2008
+doi = "10.1210/jc.2008-0125"
+
+[bornstein2016]
+authors = "Bornstein SR, Allolio B, Arlt W, Barthel A, Don-Wauchope A, Hammer GD, Husebye ES, Merke DP, Murad MH, Stratakis CA, Torpy DJ"
+title = "Diagnosis and treatment of primary adrenal insufficiency: an Endocrine Society clinical practice guideline"
+journal = "The Journal of Clinical Endocrinology and Metabolism"
+volume = "101(2)"
+pages = "364-389"
+year = 2016
+doi = "10.1210/jc.2015-1710"
+
+[tyrrell1986]
+authors = "Tyrrell JB, Findling JW, Aron DC, Fitzgerald PA, Forsham PH"
+title = "An overnight high-dose dexamethasone suppression test for rapid differential diagnosis of Cushing's syndrome"
+journal = "Annals of Internal Medicine"
+volume = "104(2)"
+pages = "180-186"
+year = 1986
+doi = "10.7326/0003-4819-104-2-180"
+
+[loew1986]
+authors = "Loew D, Schuster O, Graul EH"
+title = "Dose-dependent pharmacokinetics of dexamethasone"
+journal = "European Journal of Clinical Pharmacology"
+volume = "30(2)"
+pages = "225-230"
+year = 1986
+doi = "10.1007/BF00614309"
+
+[harahap2009]
+authors = "Harahap Y, Sasongko L, Prasaja B, Indriati E, Lusthom W, Lipin"
+title = "Comparative bioavailability of two dexamethasone tablet formulations in Indonesian healthy volunteers"
+journal = "Arzneimittelforschung"
+volume = "59(4)"
+pages = "191-194"
+year = 2009
+doi = "10.1055/s-0031-1296384"
+
+[mollmann1991]
+authors = "Möllmann H, Barth J, Möllmann C, Tunn S, Krieg M, Derendorf H"
+title = "Pharmacokinetics and rectal bioavailability of hydrocortisone acetate"
+journal = "Journal of Pharmaceutical Sciences"
+volume = "80(9)"
+pages = "835-836"
+year = 1991
+doi = "10.1002/jps.2600800906"
