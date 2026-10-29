@@ -288,10 +288,19 @@ class LabWorkspace:
         if answer == QMessageBox.StandardButton.Yes:
             self.document.set_length(minutes)
 
-    def show_scope(self) -> None:
+    def scope_text(self) -> str:
         found = self.window.state.atlas.lab_text(self.document.model.key, "scope")
-        QMessageBox.information(self.window, "What this model includes",
-                                found[0] if found else "")
+        if not found:
+            return ""
+        text, references = found
+        lines = [text]
+        if references:
+            lines += ["", "References"]
+            lines += [f"{n}. {ref.citation()}" for n, ref in enumerate(references, 1)]
+        return "\n".join(lines)
+
+    def show_scope(self) -> None:
+        self.window.inform("What this model includes", self.scope_text())
 
     def show_part_in_atlas(self, key: str) -> None:
         part = self.document.model.part(key)

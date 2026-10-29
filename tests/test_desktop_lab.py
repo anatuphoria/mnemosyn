@@ -189,3 +189,12 @@ def test_a_quiz_or_a_route_leaves_the_lab_first(window):
     assert all(d.isHidden() for d in window.lab.docks)
     window.leave_quiz()
     assert window.pathway_dock.toggleViewAction().isEnabled()
+
+
+def test_the_scope_text_lists_its_references(window):
+    shown = []
+    window.inform = lambda title, text: shown.append((title, text))
+    window.lab.show_scope()
+    ((title, text),) = shown
+    assert title == "What this model includes"
+    assert "[1]" in text and "References" in text and "1. Author A" in text
