@@ -226,7 +226,7 @@ def test_no_placeholder_signal_anywhere(window):
 
     assert not hasattr(module, "placeholder_series")
     window.state.select(101)
-    assert "PLACEHOLDER" not in window.chart.plot.plotItem.titleLabel.text
+    assert "PLACEHOLDER" not in window.chart.title.text()
 
 
 def test_closing_the_window_stops_play(qapp, toy_behaviour_atlas, tmp_path):
@@ -366,9 +366,10 @@ def test_only_clicks_inside_the_plot_seek(window):
     panel.open("mood")
     seen = []
     chart.seek_requested.connect(seen.append)
-    chart._on_click(FakeClick(QPointF(-50.0, -50.0)))
+    row = chart.multiples.rows[0]
+    chart.multiples.click(row, QPointF(-50.0, -50.0))
     assert seen == []
-    chart._on_click(FakeClick(chart.plot.plotItem.vb.sceneBoundingRect().center()))
+    chart.multiples.click(row, row.plot.getPlotItem().vb.sceneBoundingRect().center())
     assert len(seen) == 1
 
 

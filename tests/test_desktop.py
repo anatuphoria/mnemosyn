@@ -931,7 +931,7 @@ def test_the_about_box_lists_local_sources_without_a_citation(tmp_path):
 
 
 def test_the_activity_chart_keeps_its_axes_between_selections(window):
-    box = window.chart.plot.getViewBox()
+    box = window.chart.multiples.axis.getPlotItem().vb
     window.state.select(101)
     QApplication.processEvents()
     before = box.viewRange()
