@@ -120,3 +120,11 @@ def test_recent_files_are_kept_and_capped_at_eight(window, tmp_path):
     recent = window.lab.recent_files()
     assert len(recent) == 8 and recent[0].name == "e9.mnemolab"
     assert window.lab.recent_menu.actions()[0].text() == "e9.mnemolab"
+
+
+def test_file_actions_wait_while_a_quiz_runs(window):
+    lab = window.lab
+    window.enter_quiz()
+    assert not any(lab.action(n).isEnabled() for n in ("New experiment", "Open", "Save", "Save as"))
+    window.leave_quiz()
+    assert all(lab.action(n).isEnabled() for n in ("New experiment", "Open", "Save", "Save as"))

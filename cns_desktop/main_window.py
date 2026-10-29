@@ -364,6 +364,8 @@ class MainWindow(QMainWindow):
                        [(w, w.focusPolicy()) for w in (self.view, self.slices.view)])
         self.quiz_active = True
         self.workspaces.set_locked(True)
+        if self.lab is not None:
+            self.lab.set_files_enabled(False)
         for action in self._quiz_locked():
             action.setEnabled(False)
         state.set_hidden([i for i in state.geometry_ids if not state.is_tract(i)], False)
@@ -383,6 +385,8 @@ class MainWindow(QMainWindow):
         layout, hidden, selected, axis, mm, volume, focus = self._saved
         self.quiz_active = False
         self.workspaces.set_locked(False)
+        if self.lab is not None:
+            self.lab.set_files_enabled(True)
         for action in self._quiz_locked():
             action.setEnabled(True)
         for widget, policy in focus:

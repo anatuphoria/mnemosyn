@@ -340,6 +340,11 @@ class LabWorkspace:
                             if p]
         self._fill_recent()
 
+    def set_files_enabled(self, on: bool) -> None:
+        for name in FILE_ACTIONS:
+            self._actions[name].setEnabled(on)
+        self.recent_menu.setEnabled(on and bool(self._recent))
+
     def recent_files(self) -> list[Path]:
         return [Path(p) for p in self._recent]
 
