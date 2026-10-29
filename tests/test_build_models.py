@@ -49,6 +49,13 @@ MISTAKES = [
     ("bad time", swap('length = "1 h"', 'length = "1 hour"'), "a duration is written"),
     ("unknown route", swap('route = "mood"', 'route = "sleep"'), "unknown route 'sleep'"),
     ("unknown assert", swap('kind = "within"', 'kind = "near"'), "kind must be one of"),
+    ("reserved clock", swap('key = "w"\nvalue = 0.1', 'key = "clock"\nvalue = 0.1'),
+     "reserved name 'clock'"),
+    ("reserved pi", swap('key = "w"\nvalue = 0.1', 'key = "pi"\nvalue = 0.1'),
+     "reserved name 'pi'"),
+    ("reserved underscore", swap('key = "m"\nunit', 'key = "_speed"\nunit'),
+     "reserved name '_speed'"),
+    ("reserved function", swap('key = "fb"', 'key = "hill"'), "reserved name 'hill'"),
     ("unknown check experiment", swap('experiment = "pill_test"', 'experiment = "nope"'),
      "needs a known experiment or test"),
 ]

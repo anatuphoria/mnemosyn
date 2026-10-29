@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import keyword
 import tomllib
 from pathlib import Path
 
 from cns_atlas.knowledge import CITATION
 from cns_atlas.models import (Check, Edit, Effect, Experiment, LabModel, LabTest, NormalNote, Option,
                               Parameter, Part, Reading, Term, Value)
-from cns_lab.expressions import ExpressionError, names
+from cns_lab.expressions import CONSTANTS, FUNCTIONS, ExpressionError, names
+from cns_lab.engine import Simulator
 from cns_lab.times import TimeError, clock, duration, moment
 
 from .recipe import BuildError, read_toml
@@ -43,6 +45,9 @@ ASSERTS = {
 }
 
 
+RESERVED = {"t", "clock", *CONSTANTS, *FUNCTIONS}
+
+
 def _number(value) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -71,6 +76,10 @@ class _Reader:
                 self.say(f"{section} {n}: unknown keys {sorted(unknown)}")
             if not (isinstance(row.get("key"), str) and row["key"].isidentifier()):
                 self.say(f"{section} {n}: needs a key made of letters, digits and _")
+                continue
+            if row["key"] in RESERVED or row["key"].startswith("_") or keyword.iskeyword(
+                    row["key"]):
+                self.say(f"{section} {n}: reserved name {row['key']!r} cannot be a key")
                 continue
             good.append(row)
         keys = [r["key"] for r in good]
@@ -458,6 +467,11 @@ def load_models(folder: Path, knowledge: Path, structure_ids: set[int], referenc
         model, found = _model(path, knowledge, structure_ids, references, routes)
         problems += found
         if model is not None and not found:
+            try:
+                Simulator(model)
+            except (ExpressionError, SyntaxError, ValueError) as exc:
+                problems.append(f"{path}: the model cannot be compiled ({exc})")
+                continue
             models.append(model)
     if problems:
         raise BuildError(problems)
