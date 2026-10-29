@@ -75,3 +75,8 @@ def test_normal_notes_wrap_midnight(sim):
     assert normal_note(sim.model, 23 * 60.0) == "night" and normal_note(sim.model, 60.0) == "night"
     assert normal_note(sim.model, 12 * 60.0) is None
 
+
+def test_edited_values_start_the_chain(sim):
+    run = sim.run(Experiment("toy", 1, DAY, 480.0, (), (("a", 0.9),)))
+    steps = chain(sim, run, 0.0)
+    assert steps and steps[0].source == "rhythm"

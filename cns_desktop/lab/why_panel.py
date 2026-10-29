@@ -94,7 +94,7 @@ class WhyPanel(QTextBrowser):
             parameter = doc.model.parameter(key)
             edited.append(f"{parameter.name} is {value:g} {parameter.unit} "
                           f"(normal {parameter.value:g}).")
-        if not items and not doc.experiment.blocks:
+        if not items and not doc.experiment.blocks and not doc.experiment.values:
             note = normal_note(doc.model, doc.experiment.start_clock + t)
             if note:
                 items.append(self._source(f"normal.{note}"))

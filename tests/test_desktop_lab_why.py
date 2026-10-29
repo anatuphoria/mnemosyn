@@ -138,3 +138,11 @@ def test_return_and_tab_in_inspector_fields_apply_without_crashing(qapp, doc):
     qapp.processEvents()
     assert doc.experiment.title == "x" and inspector.title_box() is title
     inspector.close()
+
+
+def test_an_edited_value_is_explained_not_the_normal_day(doc):
+    panel = WhyPanel(doc)
+    doc.set_value("a", 0.9)
+    text = panel.toPlainText()
+    assert "X rises in the morning" not in text
+    assert "The body clock drives X." in text

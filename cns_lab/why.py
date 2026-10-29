@@ -87,7 +87,7 @@ def chain(sim: Simulator, run: Run, t: float, limit: int = 8) -> tuple[Step, ...
     blocks = sorted(
         ((n, b) for n, b in enumerate(experiment.blocks) if b.present or b.start <= t),
         key=lambda item: (-math.inf if item[1].present else item[1].start, item[0]))
-    if not blocks:
+    if not blocks and not experiment.values:
         return ()
     normal = sim.normal(experiment.length, experiment.start_clock)
     mine, theirs = run.factors(t), normal.factors(t)
@@ -130,6 +130,7 @@ def chain(sim: Simulator, run: Run, t: float, limit: int = 8) -> tuple[Step, ...
                                        since)))
             queue.extend((n, depth + 1) for n in graph.next(node))
 
+    walk(deque((f"param:{key}", 1) for key, _ in experiment.values), -1, None)
     for order, (_, block) in enumerate(blocks):
         since = None if block.present else block.start
         is_test = block.experiment not in experiments
