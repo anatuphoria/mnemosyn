@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from collections import Counter
 from pathlib import Path
 
@@ -8,9 +9,10 @@ import numpy as np
 
 from .knowledge import Entry, KnowledgeError, Reference, load_references, parse_entry, resolve
 from .meshes import LODS, MeshData, MeshLod
+from .models import LabModel
 from .model import FORMAT_VERSION, Collection, Pathway, Source, Structure
 from .pathways import PathwayText, text_for
-from .timelines import Timeline
+from .timelines import Timeline, note_parts
 from .tracts import TractLayer
 from .volume import LabelVolume, TemplateVolume
 
@@ -44,10 +46,21 @@ def _subtree_ends(structures: tuple[Structure, ...]) -> list[int]:
     return ends
 
 
+def _flat(table: dict, prefix: str = "") -> dict[str, str]:
+    out = {}
+    for key, value in table.items():
+        if isinstance(value, dict):
+            out.update(_flat(value, f"{prefix}{key}."))
+        else:
+            out[f"{prefix}{key}"] = str(value)
+    return out
+
+
 class Atlas:
     def __init__(self, root: Path, metadata: dict, structures: tuple[Structure, ...],
                  sources: dict[str, Source], collections: tuple[Collection, ...],
-                 pathways: tuple[Pathway, ...], timelines: tuple[Timeline, ...] = ()) -> None:
+                 pathways: tuple[Pathway, ...], timelines: tuple[Timeline, ...] = (),
+                 models: tuple[LabModel, ...] = ()) -> None:
         self.root = root
         self.metadata = metadata
         self.structures = structures
@@ -55,6 +68,8 @@ class Atlas:
         self.collections = collections
         self.pathways = pathways
         self.timelines = {t.route: t for t in timelines}
+        self.models = {m.key: m for m in models}
+        self._lab_texts: dict[tuple[str, str], dict[str, str] | None] = {}
         self.local_only = tuple(str(s) for s in metadata.get("local_only", ()))
         self._position = {s.id: i for i, s in enumerate(structures)}
         self._children: dict[int, list[int]] = {s.id: [] for s in structures}
@@ -127,6 +142,8 @@ class Atlas:
             pathways = tuple(map(Pathway.from_json, _read_json(root / "pathways.json")))
             path = root / "timelines.json"
             timelines = tuple(map(Timeline.from_json, _read_json(path))) if path.exists() else ()
+            path = root / "models.json"
+            models = tuple(map(LabModel.from_json, _read_json(path))) if path.exists() else ()
         except (KeyError, TypeError, ValueError) as exc:
             raise AtlasError(f"{root}: malformed record ({exc!r})") from exc
         counts = Counter(s.id for s in structures)
@@ -149,7 +166,7 @@ class Atlas:
                 raise AtlasError(f"{root / 'structures.json'}: structure {s.id} is not inside "
                                  f"its parent's block")
             stack.append(s.id)
-        return cls(root, metadata, structures, sources, collections, pathways, timelines)
+        return cls(root, metadata, structures, sources, collections, pathways, timelines, models)
 
     def get(self, structure_id: int) -> Structure:
         return self.structures[self._position[structure_id]]
@@ -232,6 +249,27 @@ class Atlas:
                 entry = resolve(parsed, self.references)
             self._entries[key] = entry
         return self._entries[key]
+
+    def _lab_table(self, lang: str, model: str) -> dict[str, str] | None:
+        key = (lang, model)
+        if key not in self._lab_texts:
+            path = self.root / "knowledge" / lang / f"lab-{model}.toml"
+            table = None
+            if path.exists():
+                try:
+                    table = _flat(tomllib.loads(path.read_text(encoding="utf-8")))
+                except (tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:
+                    raise AtlasError(f"{path}: {exc}") from exc
+            self._lab_texts[key] = table
+        return self._lab_texts[key]
+
+    def lab_text(self, model: str, key: str,
+                 lang: str = "en") -> tuple[str, tuple[Reference, ...]] | None:
+        for language in dict.fromkeys((lang, "en")):
+            table = self._lab_table(language, model)
+            if table is not None and key in table:
+                return note_parts(table[key], self.references)
+        return None
 
     def pathway_text(self, key: str, side: str, lang: str = "en") -> PathwayText | None:
         pathway = next((p for p in self.pathways if p.key == key), None)
