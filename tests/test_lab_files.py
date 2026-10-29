@@ -92,3 +92,65 @@ def test_a_broken_file_is_refused(tmp_path, models, text):
     path.write_text(text, encoding="utf-8")
     with pytest.raises(FileError):
         read(path, models)
+
+
+def lines_of(path, *changes):
+    text = path.read_text(encoding="utf-8")
+    for old, new in changes:
+        assert old in text
+        text = text.replace(old, new, 1)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_a_change_named_by_something_other_than_text_is_left_out(tmp_path, models):
+    path = tmp_path / "one.mnemolab"
+    write(path, EXPERIMENT)
+    lines_of(path, ('experiment = "pill"', 'experiment = ["pill"]'))
+    experiment, report = read(path, models)
+    assert [b.experiment for b in experiment.blocks] == ["stress", "remove_b"]
+    assert report == ("The change ['pill'] is not in this model and was left out.",)
+
+
+def test_numbers_that_are_not_numbers_are_left_out(tmp_path, models):
+    path = tmp_path / "one.mnemolab"
+    write(path, EXPERIMENT)
+    lines_of(path, ("k = 3.0", "k = nan"), ("dose = 2.0", "dose = inf"))
+    experiment, report = read(path, models)
+    assert experiment.values == () and experiment.blocks[0].options == ()
+    assert report == ("The value k is not a number and was left out.",
+                      "The option dose of Y pill is not a number and was left out.")
+
+
+def test_block_lengths_and_starts_are_kept_inside_the_run(tmp_path, models):
+    path = tmp_path / "one.mnemolab"
+    write(path, EXPERIMENT)
+    lines_of(path, ('length = "1 h"', 'length = "0.001 min"'), ("start = 600.0", "start = -5.0"))
+    experiment, report = read(path, models)
+    assert experiment.blocks[0].start == 0.0 and experiment.blocks[1].length == 1.0
+    assert "Y pill started before the run and was moved to its start." in report
+    write(path, EXPERIMENT)
+    lines_of(path, ('length = "1 h"', 'length = "9 w"'))
+    experiment, report = read(path, models)
+    assert experiment.blocks[1].length == 4320.0 - 700.5
+    assert "Short stressor lasted past the end of the run and now ends with it." in report
+
+
+def test_a_missing_length_falls_back_to_the_experiment(tmp_path, models):
+    path = tmp_path / "one.mnemolab"
+    write(path, EXPERIMENT)
+    lines_of(path, ('length = "1 h"\n', ""))
+    experiment, _ = read(path, models)
+    assert experiment.blocks[1].length == 60.0
+
+
+def test_the_run_length_stays_within_what_the_lab_offers(tmp_path, models):
+    path = tmp_path / "one.mnemolab"
+    write(path, EXPERIMENT)
+    lines_of(path, ('length = "3 d"', 'length = "0.5 min"'))
+    experiment, report = read(path, models)
+    assert experiment.length == 60.0 and all(b.start >= 0 for b in experiment.blocks)
+    assert report[0] == "The run was 0.5 min long; it is now 1 h."
+    write(path, EXPERIMENT)
+    lines_of(path, ('length = "3 d"', 'length = "500 w"'))
+    experiment, report = read(path, models)
+    assert experiment.length == 8 * 7 * 1440.0 and report[0] == "The run was 500 w long; it is now 8 w."

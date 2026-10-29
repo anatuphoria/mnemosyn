@@ -160,3 +160,10 @@ def test_any_engine_failure_shows_the_plain_message_and_no_stale_runs(doc, monke
     doc.set_length(2 * DAY)
     assert doc.error == "The model cannot settle with these values."
     assert doc.run is None and doc.normal is None
+
+
+def test_loading_keeps_blocks_inside_the_run(doc):
+    outside = doc.experiment.replace(blocks=(Block("stress", 5000.0, 900.0, (("strength", 1.0),)),))
+    doc.load(outside, None)
+    (block,) = doc.experiment.blocks
+    assert block.start == DAY - 1 and block.length == 1.0

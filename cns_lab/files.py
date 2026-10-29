@@ -12,6 +12,8 @@ from .times import UNITS, TimeError, clock, duration
 
 EXTENSION = ".mnemolab"
 FORMAT = 1
+SHORTEST = 60.0
+LONGEST = 8 * 7 * 1440.0
 
 
 class FileError(Exception):
@@ -57,6 +59,11 @@ def write(path: Path, experiment: Experiment) -> None:
     Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _finite(value) -> bool:
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and math.isfinite(value))
+
+
 def _clamped(name: str, unit: str, value: float, low: float, high: float,
              report: list[str]) -> float:
     if low <= value <= high:
@@ -88,6 +95,11 @@ def read(path: Path, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str
     except (KeyError, TypeError, ValueError, TimeError) as exc:
         raise FileError("This file cannot be read as a Lab experiment.") from exc
     report: list[str] = []
+    if not SHORTEST <= length <= LONGEST:
+        kept = min(max(length, SHORTEST), LONGEST)
+        report.append(f"The run was {duration_text(length)} long; it is now "
+                      f"{duration_text(kept)}.")
+        length = kept
     if version != model.version:
         report.append(f"This file was made with version {version} of the model; "
                       f"this is version {model.version}.")
@@ -95,8 +107,11 @@ def read(path: Path, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str
     kept_values = []
     for key, value in values.items():
         parameter = parameters.get(key)
-        if parameter is None or not isinstance(value, (int, float)) or isinstance(value, bool):
+        if parameter is None:
             report.append(f"The value {key} is not in this model and was left out.")
+            continue
+        if not _finite(value):
+            report.append(f"The value {key} is not a number and was left out.")
             continue
         kept_values.append((key, _clamped(parameter.name, parameter.unit, float(value),
                                           parameter.low, parameter.high, report)))
@@ -105,35 +120,48 @@ def read(path: Path, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str
     blocks = []
     for row in rows:
         key = row.get("experiment") if isinstance(row, dict) else None
-        found = experiments.get(key)
-        if found is None and key not in tests:
+        found = experiments.get(key) if isinstance(key, str) else None
+        if found is None and not (isinstance(key, str) and key in tests):
             report.append(f"The change {key} is not in this model and was left out.")
             continue
         name = found.name if found else tests[key].name
-        start = row.get("start", 0.0)
-        if not isinstance(start, (int, float)) or not math.isfinite(start):
-            start = 0.0
-        if start > length - 1:
-            report.append(f"{name} started after the end of the run and was moved to its end.")
-        start = min(max(float(start), 0.0), length - 1)
-        block_length = None
-        if "length" in row:
-            try:
-                block_length = duration(row["length"])
-            except TimeError:
-                block_length = found.length if found else None
         mode = row.get("mode", FROM_A_TIME)
         if mode not in (PRESENT, FROM_A_TIME) or (mode == PRESENT and not (
                 found and found.mode == PRESENT)):
             mode = FROM_A_TIME
+        start = row.get("start", 0.0)
+        start = float(start) if _finite(start) else 0.0
+        if mode == PRESENT:
+            start = 0.0
+        elif start < 0:
+            report.append(f"{name} started before the run and was moved to its start.")
+            start = 0.0
+        elif start > length - 1:
+            report.append(f"{name} started after the end of the run and was moved to its end.")
+            start = length - 1
+        block_length = found.length if found else None
+        if block_length is not None and "length" in row:
+            try:
+                block_length = duration(row["length"])
+            except TimeError:
+                pass
+        if block_length is not None:
+            block_length = max(block_length, 1.0)
+            if start + block_length > length:
+                report.append(f"{name} lasted past the end of the run and now ends with it.")
+                block_length = max(length - start, 1.0)
         options = []
         given = row.get("options", {}) if isinstance(row.get("options", {}), dict) else {}
         known = {o.key: o for o in found.options} if found else {}
         for option_key, value in given.items():
             option = known.get(option_key)
-            if option is None or not isinstance(value, (int, float)) or isinstance(value, bool):
+            if option is None:
                 report.append(f"The option {option_key} of {name} is not in this model and "
                               "was left out.")
+                continue
+            if not _finite(value):
+                report.append(f"The option {option_key} of {name} is not a number and was "
+                              "left out.")
                 continue
             options.append((option_key, _clamped(f"{option.name} of {name}", option.unit,
                                                  float(value), option.low, option.high, report)))

@@ -210,7 +210,8 @@ class LabDocument(QObject):
         self.path = path
         self.snapshot = None
         self.selection = None
-        self._set(experiment)
+        self._set(experiment.replace(blocks=tuple(self._fit(b, experiment.length)
+                                                  for b in experiment.blocks)))
         self.undo.setClean()
 
     def new(self) -> None:
