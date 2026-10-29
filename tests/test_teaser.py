@@ -27,3 +27,12 @@ def test_the_readme_opens_with_the_teaser_and_a_fallback():
                         r'<img src="brand/teaser.webp"[^>]*></picture>', text)
     assert picture and text.index("brand/teaser.avif") < text.index("## ")
     assert (ROOT / "brand/teaser.avif").exists() and (ROOT / "brand/teaser.webp").exists()
+
+
+def test_the_feature_screenshots_are_folded_away():
+    text = README.read_text()
+    section = text[text.index("## What you can do"):text.index("## Get it")]
+    images = re.findall(r'<img src="brand/screenshot[^"]*"', section)
+    folded = re.findall(r"<details><summary>[^<]+</summary>\s*<p align=\"center\"><img src=\"brand/"
+                        r"screenshot[^\"]*\"[^>]*></p>\s*</details>", section)
+    assert images and len(folded) == len(images)

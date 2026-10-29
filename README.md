@@ -50,16 +50,18 @@ references, its side and the atlas it comes from.
 
 ### Read slices like atlas plates
 
-<p align="center"><img src="brand/screenshot-slices.png" alt="The Slices workspace: an axial slice with coloured labels over an MRI template, the left hippocampus selected and described" width="900"></p>
-
 Axial, coronal and sagittal sections show coloured labels over an MRI template (Colin 27 for the
 brain, PAM50 for the spinal cord in local builds), in neurological convention with the orientation
 letters on the edges. The slice plane moves through the 3D view too; hovering names what is under
 the pointer, a click selects it, and one key centres the slice on the selection.
 
-### Follow pathways and circuits
+<details><summary>See the Slices workspace</summary>
 
-<p align="center"><img src="brand/screenshot-activity.png" alt="The stress axis route with its schematic hormone timeline: CRH, ACTH and cortisol in rows with one time axis" width="900"></p>
+<p align="center"><img src="brand/screenshot-slices.png" alt="The Slices workspace: an axial slice with coloured labels over an MRI template, the left hippocampus selected and described" width="900"></p>
+
+</details>
+
+### Follow pathways and circuits
 
 Eighteen routes, followed station by station: eight sensory and motor pathways (visual, auditory,
 the Papez circuit, voluntary movement, touch and position, pain and temperature, and the basal
@@ -69,9 +71,13 @@ Each station lights up in 3D and in the slice, with its role and what a lesion t
 behaviour circuits the disorders and drugs that act there. Play steps through a route on its own;
 three of them play a schematic hormone timeline beside it.
 
-### Run experiments in the Lab
+<details><summary>See a route with its hormone timeline</summary>
 
-<p align="center"><img src="brand/screenshot-lab.png" alt="The Lab after cutting the pituitary stalk: the brain coloured by change, the Why chain on the right and every value on the timeline" width="900"></p>
+<p align="center"><img src="brand/screenshot-activity.png" alt="The stress axis route with its schematic hormone timeline: CRH, ACTH and cortisol in rows with one time axis" width="900"></p>
+
+</details>
+
+### Run experiments in the Lab
 
 The Lab runs a computed model of a body system, starting with the stress axis (hypothalamus,
 pituitary, adrenal cortex and cortisol) after Karin and colleagues (2020). Drag a change onto the
@@ -81,13 +87,23 @@ tumour, add a short or a long stressor, or run the overnight 1 mg and 8 mg dexam
 the ACTH stimulation test. The model computes every value in real units over hours to weeks, next
 to the untouched normal day.
 
-<p align="center"><img src="brand/screenshot-circuit.png" alt="The same experiment as a live circuit, with the charts of every value below it" width="900"></p>
+<details><summary>See the Lab after an experiment</summary>
+
+<p align="center"><img src="brand/screenshot-lab.png" alt="The Lab after cutting the pituitary stalk: the brain coloured by change, the Why chain on the right and every value on the timeline" width="900"></p>
+
+</details>
 
 The brain colours each part by how far it is from normal, or the centre turns into a live circuit
 whose arrows thicken and thin with each signal. **Why** explains the difference at the playhead as a
 numbered chain of causes, each marked with what it does and with its sources. Experts can open every
 one of the model's 25 parameters with its normal value, range and source. An experiment saves as a
 small `.mnemolab` text file you can send to someone; it holds only the experiment.
+
+<details><summary>See the same experiment as a live circuit</summary>
+
+<p align="center"><img src="brand/screenshot-circuit.png" alt="The same experiment as a live circuit, with the charts of every value below it" width="900"></p>
+
+</details>
 
 ### Quiz yourself
 
