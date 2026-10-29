@@ -103,3 +103,38 @@ def test_a_link_shows_its_text_and_strength(doc):
     doc.select(("link", "fb"))
     text = inspector.text()
     assert "Y holds back the making of X" in text and "times normal" in text
+
+
+def test_return_and_tab_in_inspector_fields_apply_without_crashing(qapp, doc):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    inspector = Inspector(doc)
+    inspector.show()
+    doc.add_block("pill", 120.0)
+    doc.select(("block", 0))
+    qapp.processEvents()
+    spin = inspector.option_spin("dose")
+    spin.setFocus()
+    spin.selectAll()
+    QTest.keyClicks(spin, "5")
+    QTest.keyClick(spin, Qt.Key.Key_Return)
+    qapp.processEvents()
+    assert doc.experiment.blocks[0].option_map == {"dose": 5.0}
+    assert inspector.option_spin("dose") is spin
+    start = inspector.start_spin()
+    start.setFocus()
+    start.selectAll()
+    QTest.keyClicks(start, "4")
+    QTest.keyClick(start, Qt.Key.Key_Tab)
+    qapp.processEvents()
+    assert doc.experiment.blocks[0].start == 240.0 and inspector.start_spin() is start
+    doc.select(None)
+    qapp.processEvents()
+    title = inspector.title_box()
+    title.setFocus()
+    QTest.keyClicks(title, "x")
+    QTest.keyClick(title, Qt.Key.Key_Return)
+    qapp.processEvents()
+    assert doc.experiment.title == "x" and inspector.title_box() is title
+    inspector.close()

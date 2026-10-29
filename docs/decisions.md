@@ -601,7 +601,7 @@ Design: [identity, sections 4 and 5](specs/2026-10-19-identity-design.md).
 
 ## 63. The physiology layer is a Lab workspace driven by model files, starting with the stress axis
 
-2026-10-29, chosen by the owner. Sub-project D becomes the Lab: a workspace of its own where anyone
+2026-10-29, chosen by the owner. Subproject D becomes the Lab: a workspace of its own where anyone
 changes a system freely (removing parts, drugs, diseases, stressors, clinical tests, or any model
 value) and sees what follows over minutes to weeks. A system is a model file in `atlas_src/models/`
 with its texts in `atlas_src/knowledge/en/lab-<key>.toml`; a general engine (`cns_lab`) runs any
