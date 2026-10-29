@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QLineF, QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QPainterPath, QPainterPathStroker, QPen
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QBrush, QColor, QPainterPath, QPainterPathStroker, QPen
 from PySide6.QtWidgets import (QGraphicsLineItem, QGraphicsRectItem, QGraphicsScene,
                                QGraphicsSimpleTextItem, QGraphicsView, QMenu)
+
+from .labels import plain, removed_parts
 
 CELL_X, CELL_Y = 180.0, 110.0
 BOX_W, BOX_H = 150.0, 56.0
@@ -76,11 +77,7 @@ class CircuitView(QGraphicsView):
         return mine / theirs
 
     def _removed(self) -> set[str]:
-        doc = self.document
-        params = doc.simulator.parameters_at(doc.experiment, doc.playhead)
-        clamps = doc.simulator.clamps_at(doc.experiment, doc.playhead, params)
-        zero = {doc.simulator.keys[i] for i, level in clamps.items() if abs(level) < ZERO}
-        return {p.key for p in doc.model.parts if p.values and set(p.values) & zero}
+        return removed_parts(self.document)
 
     def _value_text(self, key: str) -> str:
         doc = self.document
@@ -90,8 +87,8 @@ class CircuitView(QGraphicsView):
         if value.relative:
             ratio = doc.run.at(key, doc.playhead) / max(doc.normal.at(key, doc.playhead), ZERO)
             arrow = "↑" if ratio > 1.02 else "↓" if ratio < 0.98 else "="
-            return f"{value.name} {arrow} {ratio:.2g}×"
-        return f"{value.name} {doc.run.display(key, doc.playhead):.3g} {value.display_unit}"
+            return f"{value.name} {arrow} {plain(ratio)}×"
+        return f"{value.name} {plain(doc.run.display(key, doc.playhead), 3)} {value.display_unit}"
 
     def part_label(self, key: str) -> str:
         return self.part_texts[key].text()
@@ -107,7 +104,9 @@ class CircuitView(QGraphicsView):
         removed = self._removed()
         for part in self.document.model.parts:
             label = part.name
-            if part.values:
+            if part.key in removed:
+                label += "\nremoved"
+            elif part.values:
                 label += "\n" + self._value_text(part.values[0])
             self.part_texts[part.key].setText(label)
             gone = part.key in removed

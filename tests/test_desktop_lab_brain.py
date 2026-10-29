@@ -106,3 +106,11 @@ def test_a_failed_run_shows_neutral_labels(window, monkeypatch):
     doc.set_value("k", 2.0)
     assert doc.run is None
     assert brain.overlay.labels[111] == "Alpha" and colour(window, 111) == own
+
+
+def test_a_removed_part_says_so_in_the_strip_and_labels(window):
+    doc, brain = lab_of(window)
+    brain.activate()
+    doc.add_block("remove_b", 0.0)
+    assert brain.strip_button("body").text() == "Body gland · removed"
+    assert "e-" not in brain.overlay.labels[111]

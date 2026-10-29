@@ -5,6 +5,8 @@ import math
 from PySide6.QtWidgets import QToolButton
 from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D
 
+from .labels import plain, removed_parts
+
 RAISED = (224, 138, 90)
 LOWERED = (111, 160, 255)
 ZERO = 1e-9
@@ -119,15 +121,17 @@ class LabBrain:
     def _text(self, part) -> tuple[str, tuple[int, int, int]]:
         if not part.values or self.document.run is None:
             return part.name, (216, 216, 224)
+        if part.key in removed_parts(self.document):
+            return f"{part.name} · removed", LOWERED
         key = part.values[0]
         value = self.document.simulator.values[key]
         ratio = self._ratio(key)
         colour = RAISED if ratio > 1.02 else LOWERED if ratio < 0.98 else (216, 216, 224)
         if value.relative or self.document.run is None:
             arrow = "↑" if ratio > 1.02 else "↓" if ratio < 0.98 else "="
-            return f"{part.name} · {value.name} {arrow} {ratio:.2g}×", colour
+            return f"{part.name} · {value.name} {arrow} {plain(ratio)}×", colour
         shown = self.document.run.display(key, self.document.playhead)
-        return f"{part.name} · {value.name} {shown:.3g} {value.display_unit}", colour
+        return f"{part.name} · {value.name} {plain(shown, 3)} {value.display_unit}", colour
 
     def refresh(self) -> None:
         if not self.active:
