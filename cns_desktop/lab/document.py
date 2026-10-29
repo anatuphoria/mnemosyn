@@ -153,6 +153,15 @@ class LabDocument(QObject):
         self._edit_block(index, f"Change when {self.name_of(block.experiment)} starts",
                          mode=mode)
 
+    def duplicate_block(self, index: int) -> None:
+        block = self.experiment.blocks[index]
+        start = block.start + (block.length if block.length is not None else 60.0)
+        copy = Block(block.experiment, 0.0 if block.present else start, block.length,
+                     block.options, block.mode)
+        self.apply(self.experiment.replace(blocks=self._blocks((*self.experiment.blocks, copy))),
+                   f"Duplicate {self.name_of(block.experiment)}")
+        self.select(("block", len(self.experiment.blocks) - 1))
+
     def delete_block(self, index: int) -> None:
         blocks = list(self.experiment.blocks)
         block = blocks.pop(index)

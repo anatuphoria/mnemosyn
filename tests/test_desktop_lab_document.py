@@ -176,3 +176,14 @@ def test_deleting_an_earlier_block_keeps_the_same_block_selected(doc):
     doc.delete_block(0)
     assert doc.selection == ("block", 0)
     assert doc.experiment.blocks[doc.selection[1]].experiment == "stress"
+
+
+def test_duplicating_copies_the_block_right_after_it(doc):
+    doc.add_block("stress", 100.0)
+    doc.set_option(0, "strength", 3.0)
+    doc.stretch_block(0, 90.0)
+    doc.duplicate_block(0)
+    _, copy = doc.experiment.blocks
+    assert copy.experiment == "stress" and copy.option_map == {"strength": 3.0}
+    assert copy.length == 90.0 and copy.start == 190.0
+    assert doc.selection == ("block", 1)

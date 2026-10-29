@@ -347,11 +347,10 @@ class Timeline(QWidget):
         menu = QMenu(self)
         index = self._block_at(pos)
         if index is not None:
-            block = self.document.experiment.blocks[index]
             self.document.select(("block", index))
             menu.addAction(QAction("Edit", menu, triggered=lambda: self.edit_requested.emit(index)))
-            menu.addAction(QAction("Duplicate", menu, triggered=lambda: self.document.add_block(
-                block.experiment, self.document.playhead)))
+            menu.addAction(QAction("Duplicate", menu,
+                                   triggered=lambda: self.document.duplicate_block(index)))
             menu.addAction(QAction("Delete", menu,
                                    triggered=lambda: self.document.delete_block(index)))
         else:
