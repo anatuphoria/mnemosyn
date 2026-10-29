@@ -39,7 +39,7 @@ class Workspaces(QObject):
         self._applying = 0
         self._watched: set[int] = set()
         self.switcher = SegmentedControl([(name, name) for name in NAMES], icons=ICONS)
-        self.switcher.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        self.switcher.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.switcher.changed.connect(self.switch)
         self.actions: dict[str, QAction] = {}
         for number, name in enumerate(NAMES, 1):

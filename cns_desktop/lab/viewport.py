@@ -1,13 +1,54 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QScrollArea, QStackedWidget,
                                QVBoxLayout, QWidget)
 
-from cns_desktop.design.theme import set_role
+from cns_desktop.design.theme import set_role, set_tone
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.design.widgets import SegmentedControl
 
 STRIP_WIDTH = 200
+
+
+class StripCard(QFrame):
+    clicked = Signal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setProperty("card", "true")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        column = QVBoxLayout(self)
+        column.setContentsMargins(12, 8, 12, 8)
+        column.setSpacing(2)
+        self.title = QLabel()
+        set_role(self.title, "label")
+        self.detail = QLabel()
+        self.detail.setWordWrap(True)
+        set_role(self.detail, "secondary")
+        column.addWidget(self.title)
+        column.addWidget(self.detail)
+
+    def setText(self, text: str) -> None:
+        title, _, detail = text.partition("\n")
+        self.title.setText(title)
+        self.detail.setText(detail)
+        self.detail.setVisible(bool(detail))
+
+    def text(self) -> str:
+        detail = self.detail.text()
+        return f"{self.title.text()}\n{detail}" if detail else self.title.text()
+
+    def set_tone(self, tone: str) -> None:
+        set_tone(self.detail, tone or "text2")
+
+    def click(self) -> None:
+        self.clicked.emit()
+
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mouseReleaseEvent(event)
 
 
 class Strip(QScrollArea):
@@ -74,6 +115,7 @@ class Viewport(QWidget):
         self.show_lab_parts(False)
 
     def add_tool(self, button) -> None:
+        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.tools.layout().addWidget(button)
 
     @staticmethod

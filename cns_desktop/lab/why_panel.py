@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QTextBrowser
 from cns_atlas.timelines import note_parts
 from cns_lab.why import chain, normal_note, phrase
 
+from ..design import rich
 from ..views.info_panel import references_html
 
 DRAFT = "Draft: not yet reviewed."
@@ -53,11 +54,23 @@ def time_heading(document, t: float) -> str:
     return heading
 
 
+CHIP_TONES = {"change": "edited", "drives": "raised", "grows": "raised", "holds back": "lowered",
+              "clears": "lowered", "shrinks": "lowered", "absorbs": "normal"}
+
+
+def _chip(kind: str) -> str:
+    if kind not in CHIP_TONES:
+        return ""
+    return f"{rich.chip(kind, CHIP_TONES[kind])}&nbsp;&nbsp;"
+
+
 class WhyPanel(QTextBrowser):
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
         self.document = document
         self.setOpenExternalLinks(True)
+        QTextBrowser.document(self).setDefaultStyleSheet(rich.document_css())
+        QTextBrowser.document(self).setDocumentMargin(12)
         document.changed.connect(self.refresh)
         document.playhead_moved.connect(lambda _t: self.refresh())
         self.refresh()
@@ -74,10 +87,12 @@ class WhyPanel(QTextBrowser):
         if doc.error:
             return f"<p>{escape(doc.error)}</p><p><i>{DRAFT}</i></p>"
         t = doc.playhead
-        parts = [f"<p><b>{escape(time_heading(doc, t))}</b></p>"]
+        parts = [f"<h3>{escape(time_heading(doc, t))}</h3>"]
         items: list[str] = []
+        kinds: list[str] = []
         if doc.run is not None:
             for step in chain(doc.simulator, doc.run, t):
+                kinds.append(step.kind)
                 if step.kind == "change":
                     name = doc.name_of(step.source)
                     items.append(f"{name}: {self._source(step.text_key + '.description')}")
@@ -98,12 +113,16 @@ class WhyPanel(QTextBrowser):
             note = normal_note(doc.model, doc.experiment.start_clock + t)
             if note:
                 items.append(self._source(f"normal.{note}"))
+                kinds.append("")
         joined, references = note_parts(SEPARATOR.join(items), doc.atlas.references)
-        numbered = [p for p in joined.split(SEPARATOR) if p]
+        pieces = joined.split(SEPARATOR) if items else []
+        numbered = [(p, k) for p, k in zip(pieces, kinds, strict=True) if p]
         if numbered:
-            parts.append("<ol>" + "".join(f"<li>{escape(p)}</li>" for p in numbered) + "</ol>")
+            parts.append("<ol>" + "".join(f"<li>{_chip(k)}{escape(p)}</li>"
+                                          for p, k in numbered) + "</ol>")
         if edited:
-            parts.append("<p>Edited values: " + " ".join(escape(e) for e in edited) + "</p>")
+            parts.append(rich.secondary(f"{rich.chip('edited', 'edited')} "
+                                        + " ".join(escape(e) for e in edited)))
         parts += references_html(references)
         parts.append(f"<p><i>{DRAFT}</i></p>")
         return "".join(parts)

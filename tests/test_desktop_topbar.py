@@ -40,6 +40,7 @@ def resize_to(window, qapp, width, height):
     for _ in range(3):
         window.resize(width, height)
         qapp.processEvents()
+    qapp.processEvents()
 
 
 @pytest.fixture
@@ -257,16 +258,21 @@ def test_a_layout_the_person_changed_is_never_rearranged(window, qapp):
     assert window.dockWidgetArea(window.info_group) == LEFT
 
 
-def test_the_top_bar_compacts_below_1100(window, qapp):
+def test_the_top_bar_compacts_step_by_step(window, qapp):
     bar = window.topbar
     assert bar.menus.isVisible() and not bar.menu_button.isVisible()
+    button = window.workspaces.button("Slices")
+    assert button.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonTextBesideIcon
     resize_to(window, qapp, 900, 800)
+    assert button.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonIconOnly
+    assert bar.sizeHint().width() <= 900
+    window.workspaces.switch("Lab")
+    qapp.processEvents()
+    qapp.processEvents()
     assert not bar.menus.isVisible() and bar.menu_button.isVisible()
     titles = [a.text() for a in bar.menu_button.menu().actions() if a.isVisible()]
-    assert titles == ["File", "Edit", "View", "Study", "Window", "Help"]
+    assert titles == ["File", "Edit", "View", "Study", "Experiment", "Window", "Help"]
     assert not bar.wordmark.isVisible()
-    button = window.workspaces.button("Slices")
-    assert button.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonIconOnly
     assert bar.sizeHint().width() <= 900
 
 
@@ -286,3 +292,17 @@ def test_long_status_text_is_cut_with_a_tooltip(window, qapp):
     qapp.processEvents()
     assert status.text().startswith("selected:")
     assert status.shown_text().endswith("…") and status.toolTip() == status.text()
+
+
+def test_the_top_bar_never_squeezes_its_pickers(window, qapp):
+    for width in (1440, 1250, 1000, 850):
+        resize_to(window, qapp, width, 800)
+        for name in ("Explore", "Lab"):
+            window.workspaces.switch(name)
+            qapp.processEvents()
+            qapp.processEvents()
+            bar = window.topbar
+            assert bar.sizeHint().width() <= bar.width(), (width, name)
+            box = window.lab.system_box
+            if name == "Lab":
+                assert box.width() >= box.sizeHint().width(), (width, name)

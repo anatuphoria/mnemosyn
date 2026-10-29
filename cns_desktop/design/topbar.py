@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QEvent, QSize, Qt, QTimer
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QMenuBar, QToolButton, QWidget
 
@@ -45,6 +45,8 @@ class TopBar(QFrame):
             self.menu_button.menu().addMenu(menu)
         self.menu_button.hide()
         self.compact = False
+        self.level = 0
+        self._fitting = False
         self._groups: dict[str, QWidget] = {}
         self._row = QHBoxLayout(self)
         self._row.setContentsMargins(SIZE["panel_pad"], 0, 8, 0)
@@ -71,12 +73,40 @@ class TopBar(QFrame):
                 menu.menuAction().setVisible(bool(menu.actions()))
 
     def set_compact(self, compact: bool) -> None:
-        self.compact = compact
-        self.menus.setVisible(not compact)
-        self.menu_button.setVisible(compact)
-        self.wordmark.setVisible(not compact)
+        self._set_level(2 if compact else 0)
+
+    def _set_level(self, level: int) -> None:
+        self.level = level
+        self.compact = level >= 2
+        self.menus.setVisible(level < 2)
+        self.menu_button.setVisible(level >= 2)
+        self.wordmark.setVisible(level < 2)
         if self.switch is not None and hasattr(self.switch, "set_compact"):
-            self.switch.set_compact(compact)
+            self.switch.set_compact(level >= 1)
+
+    def fit(self, width: int | None = None) -> None:
+        width = self.width() if width is None else width
+        for level in range(3):
+            self._set_level(level)
+            self._row.invalidate()
+            if self._row.sizeHint().width() <= width:
+                break
+        self._row.activate()
+
+    def event(self, event) -> bool:
+        if event.type() == QEvent.Type.LayoutRequest and not self._fitting:
+            self._fitting = True
+            QTimer.singleShot(0, self._refit)
+        return super().event(event)
+
+    def _refit(self) -> None:
+        self.fit()
+        self._fitting = False
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if event.size().width() != event.oldSize().width():
+            self.fit(event.size().width())
 
     def set_switch(self, widget: QWidget) -> None:
         self.switch = widget
@@ -101,3 +131,8 @@ class TopBar(QFrame):
     def show_group(self, workspace: str) -> None:
         for name, group in self._groups.items():
             group.setVisible(name == workspace)
+            if name == workspace:
+                for child in group.findChildren(QWidget):
+                    child.updateGeometry()
+                group.layout().invalidate()
+        self.fit()

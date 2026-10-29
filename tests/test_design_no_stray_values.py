@@ -1,7 +1,6 @@
 import re
 from pathlib import Path
 
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1] / "cns_desktop"
 STRAY = re.compile(r'#[0-9a-fA-F]{6}\b|setStyleSheet\(|QColor\("|setPointSize\(|setPixelSize\(|mkPen\("#')
@@ -18,6 +17,5 @@ def stray_values() -> list[str]:
     return found
 
 
-@pytest.mark.xfail(strict=True, reason="views still write their own values until the last task")
 def test_no_view_writes_its_own_colours_or_sizes():
     assert stray_values() == []

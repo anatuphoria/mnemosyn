@@ -4,7 +4,7 @@ import math
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMenu, QSizePolicy, QToolButton
+from PySide6.QtWidgets import QMenu
 from vtkmodules.vtkCommonCore import VTK_FONT_FILE
 from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D
 
@@ -12,7 +12,7 @@ from cns_desktop.design.fonts import FONTS
 from cns_desktop.design.tokens import TYPE, rgb
 
 from .labels import plain, removed_parts
-from .viewport import STRIP_WIDTH
+from .viewport import StripCard
 
 RAISED = rgb("raised")
 LOWERED = rgb("lowered")
@@ -70,7 +70,7 @@ class LabBrain:
         self.state = state
         self.overlay = BrainOverlay(view)
         self.active = False
-        self._buttons: dict[str, QToolButton] = {}
+        self._buttons: dict[str, StripCard] = {}
         self._syncing = False
         self.on_show_chart = None
         self.on_show_in_atlas = None
@@ -95,7 +95,7 @@ class LabBrain:
         shaped = self._shaped()
         return [p.key for p in self.document.model.parts if p.key not in shaped]
 
-    def strip_button(self, key: str) -> QToolButton:
+    def strip_button(self, key: str) -> StripCard:
         return self._buttons[key]
 
     def strip_menu(self, key: str) -> QMenu:
@@ -129,11 +129,7 @@ class LabBrain:
                 item.widget().deleteLater()
         self._buttons = {}
         for key in self.strip_keys():
-            button = QToolButton()
-            button.setProperty("card", "true")
-            button.setFixedWidth(STRIP_WIDTH - 16)
-            button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+            button = StripCard()
             button.clicked.connect(lambda _=False, k=key: self.document.select(("part", k)))
             button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             button.customContextMenuRequested.connect(
@@ -191,10 +187,8 @@ class LabBrain:
                 button = self._buttons[part.key]
                 button.setText(text.replace(" · ", "\n", 1))
                 button.setToolTip(text)
-                button.setProperty("tone", "raised" if colour == RAISED else
-                                   "lowered" if colour == LOWERED else "")
-                button.style().unpolish(button)
-                button.style().polish(button)
+                button.set_tone("raised" if colour == RAISED else
+                                "lowered" if colour == LOWERED else "")
         self.view.set_lab_colors(colors)
         self.overlay.show(labels, positions)
 

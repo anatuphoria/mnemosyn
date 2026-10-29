@@ -5,21 +5,28 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QAction, QColor, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QMenu, QWidget
 
-from .experiments_panel import MIME
+from cns_desktop.design import icons
+from cns_desktop.design.fonts import font
+from cns_desktop.design.tokens import DATA_PALETTE, RADIUS, SIZE, color
 
-LABEL_WIDTH = 110
-RULER_HEIGHT = 22
-CHANGES_HEIGHT = 34
-LANE_HEIGHT = 44
+from .experiments_panel import MIME, icon_for
+
+LABEL_WIDTH = 150
+RULER_HEIGHT = 24
+CHANGES_HEIGHT = SIZE["lane"]
+LANE_HEIGHT = SIZE["lane"]
+PAD = SIZE["panel_pad"]
 EDGE = 6
 MIN_BLOCK_WIDTH = 6
 MIN_SPAN = 30.0
-INK = QColor("#d8d8e0")
-MUTED = QColor("#7a7a88")
-NORMAL = QColor("#55556a")
-BLOCK = QColor("#d9a441")
-PLAYHEAD = QColor("#e8e6df")
-LANE_COLORS = ("#e08a5a", "#d9a441", "#6fa0ff", "#86c8a0", "#c896e6", "#e6c86f")
+INK = color("text")
+MUTED = color("text2")
+NORMAL = color("normal")
+BLOCK = color("edited")
+PLAYHEAD = color("text")
+LINE = color("line")
+BACKGROUND = color("s1")
+LANE_COLORS = DATA_PALETTE
 DAY = 1440.0
 
 
@@ -148,6 +155,13 @@ class Timeline(QWidget):
                 return index
         return None
 
+    def lane_heading(self, key: str) -> tuple[str, str]:
+        value = self.document.simulator.values[key]
+        return value.name, value.display_unit
+
+    def block_icon(self, index: int) -> str:
+        return icon_for(self.document.model, self.document.experiment.blocks[index].experiment)
+
     def lane_lines(self, key: str) -> dict[str, np.ndarray]:
         start, end = self.span
         grid = np.linspace(start, end, max(int(self._plot_width()), 2))
@@ -171,7 +185,7 @@ class Timeline(QWidget):
             ratio = self.devicePixelRatioF()
             pixmap = QPixmap(self.size() * ratio)
             pixmap.setDevicePixelRatio(ratio)
-            pixmap.fill(QColor("#14141b"))
+            pixmap.fill(BACKGROUND)
             painter = QPainter(pixmap)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             self._paint_ruler(painter)
@@ -192,6 +206,10 @@ class Timeline(QWidget):
         painter.end()
 
     def _paint_ruler(self, painter: QPainter) -> None:
+        painter.setPen(LINE)
+        painter.drawLine(QPointF(0, RULER_HEIGHT), QPointF(self.width(), RULER_HEIGHT))
+        painter.drawLine(QPointF(LABEL_WIDTH, 0), QPointF(LABEL_WIDTH, self.height()))
+        painter.setFont(font("data"))
         painter.setPen(MUTED)
         start, end = self.span
         steps = [30, 60, 120, 240, 360, 720, 1440, 2880, 10080]
@@ -201,9 +219,15 @@ class Timeline(QWidget):
             x = self.x_of(tick)
             if x >= LABEL_WIDTH:
                 painter.drawLine(QPointF(x, RULER_HEIGHT - 6), QPointF(x, RULER_HEIGHT))
-                painter.drawText(QPointF(x + 3, RULER_HEIGHT - 8), time_text(tick))
+                painter.drawText(QPointF(x + 4, RULER_HEIGHT - 8), time_text(tick))
             tick += step
-        painter.drawText(QPointF(6, RULER_HEIGHT + CHANGES_HEIGHT / 2 + 4), "Changes")
+        painter.setFont(font("label"))
+        painter.setPen(INK)
+        painter.drawText(QRectF(PAD, RULER_HEIGHT, LABEL_WIDTH - PAD, CHANGES_HEIGHT),
+                         Qt.AlignmentFlag.AlignVCenter, "Changes")
+        painter.setPen(LINE)
+        painter.drawLine(QPointF(0, RULER_HEIGHT + CHANGES_HEIGHT),
+                         QPointF(self.width(), RULER_HEIGHT + CHANGES_HEIGHT))
 
     def _paint_blocks(self, painter: QPainter) -> None:
         doc = self.document
@@ -215,21 +239,39 @@ class Timeline(QWidget):
                 preview = self._press["preview"]
             rect = self.block_rect(index, preview)
             fill = QColor(BLOCK)
-            fill.setAlpha(60 if block.present else 90)
+            fill.setAlpha(40 if block.present else 64)
             painter.setBrush(fill)
             selected = doc.selection == ("block", index)
             painter.setPen(QPen(PLAYHEAD if selected else BLOCK, 2 if selected else 1))
-            painter.drawRoundedRect(rect, 3, 3)
-            painter.setPen(BLOCK if not selected else PLAYHEAD)
-            painter.drawText(rect.adjusted(5, 0, -2, 0), Qt.AlignmentFlag.AlignVCenter,
-                             doc.name_of(block.experiment))
+            painter.drawRoundedRect(rect, RADIUS["small"], RADIUS["small"])
+            text_rect = rect.adjusted(6, 0, -4, 0)
+            if rect.width() > 40:
+                size = SIZE["icon_header"]
+                top = rect.center().y() - size / 2
+                painter.drawPixmap(QPointF(rect.left() + 6, top),
+                                   icons.pixmap(self.block_icon(index), "edited", size))
+                text_rect = rect.adjusted(10 + size, 0, -4, 0)
+            painter.setFont(font("secondary"))
+            painter.setPen(INK if selected else BLOCK)
+            name = painter.fontMetrics().elidedText(doc.name_of(block.experiment),
+                                                    Qt.TextElideMode.ElideRight,
+                                                    max(int(text_rect.width()), 0))
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter, name)
 
     def _paint_lane(self, painter: QPainter, key: str, color: QColor) -> None:
         rect = self.lane_rect(key)
-        value = self.document.simulator.values[key]
+        name, unit = self.lane_heading(key)
+        head = QRectF(PAD, rect.top() + 6, LABEL_WIDTH - PAD - 8, rect.height() - 12)
+        painter.setFont(font("label"))
+        painter.setPen(INK)
+        metrics = painter.fontMetrics()
+        painter.drawText(head, Qt.AlignmentFlag.AlignTop,
+                         metrics.elidedText(name, Qt.TextElideMode.ElideRight, int(head.width())))
+        painter.setFont(font("secondary"))
         painter.setPen(MUTED)
-        painter.drawText(QPointF(6, rect.center().y() + 4), value.name)
-        painter.drawLine(QPointF(0, rect.top()), QPointF(self.width(), rect.top()))
+        painter.drawText(head, Qt.AlignmentFlag.AlignBottom, unit)
+        painter.setPen(LINE)
+        painter.drawLine(QPointF(0, rect.bottom()), QPointF(self.width(), rect.bottom()))
         lines = self.lane_lines(key)
         if not lines:
             return

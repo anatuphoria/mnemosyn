@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QLineF, QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QAction, QBrush, QColor, QPainterPath, QPainterPathStroker, QPen
+from PySide6.QtGui import QAction, QBrush, QPainterPath, QPainterPathStroker, QPen
 from PySide6.QtWidgets import (QGraphicsLineItem, QGraphicsRectItem, QGraphicsScene,
                                QGraphicsSimpleTextItem, QGraphicsView, QMenu)
 
+from cns_desktop.design.fonts import font
+from cns_desktop.design.tokens import color
+
 from .labels import plain, removed_parts
 
-CELL_X, CELL_Y = 180.0, 110.0
-BOX_W, BOX_H = 150.0, 56.0
-INK = QColor("#d8d8e0")
-HOLD = QColor("#6fa0ff")
-REMOVED = QColor("#d9a441")
-BOX_FILL = QColor("#1a1a23")
-BORDER = QColor("#3a3a48")
+CELL_X, CELL_Y = 230.0, 120.0
+BOX_W, BOX_H = 200.0, 64.0
+INK = color("text")
+HOLD = color("lowered")
+REMOVED = color("edited")
+BOX_FILL = color("s2")
+BORDER = color("control")
 ZERO = 1e-9
 
 
@@ -34,7 +37,7 @@ class CircuitView(QGraphicsView):
         super().__init__(parent)
         self.document = document
         self.setScene(QGraphicsScene(self))
-        self.setBackgroundBrush(QBrush(QColor("#101016")))
+        self.setBackgroundBrush(QBrush(color("s0")))
         self.setRenderHint(self.renderHints().Antialiasing)
         document.model_changed.connect(self.populate)
         self.populate()
@@ -54,7 +57,8 @@ class CircuitView(QGraphicsView):
             rect.setData(0, ("part", part.key))
             text = QGraphicsSimpleTextItem(rect)
             text.setBrush(QBrush(INK))
-            text.setPos(part.x * CELL_X + 10, part.y * CELL_Y + 8)
+            text.setFont(font("label"))
+            text.setPos(part.x * CELL_X + 12, part.y * CELL_Y + 10)
             self.scene().addItem(rect)
             self.part_items[part.key] = rect
             self.part_texts[part.key] = text

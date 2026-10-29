@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QComboBox, QMessageBox
+from PySide6.QtWidgets import QComboBox, QMessageBox, QSizePolicy
 from shiboken6 import isValid
 
 from cns_desktop.design import widgets
@@ -18,7 +18,7 @@ from .brain_overlay import LabBrain
 from .charts import LabCharts
 from .circuit import CircuitView
 from .document import DAY, LabDocument
-from .experiments_panel import ExperimentsPanel
+from .experiments_panel import ExperimentsPage
 from .inspector import Inspector
 from .model_panel import ModelPanel
 from .timeline import Timeline
@@ -50,7 +50,8 @@ class LabWorkspace:
         self.playing = False
         self._last_tick = 0.0
         self.timer = QTimer(window, interval=TICK_MS, timeout=self._tick)
-        self.experiments = ExperimentsPanel(doc)
+        self.experiments_page = ExperimentsPage(doc)
+        self.experiments = self.experiments_page.panel
         self.model_panel = ModelPanel(doc)
         self.why = WhyPanel(doc)
         self.inspector = Inspector(doc)
@@ -61,7 +62,7 @@ class LabWorkspace:
         self.brain = LabBrain(doc, window.view, window.viewport, window.state)
         areas = (Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea,
                  Qt.DockWidgetArea.BottomDockWidgetArea)
-        pages = {"experiments": self.experiments, "model": self.model_panel, "why": self.why,
+        pages = {"experiments": self.experiments_page, "model": self.model_panel, "why": self.why,
                  "inspector": self.inspector, "timeline": self.timeline, "charts": self.charts}
         self._docks: dict[str, PanelGroup] = {}
         self.docks: list[PanelGroup] = []
@@ -158,6 +159,8 @@ class LabWorkspace:
             self.system_box.addItem(model.name, model.key)
         self.system_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.system_box.setToolTip("Body system")
+        self.system_box.setMinimumContentsLength(
+            max(len(m.name) for m in self.window.state.atlas.models.values()))
         self.system_box.activated.connect(
             lambda i: self.choose_system(self.system_box.itemData(i)))
         scope = self._add("What this model includes", self.show_scope)
@@ -169,7 +172,11 @@ class LabWorkspace:
         self.length_box.activated.connect(lambda i: doc.set_length(self.length_box.itemData(i)))
         self.length_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.length_box.setToolTip("Run length")
+        self.length_box.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.speed_box.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         doc.changed.connect(self._sync_length)
+        for box in (self.speed_box, self.system_box, self.length_box):
+            box.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.play_button = widgets.icon_button(play, "play")
         self.toolbar = self.window.topbar.add_group("Lab", [
             self.play_button, widgets.icon_button(back, "skip-back"), self.speed_box, None,

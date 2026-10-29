@@ -97,6 +97,9 @@ class SegmentedControl(QFrame):
         for button in self._buttons.values():
             if not button.icon().isNull():
                 button.setToolButtonStyle(self._style())
+                button.updateGeometry()
+        self.layout().invalidate()
+        self.updateGeometry()
 
     def keyPressEvent(self, event) -> None:
         step = {Qt.Key.Key_Left: -1, Qt.Key.Key_Right: 1}.get(event.key())

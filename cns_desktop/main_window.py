@@ -225,7 +225,6 @@ class MainWindow(QMainWindow):
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        self.topbar.set_compact(event.size().width() < SIZE["narrow"])
         self.viewport.fit(self.workspaces.current if hasattr(self, "workspaces") else "Explore",
                           event.size().width())
         if hasattr(self, "workspaces"):
