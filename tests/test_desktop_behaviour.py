@@ -296,7 +296,7 @@ def test_the_controls_are_media_symbols_with_named_tips(window):
 
 def test_the_controls_sit_above_the_steps_on_every_route(window, qapp):
     panel = window.pathways
-    window.pathway_dock.raise_()
+    window.workspaces.switch("Pathways")
     panel.open("loop")
     qapp.processEvents()
     assert panel.play_button.isVisible()

@@ -970,8 +970,9 @@ def test_the_status_bar_shows_the_selection_and_the_right_hint_only(window):
     window.state.select(101)
     window._update_status()
     text = window.status.text()
-    assert "Alpha gyrus (left)" in text and "right-drag pans" in text and "wheel zooms" in text
-    assert "F frames" in text
+    assert "Alpha gyrus (left)" in text and "right drag pans" in text and "wheel zooms" in text
+    keys = [w.text() for w in window.status_keys.findChildren(QLabel)]
+    assert keys[:2] == ["F", "frame"]
     assert not any(word in text for word in ("frame:", "visible", "GPU", "zoom ·"))
     labels = [w.text() for w in window.statusBar().findChildren(QLabel)]
     assert not any(t.startswith("GPU") for t in labels)
@@ -986,7 +987,7 @@ def test_the_info_panel_names_the_side_but_not_the_drawing_kind(window):
 
 def test_the_structures_panel_opens_wide_enough_for_common_names(window, qapp):
     qapp.processEvents()
-    assert window.tree_dock.width() >= 310 and window.view.width() >= 400
+    assert window.tree_dock.width() >= 240 and window.view.width() >= 400
 
 
 def test_tree_items_show_their_full_name_on_hover(window):

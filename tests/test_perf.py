@@ -352,7 +352,7 @@ while not getattr(window, "warm_up_done", True) and time.perf_counter() < deadli
     app.processEvents()
 app.processEvents()
 window.view.ren_win.WaitForCompletion()
-window.pathway_dock.raise_()
+window.workspaces.switch("Pathways")
 app.processEvents()
 panel = window.pathways
 start = time.perf_counter()
@@ -445,7 +445,7 @@ def test_generated_3500_structure_scene_at_60_fps(tmp_path, timing):
 
 ROUTE_TIMING = PRELUDE + """
 panel = window.pathways
-window.pathway_dock.raise_()
+window.workspaces.switch("Pathways")
 app.processEvents()
 panel.open("motor")
 app.processEvents()

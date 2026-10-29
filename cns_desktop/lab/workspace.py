@@ -5,8 +5,12 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QComboBox, QMenu, QMessageBox, QToolBar, QToolButton
+from PySide6.QtWidgets import QComboBox, QMessageBox, QToolButton
 from shiboken6 import isValid
+
+from cns_desktop.design import widgets
+from cns_desktop.design.panels import PanelGroup
+from cns_desktop.design.tokens import SIZE
 
 from cns_lab.files import EXTENSION, FileError, read, write
 
@@ -24,7 +28,10 @@ TICK_MS = 30
 SPEEDS = (0.5, 1.0, 2.0, 4.0)
 LENGTHS = (("6 h", 360.0), ("1 d", DAY), ("3 d", 3 * DAY), ("1 w", 7 * DAY), ("4 w", 28 * DAY),
            ("8 w", 56 * DAY))
-STATUS_HINT = "Space plays, drag a change to move it"
+STATUS_HINT = "drag a change to move it"
+GROUPS = (("Lab tools", "Experiments and model", (("experiments", "Experiments"), ("model", "Model"))),
+          ("Lab explain", "Why and inspector", (("why", "Why"), ("inspector", "Inspector"))),
+          ("Lab time", "Timeline and charts", (("timeline", "Timeline"), ("charts", "Charts"))))
 RECENT_KEY = "lab/recent"
 RECENT_COUNT = 8
 FILE_ACTIONS = ("New experiment", "Open", "Save", "Save as")
@@ -52,22 +59,21 @@ class LabWorkspace:
         self.circuit = CircuitView(doc)
         window.viewport.add_circuit(self.circuit)
         self.brain = LabBrain(doc, window.view, window.viewport, window.state)
-        left, right = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea
-        bottom = Qt.DockWidgetArea.BottomDockWidgetArea
-        self._docks = {}
-        for title, widget, area in (("Experiments", self.experiments, left),
-                                    ("Model", self.model_panel, left),
-                                    ("Why", self.why, right), ("Inspector", self.inspector, right),
-                                    ("Timeline", self.timeline, bottom),
-                                    ("Charts", self.charts, bottom)):
-            dock = window._dock(title, widget, area)
-            dock.setObjectName(f"Lab {title}")
-            dock.hide()
-            self._docks[title] = dock
-        window.tabifyDockWidget(self._docks["Experiments"], self._docks["Model"])
-        window.tabifyDockWidget(self._docks["Why"], self._docks["Inspector"])
-        window.tabifyDockWidget(self._docks["Timeline"], self._docks["Charts"])
-        self.docks = list(self._docks.values())
+        areas = (Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea,
+                 Qt.DockWidgetArea.BottomDockWidgetArea)
+        pages = {"experiments": self.experiments, "model": self.model_panel, "why": self.why,
+                 "inspector": self.inspector, "timeline": self.timeline, "charts": self.charts}
+        self._docks: dict[str, PanelGroup] = {}
+        self.docks: list[PanelGroup] = []
+        for (name, title, keys), area in zip(GROUPS, areas, strict=True):
+            group = PanelGroup(title, [(key, label, pages[key]) for key, label in keys], window)
+            group.setObjectName(name)
+            window.addDockWidget(area, group)
+            group.hide()
+            self.docks.append(group)
+            for _key, label in keys:
+                self._docks[label] = group
+        self.tools_group, self.explain_group, self.time_group = self.docks
         self._actions: dict[str, QAction] = {}
         self._build_switch()
         self._build_toolbar()
@@ -88,11 +94,17 @@ class LabWorkspace:
         self.timeline.edit_requested.connect(self._edit_block)
         self._saved = None
         self._set_enabled(False)
-        window.workspaces.register_lab(self.docks, self.enter, self.leave)
-        for title in ("Experiments", "Why", "Timeline"):
-            self._docks[title].raise_()
+        window.workspaces.register_lab(self.docks, self.enter, self.leave, self._arrange,
+                                       narrow=[("Lab tools", "Lab explain")])
 
-    def dock(self, title: str):
+    def _arrange(self) -> None:
+        window = self.window
+        window.resizeDocks([self.tools_group, self.explain_group],
+                           [SIZE["panel_left"], SIZE["panel_right"]], Qt.Orientation.Horizontal)
+        window.resizeDocks([self.time_group], [max(window.height(), 900) // 3],
+                           Qt.Orientation.Vertical)
+
+    def dock(self, title: str) -> PanelGroup:
         return self._docks[title]
 
     def action(self, name: str) -> QAction:
@@ -131,12 +143,8 @@ class LabWorkspace:
 
     def _build_toolbar(self) -> None:
         doc = self.document
-        toolbar = QToolBar("Lab", self.window)
-        toolbar.setObjectName("Lab toolbar")
-        self.window.addToolBar(toolbar)
-        self.toolbar = toolbar
-        toolbar.addAction(self._add("Play or pause", self.toggle_play, "Space"))
-        toolbar.addAction(self._add("Back to start", lambda: doc.set_playhead(0.0), "Home"))
+        play = self._add("Play or pause", self.toggle_play, "Space")
+        back = self._add("Back to start", lambda: doc.set_playhead(0.0), "Home")
         self.speed_box = QComboBox()
         for speed in SPEEDS:
             self.speed_box.addItem(f"{speed:g}×", speed)
@@ -144,32 +152,27 @@ class LabWorkspace:
         self.speed_box.currentIndexChanged.connect(
             lambda i: self.set_speed(self.speed_box.itemData(i)))
         self.speed_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        toolbar.addWidget(self.speed_box)
-        toolbar.addSeparator()
+        self.speed_box.setToolTip("Playback speed")
         undo = doc.undo.createUndoAction(self.window, "Undo")
         redo = doc.undo.createRedoAction(self.window, "Redo")
         for action, key, name in ((undo, "Ctrl+Z", "Undo"), (redo, "Ctrl+Shift+Z", "Redo")):
             action.setShortcut(QKeySequence(key))
             action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
             self.window.addAction(action)
-            toolbar.addAction(action)
             self._actions[name] = action
         self._add("Delete selected", self._delete_selected, "Delete")
-        toolbar.addSeparator()
         compare = self._add("Compare with normal", self._compare, checkable=True)
         compare.setChecked(True)
-        toolbar.addAction(compare)
-        toolbar.addAction(self._add("Take snapshot", doc.take_snapshot))
+        snapshot = self._add("Take snapshot", doc.take_snapshot)
         self._add("Clear snapshot", doc.clear_snapshot)
-        toolbar.addSeparator()
         self.system_box = QComboBox()
         for model in self.window.state.atlas.models.values():
             self.system_box.addItem(model.name, model.key)
         self.system_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.system_box.setToolTip("Body system")
         self.system_box.activated.connect(
             lambda i: self.choose_system(self.system_box.itemData(i)))
-        toolbar.addWidget(self.system_box)
-        toolbar.addAction(self._add("What this model includes", self.show_scope))
+        scope = self._add("What this model includes", self.show_scope)
         self.length_box = QComboBox()
         for label, minutes in LENGTHS:
             self.length_box.addItem(label, minutes)
@@ -177,9 +180,19 @@ class LabWorkspace:
         self.length_box.setCurrentIndex(1)
         self.length_box.activated.connect(lambda i: doc.set_length(self.length_box.itemData(i)))
         self.length_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.length_box.setToolTip("Run length")
         doc.changed.connect(self._sync_length)
-        toolbar.addWidget(self.length_box)
-        toolbar.hide()
+        self.play_button = widgets.icon_button(play, "play")
+        self.toolbar = self.window.topbar.add_group("Lab", [
+            self.play_button, widgets.icon_button(back, "skip-back"), self.speed_box, None,
+            widgets.icon_button(undo, "undo-2"), widgets.icon_button(redo, "redo-2"), None,
+            widgets.icon_button(compare, "git-compare-arrows"),
+            widgets.icon_button(snapshot, "camera"), None,
+            self.system_box, self.length_box, widgets.icon_button(scope, "info")])
+
+    def _show_playing(self) -> None:
+        self._actions["Play or pause"].setIcon(
+            widgets.button_icon("pause" if self.playing else "play"))
 
     def _sync_length(self) -> None:
         index = self.length_box.findData(self.document.experiment.length)
@@ -188,10 +201,14 @@ class LabWorkspace:
         self.length_box.blockSignals(False)
 
     def _build_menu(self) -> None:
-        menu = QMenu("Experiment", self.window)
+        edit = self.window.topbar.menu("Edit")
+        for name in ("Undo", "Redo"):
+            edit.addAction(self._actions[name])
+        edit.addSeparator()
+        edit.addAction(self._actions["Delete selected"])
+        menu = self.window.topbar.menu("Experiment")
         self.add_menu = menu.addMenu("Add at the playhead")
         self._fill_add_menu()
-        menu.addAction(self._actions["Delete selected"])
         lengths = menu.addMenu("Run length")
         for label, _minutes in LENGTHS:
             lengths.addAction(self._actions[f"Length {label}"])
@@ -200,7 +217,6 @@ class LabWorkspace:
                      "What this model includes"):
             menu.addAction(self._actions[name])
         self.experiment_menu = menu
-        self.window.menuBar().insertMenu(self.window.window_menu.menuAction(), menu)
         menu.menuAction().setVisible(False)
 
     def _fill_add_menu(self) -> None:
@@ -273,10 +289,12 @@ class LabWorkspace:
         self.playing = True
         self._last_tick = time.perf_counter()
         self.timer.start()
+        self._show_playing()
 
     def pause(self) -> None:
         self.playing = False
         self.timer.stop()
+        self._show_playing()
 
     def toggle_play(self) -> None:
         self.pause() if self.playing else self.play()
@@ -304,7 +322,7 @@ class LabWorkspace:
 
     def _edit_block(self, index: int) -> None:
         self.document.select(("block", index))
-        self._docks["Inspector"].raise_()
+        self.explain_group.reveal("inspector")
 
     def _offer_longer(self, minutes: float) -> None:
         answer = self.window.ask("Longer run", "This change takes weeks to show its effect. "
@@ -328,8 +346,7 @@ class LabWorkspace:
         self.window.inform("What this model includes", self.scope_text())
 
     def show_chart(self, _key: str = "") -> None:
-        self._docks["Charts"].show()
-        self._docks["Charts"].raise_()
+        self.time_group.reveal("charts")
 
     def show_part_in_atlas(self, key: str) -> None:
         part = self.document.model.part(key)
@@ -347,8 +364,7 @@ class LabWorkspace:
 
     def _build_file_menu(self) -> None:
         window = self.window
-        menu = QMenu("File", window)
-        window.menuBar().insertMenu(window.menuBar().actions()[0], menu)
+        menu = window.topbar.menu("File")
         for name, key, slot in (("New experiment", "Ctrl+N", self.new),
                                 ("Open", "Ctrl+O", self.open),
                                 ("Save", "Ctrl+S", self.save),

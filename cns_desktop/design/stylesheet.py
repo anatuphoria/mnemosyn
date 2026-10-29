@@ -136,8 +136,7 @@ QMenu::separator { height: 1px; background: $line; margin: 4px 8px; }
 QMenu::indicator { width: 12px; height: 12px; }
 QToolTip { background: $s3; color: $text; border: 1px solid $line; padding: 4px 8px; }
 
-QStatusBar { background: $s1; color: $text2; border-top: 1px solid $line;
-    min-height: ${status}px; max-height: ${status}px; }
+QStatusBar { background: $s1; color: $text2; border-top: 1px solid $line; }
 QStatusBar::item { border: none; }
 QStatusBar QLabel { background: transparent; }
 
@@ -161,6 +160,13 @@ QLabel[chip="true"] { background: $s2; border: 1px solid $line; border-radius: $
     padding: 0 6px; font-size: 11px; font-weight: 500; }
 QLabel[keycap="true"] { background: $s3; border: 1px solid $line; border-radius: ${r_small}px;
     padding: 0 4px; }
+
+QFrame[topbar="true"] { background: $s1; border: none; border-bottom: 1px solid $line; }
+QFrame[topbar="true"] > QWidget, QFrame[topbar="true"] > QMenuBar { background: transparent; }
+QFrame[topbar="true"] QComboBox { background: $s0; }
+QFrame[vline="true"] { background: transparent; border: none; border-left: 1px solid $line;
+    margin: 10px 6px; }
+QStatusBar QLabel[keycap="true"] { background: $s3; }
 
 $roles
 """)

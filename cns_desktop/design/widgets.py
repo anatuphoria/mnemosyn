@@ -62,7 +62,7 @@ class SegmentedControl(QFrame):
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setFixedHeight(SEGMENT)
         if icon:
-            button.setIcon(_icon(icon))
+            button.setIcon(button_icon(icon))
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         button.clicked.connect(lambda _checked=False, k=key: self.set_current(k))
         self._group.addButton(button)
@@ -90,7 +90,7 @@ class SegmentedControl(QFrame):
         self.set_current(self._keys[index])
 
 
-def _icon(name: str, size: int = SIZE["icon"]):
+def button_icon(name: str, size: int = SIZE["icon"]):
     from PySide6.QtGui import QIcon
 
     result = QIcon()
@@ -115,7 +115,7 @@ def tooltip_for(action: QAction) -> str:
 
 def icon_button(action: QAction, icon: str) -> QToolButton:
     action.setIconVisibleInMenu(False)
-    action.setIcon(_icon(icon))
+    action.setIcon(button_icon(icon))
     action.setToolTip(tooltip_for(action))
     action.changed.connect(lambda: action.toolTip() != tooltip_for(action)
                            and action.setToolTip(tooltip_for(action)))
@@ -160,7 +160,7 @@ class PanelHeader(QFrame):
 
     def add_button(self, icon: str, tip: str, slot) -> QToolButton:
         button = QToolButton()
-        button.setIcon(_icon(icon, SIZE["icon_header"]))
+        button.setIcon(button_icon(icon, SIZE["icon_header"]))
         button.setIconSize(_size(SIZE["icon_header"]))
         button.setFixedSize(HEADER_BUTTON, HEADER_BUTTON)
         button.setToolTip(tip)

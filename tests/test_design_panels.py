@@ -132,3 +132,20 @@ def test_joining_twice_or_joining_itself_does_nothing(window):
     info.join(slices)
     info.join(info)
     assert info.keys() == ["info", "slices"]
+
+
+def test_releasing_a_wide_page_gives_back_the_narrow_minimum(window, qapp):
+    from PySide6.QtWidgets import QPushButton
+
+    info = group(window, "Info", [("info", "Info")])
+    slices = PanelGroup("Slices", [("slices", "Slices", QPushButton("x" * 80))], window)
+    window.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, slices)
+    window.show()
+    qapp.processEvents()
+    narrow = info.minimumWidth()
+    info.join(slices)
+    qapp.processEvents()
+    assert info.minimumWidth() > narrow
+    info.release(slices)
+    qapp.processEvents()
+    assert info.minimumWidth() == narrow

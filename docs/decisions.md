@@ -658,3 +658,53 @@ changes asks first.
 Why: people will share experiments with friends and students, so a file must be safe to pass on and
 readable without the app.
 Design: [simulation Lab, section 9](specs/2026-10-29-simulation-lab-design.md).
+
+## 67. One design system, defined in one place, in a Black dark theme
+
+2026-10-29, chosen by the owner. Every colour, type size, spacing step, control height, corner and
+icon size lives in `cns_desktop/design/`, and one stylesheet built from it styles the whole app. The
+theme is Black: surfaces from #000000 to #1c1c21 with lightness for depth, text at 4.5:1 or more and
+controls, focus rings and chart lines at 3:1 or more. Only the dark theme exists for now. A test fails
+if a view writes its own colours or sizes.
+Why: the interface had grown view by view, with sizes and colours that disagreed and text that was
+cut; one system makes every part look and behave alike and keeps it that way.
+Design: [design system, section 5](specs/2026-10-29-design-system-design.md).
+
+## 68. Inter and the Lucide icons are bundled
+
+2026-10-29, chosen by the owner. The interface uses the Inter typeface (400, 500 and 600, SIL Open
+Font License) with tabular figures and the Lucide icons (ISC License), shipped with the app and named
+in About and the README. Icons are drawn from their outlines in the colour of their role.
+Why: text and icons must look the same on every computer, whatever fonts it has.
+Design: [design system, section 5](specs/2026-10-29-design-system-design.md).
+
+## 69. Tabs and switches are segmented controls at the top of panels
+
+2026-10-29, chosen by the owner. Panels that share a place (Info and Slices, Experiments and Model,
+Why and Inspector, Timeline and Charts) are one panel with a segmented control in its 40 px header,
+never tabs at the bottom and never a thin coloured line. The same control switches workspaces and
+Brain and Circuit. The menus, the actions of the workspace and the workspace switch sit in one top bar
+under the system title bar.
+Why: the old tabified docks left stray tab bars and cut names; one control for every choice of view
+is easier to read and to learn.
+Design: [design system, section 6](specs/2026-10-29-design-system-design.md).
+
+## 70. Charts are small multiples with one time axis
+
+2026-10-29, chosen by the owner. The Lab charts and the Activity panel show one row per value, at
+least 56 px high, with the name, unit and current value beside it, the normal run in grey, one time
+axis at the bottom and one playhead. Rows scroll instead of shrinking, axes never use SI prefixes and
+nothing is drawn over the data.
+Why: charts squeezed into a short panel were unreadable, and a prefixed axis showed 0.9 as 900 m.
+Design: [design system, section 8](specs/2026-10-29-design-system-design.md).
+
+## 71. Each workspace shows only its own panels
+
+2026-10-29, chosen by the owner. Explore has Structures and Info with Slices; Slices has Structures,
+a large slice view and Info; Pathways has the Pathways panel, Info with Slices and the Activity panel;
+the Lab has its own three panels. The Pathways panel is no longer in Explore. Other panels stay one
+click away in the Window menu. In a window narrower than 1100 px the default layouts put the right
+panel's pages into the left panel, and a layout the person arranged is never changed.
+Why: a panel shown twice, or a panel that belongs to another task, crowds the view and confuses what
+the workspace is for.
+Design: [design system, sections 7 and 9](specs/2026-10-29-design-system-design.md).

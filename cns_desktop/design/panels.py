@@ -50,6 +50,7 @@ class PanelGroup(QDockWidget):
         return label, widget
 
     def _sync_header(self) -> None:
+        self.setMinimumWidth(max(SIZE["panel_min"], self.stack.minimumSizeHint().width()))
         several = len(self._pages) > 1
         self.header.tabs.setVisible(several)
         self.header.title.setVisible(not several)
