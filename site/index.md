@@ -7,7 +7,7 @@ hide: [navigation, toc]
 ![ΜΝΗΜΟΣΥΝΗ](assets/logo-seal-dark.svg#only-dark){ .logo }
 ![ΜΝΗΜΟΣΥΝΗ](assets/logo-seal-light.svg#only-light){ .logo }
 
-# Mnemosyn
+# Mnemosyn { .visually-hidden }
 
 A free 3D atlas of the human brain and spinal cord, with a lab for the body's control systems.
 Turn it, slice it, follow a pathway through it, test yourself on it, and change a body system to

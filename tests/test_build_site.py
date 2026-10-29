@@ -170,3 +170,6 @@ def test_the_home_page_opens_with_the_seal_and_shows_the_product(tmp_path):
         assert f"assets/{name}" in home, name
         assert (tmp_path / "out/assets" / name).exists(), name
     assert "divider" not in home
+    assert "# Mnemosyn { .visually-hidden }" in home
+    css = (REPO / "site/stylesheets/extra.css").read_text()
+    assert ".visually-hidden {" in css and "clip: rect(0 0 0 0)" in css
