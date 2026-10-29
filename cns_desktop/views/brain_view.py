@@ -158,6 +158,19 @@ class BrainView(QtInteractor):
         return (structure_id in self.blocks and structure_id not in self._tract_set
                 and self.chunks.is_visible(structure_id))
 
+    def set_lab_colors(self, colors: dict) -> None:
+        self.chunks.set_colors(colors)
+        for structure_id, color in colors.items():
+            actor = self.shell_actors.get(structure_id)
+            if actor is not None:
+                own = _rgb(self.state.atlas.get(structure_id).rgb_triplet)
+                actor.GetProperty().SetColor(*(own if color is None else color))
+        self._request_render()
+
+    def centre_of(self, structure_id: int) -> np.ndarray:
+        low, high = self._extent(structure_id)
+        return (low + high) / 2
+
     def set_grey_opacity(self, opacity: float) -> None:
         self.chunks.set_opacity(opacity)
         self._request_render()
