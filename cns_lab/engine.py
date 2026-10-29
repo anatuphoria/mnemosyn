@@ -10,7 +10,7 @@ from cns_atlas.models import LabModel
 
 from .expressions import compile_function
 from .experiment import Block, Experiment
-from .solver import integrate
+from .solver import SolverError, integrate
 from .times import DAY
 
 SETTLE_TOLERANCE = 2e-5
@@ -207,7 +207,13 @@ class Simulator:
         tail = (*params, speedup)
 
         def f(t: float, y: list[float]) -> list[float]:
-            return list(function(t, (clock0 + t) % DAY, *y, *tail))
+            try:
+                rates = list(function(t, (clock0 + t) % DAY, *y, *tail))
+            except (ArithmeticError, TypeError, ValueError) as exc:
+                raise SolverError(f"the model cannot be computed at {t:.3f} min") from exc
+            if any(isinstance(r, complex) for r in rates):
+                raise SolverError(f"the model gave a value that is not a number at {t:.3f} min")
+            return rates
 
         return f
 

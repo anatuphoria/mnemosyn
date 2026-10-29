@@ -108,7 +108,7 @@ class LabBrain:
         return max(mine / theirs, 0.0)
 
     def _text(self, part) -> tuple[str, tuple[int, int, int]]:
-        if not part.values:
+        if not part.values or self.document.run is None:
             return part.name, (216, 216, 224)
         key = part.values[0]
         value = self.document.simulator.values[key]
@@ -131,6 +131,10 @@ class LabBrain:
             if part.key in shaped:
                 structure_id = shaped[part.key]
                 own = tuple(c / 255 for c in atlas.get(structure_id).rgb_triplet)
+                if self.document.run is None:
+                    colors[structure_id] = None
+                    labels[structure_id] = (text, colour)
+                    continue
                 ratio = self._ratio(part.values[0]) if part.values else 1.0
                 amount = min(1.0, abs(math.log(ratio)) / math.log(3)) if ratio > 0 else 1.0
                 target = RAISED if ratio >= 1 else LOWERED

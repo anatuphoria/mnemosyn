@@ -16,7 +16,7 @@ class ExpressionError(ValueError):
 
 
 def hill(x: float, k: float, n: float) -> float:
-    return 1.0 / (1.0 + (x / k) ** n)
+    return 1.0 / (1.0 + (max(x, 0.0) / k) ** n)
 
 
 def pos(x: float) -> float:

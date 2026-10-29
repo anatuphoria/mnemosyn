@@ -148,3 +148,15 @@ def test_new_starts_over_and_is_clean(doc):
     assert doc.is_modified()
     doc.new()
     assert doc.experiment.blocks == () and not doc.is_modified() and doc.undo.count() == 0
+
+
+def test_any_engine_failure_shows_the_plain_message_and_no_stale_runs(doc, monkeypatch):
+    from cns_lab.solver import SolverError
+
+    def broken(_experiment):
+        raise SolverError("step too small at 812.345 min")
+
+    monkeypatch.setattr(doc.simulator, "run", broken)
+    doc.set_length(2 * DAY)
+    assert doc.error == "The model cannot settle with these values."
+    assert doc.run is None and doc.normal is None

@@ -109,3 +109,24 @@ def test_every_parameter_at_its_limits_gives_a_finite_run_or_a_settle_error(sim)
             assert str(exc)
             continue
         assert np.all(np.isfinite(run.states)), values
+
+
+def test_errors_inside_the_equations_become_solver_errors(tmp_path, monkeypatch):
+    sim = Simulator(toy_model(tmp_path))
+    real = sim._rates
+    armed = []
+
+    def broken(clamped):
+        function = real(clamped)
+
+        def rates(*args):
+            if armed and args[0] > 100:
+                raise ZeroDivisionError("float division by zero")
+            return function(*args)
+        return rates
+
+    monkeypatch.setattr(sim, "_rates", broken)
+    sim.settle((), (("w", 0.2),))
+    armed.append(1)
+    with pytest.raises(SolverError):
+        sim.run(plain(length=DAY, values=[("w", 0.2)]))

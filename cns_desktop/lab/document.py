@@ -65,9 +65,10 @@ class LabDocument(QObject):
             self.normal = self.simulator.normal(self.experiment.length,
                                                 self.experiment.start_clock)
             self.error = ""
-        except (SettleError, SolverError) as exc:
+        except (SettleError, SolverError):
             self.run = None
-            self.error = str(exc)
+            self.normal = None
+            self.error = str(SettleError())
 
     def _set(self, experiment: Experiment) -> None:
         self.experiment = experiment

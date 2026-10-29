@@ -58,3 +58,9 @@ def test_bad_durations_are_refused(bad):
 def test_keys_must_be_plain_names(bad):
     with pytest.raises(ExpressionError):
         compile_function({bad: "1"}, ("x",))
+
+
+def test_hill_stays_real_below_zero():
+    f = compile_function({"a": "hill(x, 4, 3.5)"}, ("x",))
+    (value,) = f(-0.001)
+    assert isinstance(value, float) and value == 1.0

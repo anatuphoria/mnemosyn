@@ -85,3 +85,20 @@ def test_a_part_without_a_shape_lives_in_the_body_strip(window, monkeypatch):
     assert set(brain.overlay.labels) == {111}
     brain.strip_button("body").click()
     assert doc.selection == ("part", "body")
+
+
+def test_a_failed_run_shows_neutral_labels(window, monkeypatch):
+    from cns_lab.solver import SolverError
+
+    doc, brain = lab_of(window)
+    own = colour(window, 111)
+    brain.activate()
+    doc.add_block("remove_b", 0.0)
+
+    def broken(_experiment):
+        raise SolverError("broken")
+
+    monkeypatch.setattr(doc.simulator, "run", broken)
+    doc.set_value("k", 2.0)
+    assert doc.run is None
+    assert brain.overlay.labels[111] == "Alpha" and colour(window, 111) == own

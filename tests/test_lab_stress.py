@@ -113,3 +113,25 @@ def test_a_finished_course_is_still_explained_through_the_shrunken_adrenal(sim):
     sources = [s.source for s in steps]
     assert sources[0] == "hydrocortisone_course"
     assert "make_cortisol" in sources or "grow_adrenal" in sources
+
+
+def test_values_inside_their_ranges_give_a_run_or_a_clean_error():
+    import random
+
+    model = load_stress()
+    cases = [((("n", 3.73), ("K_GR", 1.0), ("K_MR", 0.25)),
+              (Block("hypophysectomy", 60.0), Block("high_dose_test", 900.0)))]
+    rng = random.Random(7)
+    experiments = [e.key for e in model.experiments] + [t.key for t in model.tests]
+    for _ in range(10):
+        values = tuple((p.key, rng.uniform(p.low, p.high))
+                       for p in rng.sample(list(model.parameters), 3))
+        chosen = rng.sample(experiments, 2)
+        cases.append((values, tuple(Block(k, 60.0 + 300 * n) for n, k in enumerate(chosen))))
+    for values, blocks in cases:
+        sim = Simulator(model)
+        try:
+            run = sim.run(Experiment("stress", 1, 1440.0, 480.0, blocks, values))
+        except (SettleError, SolverError):
+            continue
+        assert np.all(np.isfinite(run.states)), (values, blocks)
