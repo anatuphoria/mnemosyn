@@ -176,3 +176,13 @@ def test_the_key_draws_itself_and_each_letter_follows(made):
     assert len(letters) == len(brand.NAME)
     delays = [float(d) for d in letters]
     assert delays == sorted(delays) and delays[0] > 0
+
+
+def test_the_animated_favicon_always_shows_the_key(made):
+    text = (made / "brand/animated/icon.svg").read_text()
+    ET.fromstring(text)
+    assert 'rx="52"' in text and f'fill="{brand.INK}"' in text
+    assert text.count(f'stroke="{brand.BLUE}"') == 1 and 'class="trace"' in text
+    assert "@keyframes" in text and "prefers-reduced-motion: reduce" in text
+    still = text.split('class="trace"')[0]
+    assert f'stroke="{brand.BLUE}"' in still

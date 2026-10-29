@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256.0 256.0"><style>
+.trace { stroke-dasharray: .16 2; stroke-dashoffset: .16; opacity: 0;
+  animation: trace 1.8s cubic-bezier(.45, 0, .25, 1) .4s forwards; }
+@keyframes trace { 0% { opacity: 0; } 8% { opacity: 1; } 85% { opacity: 1; }
+  to { opacity: 0; stroke-dashoffset: -1; } }
+@media (prefers-reduced-motion: reduce) { .trace { animation: none; } }
+</style><rect width="256" height="256" rx="52" fill="#16161d"/><path d="M65.28,190.72 L65.28,65.28 L190.72,65.28 L190.72,172.80 L101.12,172.80 L101.12,101.12 L154.88,101.12 L154.88,136.96 L128.00,136.96" fill="none" stroke="#3d6fd6" stroke-width="14.34" stroke-linecap="square" stroke-linejoin="miter"/><path class="trace" pathLength="1" d="M65.28,190.72 L65.28,65.28 L190.72,65.28 L190.72,172.80 L101.12,172.80 L101.12,101.12 L154.88,101.12 L154.88,136.96 L128.00,136.96" fill="none" stroke="#e8e6df" stroke-width="14.34" stroke-linecap="square" stroke-linejoin="miter"/></svg>

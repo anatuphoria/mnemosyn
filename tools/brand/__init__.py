@@ -158,6 +158,23 @@ def letters(ink: str, x: float, baseline: float) -> list[str]:
     return shapes
 
 
+TRACE = """<style>
+.trace { stroke-dasharray: .16 2; stroke-dashoffset: .16; opacity: 0;
+  animation: trace 1.8s cubic-bezier(.45, 0, .25, 1) .4s forwards; }
+@keyframes trace { 0% { opacity: 0; } 8% { opacity: 1; } 85% { opacity: 1; }
+  to { opacity: 0; stroke-dashoffset: -1; } }
+@media (prefers-reduced-motion: reduce) { .trace { animation: none; } }
+</style>"""
+
+
+def animated_icon() -> str:
+    inset = 256 * 6 / KEY_BOX
+    size = 256 - 2 * inset
+    square = f'<rect width="256" height="256" rx="52" fill="{INK}"/>'
+    trace = key(size, inset, inset, LIGHT).replace("<path ", '<path class="trace" pathLength="1" ', 1)
+    return svg(256, 256, TRACE + square + key(size, inset, inset) + trace)
+
+
 def animated(kind: str, ink: str) -> str:
     g = geometry(kind)
     drawn = key(g["key"], g["key_x"], g["key_y"]).replace(
@@ -238,6 +255,7 @@ def write_all(root: Path, version: str) -> list[Path]:
     for kind in LOCKUPS:
         files[f"brand/logo-{kind}-dark.svg"] = lockup(kind, LIGHT)
         files[f"brand/logo-{kind}-light.svg"] = lockup(kind, INK)
+    files["brand/animated/icon.svg"] = animated_icon()
     for kind in ANIMATED:
         files[f"brand/animated/logo-{kind}-dark.svg"] = animated(kind, LIGHT)
         files[f"brand/animated/logo-{kind}-light.svg"] = animated(kind, INK)
