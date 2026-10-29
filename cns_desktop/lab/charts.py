@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import numpy as np
-import pyqtgraph as pg
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from .timeline import LANE_COLORS
+from cns_desktop.design.charts import Series, SmallMultiples
+from cns_desktop.design.tokens import DATA_PALETTE
 
-NORMAL = "#55556a"
+from .labels import plain
+
+HOURS = 60.0
 
 
 class LabCharts(QWidget):
@@ -15,12 +17,11 @@ class LabCharts(QWidget):
         super().__init__(parent)
         self.document = document
         self.compare = True
-        self.layout_widget = pg.GraphicsLayoutWidget()
-        self.layout_widget.setBackground("#0a0a10")
+        self.multiples = SmallMultiples("h")
+        self.multiples.clicked_x.connect(lambda x: self.document.set_playhead(x * HOURS))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.layout_widget)
-        self.layout_widget.scene().sigMouseClicked.connect(self.on_click)
+        layout.addWidget(self.multiples)
         document.model_changed.connect(self.populate)
         self.populate()
         document.changed.connect(self.refresh)
@@ -28,32 +29,14 @@ class LabCharts(QWidget):
         self.refresh()
 
     def populate(self) -> None:
-        self.layout_widget.clear()
-        self.plots: dict[str, pg.PlotItem] = {}
-        self.curves: dict[str, dict[str, pg.PlotDataItem]] = {}
-        self.cursors: dict[str, pg.InfiniteLine] = {}
         values = sorted((v for v in self.document.model.values if v.lane is not None),
                         key=lambda v: v.lane)
-        first = None
-        for n, value in enumerate(values):
-            plot = self.layout_widget.addPlot(row=n, col=0)
-            plot.showGrid(x=True, y=True, alpha=0.2)
-            plot.setLabel("left", f"{value.name} ({value.display_unit})")
-            plot.setLabel("bottom", "hours")
-            if first is None:
-                first = plot
-            else:
-                plot.setXLink(first)
-            color = LANE_COLORS[n % len(LANE_COLORS)]
-            self.curves[value.key] = {
-                "normal": plot.plot(pen=pg.mkPen(NORMAL, width=1.5)),
-                "snapshot": plot.plot(pen=pg.mkPen(color, width=1, style=Qt.PenStyle.DashLine)),
-                "run": plot.plot(pen=pg.mkPen(color, width=2)),
-            }
-            cursor = pg.InfiniteLine(angle=90, movable=False, pen=pg.mkPen("#e8e6df", width=1))
-            plot.addItem(cursor)
-            self.plots[value.key] = plot
-            self.cursors[value.key] = cursor
+        self.multiples.set_series([
+            Series(v.key, v.name, v.display_unit, DATA_PALETTE[n % len(DATA_PALETTE)])
+            for n, v in enumerate(values)])
+        self.plots = {row.series.key: row.plot.getPlotItem() for row in self.multiples.rows}
+        self.curves = {row.series.key: row.curves for row in self.multiples.rows}
+        self.cursors = {row.series.key: row.cursor for row in self.multiples.rows}
 
     def set_compare(self, on: bool) -> None:
         self.compare = bool(on)
@@ -61,31 +44,43 @@ class LabCharts(QWidget):
 
     def _data(self, run, key: str):
         scale = self.document.simulator.values[key].display_scale
-        return np.asarray(run.times) / 60.0, run.value(key) * scale
+        return np.asarray(run.times) / HOURS, run.value(key) * scale
 
     def refresh(self) -> None:
         doc = self.document
-        for key, curves in self.curves.items():
+        for key in self.curves:
             for name, run, shown in (("run", doc.run, True), ("normal", doc.normal, self.compare),
                                      ("snapshot", doc.snapshot, doc.snapshot is not None)):
-                curve = curves[name]
                 if run is None or not shown:
-                    curve.setData([], [])
-                    curve.setVisible(False)
-                    continue
-                curve.setData(*self._data(run, key))
-                curve.setVisible(True)
+                    self.multiples.clear_line(key, name)
+                else:
+                    self.multiples.set_line(key, name, *self._data(run, key))
+        self.multiples.set_x_range(0.0, doc.experiment.length / HOURS)
         self._move_cursor(doc.playhead)
 
+    def _now(self, key: str) -> None:
+        doc = self.document
+        if doc.run is None:
+            self.multiples.set_now(key, "")
+            return
+        mine = doc.run.display(key, doc.playhead)
+        tone = ""
+        if doc.normal is not None:
+            theirs = doc.normal.display(key, doc.playhead)
+            if abs(theirs) > 1e-12:
+                ratio = mine / theirs
+                tone = "raised" if ratio > 1.02 else "lowered" if ratio < 0.98 else ""
+        self.multiples.set_now(key, plain(mine, 3), tone)
+
     def _move_cursor(self, t: float) -> None:
-        for cursor in self.cursors.values():
-            cursor.setValue(t / 60.0)
+        self.multiples.set_cursor(t / HOURS)
+        for key in self.curves:
+            self._now(key)
 
     def on_click(self, event) -> None:
         if event.button() != Qt.MouseButton.LeftButton:
             return
-        pos = event.scenePos()
-        for plot in self.plots.values():
-            if plot.vb.sceneBoundingRect().contains(pos):
-                self.document.set_playhead(plot.vb.mapSceneToView(pos).x() * 60.0)
+        for row in self.multiples.rows:
+            if row.plot.getPlotItem().vb.sceneBoundingRect().contains(event.scenePos()):
+                self.multiples.click(row, event.scenePos())
                 return

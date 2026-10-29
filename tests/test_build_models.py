@@ -58,6 +58,8 @@ MISTAKES = [
     ("reserved function", swap('key = "fb"', 'key = "hill"'), "reserved name 'hill'"),
     ("unknown check experiment", swap('experiment = "pill_test"', 'experiment = "nope"'),
      "needs a known experiment or test"),
+    ("unknown icon", swap('key = "pill"\ngroup = "Drugs"', 'key = "pill"\ngroup = "Drugs"\n'
+                          'icon = "no-such-icon"'), "unknown icon 'no-such-icon'"),
 ]
 
 
@@ -96,3 +98,24 @@ def test_the_file_name_must_match_the_key(tmp_path):
         load_models(tmp_path / "models", tmp_path / "knowledge", {111, 101}, {"ref2020": 1},
                     {"mood"})
     assert any("file name must be toy.toml" in p for p in found.value.problems)
+
+
+def test_experiments_and_tests_can_name_an_icon(tmp_path):
+    model_text = swap('key = "pill"\ngroup = "Drugs"', 'key = "pill"\ngroup = "Drugs"\nicon = "pill"')
+    model_text = swap('key = "pill_test"\n', 'key = "pill_test"\nicon = "test-tube"\n', model_text)
+    (model,) = load_toy(tmp_path, model_text)
+    assert model.experiment("pill").icon == "pill"
+    assert model.tests[0].icon == "test-tube"
+    assert model.experiment("stress").icon == ""
+
+
+def test_the_stress_model_names_only_bundled_icons():
+    import tomllib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    data = tomllib.loads((root / "atlas_src" / "models" / "stress.toml").read_text())
+    named = {row.get("icon") for row in data["experiments"] + data["tests"]}
+    assert None not in named
+    icons = {p.stem for p in (root / "cns_desktop" / "resources" / "icons").glob("*.svg")}
+    assert named <= icons

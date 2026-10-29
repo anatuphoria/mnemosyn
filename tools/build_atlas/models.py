@@ -23,11 +23,14 @@ FIELDS = {
     "effects": {"key", "expr", "kind", "arrow"},
     "terms": {"key", "value", "sign", "expr", "kind", "arrow"},
     "parts": {"key", "structure", "x", "y", "values"},
-    "experiments": {"key", "group", "mode", "length", "options", "edits", "weeks"},
-    "tests": {"key", "doses", "readings", "rule", "cutoff"},
+    "experiments": {"key", "group", "mode", "length", "options", "edits", "weeks", "icon"},
+    "tests": {"key", "doses", "readings", "rule", "cutoff", "icon"},
     "checks": {"key", "length", "blocks", "asserts"},
     "normal": {"key", "from", "to"},
 }
+ICONS = frozenset(path.stem for path in
+                  (Path(__file__).resolve().parents[2] / "cns_desktop" / "resources" / "icons")
+                  .glob("*.svg"))
 EFFECT_KINDS = {"drives", "holds back"}
 TERM_KINDS = {"drives", "clears", "grows", "shrinks", "absorbs"}
 MODES = {"from a time", "present"}
@@ -50,6 +53,14 @@ RESERVED = {"t", "clock", *CONSTANTS, *FUNCTIONS}
 
 def _number(value) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _icon(r, row: dict, where: str) -> str:
+    icon = row.get("icon", "")
+    if not isinstance(icon, str) or (icon and icon not in ICONS):
+        r.say(f"{where}: unknown icon {icon!r}")
+        return ""
+    return icon
 
 
 def _text(value) -> bool:
@@ -346,7 +357,7 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
         text(f"experiment.{k}.description")
         experiments.append(Experiment(k, str(row.get("group", "")), text(f"experiment.{k}"),
                                       str(mode), length, tuple(options), tuple(edits),
-                                      bool(row.get("weeks", False))))
+                                      bool(row.get("weeks", False)), _icon(r, row, where)))
 
     tests = []
     for row in r.rows(data, "tests"):
@@ -375,7 +386,8 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
         for suffix in ("", ".normal", ".abnormal", ".description"):
             text(f"test.{k}{suffix}")
         tests.append(LabTest(k, text(f"test.{k}"), tuple(doses), tuple(readings),
-                             str(row.get("rule")), float(row.get("cutoff", 0))))
+                             str(row.get("rule")), float(row.get("cutoff", 0)),
+                             _icon(r, row, where)))
     block_keys = {e.key for e in experiments} | {t.key for t in tests}
     if len(block_keys) != len(experiments) + len(tests):
         r.say("experiments and tests must have different keys")

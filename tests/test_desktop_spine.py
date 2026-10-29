@@ -26,6 +26,8 @@ def window(qapp, spine_atlas, tmp_path):
     w.resize(1400, 900)
     w.show()
     qapp.processEvents()
+    w.slices_group.reveal("slices")
+    qapp.processEvents()
     w.view.render()
     yield w
     w.close()

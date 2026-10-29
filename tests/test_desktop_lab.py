@@ -105,7 +105,7 @@ def test_the_status_bar_counts_changes_and_edited_values(window):
     doc.set_value("k", 2.0)
     window._update_status()
     assert window.status.text() == ("Toy axis · healthy adult   │   2 changes · 1 value edited"
-                                    "   │   Space plays, drag a change to move it")
+                                    "   │   drag a change to move it")
 
 
 def test_open_in_the_lab_from_the_route(window):

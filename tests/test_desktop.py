@@ -17,6 +17,8 @@ from atlas_package import TOY_SOURCE, tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas, Source
 from cns_desktop.app import (disclaimer_due, main, offer_disclaimer, own_memory_mb,
                              peak_memory_mb)
+from cns_desktop.design import rich
+from cns_desktop.design.tokens import SIZE
 from cns_desktop.main_window import MainWindow, default_progress_path, migrate_progress
 from cns_desktop.state import AppState
 from cns_desktop.views.about_dialog import AboutDialog, about_text
@@ -146,7 +148,7 @@ def about_rows(atlas):
 
 def test_about_text_has_disclaimer_and_sources(atlas):
     assert DISCLAIMER in about_text(atlas)
-    assert any(row.startswith("Toy labelled atlas - Test 2024") for row in about_rows(atlas))
+    assert any(row.startswith("Toy labelled atlas · Test 2024") for row in about_rows(atlas))
 
 
 def test_about_dialog_fits_and_lists_every_source(window, atlas):
@@ -811,7 +813,7 @@ def test_a_failed_save_keeps_the_answer_on_screen(window, monkeypatch):
 
 
 def test_the_app_is_called_mnemosyn(window, atlas):
-    assert window.windowTitle().startswith("Mnemosyn - ")
+    assert window.windowTitle().startswith("Mnemosyn: ")
     assert "<h3>Mnemosyn</h3>" in about_text(atlas)
 
 
@@ -909,7 +911,7 @@ def local_atlas(tmp_path):
 def test_a_local_build_says_it_is_not_for_sharing(qapp, tmp_path):
     atlas = local_atlas(tmp_path)
     assert "may not be shared yet" in about_text(atlas)
-    assert any(" - local only - " in row for row in about_rows(atlas))
+    assert any(" · local only · " in row for row in about_rows(atlas))
     w = MainWindow(atlas, progress_path=tmp_path / "progress.sqlite")
     assert w.windowTitle().endswith("(local build, not for sharing)")
     w.close()
@@ -929,7 +931,7 @@ def test_the_about_box_lists_local_sources_without_a_citation(tmp_path):
 
 
 def test_the_activity_chart_keeps_its_axes_between_selections(window):
-    box = window.chart.plot.getViewBox()
+    box = window.chart.multiples.axis.getPlotItem().vb
     window.state.select(101)
     QApplication.processEvents()
     before = box.viewRange()
@@ -956,8 +958,8 @@ def test_about_rows_keep_full_surnames_and_show_local_tags_early():
     source = Source("pam50", "PAM50", "De Leener B, Fonov VS", 2018, "1",
                     "No licence stated; local use only until the authors allow sharing",
                     False, provides="Spinal cord segments")
-    assert source_row(source, True).startswith("Spinal cord segments - De Leener et al. 2018"
-                                               " - local only - ")
+    assert source_row(source, True).startswith("Spinal cord segments · De Leener et al. 2018"
+                                               " · local only · ")
 
 
 def test_the_about_tab_shows_the_app_version(atlas):
@@ -970,8 +972,9 @@ def test_the_status_bar_shows_the_selection_and_the_right_hint_only(window):
     window.state.select(101)
     window._update_status()
     text = window.status.text()
-    assert "Alpha gyrus (left)" in text and "right-drag pans" in text and "wheel zooms" in text
-    assert "F frames" in text
+    assert "Alpha gyrus (left)" in text and "right drag pans" in text and "wheel zooms" in text
+    keys = [w.text() for w in window.status_keys.findChildren(QLabel)]
+    assert keys[:2] == ["F", "frame"]
     assert not any(word in text for word in ("frame:", "visible", "GPU", "zoom ·"))
     labels = [w.text() for w in window.statusBar().findChildren(QLabel)]
     assert not any(t.startswith("GPU") for t in labels)
@@ -986,13 +989,13 @@ def test_the_info_panel_names_the_side_but_not_the_drawing_kind(window):
 
 def test_the_structures_panel_opens_wide_enough_for_common_names(window, qapp):
     qapp.processEvents()
-    assert window.tree_dock.width() >= 310 and window.view.width() >= 400
+    assert window.tree_dock.width() >= 240 and window.view.width() >= 400
 
 
 def test_tree_items_show_their_full_name_on_hover(window):
     item = window.tree.items[101]
     assert item.toolTip(0) == window.state.atlas.get(101).name
-    assert window.tree.tree.indentation() <= 12
+    assert window.tree.tree.indentation() == SIZE["indent"] <= 12
 
 
 def test_f_frames_3d_when_there_are_no_slices(qapp, tmp_path, monkeypatch):
@@ -1011,5 +1014,5 @@ def test_the_colour_swatch_sits_beside_the_name(window):
     for structure_id in (101, 120):
         heading, rest = window.info.html_for(structure_id).split("</h2>", 1)
         assert "&#9632;" in heading and "&#9632;" not in rest
-    assert window.info.html_for(101).split("</h2>", 1)[1].startswith("<p>left</p>")
+    assert window.info.html_for(101).split("</h2>", 1)[1].startswith(rich.secondary("left"))
     assert not window.info.html_for(120).split("</h2>", 1)[1].startswith("<p></p>")

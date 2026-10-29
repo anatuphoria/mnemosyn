@@ -112,5 +112,6 @@ def test_a_removed_part_says_so_in_the_strip_and_labels(window):
     doc, brain = lab_of(window)
     brain.activate()
     doc.add_block("remove_b", 0.0)
-    assert brain.strip_button("body").text() == "Body gland · removed"
+    assert brain.strip_button("body").text() == "Body gland\nremoved"
+    assert brain.strip_button("body").toolTip() == "Body gland · removed"
     assert "e-" not in brain.overlay.labels[111]

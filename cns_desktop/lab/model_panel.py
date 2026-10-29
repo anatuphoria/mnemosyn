@@ -5,7 +5,7 @@ import math
 from PySide6.QtWidgets import (QDoubleSpinBox, QHBoxLayout, QHeaderView, QLabel, QPushButton,
                                QTableWidget, QToolButton, QVBoxLayout, QWidget)
 
-EDITED = "#d9a441"
+from cns_desktop.design.theme import set_flag, set_tone
 
 
 def short_source(references) -> str:
@@ -107,8 +107,7 @@ class ModelPanel(QWidget):
             spin.setValue(edited.get(parameter.key, parameter.value))
             spin.blockSignals(False)
             marked = parameter.key in edited
-            style = f"color: {EDITED};" if marked else ""
-            spin.setStyleSheet(style)
-            self._labels[parameter.key].setStyleSheet(style)
+            set_flag(spin, "edited", marked)
+            set_tone(self._labels[parameter.key], "edited" if marked else "")
             self._resets[parameter.key].setEnabled(marked)
         self.reset_all.setEnabled(bool(edited))

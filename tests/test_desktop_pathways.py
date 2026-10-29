@@ -225,7 +225,7 @@ def test_a_pathway_without_a_description_still_steps(qapp, tmp_path):
 
 
 def test_showing_the_dock_prepares_the_slice_centres(window, qapp):
-    window.pathway_dock.raise_()
+    window.workspaces.switch("Pathways")
     qapp.processEvents()
     assert window.slices.labels.name in window.slices._centre_tables
 
@@ -253,7 +253,7 @@ def test_clicking_the_current_step_brings_its_station_back(window):
 
 def test_showing_the_dock_builds_the_tracts_before_the_first_entry(window, qapp):
     assert window.view.tract_builds == 0
-    window.pathway_dock.raise_()
+    window.workspaces.switch("Pathways")
     qapp.processEvents()
     assert window.view.tract_builds == 1
 
@@ -277,7 +277,7 @@ def test_leaving_draws_the_3d_view_once(window):
 def test_the_pathway_page_holds_the_controls_and_the_leave_button(window):
     panel = enter(window)
     assert not hasattr(window.chart, "back_button") and not hasattr(window.chart, "next_button")
-    assert panel.leave_button.text() == "Leave pathway (Esc)"
+    assert panel.leave_button.text() == "Leave pathway"
     assert panel.back_button.isEnabled() is False
     panel.go(2)
     assert panel.back_button.isEnabled() and panel.next_button.isEnabled()

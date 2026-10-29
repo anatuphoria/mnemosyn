@@ -443,33 +443,39 @@ kind = "clears"
 
 [[experiments]]
 key = "hypophysectomy"
+icon = "scissors"
 group = "Remove or cut"
 edits = [{ op = "clamp", target = "corticotrophs", expr = "0" }]
 
 [[experiments]]
 key = "stalk_cut"
+icon = "unlink"
 group = "Remove or cut"
 edits = [{ op = "set", target = "stalk", expr = "0" }]
 
 [[experiments]]
 key = "adrenalectomy"
+icon = "scissors"
 group = "Remove or cut"
 edits = [{ op = "clamp", target = "adrenal", expr = "0" }]
 
 [[experiments]]
 key = "dexamethasone"
+icon = "pill"
 group = "Drugs"
 options = [{ key = "dose", unit = "mg", default = 1, low = 0.25, high = 16 }]
 edits = [{ op = "dose", target = "dex_gut", expr = "dose" }]
 
 [[experiments]]
 key = "hydrocortisone"
+icon = "pill"
 group = "Drugs"
 options = [{ key = "dose", unit = "mg", default = 20, low = 2.5, high = 100 }]
 edits = [{ op = "dose", target = "hc_gut", expr = "dose" }]
 
 [[experiments]]
 key = "hydrocortisone_course"
+icon = "calendar-days"
 group = "Drugs"
 length = "4 w"
 weeks = true
@@ -478,6 +484,7 @@ edits = [{ op = "dose", target = "hc_gut", expr = "dose", daily = true }]
 
 [[experiments]]
 key = "addison"
+icon = "heart-pulse"
 group = "Conditions"
 mode = "present"
 options = [{ key = "destroyed", unit = "fraction", default = 0.9, low = 0.1, high = 1 }]
@@ -485,6 +492,7 @@ edits = [{ op = "clamp", target = "adrenal", expr = "1 - destroyed" }]
 
 [[experiments]]
 key = "cushing_disease"
+icon = "heart-pulse"
 group = "Conditions"
 mode = "present"
 options = [{ key = "size", unit = "times normal ACTH", default = 1.5, low = 0.5, high = 20 }]
@@ -492,6 +500,7 @@ edits = [{ op = "set", target = "acth_tumour", expr = "size" }]
 
 [[experiments]]
 key = "adrenal_tumour"
+icon = "heart-pulse"
 group = "Conditions"
 mode = "present"
 options = [{ key = "output", unit = "model cortisol units", default = 2, low = 0.5, high = 10 }]
@@ -499,6 +508,7 @@ edits = [{ op = "set", target = "cortisol_tumour", expr = "output" }]
 
 [[experiments]]
 key = "short_stressor"
+icon = "zap"
 group = "Stressors"
 length = "1 h"
 options = [{ key = "strength", unit = "times basal drive", default = 2, low = 0.2, high = 10 }]
@@ -506,6 +516,7 @@ edits = [{ op = "add", target = "stress", expr = "strength" }]
 
 [[experiments]]
 key = "long_stressor"
+icon = "zap"
 group = "Stressors"
 length = "3 w"
 weeks = true
@@ -514,6 +525,7 @@ edits = [{ op = "add", target = "stress", expr = "strength" }]
 
 [[tests]]
 key = "low_dose_test"
+icon = "test-tube"
 doses = [{ value = "dex_gut", amount = "1" }]
 readings = [{ value = "cortisol", after = "9 h" }]
 rule = "below"
@@ -521,6 +533,7 @@ cutoff = 1.8
 
 [[tests]]
 key = "high_dose_test"
+icon = "test-tube"
 doses = [{ value = "dex_gut", amount = "8" }]
 readings = [{ value = "cortisol", after = "9 h" }]
 rule = "suppressed by"
@@ -528,6 +541,7 @@ cutoff = 0.5
 
 [[tests]]
 key = "acth_test"
+icon = "test-tube"
 doses = [{ value = "acth", amount = "40" }]
 readings = [{ value = "cortisol", after = "30 min" }, { value = "cortisol", after = "1 h" }]
 rule = "at least"

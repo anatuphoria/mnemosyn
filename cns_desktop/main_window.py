@@ -6,10 +6,13 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QStandardPaths, Qt, QTimer
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtCore import QEvent, QStandardPaths, Qt, QTimer, QUrl
+from PySide6.QtGui import QAction, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QAbstractSlider, QAbstractSpinBox, QCheckBox,
-                               QDockWidget, QFileDialog, QLabel, QMainWindow, QMessageBox)
+                               QFileDialog, QHBoxLayout, QLabel, QMainWindow, QMessageBox,
+                               QWidget)
+
+from shiboken6 import delete
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_study.answers import AnswerIndex
@@ -18,6 +21,11 @@ from cns_study.items import (group_items, items, structure_items, tract_items,
 from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, Session, utc_now
 
+from .design import widgets
+from .design.panels import PanelGroup
+from .design.theme import set_role
+from .design.tokens import GAP, SIZE
+from .design.topbar import TopBar
 from .lab.viewport import Viewport
 from .lab.workspace import LabWorkspace
 from .state import AppState
@@ -39,7 +47,14 @@ APP_FOLDER = "mnemosyn"
 OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
 GREY_DIMMED = 0.15
-MOUSE_HINT = "drag rotates · right-drag pans · wheel zooms · F frames · click selects"
+MOUSE_HINT = "drag rotates · right drag pans · wheel zooms · click selects"
+GUIDE_URL = "https://mnemo.saeed.cool/guide/"
+KEYS = {
+    "explore": (("F", "frame"), ("H", "hide"), ("I", "isolate"), ("Q", "quiz")),
+    "pathway": (("Space", "play"), ("←", "back"), ("→", "next"), ("Esc", "leave")),
+    "quiz": (("Esc", "end the quiz"),),
+    "lab": (("Space", "play"), ("V", "brain or circuit"), ("Del", "remove change")),
+}
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
 ARROW_WIDGETS = (QAbstractSlider, QAbstractItemView, QAbstractSpinBox)
 ROUTE_KEYS = ("Play or pause", "Back", "Next")
@@ -88,12 +103,14 @@ def gpu_name(view: BrainView) -> str:
 class MainWindow(QMainWindow):
     def __init__(self, atlas: Atlas, progress_path: Path | None = None, settings=None) -> None:
         super().__init__()
-        title = f"{APP_NAME} - {atlas.metadata.get('name', 'atlas')}"
+        self.setDockOptions(QMainWindow.DockOption.AnimatedDocks
+                            | QMainWindow.DockOption.AllowNestedDocks)
+        title = f"{APP_NAME}: {atlas.metadata.get('name', 'atlas')}"
         if atlas.local_only:
             title += " (local build, not for sharing)"
         self.base_title = title
         self.setWindowTitle(title)
-        self.resize(1500, 900)
+        self.resize(*SIZE["window"])
         self.state = AppState(atlas)
         self.progress_path = progress_path or default_progress_path()
         self._store: ProgressStore | None = None
@@ -106,6 +123,8 @@ class MainWindow(QMainWindow):
         self.shortcuts: dict[str, QAction] = {}
 
         self.settings = settings
+        self.topbar = TopBar(self)
+        self.setMenuWidget(self.topbar)
         self.view = BrainView(self.state, self)
         self.viewport = Viewport(self.view)
         self.setCentralWidget(self.viewport)
@@ -116,26 +135,32 @@ class MainWindow(QMainWindow):
         self.quiz = QuizPanel(self.state)
         self.pathways = PathwayPanel(self.state, hold=self._held)
         left, right = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea
-        self.tree_dock = self._dock("Structures", self.tree, left)
-        self.pathway_dock = self._dock("Pathways", self.pathways, left)
-        self.tabifyDockWidget(self.tree_dock, self.pathway_dock)
-        self.tree_dock.raise_()
-        self.slice_dock = self._dock("Slices", self.slices, right)
-        self.info_dock = self._dock("Info", self.info, right)
-        self.chart_dock = self._dock("Activity", self.chart, Qt.DockWidgetArea.BottomDockWidgetArea)
-        self.quiz_dock = self._dock("Quiz", self.quiz, left)
-        self.quiz_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable)
-        self.quiz_dock.hide()
-        self.splitDockWidget(self.slice_dock, self.info_dock, Qt.Orientation.Horizontal)
-        self.resizeDocks([self.tree_dock, self.slice_dock, self.info_dock], [320, 380, 270],
-                         Qt.Orientation.Horizontal)
+        self.structures_group = self._group("Structures", self.tree, left)
+        self.routes_group = self._group("Pathways", self.pathways, left)
+        self.slices_group = self._group("Slices", self.slices, right)
+        self.info_group = self._group("Info", self.info, right)
+        self.activity_group = self._group("Activity", self.chart,
+                                          Qt.DockWidgetArea.BottomDockWidgetArea)
+        self.quiz_group = self._group("Quiz", self.quiz, left)
+        self.quiz_group.setFeatures(PanelGroup.DockWidgetFeature.DockWidgetMovable)
+        self.quiz_group.hide()
+        self.tree_dock, self.pathway_dock = self.structures_group, self.routes_group
+        self.slice_dock, self.info_dock = self.slices_group, self.info_group
+        self.chart_dock, self.quiz_dock = self.activity_group, self.quiz_group
+        self.routes_group.hide()
+        self.splitDockWidget(self.slices_group, self.info_group, Qt.Orientation.Horizontal)
         self._sync_chart()
 
         self._add_actions()
         self.workspaces = Workspaces(self, settings)
         self._add_window_menu()
-        self.workspaces.capture_defaults({"Slices": self._arrange_slices,
-                                          "Pathways": self._arrange_pathways})
+        self._add_help_menu()
+        narrow = {"Explore": [("Structures", "Info"), ("Structures", "Slices")],
+                  "Slices": [("Structures", "Info")],
+                  "Pathways": [("Pathways", "Info"), ("Pathways", "Slices")]}
+        self.workspaces.capture_defaults({"Explore": self._arrange_explore,
+                                          "Slices": self._arrange_slices,
+                                          "Pathways": self._arrange_pathways}, narrow)
         self.ask = lambda title, text, buttons: QMessageBox.question(self, title, text, buttons)
         self.inform = lambda title, text: QMessageBox.information(self, title, text)
         self.pick_open = lambda: QFileDialog.getOpenFileName(
@@ -146,8 +171,15 @@ class MainWindow(QMainWindow):
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
                 widget.installEventFilter(self)
-        self.status = QLabel()
+        self.status = widgets.ElidedLabel()
         self.statusBar().addWidget(self.status, 1)
+        self.statusBar().setFixedHeight(SIZE["status"])
+        self.status_keys = QWidget()
+        QHBoxLayout(self.status_keys).setContentsMargins(0, 0, GAP["small"], 0)
+        self.status_keys.layout().setSpacing(GAP["tight"])
+        self._shown_keys: tuple = ()
+        self.statusBar().addPermanentWidget(self.status_keys)
+        self.topbar.tidy_menus()
         self.slices.hovered.connect(self._show_hover)
         self.quiz.finished.connect(self.leave_quiz)
         self.quiz.centre_requested.connect(self.slices.centre_on_selection)
@@ -170,6 +202,7 @@ class MainWindow(QMainWindow):
         default = next((s.id for s in atlas.structures
                         if s.name.startswith("Hippocampus") and atlas.has_mesh(s.id)), None)
         self.state.select(default)
+        self.view.setFocus()
         self._warm_up = WarmUp(self._warm_up_jobs(), self)
         self._first_draw = None
 
@@ -192,7 +225,17 @@ class MainWindow(QMainWindow):
     def warm_up_done(self) -> bool:
         return self._warm_up.done
 
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.viewport.fit(self.workspaces.current if hasattr(self, "workspaces") else "Explore",
+                          event.size().width())
+        if hasattr(self, "workspaces"):
+            self.workspaces.width_changed(event.oldSize().width(), event.size().width())
+
     def showEvent(self, event) -> None:
+        if not getattr(self, "_fitted", False):
+            self._fitted = True
+            self.workspaces.fit_to_width()
         super().showEvent(event)
         if self._warm_up.started_after_render is None and self._first_draw is None:
             self._first_draw = self.view.ren_win.AddObserver("EndEvent", self._after_first_draw)
@@ -203,41 +246,52 @@ class MainWindow(QMainWindow):
             self.view.ren_win.RemoveObserver(self._first_draw)
             self._warm_up.start(self.view.render_count)
 
-    def _dock(self, title: str, widget, area: Qt.DockWidgetArea) -> QDockWidget:
-        dock = QDockWidget(title, self)
-        dock.setObjectName(title)
-        dock.setWidget(widget)
-        self.addDockWidget(area, dock)
-        return dock
+    def _group(self, title: str, widget, area: Qt.DockWidgetArea) -> PanelGroup:
+        group = PanelGroup(title, [(title.lower(), title, widget)], self)
+        self.addDockWidget(area, group)
+        return group
 
     def _add_actions(self) -> None:
-        toolbar = self.addToolBar("View")
-        toolbar.setObjectName("View")
+        view = self.topbar.menu("View")
 
-        def action(text: str, key: str, slot) -> None:
-            act = QAction(f"{text}  ({key})", self, shortcut=QKeySequence(key), triggered=slot)
+        def action(text: str, key: str, slot, menu=view) -> QAction:
+            act = QAction(text, self, shortcut=QKeySequence(key), triggered=slot)
             act.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
-            toolbar.addAction(act)
+            self.addAction(act)
+            menu.addAction(act)
             self.shortcuts[text] = act
+            return act
 
         action("Hide", "H", self._hide_selected)
         action("Isolate", "I", self._isolate_selected)
         action("Show all", "U", self.state.show_all)
+        view.addSeparator()
         action("Tracts", "T", self.state.toggle_tracts)
+        view.addSeparator()
         action("Reset view", "R", self.view.reset_view)
         action("Frame selection", "F", self.frame)
         action("Centre slice", "C", self.slices.centre_on_selection)
-        action("About", "F1", self.show_about)
         focus_filter = QAction(self, shortcut=QKeySequence.StandardKey.Find,
                                triggered=lambda: self.tree.filter_box.setFocus())
         self.addAction(focus_filter)
-        study = self.menuBar().addMenu("Study")
-        start = QAction("Start quiz  (Q)", self, shortcut=QKeySequence("Q"),
-                        triggered=self.open_quiz_setup)
-        start.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
-        study.addAction(start)
+        study = self.topbar.menu("Study")
+        action("Start quiz", "Q", self.open_quiz_setup, study)
         study.addAction(QAction("Progress", self, triggered=self.show_progress))
-        self.shortcuts["Start quiz"] = start
+        icons = {"Hide": "eye-off", "Isolate": "scan", "Show all": "eye", "Tracts": "waypoints",
+                 "Start quiz": "graduation-cap"}
+
+        def buttons(names):
+            return [None if name is None else widgets.icon_button(self.shortcuts[name],
+                                                                  icons[name])
+                    for name in names]
+
+        full = ("Hide", "Isolate", "Show all", None, "Tracts", None, "Start quiz")
+        self.topbar.add_group("Explore", buttons(full))
+        self.topbar.add_group("Slices", buttons(full))
+        self.topbar.add_group("Pathways", buttons(("Tracts", None, "Start quiz")))
+        for name, icon in (("Frame selection", "maximize"), ("Reset view", "rotate-ccw")):
+            self.viewport.add_tool(widgets.icon_button(self.shortcuts[name], icon))
+        self.viewport.add_tool(buttons(("Tracts",))[0])
         leave = QAction("Leave pathway", self, shortcut=QKeySequence("Esc"),
                         triggered=self.pathways.leave)
         leave.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
@@ -254,13 +308,24 @@ class MainWindow(QMainWindow):
             self.shortcuts[name] = route_key
 
     def _add_window_menu(self) -> None:
-        self.window_menu = self.menuBar().addMenu("Window")
-        for dock in (self.tree_dock, self.pathway_dock, self.slice_dock, self.info_dock,
-                     self.chart_dock):
+        self.window_menu = self.topbar.menu("Window")
+        for dock in (self.structures_group, self.routes_group, self.slices_group,
+                     self.info_group, self.activity_group):
             self.window_menu.addAction(dock.toggleViewAction())
         self.window_separator = self.window_menu.addSeparator()
         self.window_menu.addAction(QAction("Reset layout", self,
                                            triggered=lambda: self.workspaces.reset()))
+
+    def _add_help_menu(self) -> None:
+        help_menu = self.topbar.menu("Help")
+        about = QAction("About Mnemosyn", self, shortcut=QKeySequence("F1"),
+                        triggered=self.show_about)
+        about.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+        self.addAction(about)
+        help_menu.addAction(about)
+        self.shortcuts["About"] = about
+        help_menu.addAction(QAction("Guide on the website", self, triggered=lambda:
+                                    QDesktopServices.openUrl(QUrl(GUIDE_URL))))
 
     def open_lab(self, route: str) -> None:
         if self.lab is None:
@@ -271,25 +336,53 @@ class MainWindow(QMainWindow):
             self.lab.choose_system(key)
         self.workspaces.switch("Lab")
 
-    def _arrange_slices(self) -> None:
-        self.splitDockWidget(self.slice_dock, self.info_dock, Qt.Orientation.Vertical)
-        width = max(self.width(), 1500)
-        self.resizeDocks([self.tree_dock, self.slice_dock], [280, int(width * 0.6)],
+    def _sides(self, left: PanelGroup, right: list[PanelGroup]) -> None:
+        self.resizeDocks([left, *right], [SIZE["panel_left"], *[SIZE["panel_right"]] * len(right)],
                          Qt.Orientation.Horizontal)
 
-    def _arrange_pathways(self) -> None:
-        self.pathway_dock.raise_()
+    def _arrange_explore(self) -> list[tuple[str, str]]:
+        self.structures_group.show()
+        self.routes_group.hide()
+        self._sides(self.structures_group, [self.info_group])
+        return [("Info", "Slices")]
 
-    def workspace_docks(self) -> list[QDockWidget]:
-        return [self.tree_dock, self.pathway_dock, self.slice_dock, self.info_dock]
+    def _arrange_slices(self) -> list[tuple[str, str]]:
+        self.structures_group.show()
+        self.routes_group.hide()
+        self.slices_group.show()
+        self.info_group.show()
+        width, side = self.width(), SIZE["panel_left"]
+        wide = width >= SIZE["narrow"]
+        central = SIZE["central_min_slices"] if wide else 0
+        info = side if wide else 0
+        slices = max(SIZE["central_min"], width - side - central - info)
+        self.resizeDocks([self.structures_group, self.slices_group, self.info_group],
+                         [side, slices, side], Qt.Orientation.Horizontal)
+        return []
+
+    def _arrange_pathways(self) -> list[tuple[str, str]]:
+        self.structures_group.hide()
+        self.routes_group.show()
+        self._sides(self.routes_group, [self.info_group])
+        return [("Info", "Slices")]
+
+    def workspace_docks(self) -> list[PanelGroup]:
+        return [self.structures_group, self.routes_group, self.slices_group, self.info_group]
 
     def _out_of_lab(self) -> None:
         if self.workspaces.current == "Lab":
             self.workspaces.switch("Explore")
 
+    def before_layout(self, name: str) -> None:
+        self.viewport.fit(name, self.width())
+
     def sync_after_layout(self, name: str) -> None:
-        if name == "Pathways" and self.pathway_dock.isVisible():
-            self.pathway_dock.raise_()
+        self.viewport.fit(name, self.width())
+        if self.viewport.isHidden():
+            if self.slices.view.isVisible():
+                self.slices.view.setFocus()
+        elif self.isActiveWindow():
+            self.view.setFocus()
         self._sync_chart()
 
     def _show_hover(self, name: str) -> None:
@@ -364,7 +457,9 @@ class MainWindow(QMainWindow):
             return
         state = self.state
         self._saved = (self.saveState(), *self._snapshot(),
-                       [(w, w.focusPolicy()) for w in (self.view, self.slices.view)])
+                       [(w, w.focusPolicy()) for w in (self.view, self.slices.view)],
+                       self.workspaces.joins())
+        self.workspaces.release_joins()
         self.quiz_active = True
         self.workspaces.set_locked(True)
         if self.lab is not None:
@@ -385,7 +480,7 @@ class MainWindow(QMainWindow):
     def leave_quiz(self) -> None:
         if not self.quiz_active:
             return
-        layout, hidden, selected, axis, mm, volume, focus = self._saved
+        layout, hidden, selected, axis, mm, volume, focus, joins = self._saved
         self.quiz_active = False
         self.workspaces.set_locked(False)
         if self.lab is not None:
@@ -394,7 +489,9 @@ class MainWindow(QMainWindow):
             action.setEnabled(True)
         for widget, policy in focus:
             widget.setFocusPolicy(policy)
+        self.workspaces.release_joins()
         self.restoreState(layout)
+        self.workspaces.apply_joins(joins)
         self._restore(hidden, selected, axis, mm, volume)
         self._sync_chart()
         self._update_status()
@@ -491,24 +588,46 @@ class MainWindow(QMainWindow):
         if self.state.selected:
             self.state.isolate(self.state.selected)
 
+    def _show_keys(self, context: str) -> None:
+        keys = KEYS[context]
+        if keys == self._shown_keys:
+            return
+        self._shown_keys = keys
+        row = self.status_keys.layout()
+        while row.count():
+            item = row.takeAt(0)
+            if item.widget() is not None:
+                item.widget().setParent(None)
+        for key, meaning in keys:
+            cap = widgets.key_cap(key)
+            label = QLabel(meaning)
+            set_role(label, "secondary")
+            for widget in (cap, label):
+                row.addWidget(widget)
+                widget.show()
+            row.addSpacing(GAP["small"])
+
     def _update_status(self) -> None:
         if self.quiz_active:
-            self.status.setText("quiz in progress   │   Esc ends the quiz")
+            self.status.setText("quiz in progress")
+            self._show_keys("quiz")
             return
         if self.lab is not None and self.workspaces.current == "Lab":
             self.status.setText(self.lab.status_text())
+            self._show_keys("lab")
             return
         panel = self.pathways
         if self.pathway_active and panel.pathway is not None:
             self.status.setText(
                 f"pathway: {panel.pathway.name}"
                 f"{f' ({panel.side})' if panel.pathway.sides == 'one' else ''}   │   "
-                f"step {panel.index + 1} of {len(panel.pathway.steps)}   │   "
-                "Esc leaves the pathway")
+                f"step {panel.index + 1} of {len(panel.pathway.steps)}")
+            self._show_keys("pathway")
             return
         selected = self.state.selected
-        name = self.state.atlas.get(selected).name if selected else "-"
+        name = self.state.atlas.get(selected).name if selected else "none"
         self.status.setText(f"selected: {name}   │   {MOUSE_HINT}")
+        self._show_keys("explore")
 
     def eventFilter(self, watched, event) -> bool:
         if (event.type() == QEvent.Type.ShortcutOverride
@@ -521,15 +640,24 @@ class MainWindow(QMainWindow):
         if self.lab is not None and not self.lab.confirm_discard():
             event.ignore()
             return
-        self.workspaces.save()
-        if self.settings is not None:
-            self.settings.sync()
         self._warm_up.stop()
         if self.quiz_active:
             self.quiz.stop()
+            self.leave_quiz()
+        self.workspaces.save()
+        if self.settings is not None:
+            self.settings.sync()
         self._status_timer.stop()
         self.pathways.pause()
+        if self.lab is not None:
+            self.lab.pause()
         if self._store is not None:
             self._store.close()
         self.view.close()
+        # A closed window can outlive its close, so its GL context is freed now. pyvistaqt keeps
+        # Python handles to Qt's context and surface; they are dropped first so none goes stale.
+        forget = getattr(self.view, "_forget_context", None)
+        if forget is not None:
+            forget()
+        delete(self.view)
         super().closeEvent(event)

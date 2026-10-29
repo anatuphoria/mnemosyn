@@ -12,6 +12,9 @@ from cns_study.items import LEVELS, items
 from cns_study.progress import MODES, ProgressStore, mode_stats, weakest
 from cns_study.session import utc_now
 
+from ..design.theme import set_role
+from ..design.tokens import GAP, SIZE
+
 MODE_LABELS = {"name-typed": "Name it (typed)", "name-choice": "Name it (choice)",
                "find": "Find it", "flashcard": "Flashcards"}
 COLUMNS = ("Mode", "Level", "New", "Learning", "Known", "Due today", "Due this week")
@@ -45,14 +48,18 @@ class ProgressDialog(QDialog):
                          for i, recall in weakest(cards, ids, scheduler, moment)]
         self.weakest = QListWidget()
         for recall, name, label in sorted(weak)[:10]:
-            self.weakest.addItem(f"{name} - {label}: {round(100 * recall)}% likely to recall")
+            self.weakest.addItem(f"{name} · {label}: {round(100 * recall)}% likely to recall")
         if not weak:
             self.weakest.addItem("Nothing reviewed yet")
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.reject)
+        self.heading = QLabel("Weakest 10")
+        set_role(self.heading, "heading")
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(GAP["wide"], GAP["wide"], GAP["wide"], GAP["large"])
+        layout.setSpacing(GAP["medium"])
         layout.addWidget(self.table)
-        layout.addWidget(QLabel("Weakest 10"))
+        layout.addWidget(self.heading)
         layout.addWidget(self.weakest)
         layout.addWidget(buttons)
-        self.resize(720, 480)
+        self.resize(*SIZE["dialog"])

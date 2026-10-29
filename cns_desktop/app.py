@@ -17,23 +17,6 @@ def default_atlas() -> Path:
 DISCLAIMER_KEY = "disclaimer_hidden"
 
 
-def apply_dark_theme(app) -> None:
-    from PySide6.QtGui import QColor, QPalette
-
-    app.setStyle("Fusion")
-    p = QPalette()
-    roles = QPalette.ColorRole
-    for role, color in {
-        roles.Window: "#16161d", roles.WindowText: "#d8d8e0", roles.Base: "#0f0f15",
-        roles.AlternateBase: "#1c1c25", roles.Text: "#d8d8e0", roles.Button: "#22222c",
-        roles.ButtonText: "#d8d8e0", roles.Highlight: "#3d6fd6", roles.HighlightedText: "#ffffff",
-        roles.ToolTipBase: "#22222c", roles.ToolTipText: "#d8d8e0",
-        roles.PlaceholderText: "#7a7a88",
-    }.items():
-        p.setColor(role, QColor(color))
-    app.setPalette(p)
-
-
 def apply_identity(app) -> None:
     from PySide6.QtGui import QIcon
 
@@ -121,9 +104,11 @@ def main(argv: list[str] | None = None) -> int:
     from PySide6.QtCore import QSettings
     from PySide6.QtWidgets import QApplication
 
+    from .design.theme import apply_theme
+
     app = QApplication.instance() or QApplication(sys.argv[:1])
     app.setApplicationName("Mnemosyn")
-    apply_dark_theme(app)
+    apply_theme(app)
     apply_identity(app)
 
     from .main_window import MainWindow, migrate_progress

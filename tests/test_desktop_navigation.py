@@ -121,7 +121,7 @@ def test_route_steps_and_quiz_answers_leave_the_camera(qapp, toy_pathway_atlas, 
     w.show()
     qapp.processEvents()
     before = w.view.camera_position
-    w.pathway_dock.raise_()
+    w.workspaces.switch("Pathways")
     w.pathways.open("loop")
     for index in range(len(w.pathways.lights)):
         w.pathways.go(index)

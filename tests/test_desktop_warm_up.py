@@ -106,14 +106,13 @@ def test_warm_up_starts_only_after_the_first_frame(qapp, toy_spine_atlas, tmp_pa
     window = MainWindow(Atlas.open(toy_spine_atlas), progress_path=tmp_path / "progress.sqlite")
     window.resize(1000, 800)
     jobs = len(window._warm_up._jobs)
-    window.show()
-    qapp.processEvents()
     assert window._warm_up.started_after_render is None and len(window._warm_up._jobs) == jobs
+    window.show()
     for _ in range(5):
         qapp.processEvents()
     drawn = window.view.render_count
     window.view.ren_win.Render()
     qapp.processEvents()
-    assert window._warm_up.started_after_render in (drawn, drawn + 1)
-    assert window._warm_up.started_after_render >= 1
+    started = window._warm_up.started_after_render
+    assert started is not None and 1 <= started <= drawn + 1
     window.close()

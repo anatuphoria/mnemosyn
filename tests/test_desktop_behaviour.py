@@ -44,7 +44,7 @@ def test_a_both_sides_route_lights_both_sides_without_a_switch(window):
     panel = window.pathways
     panel.open("mood")
     assert window.state.focus == MOOD_ROUTE
-    assert all(b.isHidden() for b in panel.side_buttons.values())
+    assert panel.side_control.isHidden()
     assert labels(panel) == ["1 Beta nucleus", "2 Toy relay", "3 Alpha gyrus", "4 Gamma body"]
     assert panel.start.text() == "Start: beta nucleus"
     assert window.state.emphasis == (111, 112)
@@ -226,7 +226,7 @@ def test_no_placeholder_signal_anywhere(window):
 
     assert not hasattr(module, "placeholder_series")
     window.state.select(101)
-    assert "PLACEHOLDER" not in window.chart.plot.plotItem.titleLabel.text
+    assert "PLACEHOLDER" not in window.chart.title.text()
 
 
 def test_closing_the_window_stops_play(qapp, toy_behaviour_atlas, tmp_path):
@@ -284,19 +284,19 @@ def test_the_controls_are_media_symbols_with_named_tips(window):
     panel = window.pathways
     panel.open("loop")
     assert panel.play_button.text() == "" and not panel.play_button.icon().isNull()
-    assert panel.play_button.toolTip() == "Play (Space)"
-    assert panel.back_button.toolTip() == "Back (Left)"
-    assert panel.next_button.toolTip() == "Next (Right)"
+    assert panel.play_button.toolTip() == "Play  Space"
+    assert panel.back_button.toolTip() == "Back  Left"
+    assert panel.next_button.toolTip() == "Next  Right"
     assert [panel.speed_picker.itemText(i) for i in range(3)] == ["½×", "1×", "2×"]
     playing_icon = panel.play_button.icon().cacheKey()
     panel.play()
-    assert panel.play_button.toolTip() == "Pause (Space)"
+    assert panel.play_button.toolTip() == "Pause  Space"
     assert panel.play_button.icon().cacheKey() != playing_icon
 
 
 def test_the_controls_sit_above_the_steps_on_every_route(window, qapp):
     panel = window.pathways
-    window.pathway_dock.raise_()
+    window.workspaces.switch("Pathways")
     panel.open("loop")
     qapp.processEvents()
     assert panel.play_button.isVisible()
@@ -366,9 +366,10 @@ def test_only_clicks_inside_the_plot_seek(window):
     panel.open("mood")
     seen = []
     chart.seek_requested.connect(seen.append)
-    chart._on_click(FakeClick(QPointF(-50.0, -50.0)))
+    row = chart.multiples.rows[0]
+    chart.multiples.click(row, QPointF(-50.0, -50.0))
     assert seen == []
-    chart._on_click(FakeClick(chart.plot.plotItem.vb.sceneBoundingRect().center()))
+    chart.multiples.click(row, row.plot.getPlotItem().vb.sceneBoundingRect().center())
     assert len(seen) == 1
 
 

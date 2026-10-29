@@ -92,6 +92,8 @@ the atlas](https://mnemo.saeed.cool/building-the-atlas/).
 | Spinal cord: surface, 30 segments, grey matter, 30 tracts (local builds only) | PAM50: De Leener B, Fonov VS, Collins DL, Callot V, Stikov N, Cohen-Adad J (2018), NeuroImage 165: 170-179, doi:10.1016/j.neuroimage.2017.10.041 | No licence stated; used only in local builds until the authors allow sharing |
 | MRI template for slices | Colin 27 Average Brain (1998): Holmes CJ, Hoge R, Collins L, Woods R, Toga AW, Evans AC (1998), J Comput Assist Tomogr 22(2): 324-333, doi:10.1097/00004728-199803000-00032 | Permissive notice (text in `atlas_src/LICENSES/Colin27.txt`) |
 | Descriptions | Written for this project; every claim cites a reference | CC BY 4.0 |
+| Interface typeface | Inter 4.1, Rasmus Andersson and the Inter Project Authors, rsms.me/inter | SIL Open Font License 1.1 (text in `cns_desktop/resources/fonts/OFL.txt`) |
+| Interface icons | Lucide 0.460, Lucide Contributors, lucide.dev | ISC License (text in `cns_desktop/resources/icons/LICENSE`) |
 | Code | This repository | GNU General Public License v3.0 or later (`LICENSE`) |
 
 <p align="center"><img src="brand/divider-gold.svg" alt="" width="100%"></p>

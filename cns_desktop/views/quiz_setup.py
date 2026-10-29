@@ -11,6 +11,9 @@ from cns_study.items import items, with_reviewed_entries
 from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, due_and_new, utc_now
 
+from ..design.theme import set_role
+from ..design.tokens import GAP
+
 MODES = (("Name it", "name"), ("Find it", "find"), ("Flashcards", "flashcard"))
 STYLES = (("Type the name", "name-typed"), ("Choose from 4", "name-choice"))
 LEVELS = (("Structures", "structures"), ("Groups", "groups"), ("Tracts", "tracts"))
@@ -44,7 +47,10 @@ class QuizSetup(QDialog):
         self.note.setWordWrap(True)
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok
                                         | QDialogButtonBox.StandardButton.Cancel)
-        self.buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Start")
+        start = self.buttons.button(QDialogButtonBox.StandardButton.Ok)
+        start.setText("Start")
+        start.setProperty("variant", "primary")
+        set_role(self.note, "secondary")
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         form = QFormLayout()
@@ -53,7 +59,11 @@ class QuizSetup(QDialog):
                            ("Session", self.session)):
             form.addRow(label, box)
             box.currentIndexChanged.connect(self.refresh)
+        form.setHorizontalSpacing(16)
+        form.setVerticalSpacing(8)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(GAP["wide"], GAP["wide"], GAP["wide"], GAP["large"])
+        layout.setSpacing(GAP["large"])
         layout.addLayout(form)
         layout.addWidget(self.note)
         layout.addWidget(self.buttons)

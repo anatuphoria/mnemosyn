@@ -130,6 +130,7 @@ class Experiment(_Record):
     options: tuple[Option, ...] = ()
     edits: tuple[Edit, ...] = ()
     weeks: bool = False
+    icon: str = ""
 
     NESTED: ClassVar[dict] = {"options": Option, "edits": Edit}
 
@@ -148,6 +149,7 @@ class LabTest(_Record):
     readings: tuple[Reading, ...]
     rule: str
     cutoff: float
+    icon: str = ""
 
     NESTED: ClassVar[dict] = {"readings": Reading}
 

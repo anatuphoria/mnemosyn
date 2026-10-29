@@ -36,9 +36,20 @@ class Click:
 
 def test_one_plot_per_lane_with_units(charts):
     assert list(charts.plots) == ["x", "y", "m"]
-    assert charts.plots["x"].getAxis("left").labelText == "X (ng/mL)"
-    assert charts.plots["y"].getAxis("left").labelText == "Y (times normal)"
-    assert charts.plots["m"].getAxis("bottom").labelText == "hours"
+    rows = charts.multiples
+    assert (rows.row("x").name.text(), rows.row("x").unit.text()) == ("X", "ng/mL")
+    assert rows.row("y").unit.text() == "times normal"
+    assert rows.axis.getPlotItem().getAxis("bottom").labelText == "h"
+
+
+def test_each_row_shows_its_value_now(charts):
+    doc = charts.document
+    doc.set_playhead(120.0)
+    assert charts.multiples.row("x").now.text() != ""
+    doc.add_block("remove_b", 0.0)
+    doc.set_playhead(600.0)
+    tones = {charts.multiples.row(k).now.property("tone") for k in ("x", "y")}
+    assert tones & {"raised", "lowered"}
 
 
 def test_curves_follow_the_run_and_the_normal(charts):

@@ -4,13 +4,21 @@ import math
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMenu, QToolButton
+from PySide6.QtWidgets import QMenu
+from vtkmodules.vtkCommonCore import VTK_FONT_FILE
 from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D
 
-from .labels import plain, removed_parts
+from cns_desktop.design.fonts import FONTS
+from cns_desktop.design.tokens import TYPE, rgb
 
-RAISED = (224, 138, 90)
-LOWERED = (111, 160, 255)
+from .labels import plain, removed_parts
+from .viewport import StripCard
+
+RAISED = rgb("raised")
+LOWERED = rgb("lowered")
+PLAIN = rgb("text")
+LABEL_BACK = tuple(c / 255 for c in rgb("s1"))
+LABEL_FONT = str(FONTS / "Inter-Medium.ttf")
 ZERO = 1e-9
 
 
@@ -31,9 +39,13 @@ class BrainOverlay:
                 where = (positions or {}).get(structure_id)
                 actor.SetPosition(*(self.view.centre_of(structure_id) if where is None
                                     else where))
-                actor.GetTextProperty().SetFontSize(14)
-                actor.GetTextProperty().SetBackgroundColor(0.09, 0.09, 0.11)
-                actor.GetTextProperty().SetBackgroundOpacity(0.8)
+                style = actor.GetTextProperty()
+                style.SetFontFamily(VTK_FONT_FILE)
+                style.SetFontFile(LABEL_FONT)
+                style.SetFontSize(TYPE["secondary"][0])
+                style.SetBackgroundColor(*LABEL_BACK)
+                style.SetBackgroundOpacity(0.9)
+                style.SetFrame(False)
                 actor.SetPickable(False)
                 self.view.renderer.AddActor(actor)
                 self.actors[structure_id] = actor
@@ -58,7 +70,7 @@ class LabBrain:
         self.state = state
         self.overlay = BrainOverlay(view)
         self.active = False
-        self._buttons: dict[str, QToolButton] = {}
+        self._buttons: dict[str, StripCard] = {}
         self._syncing = False
         self.on_show_chart = None
         self.on_show_in_atlas = None
@@ -83,7 +95,7 @@ class LabBrain:
         shaped = self._shaped()
         return [p.key for p in self.document.model.parts if p.key not in shaped]
 
-    def strip_button(self, key: str) -> QToolButton:
+    def strip_button(self, key: str) -> StripCard:
         return self._buttons[key]
 
     def strip_menu(self, key: str) -> QMenu:
@@ -117,15 +129,14 @@ class LabBrain:
                 item.widget().deleteLater()
         self._buttons = {}
         for key in self.strip_keys():
-            button = QToolButton()
-            button.setAutoRaise(True)
+            button = StripCard()
             button.clicked.connect(lambda _=False, k=key: self.document.select(("part", k)))
             button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             button.customContextMenuRequested.connect(
                 lambda pos, k=key, b=button: self.strip_menu(k).exec(b.mapToGlobal(pos)))
             layout.addWidget(button)
+            button.show()
             self._buttons[key] = button
-        layout.addStretch(1)
 
     def _ratio(self, key: str) -> float:
         doc = self.document
@@ -138,13 +149,13 @@ class LabBrain:
 
     def _text(self, part) -> tuple[str, tuple[int, int, int]]:
         if not part.values or self.document.run is None:
-            return part.name, (216, 216, 224)
+            return part.name, PLAIN
         if part.key in removed_parts(self.document):
             return f"{part.name} · removed", LOWERED
         key = part.values[0]
         value = self.document.simulator.values[key]
         ratio = self._ratio(key)
-        colour = RAISED if ratio > 1.02 else LOWERED if ratio < 0.98 else (216, 216, 224)
+        colour = RAISED if ratio > 1.02 else LOWERED if ratio < 0.98 else PLAIN
         if value.relative or self.document.run is None:
             arrow = "↑" if ratio > 1.02 else "↓" if ratio < 0.98 else "="
             return f"{part.name} · {value.name} {arrow} {plain(ratio)}×", colour
@@ -173,7 +184,11 @@ class LabBrain:
                     own = tuple(c / 255 for c in atlas.get(structure_id).rgb_triplet)
                     colors[structure_id] = _mix(own, target, amount)
             elif part.key in self._buttons:
-                self._buttons[part.key].setText(text)
+                button = self._buttons[part.key]
+                button.setText(text.replace(" · ", "\n", 1))
+                button.setToolTip(text)
+                button.set_tone("raised" if colour == RAISED else
+                                "lowered" if colour == LOWERED else "")
         self.view.set_lab_colors(colors)
         self.overlay.show(labels, positions)
 

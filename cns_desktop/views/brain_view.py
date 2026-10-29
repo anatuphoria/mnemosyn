@@ -11,6 +11,7 @@ from vtkmodules.util.numpy_support import numpy_to_vtk
 from vtkmodules.vtkFiltersCore import vtkImplicitPolyDataDistance
 from vtkmodules.vtkRenderingCore import vtkActor, vtkHardwarePicker, vtkPolyDataMapper
 
+from ..design.tokens import COLOURS
 from ..lod import choose_lod, face_totals
 from ..slices import AXIS_INDEX
 from ..state import AppState
@@ -18,7 +19,7 @@ from .chunks import Chunks
 from .navigation import install_navigation
 from .outline import OutlineLayer
 
-BACKGROUND = "#0a0a10"
+BACKGROUND = COLOURS["s0"]
 CLICK_TOLERANCE_PX = 3
 FAINT = 0.08
 PLANE_OPACITY = 0.18
