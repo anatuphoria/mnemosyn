@@ -64,3 +64,13 @@ def test_hill_stays_real_below_zero():
     f = compile_function({"a": "hill(x, 4, 3.5)"}, ("x",))
     (value,) = f(-0.001)
     assert isinstance(value, float) and value == 1.0
+
+
+def test_numbers_are_floats_so_huge_powers_overflow_instead_of_hanging():
+    assert compile_function({"a": "2 ** 3"}, ())() == (8.0,)
+    assert isinstance(compile_function({"a": "2 ** 3"}, ())()[0], float)
+
+
+def test_a_huge_power_overflows_at_once():
+    with pytest.raises(OverflowError):
+        compile_function({"a": "9 ** 9 ** 9"}, ())()

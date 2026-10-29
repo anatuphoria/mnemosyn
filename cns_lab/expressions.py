@@ -55,6 +55,16 @@ def _check(node: ast.AST, text: str, found: set[str]) -> None:
         raise ExpressionError(f"{text!r}: not allowed in a model expression")
 
 
+class _Floats(ast.NodeTransformer):
+    def visit_Constant(self, node: ast.Constant) -> ast.Constant:
+        return ast.copy_location(ast.Constant(float(node.value)), node)
+
+
+def _floats(text: str) -> str:
+    tree = _Floats().visit(ast.parse(text.strip(), mode="eval"))
+    return ast.unparse(ast.fix_missing_locations(tree))
+
+
 def names(text: str) -> frozenset[str]:
     if not isinstance(text, str) or not text.strip():
         raise ExpressionError("an expression must not be empty")
@@ -80,7 +90,7 @@ def compile_function(exprs: dict[str, str], args: tuple[str, ...],
             raise ExpressionError(f"{key}: unknown names {sorted(missing)}")
         known.add(key)
     source = "\n".join([f"def _f({', '.join(args)}):",
-                         *(f"    {key} = {text.strip()}" for key, text in exprs.items()),
+                         *(f"    {key} = {_floats(text)}" for key, text in exprs.items()),
                          f"    return ({''.join(f'{key}, ' for key in returns or exprs)})"])
     module = compile(source, "<model>", "exec")
     code = next(c for c in module.co_consts if isinstance(c, types.CodeType))
