@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QToolButton, QVBoxLa
 from .. import slices
 from ..design.theme import set_role
 from ..design.fonts import font
-from ..design.tokens import SIZE, color
+from ..design.tokens import GAP, SIZE, color
 from ..design.widgets import SegmentedControl, button_icon
 from ..state import AppState
 from .navigation import WHEEL_FACTOR
@@ -92,8 +92,8 @@ class SlicePanel(QWidget):
         self._view_key: tuple[str, str] | None = None
 
         bar = QHBoxLayout()
-        bar.setContentsMargins(8, 8, 8, 8)
-        bar.setSpacing(8)
+        bar.setContentsMargins(GAP["small"], GAP["small"], GAP["small"], GAP["small"])
+        bar.setSpacing(GAP["small"])
         self.volume_control = None
         if len(atlas.volumes) > 1:
             self.volume_control = SegmentedControl(
@@ -112,7 +112,7 @@ class SlicePanel(QWidget):
         bar.addWidget(self.axis_control)
         bar.addStretch(1)
         regions = QHBoxLayout()
-        regions.setContentsMargins(8, 0, 8, 0)
+        regions.setContentsMargins(GAP["small"], 0, GAP["small"], 0)
         if self.volume_control is not None:
             regions.addWidget(self.volume_control)
             regions.addStretch(1)
@@ -141,8 +141,8 @@ class SlicePanel(QWidget):
             self.box.addItem(letter)
 
         controls = QHBoxLayout()
-        controls.setContentsMargins(8, 8, 8, 8)
-        controls.setSpacing(8)
+        controls.setContentsMargins(GAP["small"], GAP["small"], GAP["small"], GAP["small"])
+        controls.setSpacing(GAP["small"])
         controls.addWidget(self.centre_button)
         set_role(self.position, "data")
         labels = QLabel("Labels")

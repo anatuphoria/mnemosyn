@@ -24,7 +24,7 @@ from cns_study.session import QuizChoice, Session, utc_now
 from .design import widgets
 from .design.panels import PanelGroup
 from .design.theme import set_role
-from .design.tokens import SIZE
+from .design.tokens import GAP, SIZE
 from .design.topbar import TopBar
 from .lab.viewport import Viewport
 from .lab.workspace import LabWorkspace
@@ -110,7 +110,7 @@ class MainWindow(QMainWindow):
             title += " (local build, not for sharing)"
         self.base_title = title
         self.setWindowTitle(title)
-        self.resize(1500, 900)
+        self.resize(*SIZE["window"])
         self.state = AppState(atlas)
         self.progress_path = progress_path or default_progress_path()
         self._store: ProgressStore | None = None
@@ -175,8 +175,8 @@ class MainWindow(QMainWindow):
         self.statusBar().addWidget(self.status, 1)
         self.statusBar().setFixedHeight(SIZE["status"])
         self.status_keys = QWidget()
-        QHBoxLayout(self.status_keys).setContentsMargins(0, 0, 8, 0)
-        self.status_keys.layout().setSpacing(4)
+        QHBoxLayout(self.status_keys).setContentsMargins(0, 0, GAP["small"], 0)
+        self.status_keys.layout().setSpacing(GAP["tight"])
         self._shown_keys: tuple = ()
         self.statusBar().addPermanentWidget(self.status_keys)
         self.topbar.tidy_menus()
@@ -605,7 +605,7 @@ class MainWindow(QMainWindow):
             for widget in (cap, label):
                 row.addWidget(widget)
                 widget.show()
-            row.addSpacing(8)
+            row.addSpacing(GAP["small"])
 
     def _update_status(self) -> None:
         if self.quiz_active:

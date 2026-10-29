@@ -11,7 +11,7 @@ from cns_atlas.timelines import note_parts
 from ..design import rich
 from ..design.charts import Series, SmallMultiples
 from ..design.theme import set_role
-from ..design.tokens import SIZE
+from ..design.tokens import GAP, SIZE
 from ..state import AppState
 
 
@@ -46,13 +46,13 @@ class ActivityChart(QWidget):
         self.note.setOpenExternalLinks(True)
         self.note.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         set_role(self.note, "secondary")
-        self.note.setContentsMargins(SIZE["panel_pad"], 8, SIZE["panel_pad"], 8)
+        self.note.setContentsMargins(SIZE["panel_pad"], GAP["small"], SIZE["panel_pad"], GAP["small"])
         self.note_area = QScrollArea()
         self.note_area.setWidgetResizable(True)
         self.note_area.setWidget(self.note)
         self.note.hide()
         heading = QHBoxLayout()
-        heading.setContentsMargins(SIZE["panel_pad"], 4, SIZE["panel_pad"], 4)
+        heading.setContentsMargins(SIZE["panel_pad"], GAP["tight"], SIZE["panel_pad"], GAP["tight"])
         heading.addWidget(self.title)
         heading.addStretch(1)
         heading.addWidget(self.time_label)

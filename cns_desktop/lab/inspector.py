@@ -10,6 +10,8 @@ from cns_lab.checks import read_test
 from cns_lab.experiment import FROM_A_TIME, PRESENT
 from cns_lab.why import phrase
 
+from cns_desktop.design.tokens import GAP, SIZE
+
 from .model_panel import short_source
 from .why_panel import DRAFT
 
@@ -53,7 +55,7 @@ class Inspector(QWidget):
         self.form.setContentsMargins(0, 0, 0, 0)
         self.info = QVBoxLayout()
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setContentsMargins(GAP["small"], GAP["small"], GAP["small"], GAP["small"])
         layout.addLayout(self.head)
         layout.addWidget(self.fields)
         layout.addLayout(self.info)
@@ -178,7 +180,7 @@ class Inspector(QWidget):
             self.form.addRow("Title", title)
             note = _NoteBox(doc.experiment.note)
             note.setPlaceholderText("Notes for yourself or a student")
-            note.setMaximumHeight(90)
+            note.setMaximumHeight(SIZE["note_max"])
             note.left.connect(lambda: doc.set_note(note.toPlainText())
                               if note.toPlainText() != doc.experiment.note else None)
             self.form.addRow("Note", note)

@@ -13,6 +13,7 @@ from cns_study.progress import MODES, ProgressStore, mode_stats, weakest
 from cns_study.session import utc_now
 
 from ..design.theme import set_role
+from ..design.tokens import GAP, SIZE
 
 MODE_LABELS = {"name-typed": "Name it (typed)", "name-choice": "Name it (choice)",
                "find": "Find it", "flashcard": "Flashcards"}
@@ -55,10 +56,10 @@ class ProgressDialog(QDialog):
         self.heading = QLabel("Weakest 10")
         set_role(self.heading, "heading")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(GAP["wide"], GAP["wide"], GAP["wide"], GAP["large"])
+        layout.setSpacing(GAP["medium"])
         layout.addWidget(self.table)
         layout.addWidget(self.heading)
         layout.addWidget(self.weakest)
         layout.addWidget(buttons)
-        self.resize(720, 480)
+        self.resize(*SIZE["dialog"])

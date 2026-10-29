@@ -56,6 +56,8 @@ def test_type_ramp_and_spacing_match_the_spec():
         "label": (13, 20, 500), "secondary": (12, 16, 400), "data": (11, 14, 500),
     }
     assert tokens.SPACE == (4, 8, 12, 16, 24, 32)
+    assert tokens.GAP == {"tight": 4, "small": 8, "medium": 12, "large": 16, "wide": 24,
+                          "widest": 32}
     assert tokens.RADIUS == {"small": 4, "control": 6, "panel": 8}
     size = tokens.SIZE
     assert (size["control"], size["row"], size["header"], size["status"]) == (28, 28, 40, 24)

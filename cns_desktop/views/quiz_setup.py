@@ -12,6 +12,7 @@ from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, due_and_new, utc_now
 
 from ..design.theme import set_role
+from ..design.tokens import GAP
 
 MODES = (("Name it", "name"), ("Find it", "find"), ("Flashcards", "flashcard"))
 STYLES = (("Type the name", "name-typed"), ("Choose from 4", "name-choice"))
@@ -61,8 +62,8 @@ class QuizSetup(QDialog):
         form.setHorizontalSpacing(16)
         form.setVerticalSpacing(8)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 16)
-        layout.setSpacing(16)
+        layout.setContentsMargins(GAP["wide"], GAP["wide"], GAP["wide"], GAP["large"])
+        layout.setSpacing(GAP["large"])
         layout.addLayout(form)
         layout.addWidget(self.note)
         layout.addWidget(self.buttons)

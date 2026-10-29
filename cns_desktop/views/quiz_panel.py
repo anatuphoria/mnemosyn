@@ -17,7 +17,7 @@ from cns_study.session import Session
 
 from ..design import rich
 from ..design.theme import set_role
-from ..design.tokens import COLOURS, SIZE
+from ..design.tokens import COLOURS, GAP, SIZE
 from ..state import AppState
 from .info_panel import entry_html
 
@@ -94,7 +94,7 @@ class QuizPanel(QWidget):
         layout = QVBoxLayout(self)
         pad = SIZE["panel_pad"]
         layout.setContentsMargins(pad, pad, pad, pad)
-        layout.setSpacing(8)
+        layout.setSpacing(GAP["small"])
         for widget in (self.counter, self.prompt, self.answer_box, *self.choice_buttons,
                        self.feedback, self.back, self.reveal_button):
             layout.addWidget(widget)

@@ -32,6 +32,7 @@ TYPE = {
 }
 
 SPACE = (4, 8, 12, 16, 24, 32)
+GAP = dict(zip(("tight", "small", "medium", "large", "wide", "widest"), SPACE, strict=True))
 
 SIZE = {
     "control": 28,
@@ -52,6 +53,9 @@ SIZE = {
     "central_min": 480,
     "central_min_slices": 240,
     "narrow": 1100,
+    "note_max": 90,
+    "window": (1500, 900),
+    "dialog": (720, 480),
 }
 
 RADIUS = {"small": 4, "control": 6, "panel": 8}

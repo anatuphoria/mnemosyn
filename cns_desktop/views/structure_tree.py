@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
-from ..design.tokens import SIZE
+from ..design.tokens import GAP, SIZE
 from ..design.widgets import SearchField
 from ..state import AppState
 
@@ -21,10 +21,10 @@ class StructureTree(QWidget):
         self.tree.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 8, 0, 0)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, GAP["small"], 0, 0)
+        layout.setSpacing(GAP["small"])
         search = QVBoxLayout()
-        search.setContentsMargins(8, 0, 8, 0)
+        search.setContentsMargins(GAP["small"], 0, GAP["small"], 0)
         search.addWidget(self.filter_box)
         layout.addLayout(search)
         layout.addWidget(self.tree)

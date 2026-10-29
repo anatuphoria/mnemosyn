@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QScrollArea, QStacke
                                QVBoxLayout, QWidget)
 
 from cns_desktop.design.theme import set_role, set_tone
-from cns_desktop.design.tokens import SIZE
+from cns_desktop.design.tokens import GAP, SIZE
 from cns_desktop.design.widgets import SegmentedControl
 
 STRIP_WIDTH = 200
@@ -19,8 +19,8 @@ class StripCard(QFrame):
         self.setProperty("card", "true")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         column = QVBoxLayout(self)
-        column.setContentsMargins(12, 8, 12, 8)
-        column.setSpacing(2)
+        column.setContentsMargins(GAP["medium"], GAP["small"], GAP["medium"], GAP["small"])
+        column.setSpacing(GAP["tight"])
         self.title = QLabel()
         set_role(self.title, "label")
         self.detail = QLabel()
@@ -59,14 +59,14 @@ class Strip(QScrollArea):
         self.setProperty("strip", "true")
         body = QWidget()
         column = QVBoxLayout(body)
-        column.setContentsMargins(8, 12, 8, 12)
-        column.setSpacing(8)
+        column.setContentsMargins(GAP["small"], GAP["medium"], GAP["small"], GAP["medium"])
+        column.setSpacing(GAP["small"])
         self.heading = QLabel("OUTSIDE THE BRAIN")
         set_role(self.heading, "data")
         column.addWidget(self.heading)
         self.cards = QVBoxLayout()
         self.cards.setContentsMargins(0, 0, 0, 0)
-        self.cards.setSpacing(8)
+        self.cards.setSpacing(GAP["small"])
         column.addLayout(self.cards)
         column.addStretch(1)
         self.setWidget(body)
@@ -83,14 +83,14 @@ class Viewport(QWidget):
         self.top_bar.setProperty("panelheader", "true")
         self.top_bar.setFixedHeight(SIZE["header"])
         bar = QHBoxLayout(self.top_bar)
-        bar.setContentsMargins(SIZE["panel_pad"], 0, 8, 0)
-        bar.setSpacing(4)
+        bar.setContentsMargins(SIZE["panel_pad"], 0, GAP["small"], 0)
+        bar.setSpacing(GAP["tight"])
         self.view_switch = SegmentedControl([("brain", "Brain"), ("circuit", "Circuit")])
         self.view_switch.changed.connect(lambda key: self.show_circuit(key == "circuit"))
         self.tools = QWidget()
         tools = QHBoxLayout(self.tools)
         tools.setContentsMargins(0, 0, 0, 0)
-        tools.setSpacing(2)
+        tools.setSpacing(GAP["tight"])
         bar.addStretch(1)
         bar.addWidget(self.view_switch)
         bar.addStretch(1)

@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QTreeWidget, QTre
 
 from cns_desktop.design import icons
 from cns_desktop.design.fonts import font
-from cns_desktop.design.tokens import SIZE, color
+from cns_desktop.design.tokens import GAP, SIZE, color
 from cns_desktop.design.widgets import SearchField, button_icon
 
 from .labels import plain
@@ -33,7 +33,7 @@ class ExperimentsPanel(QTreeWidget):
         self.header().setMaximumSectionSize(META_WIDTH)
         self.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setIndentation(12)
+        self.setIndentation(SIZE["indent"])
         self.setDragEnabled(True)
         self.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
@@ -126,10 +126,10 @@ class ExperimentsPage(QWidget):
         self.search = SearchField("Find an experiment")
         self.search.textChanged.connect(self.filter)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 8, 0, 0)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, GAP["small"], 0, 0)
+        layout.setSpacing(GAP["small"])
         row = QVBoxLayout()
-        row.setContentsMargins(8, 0, 8, 0)
+        row.setContentsMargins(GAP["small"], 0, GAP["small"], 0)
         row.addWidget(self.search)
         layout.addLayout(row)
         layout.addWidget(self.panel, 1)

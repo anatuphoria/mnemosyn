@@ -15,7 +15,7 @@ from cns_atlas.pathways import PathwayText, lights, side_of
 from ..design import rich
 from ..design.fonts import font
 from ..design.theme import set_role
-from ..design.tokens import SIZE, color
+from ..design.tokens import GAP, SIZE, color
 from ..design.widgets import SegmentedControl, button_icon
 from ..state import AppState
 from .info_panel import references_html
@@ -35,7 +35,7 @@ def _column(*widgets) -> QWidget:
     layout = QVBoxLayout(page)
     layout.setContentsMargins(SIZE["panel_pad"], SIZE["panel_pad"], SIZE["panel_pad"],
                               SIZE["panel_pad"])
-    layout.setSpacing(8)
+    layout.setSpacing(GAP["small"])
     for widget in widgets:
         if isinstance(widget, QHBoxLayout):
             layout.addLayout(widget)
