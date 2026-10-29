@@ -16,14 +16,17 @@ class BrainOverlay:
         self.actors: dict[int, vtkBillboardTextActor3D] = {}
         self.labels: dict[int, str] = {}
 
-    def show(self, labels: dict[int, tuple[str, tuple[int, int, int]]]) -> None:
+    def show(self, labels: dict[int, tuple[str, tuple[int, int, int]]],
+             positions: dict | None = None) -> None:
         for structure_id in set(self.actors) - set(labels):
             self.view.renderer.RemoveActor(self.actors.pop(structure_id))
         for structure_id, (text, color) in labels.items():
             actor = self.actors.get(structure_id)
             if actor is None:
                 actor = vtkBillboardTextActor3D()
-                actor.SetPosition(*self.view.centre_of(structure_id))
+                where = (positions or {}).get(structure_id)
+                actor.SetPosition(*(self.view.centre_of(structure_id) if where is None
+                                    else where))
                 actor.GetTextProperty().SetFontSize(14)
                 actor.GetTextProperty().SetBackgroundColor(0.09, 0.09, 0.11)
                 actor.GetTextProperty().SetBackgroundOpacity(0.8)
@@ -58,11 +61,17 @@ class LabBrain:
         document.selection_changed.connect(self._from_lab)
         state.selection_changed.connect(self._from_brain)
 
-    def _shaped(self) -> dict[str, int]:
+    def _shaped(self) -> dict[str, list[int]]:
         atlas = self.state.atlas
-        return {p.key: p.structure for p in self.document.model.parts
-                if p.structure is not None and p.structure in atlas
-                and atlas.has_mesh(p.structure) and p.structure in self.view.blocks}
+        shaped = {}
+        for part in self.document.model.parts:
+            if part.structure is None or part.structure not in atlas:
+                continue
+            ids = [i for i in self.state.geometry_in(part.structure)
+                   if atlas.has_mesh(i) and i in self.view.blocks]
+            if ids:
+                shaped[part.key] = ids
+        return shaped
 
     def strip_keys(self) -> list[str]:
         shaped = self._shaped()
@@ -74,12 +83,12 @@ class LabBrain:
     def activate(self) -> None:
         self.active = True
         self._fill_strip()
-        self.state.set_focus(self._shaped().values())
+        self.state.set_focus([i for ids in self._shaped().values() for i in ids])
         self.refresh()
 
     def deactivate(self) -> None:
         self.active = False
-        self.view.set_lab_colors({i: None for i in self._shaped().values()})
+        self.view.set_lab_colors({i: None for ids in self._shaped().values() for i in ids})
         self.overlay.clear()
         self.state.set_focus(None)
 
@@ -124,31 +133,33 @@ class LabBrain:
         if not self.active:
             return
         shaped = self._shaped()
-        colors, labels = {}, {}
+        colors, labels, positions = {}, {}, {}
         atlas = self.state.atlas
         for part in self.document.model.parts:
             text, colour = self._text(part)
             if part.key in shaped:
-                structure_id = shaped[part.key]
-                own = tuple(c / 255 for c in atlas.get(structure_id).rgb_triplet)
-                if self.document.run is None:
-                    colors[structure_id] = None
-                    labels[structure_id] = (text, colour)
-                    continue
+                ids = shaped[part.key]
+                labels[ids[0]] = (text, colour)
+                positions[ids[0]] = sum(self.view.centre_of(i) for i in ids) / len(ids)
                 ratio = self._ratio(part.values[0]) if part.values else 1.0
                 amount = min(1.0, abs(math.log(ratio)) / math.log(3)) if ratio > 0 else 1.0
                 target = RAISED if ratio >= 1 else LOWERED
-                colors[structure_id] = _mix(own, target, amount)
-                labels[structure_id] = (text, colour)
+                for structure_id in ids:
+                    if self.document.run is None:
+                        colors[structure_id] = None
+                        continue
+                    own = tuple(c / 255 for c in atlas.get(structure_id).rgb_triplet)
+                    colors[structure_id] = _mix(own, target, amount)
             elif part.key in self._buttons:
                 self._buttons[part.key].setText(text)
         self.view.set_lab_colors(colors)
-        self.overlay.show(labels)
+        self.overlay.show(labels, positions)
 
     def _from_lab(self, selection) -> None:
         if not self.active or self._syncing or not selection or selection[0] != "part":
             return
-        structure_id = self._shaped().get(selection[1])
+        part = self.document.model.part(selection[1])
+        structure_id = part.structure if selection[1] in self._shaped() else None
         if structure_id is not None and self.state.selected != structure_id:
             self._syncing = True
             try:
@@ -159,7 +170,9 @@ class LabBrain:
     def _from_brain(self, structure_id) -> None:
         if not self.active or self._syncing:
             return
-        part = next((k for k, s in self._shaped().items() if s == structure_id), None)
+        part = next((k for k, ids in self._shaped().items()
+                     if structure_id in ids
+                     or structure_id == self.document.model.part(k).structure), None)
         if part is not None:
             self._syncing = True
             try:

@@ -40,7 +40,7 @@ def test_entering_the_lab_shows_its_docks_and_leaving_restores_the_view(qapp, wi
     assert all(not d.isHidden() for d in (lab.dock("Experiments"), lab.dock("Why"),
                                           lab.dock("Timeline")))
     assert not lab.toolbar.isHidden() and lab.experiment_menu.menuAction().isVisible()
-    assert window.state.focus == {111, 101} and window.viewport.top_bar.isVisible()
+    assert window.state.focus == {111, 101, 102} and window.viewport.top_bar.isVisible()
     window.workspaces.switch("Explore")
     assert all(d.isHidden() for d in lab.docks) and lab.toolbar.isHidden()
     assert window.state.focus is None and window.state.selected == 120

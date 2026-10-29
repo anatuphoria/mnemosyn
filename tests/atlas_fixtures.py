@@ -792,7 +792,7 @@ values = ["x"]
 
 [[parts]]
 key = "b"
-structure = 101
+structure = 100
 x = 1
 y = 0
 values = ["y"]

@@ -9,7 +9,7 @@ from tools.build_atlas.recipe import BuildError
 def test_the_toy_model_loads(tmp_path):
     (model,) = load_toy(tmp_path)
     assert model.key == "toy" and model.name == "Toy axis" and model.route == "mood"
-    assert [p.structure for p in model.parts] == [111, 101, None]
+    assert [p.structure for p in model.parts] == [111, 100, None]
     assert model.experiment("stress").length == 60 and model.max_step == 30
     assert model.experiment("pill").options[0].name == "Dose"
     assert model.tests[0].readings[0].after == 60

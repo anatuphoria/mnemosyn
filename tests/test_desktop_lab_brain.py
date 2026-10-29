@@ -42,7 +42,8 @@ def test_model_structures_are_coloured_and_labelled(window):
     assert colour(window, 111) != own
     assert set(brain.overlay.labels) == {111, 101}
     assert brain.overlay.labels[111].startswith("Alpha · X")
-    assert window.state.focus == {111, 101}
+    assert window.state.focus == {111, 101, 102}
+    assert colour(window, 102) == colour(window, 101)
 
 
 def test_raised_values_lean_toward_the_raised_colour(window):
@@ -68,8 +69,11 @@ def test_selection_is_shared_between_the_brain_and_the_lab(window):
     brain.activate()
     doc.select(("part", "a"))
     assert window.state.selected == 111
-    window.state.select(101)
+    window.state.select(102)
     assert doc.selection == ("part", "b")
+    doc.select(("part", "a"))
+    doc.select(("part", "b"))
+    assert window.state.selected == 100
     brain.deactivate()
     window.state.select(111)
     assert doc.selection == ("part", "b")
@@ -78,7 +82,7 @@ def test_selection_is_shared_between_the_brain_and_the_lab(window):
 def test_a_part_without_a_shape_lives_in_the_body_strip(window, monkeypatch):
     atlas = window.state.atlas
     real = atlas.has_mesh
-    monkeypatch.setattr(atlas, "has_mesh", lambda i: False if i == 101 else real(i))
+    monkeypatch.setattr(atlas, "has_mesh", lambda i: False if i in (101, 102) else real(i))
     doc, brain = lab_of(window)
     brain.activate()
     assert brain.strip_keys() == ["b", "body"]
