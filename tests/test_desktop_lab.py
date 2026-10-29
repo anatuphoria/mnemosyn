@@ -198,3 +198,12 @@ def test_the_scope_text_lists_its_references(window):
     ((title, text),) = shown
     assert title == "What this model includes"
     assert "[1]" in text and "References" in text and "1. Author A" in text
+
+
+def test_strip_rows_offer_the_same_menu_as_circuit_boxes(window):
+    lab = window.lab
+    window.workspaces.switch("Lab")
+    menu = lab.brain.strip_menu("body")
+    assert [a.text() for a in menu.actions()] == ["Show its chart"]
+    menu.actions()[0].trigger()
+    assert lab.dock("Charts").isVisible()

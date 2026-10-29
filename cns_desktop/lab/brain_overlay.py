@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import math
 
-from PySide6.QtWidgets import QToolButton
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QMenu, QToolButton
 from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D
 
 from .labels import plain, removed_parts
@@ -58,6 +60,8 @@ class LabBrain:
         self.active = False
         self._buttons: dict[str, QToolButton] = {}
         self._syncing = False
+        self.on_show_chart = None
+        self.on_show_in_atlas = None
         document.changed.connect(self.refresh)
         document.playhead_moved.connect(lambda _t: self.refresh())
         document.selection_changed.connect(self._from_lab)
@@ -82,6 +86,17 @@ class LabBrain:
     def strip_button(self, key: str) -> QToolButton:
         return self._buttons[key]
 
+    def strip_menu(self, key: str) -> QMenu:
+        menu = QMenu(self._buttons.get(key))
+        part = self.document.model.part(key)
+        if (part.structure is not None and part.structure in self.state.atlas
+                and self.on_show_in_atlas is not None):
+            menu.addAction(QAction("Show in the atlas", menu,
+                                   triggered=lambda: self.on_show_in_atlas(key)))
+        if self.on_show_chart is not None:
+            menu.addAction(QAction("Show its chart", menu, triggered=lambda: self.on_show_chart(key)))
+        return menu
+
     def activate(self) -> None:
         self.active = True
         self._fill_strip()
@@ -105,6 +120,9 @@ class LabBrain:
             button = QToolButton()
             button.setAutoRaise(True)
             button.clicked.connect(lambda _=False, k=key: self.document.select(("part", k)))
+            button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            button.customContextMenuRequested.connect(
+                lambda pos, k=key, b=button: self.strip_menu(k).exec(b.mapToGlobal(pos)))
             layout.addWidget(button)
             self._buttons[key] = button
         layout.addStretch(1)

@@ -82,7 +82,9 @@ class LabWorkspace:
         doc.wants_longer.connect(self._offer_longer)
         self.inspector.show_in_atlas.connect(self.show_part_in_atlas)
         self.circuit.show_in_atlas.connect(self.show_part_in_atlas)
-        self.circuit.show_chart.connect(lambda _key: self._docks["Charts"].raise_())
+        self.circuit.show_chart.connect(self.show_chart)
+        self.brain.on_show_chart = self.show_chart
+        self.brain.on_show_in_atlas = self.show_part_in_atlas
         self.timeline.edit_requested.connect(self._edit_block)
         self._saved = None
         self._set_enabled(False)
@@ -301,6 +303,10 @@ class LabWorkspace:
 
     def show_scope(self) -> None:
         self.window.inform("What this model includes", self.scope_text())
+
+    def show_chart(self, _key: str = "") -> None:
+        self._docks["Charts"].show()
+        self._docks["Charts"].raise_()
 
     def show_part_in_atlas(self, key: str) -> None:
         part = self.document.model.part(key)
