@@ -77,6 +77,7 @@
 "effect.gr_signal" = "The glucocorticoid receptor reads cortisol and dexamethasone together, since both bind it [nieman2008]."
 "effect.mr_hold" = "Cortisol on the high affinity mineralocorticoid receptor holds back CRH release [andersen2013] [karin2020]."
 "effect.gr_hold" = "Cortisol and dexamethasone on the low affinity glucocorticoid receptor hold back both CRH and ACTH release [karin2020]."
+"effect.portal_crh" = "CRH reaches the anterior pituitary through the portal vessels of the pituitary stalk [karin2020]."
 "effect.acth_drive" = "ACTH drives the adrenal cortex to make cortisol, an answer that levels off at very high ACTH (an assumption of this project)."
 
 "term.make_crh" = "The paraventricular nucleus releases CRH into the pituitary's portal blood [karin2020]."

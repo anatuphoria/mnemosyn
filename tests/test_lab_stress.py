@@ -135,3 +135,12 @@ def test_values_inside_their_ranges_give_a_run_or_a_clean_error():
         except (SettleError, SolverError):
             continue
         assert np.all(np.isfinite(run.states)), (values, blocks)
+
+
+def test_a_cut_stalk_shows_as_a_cut_link(sim):
+    model = sim.model
+    arrows = [f.key for f in (*model.effects, *model.terms) if f.arrow == ("pvn", "pituitary")]
+    assert arrows == ["portal_crh"]
+    run = sim.run(Experiment("stress", 1, 1440.0, 480.0, (Block("stalk_cut", 60.0),)))
+    assert run.factor("portal_crh", 600.0) == 0.0
+    assert run.factor("make_crh", 600.0) > 0

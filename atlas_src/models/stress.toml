@@ -324,6 +324,12 @@ kind = "holds back"
 arrow = ["blood", "pituitary"]
 
 [[effects]]
+key = "portal_crh"
+expr = "crh * stalk"
+kind = "drives"
+arrow = ["pvn", "pituitary"]
+
+[[effects]]
 key = "acth_drive"
 expr = "acth * (1 + K_sat) / (acth + K_sat)"
 kind = "drives"
@@ -335,7 +341,6 @@ value = "crh"
 sign = 1
 expr = "w1 * rhythm * mr_hold * gr_hold"
 kind = "drives"
-arrow = ["pvn", "pituitary"]
 
 [[terms]]
 key = "clear_crh"
@@ -348,7 +353,7 @@ kind = "clears"
 key = "make_acth"
 value = "acth"
 sign = 1
-expr = "w2 * corticotrophs * gr_hold * crh * stalk"
+expr = "w2 * corticotrophs * gr_hold * portal_crh"
 kind = "drives"
 
 [[terms]]
