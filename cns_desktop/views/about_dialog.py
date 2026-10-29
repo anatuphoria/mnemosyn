@@ -17,6 +17,8 @@ APP_NAME = "Mnemosyn"
 WORDMARK = Path(__file__).resolve().parents[1] / "resources" / "wordmark.svg"
 WORDMARK_WIDTH = 320
 SIZE = (720, 520)
+BUILT_WITH = ("The interface uses the Inter typeface by Rasmus Andersson (SIL Open Font License 1.1) "
+              "and the Lucide icons (ISC License).")
 
 
 def app_version() -> str:
@@ -46,7 +48,8 @@ def about_text(atlas: Atlas) -> str:
     label = f"{current}, test version" if is_test_version(current) else current
     return (f"<h3>{APP_NAME}</h3><p>Version {escape(label)}</p>"
             f"<p>{escape(DISCLAIMER)}</p>"
-            f"<p>Atlas package: {name} {version}</p>{notice}")
+            f"<p>Atlas package: {name} {version}</p>{notice}"
+            f"<p>{escape(BUILT_WITH)}</p>")
 
 
 def source_label(source: Source) -> str:
