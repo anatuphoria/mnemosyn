@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ast
+import keyword
 import math
+import types
 from collections.abc import Callable
 
 FUNCTIONS = {"exp": 1, "log": 1, "cos": 1, "sin": 1, "min": 2, "max": 2, "hill": 3, "pos": 1}
@@ -18,7 +20,7 @@ def hill(x: float, k: float, n: float) -> float:
 
 
 def pos(x: float) -> float:
-    return x if x > 0.0 else 0.0
+    return max(0.0, x)
 
 
 _GLOBALS = {"__builtins__": {}, "exp": math.exp, "log": math.log, "cos": math.cos,
@@ -66,15 +68,19 @@ def names(text: str) -> frozenset[str]:
 
 
 def compile_function(exprs: dict[str, str], args: tuple[str, ...]) -> Callable[..., tuple]:
+    bad = [n for n in (*args, *exprs) if not n.isidentifier() or keyword.iskeyword(n)
+           or n in _GLOBALS]
+    if bad:
+        raise ExpressionError(f"not usable as names: {sorted(bad)}")
     known = set(args)
     for key, text in exprs.items():
         missing = names(text) - known
         if missing:
             raise ExpressionError(f"{key}: unknown names {sorted(missing)}")
         known.add(key)
-    lines = [f"def _f({', '.join(args)}):"]
-    lines += [f"    {key} = {text.strip()}" for key, text in exprs.items()]
-    lines.append(f"    return ({''.join(f'{key}, ' for key in exprs)})")
-    space = dict(_GLOBALS)
-    exec("\n".join(lines), space)
-    return space["_f"]
+    source = "\n".join([f"def _f({', '.join(args)}):",
+                         *(f"    {key} = {text.strip()}" for key, text in exprs.items()),
+                         f"    return ({''.join(f'{key}, ' for key in exprs)})"])
+    module = compile(source, "<model>", "exec")
+    code = next(c for c in module.co_consts if isinstance(c, types.CodeType))
+    return types.FunctionType(code, dict(_GLOBALS))

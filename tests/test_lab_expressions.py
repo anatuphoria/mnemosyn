@@ -52,3 +52,9 @@ def test_bad_moments_are_refused(bad):
 def test_bad_durations_are_refused(bad):
     with pytest.raises(TimeError):
         duration(bad)
+
+
+@pytest.mark.parametrize("bad", ["class", "a b", "hill", "pi"])
+def test_keys_must_be_plain_names(bad):
+    with pytest.raises(ExpressionError):
+        compile_function({bad: "1"}, ("x",))
