@@ -172,3 +172,20 @@ def test_lab_keys_work_only_in_the_lab(window):
     assert lab.action("Undo").isEnabled()
     lab.action("Undo").trigger()
     assert lab.document.experiment.blocks == ()
+
+
+def test_a_quiz_or_a_route_leaves_the_lab_first(window):
+    from cns_study.session import QuizChoice
+
+    window.workspaces.switch("Lab")
+    assert not window.pathway_dock.toggleViewAction().isEnabled()
+    assert not window.tree_dock.toggleViewAction().isEnabled()
+    dialog = window.open_quiz_setup()
+    assert window.workspaces.current == "Explore"
+    dialog.reject()
+    window.workspaces.switch("Lab")
+    window.start_quiz(QuizChoice("name-typed", "structures", None, False))
+    assert window.workspaces.current == "Explore" and window.quiz_active
+    assert all(d.isHidden() for d in window.lab.docks)
+    window.leave_quiz()
+    assert window.pathway_dock.toggleViewAction().isEnabled()

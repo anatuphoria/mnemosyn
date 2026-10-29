@@ -273,6 +273,13 @@ class MainWindow(QMainWindow):
     def _arrange_pathways(self) -> None:
         self.pathway_dock.raise_()
 
+    def workspace_docks(self) -> list[QDockWidget]:
+        return [self.tree_dock, self.pathway_dock, self.slice_dock, self.info_dock]
+
+    def _out_of_lab(self) -> None:
+        if self.workspaces.current == "Lab":
+            self.workspaces.switch("Explore")
+
     def sync_after_layout(self, name: str) -> None:
         if name == "Pathways" and self.pathway_dock.isVisible():
             self.pathway_dock.raise_()
@@ -310,6 +317,7 @@ class MainWindow(QMainWindow):
         return self._answers
 
     def open_quiz_setup(self) -> QuizSetup:
+        self._out_of_lab()
         self.slices.label_centres()
         dialog = QuizSetup(self.state.atlas, self.progress_store(), self)
         dialog.accepted.connect(lambda: self.start_quiz(dialog.choice()))
@@ -333,6 +341,7 @@ class MainWindow(QMainWindow):
                           rng=rng)
         if self.pathway_active:
             self.pathways.leave()
+        self._out_of_lab()
         self.enter_quiz()
         shown = choice.level == "tracts" and choice.mode == "find"
         self.state.set_hidden(self.state.tract_ids, not shown)

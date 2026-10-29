@@ -112,6 +112,9 @@ class Workspaces(QObject):
             if not in_lab:
                 dock.hide()
             dock.toggleViewAction().setEnabled(in_lab)
+        if self.lab_docks:
+            for dock in self.window.workspace_docks():
+                dock.toggleViewAction().setEnabled(not in_lab)
         if not in_lab:
             self.window.quiz_dock.setVisible(self.window.quiz_active)
         self.window.sync_after_layout(name)
