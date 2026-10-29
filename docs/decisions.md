@@ -66,7 +66,7 @@ entry replaces it and the old one says so.
 | 58 | 2026-10-19 | Test releases are not signed | in force |
 | 59 | 2026-10-19 | Local-only data may be packaged for the owner's own machines, never shared | in force |
 | 60 | 2026-10-19 | Releases come from version tags, as pre-releases below 1.0 | in force |
-| 61 | 2026-10-19 | ΜΝΗΜΟΣΥΝΗ is the project's identity | changed by 73 |
+| 61 | 2026-10-19 | ΜΝΗΜΟΣΥΝΗ is the project's identity | changed by 73 and 74 |
 | 62 | 2026-10-19 | The README is a clean front page; the website holds the details | in force |
 | 63 | 2026-10-29 | The physiology layer is a Lab workspace driven by model files, starting with the stress axis | in force |
 | 64 | 2026-10-29 | Lab results are computed from cited models in real units, and the Why chain comes only from declared links | in force |
@@ -78,7 +78,8 @@ entry replaces it and the old one says so.
 | 70 | 2026-10-29 | Charts are small multiples with one time axis | in force |
 | 71 | 2026-10-29 | Each workspace shows only its own panels | in force |
 | 72 | 2026-10-29 | The top bar's mark is one turn of the Greek key | in force |
-| 73 | 2026-10-29 | The Greek key stands beside ΜΝΗΜΟΣΥΝΗ in a family of four logos, and the meander dividers are gone | in force |
+| 73 | 2026-10-29 | The Greek key stands beside ΜΝΗΜΟΣΥΝΗ in a family of four logos, and the meander dividers are gone | changed by 74 |
+| 74 | 2026-10-29 | The app icon is the blue Greek key on the dark square | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -586,7 +587,7 @@ Design: [packaging, sections 5 and 6](specs/2026-10-19-packaging-design.md).
 
 ## 61. ΜΝΗΜΟΣΥΝΗ is the project's identity
 
-2026-10-19, chosen by the owner from mockups. Changed by 73. The wordmark is ΜΝΗΜΟΣΥΝΗ in GFS
+2026-10-19, chosen by the owner from mockups. Changed by 73 and 74. The wordmark is ΜΝΗΜΟΣΥΝΗ in GFS
 Didot, spaced like an inscription, between two blue Greek key (meander) bands; the mark is the
 single character 𖡎 (Bamum letter MAEM, chosen for its shape) on the app's dark square, used as
 the app, installer, AppImage and website icon; the meander is the divider between sections; the badges are our own, in
@@ -728,7 +729,7 @@ key carries the idea of memory on its own.
 
 ## 73. The Greek key stands beside ΜΝΗΜΟΣΥΝΗ in a family of four logos, and the meander dividers are gone
 
-2026-10-29, chosen by the owner from mockups. The blue Greek key of decision 72 now goes with the name
+2026-10-29, chosen by the owner from mockups. Changed by 74. The blue Greek key of decision 72 now goes with the name
 in four logos, each kept for its own place: the line (key and name side by side, used in About), the
 latin (a larger key with MNEMOSYN under the Greek name), the seal (the key centred above the name,
 which opens the README and the website) and the signature (key, hairline, name). Each comes in a
@@ -737,3 +738,11 @@ app uses. The meander bands around the name and the meander dividers between sec
 app, installer and website icon stays the Bamum mark of decision 61 for now.
 Why: the key carries the identity on its own, and one repeating band between every section was
 decoration without meaning.
+
+## 74. The app icon is the blue Greek key on the dark square
+
+2026-10-29, chosen by the owner from mockups. The app, installer, AppImage and Windows icon, the
+website favicon and the website header logo are the blue Greek key of decision 72 on the app's dark
+square with rounded corners, drawn by `python -m tools.brand` from the same key points the app uses.
+It replaces the Bamum letter MAEM of decision 61, and the Noto Sans Bamum font is no longer kept.
+Why: one sign, the key, now marks the app everywhere, from the top bar to the taskbar.

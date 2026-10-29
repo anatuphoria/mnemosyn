@@ -183,13 +183,13 @@ tools/package/      Windows installer and Linux AppImage packaging
 tools/brand/        draws the logos, icon and badges from the fonts in brand/fonts/
 tools/build_site.py writes the website pages; site/ holds their sources and styles
 atlas_src/          committed atlas sources: recipe, structures, ids.lock, knowledge, models
-brand/              logos, badges, screenshots and the logo fonts with their licences
+brand/              logos, icon, badges, screenshots and the logo font with its licence
 docs/               design documents (specs/), the decision log and packaging instructions
 tests/
 ```
 
 The code is under the GNU General Public License v3.0 or later (`LICENSE`); the descriptions are CC
-BY 4.0; the GFS Didot and Noto Sans Bamum fonts used for the logos are under the SIL Open Font
-Licence (OFL, in `brand/fonts/`), as is the Inter typeface of the interface. The design of every
+BY 4.0; the GFS Didot font used for the logos is under the SIL Open Font Licence (OFL, in
+`brand/fonts/`), as is the Inter typeface of the interface. The design of every
 part is in the [design documents](https://mnemo.saeed.cool/design/), and the limits the app is held
 to are on the [Performance page](https://mnemo.saeed.cool/performance/).
