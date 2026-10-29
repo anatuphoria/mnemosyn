@@ -616,7 +616,8 @@ def hyp_volume() -> np.ndarray:
 def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
                                local: bool = False, behaviour: bool = False,
                                members: str = "", spine: bool = False,
-                               shells: bool = False, cord: bool = False) -> Path:
+                               shells: bool = False, cord: bool = False,
+                               lab: bool = False) -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -695,12 +696,281 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
             (src / "knowledge" / "en" / "pathway-gland.md").write_text(TOY_GLAND_TEXT)
         (src / "timelines").mkdir(exist_ok=True)
         (src / "timelines" / "mood.toml").write_text(TOY_TIMELINE)
+    if lab:
+        (src / "models").mkdir(exist_ok=True)
+        (src / "models" / "toy.toml").write_text(TOY_MODEL)
+        (src / "knowledge" / "en" / "lab-toy.toml").write_text(TOY_LAB_TEXTS)
     return src
 
 
 def build_extended_toy_atlas(root: Path, tracts: bool = True, pathways: bool = False,
-                             local: bool = False, behaviour: bool = False) -> Path:
+                             local: bool = False, behaviour: bool = False,
+                             lab: bool = False) -> Path:
     from tools.build_atlas.build import build
 
-    src = write_extended_source_tree(root, tracts, pathways, local, behaviour)
+    src = write_extended_source_tree(root, tracts, pathways, local, behaviour, lab=lab)
     return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)
+
+
+TOY_MODEL = """\
+key = "toy"
+version = 1
+route = "mood"
+start_clock = "08:00"
+settle_speedup = 20
+settle_days = 5
+max_step = "30 min"
+why_threshold = 0.1
+
+[[values]]
+key = "x"
+unit = "model units"
+start = 1.0
+display_scale = 10.0
+display_unit = "ng/mL"
+other_unit = "nmol/L"
+other_scale = 2.0
+normal = [5, 15]
+lane = 1
+refs = ["ref2020"]
+
+[[values]]
+key = "y"
+unit = "model units"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+lane = 2
+
+[[values]]
+key = "m"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+slow = true
+lane = 3
+
+[[parameters]]
+key = "k"
+value = 1.0
+unit = "model units"
+low = 0.1
+high = 10
+refs = ["ref2020"]
+
+[[parameters]]
+key = "w"
+value = 0.1
+unit = "/min"
+low = 0.01
+high = 1
+refs = ["ref2020"]
+
+[[parameters]]
+key = "a"
+value = 0.3
+unit = "fraction"
+low = 0
+high = 0.9
+
+[[parameters]]
+key = "stress"
+value = 0
+unit = "times basal"
+low = 0
+high = 5
+
+[[parts]]
+key = "a"
+structure = 111
+x = 0
+y = 0
+values = ["x"]
+
+[[parts]]
+key = "b"
+structure = 101
+x = 1
+y = 0
+values = ["y"]
+
+[[parts]]
+key = "body"
+x = 2
+y = 0
+values = ["m"]
+
+[[effects]]
+key = "fb"
+expr = "hill(y, k, 2) / hill(1, k, 2)"
+kind = "holds back"
+arrow = ["b", "a"]
+
+[[effects]]
+key = "rhythm"
+expr = "1 + a * cos(2 * pi * (clock - 360) / 1440)"
+kind = "drives"
+
+[[terms]]
+key = "make_x"
+value = "x"
+sign = 1
+expr = "w * fb * rhythm * (1 + stress)"
+kind = "drives"
+arrow = ["a", "b"]
+
+[[terms]]
+key = "clear_x"
+value = "x"
+sign = -1
+expr = "w * x"
+kind = "clears"
+
+[[terms]]
+key = "make_y"
+value = "y"
+sign = 1
+expr = "w * m * x"
+kind = "drives"
+arrow = ["b", "body"]
+
+[[terms]]
+key = "clear_y"
+value = "y"
+sign = -1
+expr = "w * y"
+kind = "clears"
+
+[[terms]]
+key = "grow_m"
+value = "m"
+sign = 1
+expr = "0.001 * m * (x - 1)"
+kind = "grows"
+
+[[experiments]]
+key = "remove_b"
+group = "Remove or cut"
+mode = "present"
+edits = [{ op = "clamp", target = "m", expr = "0" }]
+
+[[experiments]]
+key = "pill"
+group = "Drugs"
+options = [{ key = "dose", unit = "units", default = 1, low = 0, high = 10 }]
+edits = [{ op = "dose", target = "y", expr = "dose" }]
+
+[[experiments]]
+key = "course"
+group = "Drugs"
+length = "3 d"
+weeks = true
+options = [{ key = "dose", unit = "units", default = 1, low = 0, high = 10 }]
+edits = [{ op = "dose", target = "y", expr = "dose", daily = true }]
+
+[[experiments]]
+key = "stress"
+group = "Stressors"
+length = "1 h"
+options = [{ key = "strength", unit = "times basal", default = 1, low = 0, high = 5 }]
+edits = [{ op = "add", target = "stress", expr = "strength" }]
+
+[[tests]]
+key = "pill_test"
+doses = [{ value = "y", amount = "2" }]
+readings = [{ value = "x", after = "1 h" }]
+rule = "below"
+cutoff = 9
+
+[[checks]]
+key = "rhythm"
+length = "2 d"
+asserts = [
+  { kind = "peak_within", value = "x", window = ["day 2 00:00", "day 2 23:59"], expect = ["04:00", "10:00"] },
+  { kind = "trough_within", value = "x", window = ["day 2 00:00", "day 2 23:59"], expect = ["16:00", "22:00"] },
+  { kind = "within", value = "x", at = "day 2 08:00", low = 5, high = 15 },
+]
+
+[[checks]]
+key = "removal"
+length = "1 d"
+blocks = [{ experiment = "remove_b", mode = "present" }]
+asserts = [{ kind = "vs_normal", value = "x", at = "day 1 12:00", rises = 1.2 }]
+
+[[checks]]
+key = "stressed"
+length = "1 d"
+blocks = [{ experiment = "stress", start = "day 1 10:00" }]
+asserts = [
+  { kind = "peak_before", first = "x", then = "y", window = ["day 1 10:00", "day 1 14:00"] },
+  { kind = "back_to_normal", value = "x", by = "day 1 23:00", tolerance = 0.05 },
+]
+
+[[checks]]
+key = "tested"
+length = "1 d"
+blocks = [{ experiment = "pill_test", start = "day 1 10:00" }]
+asserts = [{ kind = "test_result", block = 0, expect = "normal" }]
+
+[[normal]]
+key = "morning"
+from = "04:00"
+to = "10:00"
+
+[[normal]]
+key = "night"
+from = "22:00"
+to = "04:00"
+"""
+
+TOY_LAB_TEXTS = """\
+"name" = "Toy axis"
+"scope" = "A toy model with two values and a slow gland [ref2020]."
+"normal.morning" = "X rises in the morning [ref2020]."
+"normal.night" = "X is low at night."
+"value.x.name" = "X"
+"value.y.name" = "Y"
+"value.y.note" = "Y has no measured unit."
+"value.m.name" = "Gland size"
+"value.m.note" = "Shown as a multiple of normal."
+"parameter.k.name" = "Feedback halfway point"
+"parameter.k.meaning" = "Where Y holds back half of X."
+"parameter.w.name" = "Clearance"
+"parameter.w.meaning" = "How fast both clear."
+"parameter.a.name" = "Rhythm depth"
+"parameter.a.meaning" = "How deep the daily rhythm is."
+"parameter.stress.name" = "Stress"
+"parameter.stress.meaning" = "Extra drive from a stressor."
+"part.a" = "Alpha"
+"part.b" = "Beta"
+"part.body" = "Body gland"
+"effect.fb" = "Y holds back the making of X [ref2020]."
+"effect.rhythm" = "The body clock drives X."
+"term.make_x" = "Alpha makes X."
+"term.clear_x" = "X is cleared."
+"term.make_y" = "The gland makes Y from X."
+"term.clear_y" = "Y is cleared."
+"term.grow_m" = "X makes the gland grow."
+"experiment.remove_b" = "Remove the gland"
+"experiment.remove_b.description" = "Takes the gland away."
+"experiment.pill" = "Y pill"
+"experiment.pill.description" = "A dose of Y."
+"experiment.pill.option.dose" = "Dose"
+"experiment.course" = "Daily Y course"
+"experiment.course.description" = "A dose of Y every day."
+"experiment.course.option.dose" = "Dose"
+"experiment.stress" = "Short stressor"
+"experiment.stress.description" = "An hour of stress."
+"experiment.stress.option.strength" = "Strength"
+"test.pill_test" = "Y suppression test"
+"test.pill_test.description" = "Give Y and read X an hour later."
+"test.pill_test.normal" = "X is suppressed, as normal."
+"test.pill_test.abnormal" = "X is not suppressed."
+"check.rhythm" = "X follows a daily rhythm."
+"check.removal" = "Without the gland X rises."
+"check.stressed" = "Stress raises X before Y, then both settle."
+"check.tested" = "The test is normal in the normal model."
+"""

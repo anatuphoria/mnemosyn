@@ -39,7 +39,7 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
                   volumes: list[tuple[VolumeSpec, np.ndarray, np.ndarray]],
                   meshes: list[dict[int, MeshData]], knowledge_src: Path,
                   licence_files: list[Path], report: str, templates=(), tracts=None,
-                  pathways=(), local_only=(), timelines=(), fills=()) -> None:
+                  pathways=(), local_only=(), timelines=(), fills=(), models=()) -> None:
     (out / "volumes").mkdir(parents=True)
     volume_records = []
     spaces = {spec.name: spec.space for spec, _, _ in volumes}
@@ -93,6 +93,8 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
     write_json(out / "collections.json", [])
     write_json(out / "pathways.json", [p.to_json() for p in pathways])
     write_json(out / "timelines.json", [t.to_json() for t in timelines])
+    if models:
+        write_json(out / "models.json", [m.to_json() for m in models])
     for name, level in zip(LODS, meshes):
         write_lod(out / "meshes" / name, level)
     shutil.copytree(knowledge_src, out / "knowledge")
