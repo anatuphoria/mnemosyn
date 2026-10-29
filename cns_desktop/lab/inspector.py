@@ -69,6 +69,7 @@ class Inspector(QWidget):
         self._soon = QTimer(self, singleShot=True, interval=0, timeout=self.sync)
         document.selection_changed.connect(lambda _s: self.sync())
         document.changed.connect(self._soon.start)
+        document.model_changed.connect(self.rebuild)
         document.playhead_moved.connect(lambda _t: self._soon.start())
         self.sync()
 

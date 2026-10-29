@@ -26,14 +26,31 @@ class ModelPanel(QWidget):
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
         self.document = document
-        model, atlas = document.model, document.atlas
-        self.table = QTableWidget(len(model.parameters), 3)
+        self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["Value", "Setting", ""])
         self.table.verticalHeader().hide()
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.reset_all = QPushButton("Reset all")
+        self.reset_all.clicked.connect(document.reset_values)
+        row = QHBoxLayout()
+        row.addStretch(1)
+        row.addWidget(self.reset_all)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.table, 1)
+        layout.addLayout(row)
+        document.changed.connect(self.refresh)
+        document.model_changed.connect(self.populate)
+        self.populate()
+
+    def populate(self) -> None:
+        document = self.document
+        model, atlas = document.model, document.atlas
+        self.table.setRowCount(0)
+        self.table.setRowCount(len(model.parameters))
         self._spins: dict[str, QDoubleSpinBox] = {}
         self._resets: dict[str, QToolButton] = {}
         self._labels: dict[str, QLabel] = {}
@@ -61,16 +78,6 @@ class ModelPanel(QWidget):
             self._spins[parameter.key] = spin
             self._resets[parameter.key] = reset
             self._labels[parameter.key] = label
-        self.reset_all = QPushButton("Reset all")
-        self.reset_all.clicked.connect(document.reset_values)
-        row = QHBoxLayout()
-        row.addStretch(1)
-        row.addWidget(self.reset_all)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.table, 1)
-        layout.addLayout(row)
-        document.changed.connect(self.refresh)
         self.refresh()
 
     def spin(self, key: str) -> QDoubleSpinBox:

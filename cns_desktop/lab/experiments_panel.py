@@ -16,6 +16,13 @@ class ExperimentsPanel(QTreeWidget):
         self.setDragEnabled(True)
         self.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.itemDoubleClicked.connect(self._add)
+        document.model_changed.connect(self.populate)
+        self.populate()
+
+    def populate(self) -> None:
+        self.clear()
+        document = self.document
         model, atlas = document.model, document.atlas
         groups: dict[str, QTreeWidgetItem] = {}
 
@@ -42,7 +49,6 @@ class ExperimentsPanel(QTreeWidget):
             group(group_name).addChild(item)
             self._items[key] = item
         self.expandAll()
-        self.itemDoubleClicked.connect(self._add)
 
     def item_for(self, key: str) -> QTreeWidgetItem:
         return self._items[key]

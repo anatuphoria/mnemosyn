@@ -20,10 +20,19 @@ class LabCharts(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.layout_widget)
+        self.layout_widget.scene().sigMouseClicked.connect(self.on_click)
+        document.model_changed.connect(self.populate)
+        self.populate()
+        document.changed.connect(self.refresh)
+        document.playhead_moved.connect(self._move_cursor)
+        self.refresh()
+
+    def populate(self) -> None:
+        self.layout_widget.clear()
         self.plots: dict[str, pg.PlotItem] = {}
         self.curves: dict[str, dict[str, pg.PlotDataItem]] = {}
         self.cursors: dict[str, pg.InfiniteLine] = {}
-        values = sorted((v for v in document.model.values if v.lane is not None),
+        values = sorted((v for v in self.document.model.values if v.lane is not None),
                         key=lambda v: v.lane)
         first = None
         for n, value in enumerate(values):
@@ -45,10 +54,6 @@ class LabCharts(QWidget):
             plot.addItem(cursor)
             self.plots[value.key] = plot
             self.cursors[value.key] = cursor
-        self.layout_widget.scene().sigMouseClicked.connect(self.on_click)
-        document.changed.connect(self.refresh)
-        document.playhead_moved.connect(self._move_cursor)
-        self.refresh()
 
     def set_compare(self, on: bool) -> None:
         self.compare = bool(on)

@@ -50,6 +50,7 @@ class Timeline(QWidget):
         self._cache_key = None
         self._length = document.experiment.length
         document.changed.connect(self._on_changed)
+        document.model_changed.connect(self._on_model)
         document.playhead_moved.connect(lambda _t: self.update())
         document.selection_changed.connect(lambda _s: self.update())
 
@@ -61,6 +62,12 @@ class Timeline(QWidget):
     def compare(self, on: bool) -> None:
         self.compare_on = bool(on)
         self.update()
+
+    def _on_model(self) -> None:
+        self.hidden.clear()
+        self._length = self.document.experiment.length
+        self.span = (0.0, self._length)
+        self._cache = None
 
     def _on_changed(self) -> None:
         length = self.document.experiment.length

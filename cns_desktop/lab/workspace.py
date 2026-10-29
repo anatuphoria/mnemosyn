@@ -166,6 +166,8 @@ class LabWorkspace:
         for model in self.window.state.atlas.models.values():
             self.system_box.addItem(model.name, model.key)
         self.system_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.system_box.activated.connect(
+            lambda i: self.choose_system(self.system_box.itemData(i)))
         toolbar.addWidget(self.system_box)
         toolbar.addAction(self._add("What this model includes", self.show_scope))
         self.length_box = QComboBox()
@@ -187,13 +189,8 @@ class LabWorkspace:
 
     def _build_menu(self) -> None:
         menu = QMenu("Experiment", self.window)
-        add = menu.addMenu("Add at the playhead")
-        for experiment in self.document.model.experiments:
-            add.addAction(QAction(experiment.name, menu, triggered=lambda _=False, k=experiment.key:
-                                  self.document.add_block(k, self.document.playhead)))
-        for test in self.document.model.tests:
-            add.addAction(QAction(test.name, menu, triggered=lambda _=False, k=test.key:
-                                  self.document.add_block(k, self.document.playhead)))
+        self.add_menu = menu.addMenu("Add at the playhead")
+        self._fill_add_menu()
         menu.addAction(self._actions["Delete selected"])
         lengths = menu.addMenu("Run length")
         for label, _minutes in LENGTHS:
@@ -205,6 +202,32 @@ class LabWorkspace:
         self.experiment_menu = menu
         self.window.menuBar().insertMenu(self.window.window_menu.menuAction(), menu)
         menu.menuAction().setVisible(False)
+
+    def _fill_add_menu(self) -> None:
+        self.add_menu.clear()
+        model = self.document.model
+        for key, name in [(e.key, e.name) for e in model.experiments] + [
+                (t.key, t.name) for t in model.tests]:
+            self.add_menu.addAction(QAction(name, self.add_menu, triggered=lambda _=False, k=key:
+                                            self.document.add_block(k, self.document.playhead)))
+
+    def model_for_route(self, route: str) -> str | None:
+        return next((m.key for m in self.window.state.atlas.models.values() if m.route == route),
+                    None)
+
+    def choose_system(self, key: str) -> None:
+        doc = self.document
+        if key != doc.model.key and self.confirm_discard():
+            active = self.brain.active
+            if active:
+                self.brain.deactivate()
+            doc.set_model(key)
+            self._fill_add_menu()
+            if active:
+                self.brain.activate()
+            self.update_title()
+            self.window._update_status()
+        self.system_box.setCurrentIndex(self.system_box.findData(doc.model.key))
 
     def _set_enabled(self, on: bool) -> None:
         for name, action in self._actions.items():

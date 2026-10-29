@@ -36,10 +36,18 @@ class CircuitView(QGraphicsView):
         self.setScene(QGraphicsScene(self))
         self.setBackgroundBrush(QBrush(QColor("#101016")))
         self.setRenderHint(self.renderHints().Antialiasing)
+        document.model_changed.connect(self.populate)
+        self.populate()
+        document.changed.connect(self.refresh)
+        document.playhead_moved.connect(lambda _t: self.refresh())
+        self.refresh()
+
+    def populate(self) -> None:
+        self.scene().clear()
         self.part_items: dict[str, QGraphicsRectItem] = {}
         self.part_texts: dict[str, QGraphicsSimpleTextItem] = {}
         self.arrow_items: dict[str, QGraphicsLineItem] = {}
-        model = document.model
+        model = self.document.model
         for part in model.parts:
             rect = QGraphicsRectItem(QRectF(part.x * CELL_X, part.y * CELL_Y, BOX_W, BOX_H))
             rect.setBrush(QBrush(BOX_FILL))
@@ -61,9 +69,8 @@ class CircuitView(QGraphicsView):
             self.scene().addItem(line)
             self.arrow_items[factor.key] = line
         self._kinds = {f.key: f.kind for f in (*model.effects, *model.terms)}
-        document.changed.connect(self.refresh)
-        document.playhead_moved.connect(lambda _t: self.refresh())
         self.refresh()
+        self.resizeEvent(None)
 
     def _ratio(self, key: str, factors=None) -> float:
         doc = self.document
@@ -157,7 +164,8 @@ class CircuitView(QGraphicsView):
         menu.exec(event.globalPos())
 
     def resizeEvent(self, event) -> None:
-        super().resizeEvent(event)
+        if event is not None:
+            super().resizeEvent(event)
         bounds = self.scene().itemsBoundingRect().adjusted(-20, -20, 20, 20)
         self.fitInView(bounds, Qt.AspectRatioMode.KeepAspectRatio)
 

@@ -30,6 +30,7 @@ class _Change(QUndoCommand):
 
 class LabDocument(QObject):
     changed = Signal()
+    model_changed = Signal()
     playhead_moved = Signal(float)
     selection_changed = Signal(object)
     wants_longer = Signal(float)
@@ -58,6 +59,26 @@ class LabDocument(QObject):
         if self.run is None and not self.error:
             self._recompute()
             self.changed.emit()
+
+    def set_model(self, model_key: str) -> None:
+        if model_key == self.model.key:
+            return
+        self.model = self.atlas.models[model_key]
+        self.simulator = Simulator(self.model)
+        self._experiments = {e.key: e for e in self.model.experiments}
+        self._tests = {t.key: t for t in self.model.tests}
+        self.undo.clear()
+        self.path = None
+        self.snapshot = None
+        self.selection = None
+        self.experiment = self._blank(DAY)
+        self.run = self.normal = None
+        self.error = ""
+        self.playhead = 0.0
+        self.model_changed.emit()
+        self._recompute()
+        self.changed.emit()
+        self.undo.setClean()
 
     def _blank(self, length: float) -> Experiment:
         return Experiment(self.model.key, self.model.version, length, self.model.start_clock)

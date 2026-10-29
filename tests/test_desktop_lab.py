@@ -207,3 +207,44 @@ def test_strip_rows_offer_the_same_menu_as_circuit_boxes(window):
     assert [a.text() for a in menu.actions()] == ["Show its chart"]
     menu.actions()[0].trigger()
     assert lab.dock("Charts").isVisible()
+
+
+def two_model_window(qapp, toy_lab_atlas, tmp_path):
+    import dataclasses
+
+    atlas = Atlas.open(toy_lab_atlas)
+    toy = atlas.models["toy"]
+    atlas.models["toy2"] = dataclasses.replace(toy, key="toy2", name="Toy two", route="loop",
+                                               experiments=toy.experiments[:1])
+    w = MainWindow(atlas, progress_path=tmp_path / "progress.sqlite")
+    w.resize(1400, 900)
+    w.show()
+    qapp.processEvents()
+    return w
+
+
+def test_open_in_the_lab_loads_the_model_of_that_route(qapp, toy_lab_atlas, tmp_path):
+    w = two_model_window(qapp, toy_lab_atlas, tmp_path)
+    lab = w.lab
+    w.pathways.open("loop")
+    w.pathways.lab_button.click()
+    qapp.processEvents()
+    assert w.workspaces.current == "Lab" and lab.document.model.key == "toy2"
+
+    def groups():
+        return [lab.experiments.topLevelItem(i).text(0)
+                for i in range(lab.experiments.topLevelItemCount())]
+
+    assert groups() == ["Remove or cut", "Tests"] and lab.system_box.currentText() == "Toy two"
+    assert lab.document.run is not None and lab.document.run.experiment.system == "toy2"
+    lab.choose_system("toy")
+    qapp.processEvents()
+    assert lab.document.model.key == "toy" and len(groups()) == 4
+    assert set(lab.circuit.part_items) == {"a", "b", "body"}
+    lab.document.add_block("pill", 10.0)
+    w.ask = lambda *_args: QMessageBox.StandardButton.Cancel
+    lab.choose_system("toy2")
+    assert lab.document.model.key == "toy" and lab.system_box.currentText() == "Toy axis"
+    lab.document.undo.setClean()
+    qapp.processEvents()
+    w.close()

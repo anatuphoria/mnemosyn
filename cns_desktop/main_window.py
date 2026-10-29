@@ -266,6 +266,9 @@ class MainWindow(QMainWindow):
         if self.lab is None:
             return
         self.pathways.leave()
+        key = self.lab.model_for_route(route)
+        if key is not None:
+            self.lab.choose_system(key)
         self.workspaces.switch("Lab")
 
     def _arrange_slices(self) -> None:
