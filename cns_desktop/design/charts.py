@@ -142,12 +142,18 @@ class SmallMultiples(QWidget):
         axis_item.hideAxis("left")
         axis_item.getAxis("bottom").setStyle(tickLength=4)
         axis_item.setContentsMargins(NAME_WIDTH + VALUE_AXIS, 0, 0, 0)
+        self.scroll.verticalScrollBar().rangeChanged.connect(lambda _low, _high: self._align())
         self.set_axis_label(axis_label)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self.scroll, 1)
         layout.addWidget(self.axis)
+
+    def _align(self) -> None:
+        bar = self.scroll.verticalScrollBar()
+        right = bar.sizeHint().width() if bar.maximum() > 0 else 0
+        self.axis.getPlotItem().setContentsMargins(NAME_WIDTH + VALUE_AXIS, 0, right, 0)
 
     def set_axis_label(self, text: str) -> None:
         axis = self.axis.getPlotItem().getAxis("bottom")

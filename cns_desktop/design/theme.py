@@ -34,19 +34,23 @@ def is_applied(app) -> bool:
     return app.styleSheet() == stylesheet.build()
 
 
-def set_role(widget, role: str) -> None:
-    widget.setProperty("role", role)
+def _set(widget, name: str, value: str) -> None:
+    if widget.property(name) == value:
+        return
+    widget.setProperty(name, value)
     _repolish(widget)
+
+
+def set_role(widget, role: str) -> None:
+    _set(widget, "role", role)
 
 
 def set_tone(widget, tone: str) -> None:
-    widget.setProperty("tone", tone)
-    _repolish(widget)
+    _set(widget, "tone", tone)
 
 
 def set_flag(widget, name: str, on: bool) -> None:
-    widget.setProperty(name, "true" if on else "false")
-    _repolish(widget)
+    _set(widget, name, "true" if on else "false")
 
 
 def _repolish(widget) -> None:

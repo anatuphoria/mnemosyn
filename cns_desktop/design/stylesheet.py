@@ -54,7 +54,11 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QPlainTextEdit, QTextEdit {
     selection-background-color: $accent; }
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
     min-height: ${inner}px; max-height: ${inner}px; padding: 0 8px; }
-QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus,
+QLineEdit:focus, QComboBox:focus { border: 2px solid $accent; padding: 0 7px;
+    min-height: ${inner_focus}px; max-height: ${inner_focus}px; }
+QComboBox:focus { padding-right: 23px; }
+QSpinBox:focus, QDoubleSpinBox:focus { border: 2px solid $accent;
+    min-height: ${spin_focus}px; max-height: ${spin_focus}px; }
 QPlainTextEdit:focus, QTextEdit:focus { border: 1px solid $accent; }
 QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled {
     color: $text3; border-color: $line; }
@@ -191,7 +195,8 @@ def build() -> str:
     values = dict(COLOURS)
     values.update(
         r_small=RADIUS["small"], r_control=RADIUS["control"], r_panel=RADIUS["panel"],
-        inner=SIZE["control"] - 2, spin=SIZE["control"] - 5, row=SIZE["row"], status=SIZE["status"],
+        inner=SIZE["control"] - 2, spin=SIZE["control"] - 5,
+        inner_focus=SIZE["control"] - 4, spin_focus=SIZE["control"] - 7, row=SIZE["row"], status=SIZE["status"],
         sel=_rgba("accent", 0.15), roles=_roles(),
         down=_image("chevron-down"), up=_image("chevron-up"), check=_image("check", "text"),
         minus=_image("minus", "text"), branch_closed=_image("chevron-right"),

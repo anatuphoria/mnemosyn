@@ -136,7 +136,6 @@ class PathwayPanel(QWidget):
         self.leave_button = QPushButton("Leave pathway")
         self.leave_button.setToolTip("Leave pathway  Esc")
         self.lab_button = QPushButton("Open in the Lab")
-        self.lab_button.setProperty("variant", "primary")
         self.lab_button.hide()
         self.lab_routes = frozenset(m.route for m in state.atlas.models.values() if m.route)
         self.timer = QTimer(self, interval=TICK_MS, timeout=lambda: self.advance(TICK_MS / 1000))

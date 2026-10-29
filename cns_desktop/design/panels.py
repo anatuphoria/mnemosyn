@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QDockWidget, QStackedWidget, QWidget
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QDockWidget, QFrame, QScrollArea, QStackedWidget, QWidget
 
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.design.widgets import PanelHeader, SegmentedControl
@@ -17,6 +17,7 @@ class PanelGroup(QDockWidget):
         self.setMinimumWidth(SIZE["panel_min"])
         self._labels: dict[str, str] = {}
         self._pages: dict[str, QWidget] = {}
+        self._holders: dict[str, QScrollArea] = {}
         self._own: list[str] = []
         self._guests: list[PanelGroup] = []
         self._host: PanelGroup | None = None
@@ -39,13 +40,24 @@ class PanelGroup(QDockWidget):
     def _add_page(self, key: str, label: str, widget: QWidget) -> None:
         self._labels[key] = label
         self._pages[key] = widget
-        self.stack.addWidget(widget)
+        holder = QScrollArea()
+        holder.setWidgetResizable(True)
+        holder.setFrameShape(QFrame.Shape.NoFrame)
+        holder.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        holder.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        holder.setWidget(widget)
+        widget.show()
+        self._holders[key] = holder
+        self.stack.addWidget(holder)
         self.tabs.add_option(key, label)
 
     def _take_page(self, key: str) -> tuple[str, QWidget]:
         widget = self._pages.pop(key)
         label = self._labels.pop(key)
-        self.stack.removeWidget(widget)
+        holder = self._holders.pop(key)
+        holder.takeWidget()
+        self.stack.removeWidget(holder)
+        holder.deleteLater()
         self.tabs.remove_option(key)
         return label, widget
 
@@ -59,7 +71,7 @@ class PanelGroup(QDockWidget):
             self.header.set_title(self._labels[next(iter(self._pages))])
         current = self.tabs.current()
         if current in self._pages:
-            self.stack.setCurrentWidget(self._pages[current])
+            self.stack.setCurrentWidget(self._holders[current])
 
     def _sync_buttons(self) -> None:
         features = self.features()
@@ -70,7 +82,7 @@ class PanelGroup(QDockWidget):
 
     def _on_tab(self, key: str) -> None:
         if key in self._pages:
-            self.stack.setCurrentWidget(self._pages[key])
+            self.stack.setCurrentWidget(self._holders[key])
             self.page_changed.emit(key)
 
     def setVisible(self, visible: bool) -> None:
@@ -99,7 +111,7 @@ class PanelGroup(QDockWidget):
         if key not in self._pages:
             raise KeyError(key)
         self.tabs.set_current(key)
-        self.stack.setCurrentWidget(self._pages[key])
+        self.stack.setCurrentWidget(self._holders[key])
 
     def reveal(self, key: str) -> None:
         host = self._host or self

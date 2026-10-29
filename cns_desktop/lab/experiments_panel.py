@@ -5,6 +5,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QTreeWidget, QTreeWidgetItem,
                                QVBoxLayout, QWidget)
 
+from cns_desktop.design import icons
 from cns_desktop.design.fonts import font
 from cns_desktop.design.tokens import SIZE, color
 from cns_desktop.design.widgets import SearchField, button_icon
@@ -104,9 +105,11 @@ class ExperimentsPanel(QTreeWidget):
 def icon_for(model, key: str) -> str:
     found = next((e for e in model.experiments if e.key == key), None)
     if found is not None:
-        return found.icon or GROUP_ICONS.get(found.group, "flask-conical")
-    test = next((t for t in model.tests if t.key == key), None)
-    return (test.icon if test is not None and test.icon else GROUP_ICONS[TESTS])
+        own, fallback = found.icon, GROUP_ICONS.get(found.group, "flask-conical")
+    else:
+        test = next((t for t in model.tests if t.key == key), None)
+        own, fallback = (test.icon if test is not None else ""), GROUP_ICONS[TESTS]
+    return own if own in icons.NAMES else fallback
 
 
 def _meta(experiment) -> str:

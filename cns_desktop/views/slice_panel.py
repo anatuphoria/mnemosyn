@@ -11,7 +11,8 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QToolButton, QVBoxLa
 
 from .. import slices
 from ..design.theme import set_role
-from ..design.tokens import SIZE
+from ..design.fonts import font
+from ..design.tokens import SIZE, color
 from ..design.widgets import SegmentedControl, button_icon
 from ..state import AppState
 from .navigation import WHEEL_FACTOR
@@ -134,8 +135,9 @@ class SlicePanel(QWidget):
         self.label_item.setZValue(1)
         self.box.addItem(self.template_item)
         self.box.addItem(self.label_item)
-        self.letters = [pg.TextItem(color="w", anchor=anchor) for anchor in ANCHORS]
+        self.letters = [pg.TextItem(color=color("text"), anchor=anchor) for anchor in ANCHORS]
         for letter in self.letters:
+            letter.setFont(font("data"))
             self.box.addItem(letter)
 
         controls = QHBoxLayout()

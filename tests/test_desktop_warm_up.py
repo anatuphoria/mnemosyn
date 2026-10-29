@@ -110,8 +110,9 @@ def test_warm_up_starts_only_after_the_first_frame(qapp, toy_spine_atlas, tmp_pa
     window.show()
     for _ in range(5):
         qapp.processEvents()
+    drawn = window.view.render_count
     window.view.ren_win.Render()
     qapp.processEvents()
     started = window._warm_up.started_after_render
-    assert started is not None and 1 <= started <= window.view.render_count
+    assert started is not None and 1 <= started <= drawn + 1
     window.close()

@@ -103,6 +103,8 @@ def gpu_name(view: BrainView) -> str:
 class MainWindow(QMainWindow):
     def __init__(self, atlas: Atlas, progress_path: Path | None = None, settings=None) -> None:
         super().__init__()
+        self.setDockOptions(QMainWindow.DockOption.AnimatedDocks
+                            | QMainWindow.DockOption.AllowNestedDocks)
         title = f"{APP_NAME}: {atlas.metadata.get('name', 'atlas')}"
         if atlas.local_only:
             title += " (local build, not for sharing)"
@@ -376,6 +378,11 @@ class MainWindow(QMainWindow):
 
     def sync_after_layout(self, name: str) -> None:
         self.viewport.fit(name, self.width())
+        if self.viewport.isHidden():
+            if self.slices.view.isVisible():
+                self.slices.view.setFocus()
+        elif self.isActiveWindow():
+            self.view.setFocus()
         self._sync_chart()
 
     def _show_hover(self, name: str) -> None:
@@ -633,12 +640,13 @@ class MainWindow(QMainWindow):
         if self.lab is not None and not self.lab.confirm_discard():
             event.ignore()
             return
-        self.workspaces.save()
-        if self.settings is not None:
-            self.settings.sync()
         self._warm_up.stop()
         if self.quiz_active:
             self.quiz.stop()
+            self.leave_quiz()
+        self.workspaces.save()
+        if self.settings is not None:
+            self.settings.sync()
         self._status_timer.stop()
         self.pathways.pause()
         if self.lab is not None:
