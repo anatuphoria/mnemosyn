@@ -64,11 +64,13 @@ class CircuitView(QGraphicsView):
         document.playhead_moved.connect(lambda _t: self.refresh())
         self.refresh()
 
-    def _ratio(self, key: str) -> float:
+    def _ratio(self, key: str, factors=None) -> float:
         doc = self.document
         if doc.run is None or doc.normal is None:
             return 1.0
-        mine, theirs = doc.run.factor(key, doc.playhead), doc.normal.factor(key, doc.playhead)
+        if factors is None:
+            factors = doc.run.factors(doc.playhead), doc.normal.factors(doc.playhead)
+        mine, theirs = factors[0][key], factors[1][key]
         if abs(theirs) < ZERO:
             return 1.0 if abs(mine) < ZERO else 4.0
         return mine / theirs
@@ -113,8 +115,12 @@ class CircuitView(QGraphicsView):
             if gone:
                 pen.setStyle(Qt.PenStyle.DashLine)
             self.part_items[part.key].setPen(pen)
+        doc = self.document
+        factors = None
+        if doc.run is not None and doc.normal is not None:
+            factors = doc.run.factors(doc.playhead), doc.normal.factors(doc.playhead)
         for key, line in self.arrow_items.items():
-            ratio = self._ratio(key)
+            ratio = self._ratio(key, factors)
             width = 1 + 5 * min(max(ratio, 0.2), 4.0) / 4
             colour = HOLD if self._kinds[key] == "holds back" else INK
             pen = QPen(colour, width)

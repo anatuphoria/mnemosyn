@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QAction, QColor, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QAction, QColor, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QMenu, QWidget
 
 from .experiments_panel import MIME
@@ -46,6 +46,8 @@ class Timeline(QWidget):
         self.setMouseTracking(True)
         self.setMinimumHeight(RULER_HEIGHT + CHANGES_HEIGHT + LANE_HEIGHT)
         self._press = None
+        self._cache: QPixmap | None = None
+        self._cache_key = None
         self._length = document.experiment.length
         document.changed.connect(self._on_changed)
         document.playhead_moved.connect(lambda _t: self.update())
@@ -151,14 +153,29 @@ class Timeline(QWidget):
                 lines[name] = np.interp(grid, run.times, run.value(key))
         return lines
 
+    def _background(self) -> QPixmap:
+        doc = self.document
+        key = (self.size().toTuple(), self.span, self.compare_on, frozenset(self.hidden),
+               id(doc.run), id(doc.normal), id(doc.snapshot))
+        if self._cache is None or key != self._cache_key:
+            ratio = self.devicePixelRatioF()
+            pixmap = QPixmap(self.size() * ratio)
+            pixmap.setDevicePixelRatio(ratio)
+            pixmap.fill(QColor("#14141b"))
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            self._paint_ruler(painter)
+            for n, lane in enumerate(self.lane_keys()):
+                self._paint_lane(painter, lane, QColor(LANE_COLORS[n % len(LANE_COLORS)]))
+            painter.end()
+            self._cache, self._cache_key = pixmap, key
+        return self._cache
+
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
+        painter.drawPixmap(0, 0, self._background())
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#14141b"))
-        self._paint_ruler(painter)
         self._paint_blocks(painter)
-        for n, key in enumerate(self.lane_keys()):
-            self._paint_lane(painter, key, QColor(LANE_COLORS[n % len(LANE_COLORS)]))
         x = self.x_of(self.document.playhead)
         painter.setPen(QPen(PLAYHEAD, 2))
         painter.drawLine(QPointF(x, 0), QPointF(x, self.height()))

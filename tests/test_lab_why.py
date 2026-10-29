@@ -74,3 +74,4 @@ def test_normal_notes_wrap_midnight(sim):
     assert normal_note(sim.model, 300.0) == "morning"
     assert normal_note(sim.model, 23 * 60.0) == "night" and normal_note(sim.model, 60.0) == "night"
     assert normal_note(sim.model, 12 * 60.0) is None
+

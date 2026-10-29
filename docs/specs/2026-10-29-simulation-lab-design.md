@@ -1,7 +1,7 @@
 # Simulation Lab (subproject D, part 1: the stress axis)
 
 Date: 2026-10-29
-Status: approved by the owner on 2026-10-29
+Status: approved by the owner on 2026-10-29; built on `lab`
 Builds on: the behaviour circuits (decision 21), the stress axis route and its schematic timeline
 (`atlas_src/pathways.toml`, `atlas_src/timelines/stress.toml`)
 

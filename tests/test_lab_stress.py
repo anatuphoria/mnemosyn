@@ -101,3 +101,15 @@ def test_the_model_does_not_change_the_paper_values():
     assert model.parameter("wC").value * 1440 == pytest.approx(0.099, rel=1e-3)
     assert model.parameter("wA").value * 1440 == pytest.approx(0.049, rel=1e-3)
     assert dataclasses.replace(model) == model
+
+
+def test_a_finished_course_is_still_explained_through_the_shrunken_adrenal(sim):
+    from cns_lab.why import chain
+
+    experiment = Experiment("stress", 1, 8 * 7 * 1440.0, 480.0,
+                            (Block("hydrocortisone_course", 0.0, 28 * 1440.0, (("dose", 40.0),)),))
+    run = sim.run(experiment)
+    steps = chain(sim, run, 30 * 1440.0)
+    sources = [s.source for s in steps]
+    assert sources[0] == "hydrocortisone_course"
+    assert "make_cortisol" in sources or "grow_adrenal" in sources

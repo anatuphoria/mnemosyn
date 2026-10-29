@@ -100,20 +100,11 @@ def chain(sim: Simulator, run: Run, t: float, limit: int = 8) -> tuple[Step, ...
 
     found: list[tuple[tuple, Step]] = []
     seen: set[str] = set()
-    for order, (_, block) in enumerate(blocks):
-        since = None if block.present else block.start
-        is_test = block.experiment not in experiments
-        key = f"test.{block.experiment}" if is_test else f"experiment.{block.experiment}"
-        found.append(((0, order, 0.0, block.experiment),
-                      Step(block.experiment, "change", key, None, 1.0, since)))
-        if is_test:
-            starts = [f"value:{v}" for _, v, _ in next(
-                x for x in model.tests if x.key == block.experiment).doses]
-        else:
-            edits = experiments[block.experiment].edits
-            starts = [f"{'value' if e.op in ('clamp', 'dose') else 'param'}:{e.target}"
-                      for e in edits]
-        queue = deque((node, 1) for node in starts)
+    memory = [f"value:{v.key}" for v in model.values
+              if v.slow and v.key not in clamped
+              and _changed(run.at(v.key, t), normal.at(v.key, t), threshold)]
+
+    def walk(queue, order: int, since: float | None) -> None:
         while queue:
             node, depth = queue.popleft()
             if node in seen:
@@ -138,5 +129,21 @@ def chain(sim: Simulator, run: Run, t: float, limit: int = 8) -> tuple[Step, ...
                                   Step(name, terms[name].kind, f"term.{name}", value, ratio,
                                        since)))
             queue.extend((n, depth + 1) for n in graph.next(node))
+
+    for order, (_, block) in enumerate(blocks):
+        since = None if block.present else block.start
+        is_test = block.experiment not in experiments
+        key = f"test.{block.experiment}" if is_test else f"experiment.{block.experiment}"
+        found.append(((0, order, 0.0, block.experiment),
+                      Step(block.experiment, "change", key, None, 1.0, since)))
+        if is_test:
+            starts = [f"value:{v}" for _, v, _ in next(
+                x for x in model.tests if x.key == block.experiment).doses]
+        else:
+            edits = experiments[block.experiment].edits
+            starts = [f"{'value' if e.op in ('clamp', 'dose') else 'param'}:{e.target}"
+                      for e in edits]
+        walk(deque((node, 1) for node in starts), order, since)
+    walk(deque((node, 1) for node in memory), len(blocks), None)
     found.sort(key=lambda item: item[0])
     return tuple(step for _, step in found[:limit])

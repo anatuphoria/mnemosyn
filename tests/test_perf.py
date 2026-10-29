@@ -601,3 +601,67 @@ def test_lab_runs_meet_their_budgets(timing):
         "Lab eight week run": (best_of(lambda: fresh_run(weeks), runs=3), 0.450),
         "Lab Why chain": (best_of(lambda: chain(cached, run, 3000.0)), 0.005),
     })
+
+
+LAB_TIMING = """
+import sys
+import time
+from pathlib import Path
+
+from PySide6.QtWidgets import QApplication
+
+from cns_atlas import Atlas
+from cns_desktop.main_window import MainWindow
+
+app = QApplication([])
+window = MainWindow(Atlas.open(sys.argv[1]), progress_path=Path(sys.argv[2]))
+window.resize(1500, 900)
+window.show()
+app.processEvents()
+window.view.render()
+deadline = time.perf_counter() + 10
+while not getattr(window, "warm_up_done", True) and time.perf_counter() < deadline:
+    app.processEvents()
+app.processEvents()
+window.view.ren_win.WaitForCompletion()
+start = time.perf_counter()
+window.workspaces.switch("Lab")
+app.processEvents()
+window.view.render()
+entered = time.perf_counter() - start
+doc = window.lab.document
+start = time.perf_counter()
+doc.add_block("short_stressor", 360.0)
+app.processEvents()
+window.view.render()
+edited = time.perf_counter() - start
+steps = []
+for n in range(20):
+    start = time.perf_counter()
+    doc.set_playhead(400.0 + n * 10)
+    app.processEvents()
+    window.view.render()
+    steps.append(time.perf_counter() - start)
+scrub = sorted(steps)[len(steps) // 2]
+start = time.perf_counter()
+window.lab.show_circuit(True)
+app.processEvents()
+window.lab.show_circuit(False)
+app.processEvents()
+window.view.render()
+switched = (time.perf_counter() - start) / 2
+doc.undo.setClean()
+window.close()
+print(entered, edited, scrub, switched)
+"""
+
+
+@pytest.mark.slow
+def test_the_lab_on_the_real_atlas_meets_its_budgets(tmp_path, timing):
+    pytest.importorskip("pyvistaqt")
+    atlas_path = real_atlas_or_skip()
+    entered, edited, scrub, switched = run_timing(LAB_TIMING, atlas_path, tmp_path, runs=5)
+    timing.assert_within({"enter the Lab": (entered, 0.300),
+                          "recompute after an edit of a one day run": (edited, 0.060),
+                          "scrub one playhead step": (scrub, 0.016),
+                          "switch Brain and Circuit": (switched, 0.050)})
