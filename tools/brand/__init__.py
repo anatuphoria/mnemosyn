@@ -83,14 +83,31 @@ def name(ink: str, x: float, baseline: float, size: float = NAME_SIZE,
     return f'<path d="{path}" transform="translate({x:.1f} {baseline:.1f})" fill="{ink}"/>', width, cap
 
 
-def lockup(kind: str, ink: str) -> str:
-    _, width, cap = name(ink, 0, 0)
+def geometry(kind: str) -> dict[str, float]:
+    _, width, cap = name(INK, 0, 0)
     visible = (KEY_POINTS[2][0] - KEY_POINTS[0][0]) / KEY_BOX
     if kind == "line":
         size = cap / visible
         height = cap * 2 + 2 * PAD
-        text, _, _ = name(ink, PAD + size + 28, (height + cap) / 2)
-        return svg(PAD * 2 + size + 28 + width, height, key(size, PAD, (height - size) / 2) + text)
+        return {"width": PAD * 2 + size + 28 + width, "height": height, "key": size,
+                "key_x": PAD, "key_y": (height - size) / 2, "name_x": PAD + size + 28,
+                "baseline": (height + cap) / 2}
+    if kind == "seal":
+        size, gap = cap * 1.6, cap * 0.9
+        total = width + 2 * PAD
+        return {"width": total, "height": PAD + size + gap + cap + PAD, "key": size,
+                "key_x": (total - size) / 2, "key_y": PAD, "name_x": PAD,
+                "baseline": PAD + size + gap + cap}
+    raise BrandError(f"no geometry for {kind!r}")
+
+
+def lockup(kind: str, ink: str) -> str:
+    _, width, cap = name(ink, 0, 0)
+    visible = (KEY_POINTS[2][0] - KEY_POINTS[0][0]) / KEY_BOX
+    if kind in ("line", "seal"):
+        g = geometry(kind)
+        text, _, _ = name(ink, g["name_x"], g["baseline"])
+        return svg(g["width"], g["height"], key(g["key"], g["key_x"], g["key_y"]) + text)
     if kind == "signature":
         size, gap = cap / visible, 20
         height = cap * 2 + 2 * PAD
@@ -100,12 +117,6 @@ def lockup(kind: str, ink: str) -> str:
                 f'stroke="{RULE[ink]}" stroke-width="1.5"/>')
         return svg(rule_x + gap + width + PAD, height,
                    key(size, PAD, (height - size) / 2) + rule + text)
-    if kind == "seal":
-        size, gap = cap * 1.6, cap * 0.9
-        total = width + 2 * PAD
-        height = PAD + size + gap + cap + PAD
-        text, _, _ = name(ink, PAD, PAD + size + gap + cap)
-        return svg(total, height, key(size, (total - size) / 2, PAD) + text)
     if kind == "latin":
         latin_path, latin_width = text_path(font(INTER.name), LATIN_NAME, 18, tracking=7)
         size = cap * 2.1
@@ -120,6 +131,39 @@ def lockup(kind: str, ink: str) -> str:
 
 
 LOCKUPS = ("line", "latin", "seal", "signature")
+ANIMATED = ("seal", "line")
+DRAW_SECONDS, LETTER_START, LETTER_STEP = 1.6, 1.1, 0.09
+MOTION = """<style>
+.key { stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0;
+  animation: draw @DRAW@s cubic-bezier(.65, 0, .35, 1) .2s forwards; }
+.letter { opacity: 0; transform-box: fill-box;
+  animation: rise .7s cubic-bezier(.2, .7, .2, 1) forwards; }
+@keyframes draw { 0% { opacity: 0; } 1% { opacity: 1; } to { opacity: 1; stroke-dashoffset: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .key { stroke-dashoffset: 0; opacity: 1; animation: none; }
+  .letter { opacity: 1; animation: none; } }
+</style>"""
+
+
+def letters(ink: str, x: float, baseline: float) -> list[str]:
+    face = font("GFSDidot-Regular.ttf")
+    shapes, left = [], x
+    for n, char in enumerate(NAME):
+        path, width = text_path(face, char, NAME_SIZE)
+        delay = LETTER_START + LETTER_STEP * n
+        shapes.append(f'<g transform="translate({left:.1f} {baseline:.1f})"><path class="letter" '
+                      f'style="animation-delay: {delay:.2f}s" d="{path}" fill="{ink}"/></g>')
+        left += width + NAME_TRACKING
+    return shapes
+
+
+def animated(kind: str, ink: str) -> str:
+    g = geometry(kind)
+    drawn = key(g["key"], g["key_x"], g["key_y"]).replace(
+        "<path ", '<path class="key" pathLength="1" ', 1)
+    body = MOTION.replace("@DRAW@", f"{DRAW_SECONDS:g}") + drawn + "".join(letters(ink, g["name_x"], g["baseline"]))
+    return svg(g["width"], g["height"], body)
 
 
 def mark(background: bool) -> str:
@@ -194,6 +238,9 @@ def write_all(root: Path, version: str) -> list[Path]:
     for kind in LOCKUPS:
         files[f"brand/logo-{kind}-dark.svg"] = lockup(kind, LIGHT)
         files[f"brand/logo-{kind}-light.svg"] = lockup(kind, INK)
+    for kind in ANIMATED:
+        files[f"brand/animated/logo-{kind}-dark.svg"] = animated(kind, LIGHT)
+        files[f"brand/animated/logo-{kind}-light.svg"] = animated(kind, INK)
     for name, (label, value) in badges(version).items():
         files[f"brand/badge-{name}.svg"] = badge(label, value, GOLD if name == "review" else BLUE)
     binaries = {"cns_desktop/resources/mark.png": raster(icon, 256),

@@ -151,3 +151,28 @@ def test_the_readme_keeps_the_layout_and_the_site_preview_setup():
 def test_the_light_website_header_stays_dark_for_the_mark():
     css = (brand.ROOT / "site/stylesheets/extra.css").read_text()
     assert '[data-md-color-scheme="default"] .md-header' in css
+
+
+ANIMATED = [f"brand/animated/logo-{kind}-{theme}.svg" for kind in ("seal", "line")
+            for theme in ("dark", "light")]
+
+
+def test_the_animated_logos_are_made_but_not_used_yet(made):
+    for name in ANIMATED:
+        text = (made / name).read_text()
+        ET.fromstring(text)
+        assert "@keyframes" in text and "<text" not in text, name
+        assert "prefers-reduced-motion: reduce" in text, name
+    for page in (README, brand.ROOT / "site/index.md"):
+        assert "animated/" not in page.read_text()
+
+
+def test_the_key_draws_itself_and_each_letter_follows(made):
+    import re
+
+    text = (made / "brand/animated/logo-seal-dark.svg").read_text()
+    assert 'pathLength="1"' in text and "stroke-dashoffset" in text
+    letters = re.findall(r'class="letter" style="animation-delay: ([0-9.]+)s"', text)
+    assert len(letters) == len(brand.NAME)
+    delays = [float(d) for d in letters]
+    assert delays == sorted(delays) and delays[0] > 0
