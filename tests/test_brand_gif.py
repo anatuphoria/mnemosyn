@@ -49,3 +49,38 @@ def test_the_favicon_light_is_one_moving_dash():
     dashes = re.findall(r'stroke-dasharray="([^"]+)" stroke-dashoffset="([^"]+)"', frame)
     light = dashes[-1]
     assert len(light[0].split()) == 2 and float(light[1]) < 0
+
+
+SCRIPT = "site/javascripts/favicon.js"
+
+
+def test_the_website_plays_the_favicon_with_a_generated_script(tmp_path):
+    from tools import brand
+
+    brand.write_all(tmp_path, "0.4.2")
+    text = (tmp_path / SCRIPT).read_text()
+    assert str([list(p) for p in brand.KEY_POINTS]).replace(" ", "") in text.replace(" ", "")
+    assert "prefers-reduced-motion: reduce" in text and "sessionStorage" in text
+    assert (brand.ROOT / SCRIPT).read_text() == brand.favicon_script()
+    config = (brand.ROOT / "mkdocs.yml").read_text()
+    assert "javascripts/favicon.js" in config
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_the_script_moves_the_light_exactly_like_the_gif(tmp_path):
+    import json
+    import subprocess
+
+    from tools import brand
+
+    script = tmp_path / "favicon.js"
+    script.write_text(brand.favicon_script())
+    times = [0.0, 0.3, 0.5, 0.9, 1.3, 1.7, 2.1, 2.3, 3.0]
+    code = (f"const f = require({json.dumps(str(script))});"
+            f"console.log(JSON.stringify({json.dumps(times)}.map(t => f.state(t))));")
+    found = json.loads(subprocess.run(["node", "-e", code], capture_output=True, text=True,
+                                      check=True).stdout)
+    for t, (opacity, start) in zip(times, found, strict=True):
+        want = gif.icon_state(t)
+        assert opacity == pytest.approx(want.trace_opacity, abs=1e-6), t
+        assert start == pytest.approx(want.trace_start, abs=1e-6), t

@@ -32,6 +32,7 @@ extra:
       link: https://github.com/anatuphoria/mnemosyn/discussions
       name: Discussions
 extra_css: [stylesheets/extra.css, "https://fonts.googleapis.com/css2?family=GFS+Didot&display=swap"]
+extra_javascript: [javascripts/favicon.js]
 markdown_extensions:
   - admonition
   - attr_list

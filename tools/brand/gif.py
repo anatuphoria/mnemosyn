@@ -8,13 +8,13 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import (DRAW_SECONDS, INK, KEY_BOX, KEY_POINTS, KEY_STROKE, LETTER_START, LETTER_STEP, LIGHT,
-               NAME, NAME_SIZE, NAME_TRACKING, BLUE, font, geometry, svg, text_path)
+from . import (BLUE, DRAW_SECONDS, INK, KEY_BOX, KEY_POINTS, KEY_STROKE, LETTER_START, LETTER_STEP,
+               LIGHT, NAME, NAME_SIZE, NAME_TRACKING, TRACE_BEZIER, TRACE_DELAY, TRACE_LENGTH,
+               TRACE_SECONDS, font, geometry, svg, text_path)
 
 BACKGROUND = {"dark": "#0a0a0c", "light": "#ffffff"}
 INKS = {"dark": LIGHT, "light": INK}
 DRAW_DELAY, RISE_SECONDS, RISE_PIXELS = 0.2, 0.7, 8.0
-TRACE_DELAY, TRACE_SECONDS, TRACE_LENGTH = 0.4, 1.8, 0.16
 HOLD = {"seal": 2.0, "line": 2.0, "icon": 1.6}
 WIDTH = {"seal": 720, "line": 840, "icon": 256}
 
@@ -39,7 +39,7 @@ def bezier(x1: float, y1: float, x2: float, y2: float):
 
 DRAW_EASE = bezier(.65, 0, .35, 1)
 RISE_EASE = bezier(.2, .7, .2, 1)
-TRACE_EASE = bezier(.45, 0, .25, 1)
+TRACE_EASE = bezier(*TRACE_BEZIER)
 
 
 def progress(t: float, delay: float, seconds: float) -> float:
