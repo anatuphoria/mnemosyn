@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSignalBlocker, Qt
-from PySide6.QtWidgets import QLineEdit, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
+from ..design.tokens import SIZE
+from ..design.widgets import SearchField
 from ..state import AppState
 
 ID_ROLE = Qt.ItemDataRole.UserRole
@@ -12,14 +14,19 @@ class StructureTree(QWidget):
     def __init__(self, state: AppState, parent=None) -> None:
         super().__init__(parent)
         self.state = state
-        self.filter_box = QLineEdit(placeholderText="Filter structures…  (Ctrl+F)")
-        self.filter_box.setClearButtonEnabled(True)
+        self.filter_box = SearchField("Find a structure  Ctrl+F")
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
-        self.tree.setIndentation(12)
+        self.tree.setIndentation(SIZE["indent"])
+        self.tree.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.filter_box)
+        layout.setContentsMargins(0, 8, 0, 0)
+        layout.setSpacing(8)
+        search = QVBoxLayout()
+        search.setContentsMargins(8, 0, 8, 0)
+        search.addWidget(self.filter_box)
+        layout.addLayout(search)
         layout.addWidget(self.tree)
 
         self.items: dict[int, QTreeWidgetItem] = {}

@@ -48,7 +48,7 @@ SIZE = {
     "panel_right": 320,
     "panel_min": 200,
     "panel_pad": 12,
-    "indent": 16,
+    "indent": 12,
     "central_min": 480,
     "central_min_slices": 240,
     "narrow": 1100,

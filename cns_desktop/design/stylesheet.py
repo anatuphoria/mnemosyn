@@ -94,20 +94,21 @@ QCheckBox::indicator, QRadioButton::indicator, QAbstractItemView::indicator {
     width: 12px; height: 12px; border: 1px solid $control; background: $s0; border-radius: 3px; }
 QRadioButton::indicator { border-radius: 7px; }
 QCheckBox::indicator:checked, QRadioButton::indicator:checked,
-QAbstractItemView::indicator:checked { background: $accent; border-color: $accent; }
+QAbstractItemView::indicator:checked { background: $accent; border-color: $accent;
+    image: url($check); }
 QCheckBox::indicator:indeterminate, QAbstractItemView::indicator:indeterminate {
-    background: $s3; border-color: $accent; }
+    background: $s3; border-color: $accent; image: url($minus); }
 QCheckBox:focus { color: $text; }
 
 QTreeView, QListView, QTableView { background: $s1; border: none; outline: none;
-    show-decoration-selected: 1; }
+    show-decoration-selected: 0; }
 QTreeView::item, QListView::item { min-height: ${row}px; padding: 0 4px;
     border-left: 2px solid transparent; }
 QTreeView::item:hover, QListView::item:hover { background: $s2; }
 QTreeView::item:selected, QListView::item:selected { background: $sel;
     border-left: 2px solid $accent; color: $text; }
 QTreeView::branch { background: transparent; }
-QTreeView::branch:selected { background: $sel; }
+QTreeView::branch:selected { background: transparent; }
 QHeaderView::section { background: $s1; color: $text2; border: none;
     border-bottom: 1px solid $line; padding: 4px 8px; }
 
@@ -183,5 +184,6 @@ def build() -> str:
         inner=SIZE["control"] - 2, spin=SIZE["control"] - 5, row=SIZE["row"], status=SIZE["status"],
         sel=_rgba("accent", 0.15), roles=_roles(),
         down=icons.file("chevron-down").as_posix(), up=icons.file("chevron-up").as_posix(),
+        check=icons.file("check", "text").as_posix(), minus=icons.file("minus", "text").as_posix(),
     )
     return SHEET.substitute(values).strip() + "\n"

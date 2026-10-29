@@ -17,6 +17,8 @@ from atlas_package import TOY_SOURCE, tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas, Source
 from cns_desktop.app import (disclaimer_due, main, offer_disclaimer, own_memory_mb,
                              peak_memory_mb)
+from cns_desktop.design import rich
+from cns_desktop.design.tokens import SIZE
 from cns_desktop.main_window import MainWindow, default_progress_path, migrate_progress
 from cns_desktop.state import AppState
 from cns_desktop.views.about_dialog import AboutDialog, about_text
@@ -993,7 +995,7 @@ def test_the_structures_panel_opens_wide_enough_for_common_names(window, qapp):
 def test_tree_items_show_their_full_name_on_hover(window):
     item = window.tree.items[101]
     assert item.toolTip(0) == window.state.atlas.get(101).name
-    assert window.tree.tree.indentation() <= 12
+    assert window.tree.tree.indentation() == SIZE["indent"] <= 12
 
 
 def test_f_frames_3d_when_there_are_no_slices(qapp, tmp_path, monkeypatch):
@@ -1012,5 +1014,5 @@ def test_the_colour_swatch_sits_beside_the_name(window):
     for structure_id in (101, 120):
         heading, rest = window.info.html_for(structure_id).split("</h2>", 1)
         assert "&#9632;" in heading and "&#9632;" not in rest
-    assert window.info.html_for(101).split("</h2>", 1)[1].startswith("<p>left</p>")
+    assert window.info.html_for(101).split("</h2>", 1)[1].startswith(rich.secondary("left"))
     assert not window.info.html_for(120).split("</h2>", 1)[1].startswith("<p></p>")
