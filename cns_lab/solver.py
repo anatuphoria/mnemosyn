@@ -53,6 +53,7 @@ def _span(f, t0: float, y0: list[float], t1: float, max_step: float, rtol: float
             e /= atol + rtol * max(abs(yi), abs(ni))
             error += e * e
         error = math.sqrt(error / len(y)) if y else 0.0
+        # A step that produced a non finite value is retried smaller instead of failing at once.
         if not math.isfinite(error):
             broken = True
             h *= SHRINK

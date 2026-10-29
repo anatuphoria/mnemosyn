@@ -102,6 +102,8 @@ class Inspector(QWidget):
             return self.document.experiment.blocks[selection[1]]
         return None
 
+    # Editors are rebuilt only when this key changes; otherwise they are updated in place so an
+    # editor is never deleted while its own signal is running.
     def _shape_key(self):
         selection = self.document.selection
         block = self._block_now()

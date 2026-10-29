@@ -252,6 +252,7 @@ class Simulator:
         experiment = Experiment(self.model.key, self.model.version, math.inf,
                                 self.model.start_clock, present, values)
         y = [self.values[k].start for k in self.keys]
+        # Glands take weeks to settle, so first run with their growth sped up for a rough guess.
         speedup = self.model.settle_speedup
         y = self._march(experiment, 0.0, self.model.settle_days * DAY, y, speedup, True)
         y = self._periodic(experiment, y)
@@ -260,6 +261,7 @@ class Simulator:
             self._settled.popitem(last=False)
         return y
 
+    # Newton's method on the map from one 08:00 state to the next finds the exact repeating day.
     def _periodic(self, experiment: Experiment, y: list[float]) -> list[float]:
         def day(state):
             return np.asarray(self._march(experiment, 0.0, DAY, list(state), 1.0, True))

@@ -74,3 +74,9 @@ def test_numbers_are_floats_so_huge_powers_overflow_instead_of_hanging():
 def test_a_huge_power_overflows_at_once():
     with pytest.raises(OverflowError):
         compile_function({"a": "9 ** 9 ** 9"}, ())()
+
+
+def test_the_same_expressions_compile_once():
+    first = compile_function({"a": "x * 2"}, ("x",))
+    assert compile_function({"a": "x * 2"}, ("x",)) is first
+    assert compile_function({"a": "x * 3"}, ("x",)) is not first

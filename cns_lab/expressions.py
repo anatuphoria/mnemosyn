@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import functools
 import keyword
 import math
 import types
@@ -79,6 +80,14 @@ def names(text: str) -> frozenset[str]:
 
 def compile_function(exprs: dict[str, str], args: tuple[str, ...],
                      returns: tuple[str, ...] | None = None) -> Callable[..., tuple]:
+    return _compiled(tuple(exprs.items()), tuple(args), None if returns is None else tuple(returns))
+
+
+# Every Simulator compiles the same model text again; caching keeps that to once per process.
+@functools.lru_cache(maxsize=512)
+def _compiled(items: tuple[tuple[str, str], ...], args: tuple[str, ...],
+              returns: tuple[str, ...] | None) -> Callable[..., tuple]:
+    exprs = dict(items)
     bad = [n for n in (*args, *exprs) if not n.isidentifier() or keyword.iskeyword(n)
            or n in _GLOBALS]
     if bad:

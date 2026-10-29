@@ -100,6 +100,7 @@ def chain(sim: Simulator, run: Run, t: float, limit: int = 8) -> tuple[Step, ...
 
     found: list[tuple[tuple, Step]] = []
     seen: set[str] = set()
+    # Slow values carry the effect of changes that have already ended, such as a past course.
     memory = [f"value:{v.key}" for v in model.values
               if v.slow and v.key not in clamped
               and _changed(run.at(v.key, t), normal.at(v.key, t), threshold)]
