@@ -60,3 +60,15 @@ def test_arrows_are_drawn_with_chevron_icons():
     css = stylesheet.build()
     assert re.search(r"QComboBox::down-arrow \{ image: url\([^)]*chevron-down", css)
     assert re.search(r"::up-arrow \{ image: url\([^)]*chevron-up", css)
+
+
+def test_applying_the_theme_again_changes_nothing(qapp):
+    sheet = qapp.styleSheet()
+    calls = []
+    original = qapp.setStyleSheet
+    qapp.setStyleSheet = lambda text: calls.append(text)
+    try:
+        theme.apply_theme(qapp)
+    finally:
+        qapp.setStyleSheet = original
+    assert calls == [] and qapp.styleSheet() == sheet

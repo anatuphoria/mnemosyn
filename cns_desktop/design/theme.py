@@ -14,6 +14,8 @@ PALETTE = {
 def apply_theme(app) -> None:
     from PySide6.QtGui import QColor, QPalette
 
+    if is_applied(app):
+        return
     app.setStyle("Fusion")
     palette = QPalette()
     for role, name in PALETTE.items():
