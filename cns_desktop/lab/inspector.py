@@ -26,6 +26,8 @@ class _NoteBox(QPlainTextEdit):
 
 
 def _set(widget, value) -> None:
+    if widget.hasFocus() or (isinstance(widget, QDoubleSpinBox) and widget.lineEdit().hasFocus()):
+        return
     widget.blockSignals(True)
     if isinstance(widget, QDoubleSpinBox):
         widget.setValue(value)

@@ -146,3 +146,30 @@ def test_an_edited_value_is_explained_not_the_normal_day(doc):
     text = panel.toPlainText()
     assert "X rises in the morning" not in text
     assert "The body clock drives X." in text
+
+
+def test_typing_in_the_inspector_survives_playback(qapp, doc):
+    from PySide6.QtTest import QTest
+
+    inspector = Inspector(doc)
+    inspector.show()
+    doc.add_block("pill", 120.0)
+    doc.select(("block", 0))
+    qapp.processEvents()
+    spin = inspector.option_spin("dose")
+    spin.setFocus()
+    spin.selectAll()
+    QTest.keyClicks(spin, "7")
+    for t in (10.0, 20.0, 30.0):
+        doc.set_playhead(t)
+        qapp.processEvents()
+    assert spin.text().startswith("7")
+    doc.select(None)
+    qapp.processEvents()
+    title = inspector.title_box()
+    title.setFocus()
+    QTest.keyClicks(title, "half")
+    doc.set_playhead(40.0)
+    qapp.processEvents()
+    assert title.text() == "half"
+    inspector.close()
