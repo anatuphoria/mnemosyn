@@ -35,6 +35,9 @@ class Workspaces(QObject):
         self.defaults: dict[str, tuple[QByteArray, list[Join]]] = {}
         self.arrange: dict[str, Callable[[], object]] = {}
         self.narrow: dict[str, list[Join]] = {}
+        self.touched: set[str] = set()
+        self._applying = 0
+        self._watched: set[int] = set()
         self.switcher = SegmentedControl([(name, name) for name in NAMES], icons=ICONS)
         self.switcher.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self.switcher.changed.connect(self.switch)
@@ -64,15 +67,34 @@ class Workspaces(QObject):
         return [(host.objectName(), guest.objectName()) for host in self.groups()
                 for guest in host.joined()]
 
-    def release_joins(self) -> None:
+    def _watch(self) -> None:
         for group in self.groups():
-            group.release_all()
+            if id(group) not in self._watched:
+                self._watched.add(id(group))
+                group.dockLocationChanged.connect(lambda _area: self._moved())
+                group.topLevelChanged.connect(lambda _floating: self._moved())
+
+    def _moved(self) -> None:
+        if not self._applying:
+            self.touched.add(self.current)
+
+    def release_joins(self) -> None:
+        self._applying += 1
+        try:
+            for group in self.groups():
+                group.release_all()
+        finally:
+            self._applying -= 1
 
     def apply_joins(self, joins: list[Join]) -> None:
-        for host_name, guest_name in joins:
-            host, guest = self._group(host_name), self._group(guest_name)
-            if host is not None and guest is not None:
-                host.join(guest)
+        self._applying += 1
+        try:
+            for host_name, guest_name in joins:
+                host, guest = self._group(host_name), self._group(guest_name)
+                if host is not None and guest is not None:
+                    host.join(guest)
+        finally:
+            self._applying -= 1
 
     def _key(self, name: str) -> str:
         return f"workspaces/{name}"
@@ -99,19 +121,28 @@ class Workspaces(QObject):
         self.settings.setValue(f"workspaces/joins/{name}", [f"{h}:{g}" for h, g in joins])
 
     def _restore(self, state: QByteArray, joins: list[Join]) -> None:
-        self.release_joins()
-        self.window.restoreState(state)
-        self.apply_joins(joins)
+        self._applying += 1
+        try:
+            self.release_joins()
+            self.window.restoreState(state)
+            self.apply_joins(joins)
+        finally:
+            self._applying -= 1
 
     def _apply_default(self, name: str) -> None:
         state, joins = self.defaults[name]
         if self.window.width() < SIZE["narrow"]:
             joins = [*joins, *self.narrow.get(name, [])]
-        self.release_joins()
-        self.window.restoreState(state)
-        if name in self.arrange:
-            self.arrange[name]()
-        self.apply_joins(joins)
+        self._applying += 1
+        try:
+            self.release_joins()
+            self.window.restoreState(state)
+            if name in self.arrange:
+                self.arrange[name]()
+            self.apply_joins(joins)
+        finally:
+            self._applying -= 1
+        self.touched.discard(name)
 
     def _apply(self, name: str) -> None:
         stored = self._stored(name)
@@ -133,6 +164,7 @@ class Workspaces(QObject):
             self.defaults[name] = (self.window.saveState(), list(joins))
         self._apply("Explore")
         self._after_restore("Explore")
+        self._watch()
 
     def register_lab(self, docks: list, enter: Callable[[], None],
                      leave: Callable[[], None], arrange: Callable[[], None] | None = None,
@@ -156,6 +188,7 @@ class Workspaces(QObject):
         self._restore(state, joins)
         self.switcher.button("Lab").show()
         self.actions["Lab"].setEnabled(not self.locked)
+        self._watch()
         self._after_restore(self.current)
 
     def set_locked(self, locked: bool) -> None:
@@ -177,6 +210,14 @@ class Workspaces(QObject):
             self.window.quiz_dock.setVisible(self.window.quiz_active)
         self.window.topbar.show_group(name)
         self.window.sync_after_layout(name)
+
+    def width_changed(self, old: int, new: int) -> None:
+        narrow = SIZE["narrow"]
+        if (old < narrow) == (new < narrow) or old <= 0:
+            return
+        if self._stored(self.current) is None and self.current not in self.touched:
+            self._apply_default(self.current)
+            self.window.sync_after_layout(self.current)
 
     def fit_to_width(self) -> None:
         if self._stored(self.current) is None:

@@ -23,7 +23,8 @@ class SegmentedControl(QFrame):
         super().__init__(parent)
         self.setProperty("segmented", "true")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._compact = False
         self._keys: list[str] = []
         self._buttons: dict[str, QToolButton] = {}
         self._current = ""
@@ -61,9 +62,12 @@ class SegmentedControl(QFrame):
         button.setCheckable(True)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setFixedHeight(SEGMENT)
+        button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         if icon:
             button.setIcon(button_icon(icon))
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            button.setToolButtonStyle(self._style())
+        if not button.toolTip():
+            button.setToolTip(label)
         button.clicked.connect(lambda _checked=False, k=key: self.set_current(k))
         self._group.addButton(button)
         self._buttons[key] = button
@@ -77,9 +81,22 @@ class SegmentedControl(QFrame):
         button = self._buttons.pop(key)
         self._keys.remove(key)
         self._group.removeButton(button)
-        button.deleteLater()
+        self.layout().removeWidget(button)
+        button.hide()
+        button.setParent(None)
         if self._current == key and self._keys:
             self.set_current(self._keys[0])
+
+    def _style(self) -> Qt.ToolButtonStyle:
+        if self._compact:
+            return Qt.ToolButtonStyle.ToolButtonIconOnly
+        return Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+
+    def set_compact(self, compact: bool) -> None:
+        self._compact = compact
+        for button in self._buttons.values():
+            if not button.icon().isNull():
+                button.setToolButtonStyle(self._style())
 
     def keyPressEvent(self, event) -> None:
         step = {Qt.Key.Key_Left: -1, Qt.Key.Key_Right: 1}.get(event.key())
@@ -239,3 +256,32 @@ def elided(label: QLabel, text: str) -> None:
         return
     elider.text = text
     elider.apply()
+
+
+class ElidedLabel(QLabel):
+    def __init__(self, text: str = "", parent=None) -> None:
+        super().__init__(parent)
+        self._full = ""
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.setText(text)
+
+    def text(self) -> str:
+        return self._full
+
+    def setText(self, text: str) -> None:
+        self._full = text
+        self._fit()
+
+    def shown_text(self) -> str:
+        return super().text()
+
+    def _fit(self) -> None:
+        width = max(self.contentsRect().width(), 0)
+        shown = self.fontMetrics().elidedText(self._full, Qt.TextElideMode.ElideRight, width)
+        super().setText(shown)
+        self.setToolTip("" if shown == self._full else self._full)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._fit()

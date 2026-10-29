@@ -232,3 +232,56 @@ def test_the_status_bar_shows_key_caps(window, qapp):
     qapp.processEvents()
     assert caps() == ["Space", "V", "Del"]
     assert window.statusBar().height() == 24
+
+
+def test_a_window_made_narrow_after_opening_gets_the_narrow_defaults(window, qapp):
+    assert window.structures_group.keys() == ["structures"]
+    window.resize(900, 800)
+    qapp.processEvents()
+    assert window.structures_group.keys() == ["structures", "info", "slices"]
+    window.resize(1400, 900)
+    qapp.processEvents()
+    assert window.structures_group.keys() == ["structures"]
+    assert window.info_group.keys() == ["info", "slices"]
+
+
+def test_a_layout_the_person_changed_is_never_rearranged(window, qapp):
+    window.addDockWidget(LEFT, window.info_group)
+    qapp.processEvents()
+    window.resize(900, 800)
+    qapp.processEvents()
+    assert window.structures_group.keys() == ["structures"]
+    assert window.dockWidgetArea(window.info_group) == LEFT
+
+
+def test_the_top_bar_compacts_below_1100(window, qapp):
+    bar = window.topbar
+    assert bar.menus.isVisible() and not bar.menu_button.isVisible()
+    window.resize(900, 800)
+    qapp.processEvents()
+    assert not bar.menus.isVisible() and bar.menu_button.isVisible()
+    titles = [a.text() for a in bar.menu_button.menu().actions() if a.isVisible()]
+    assert titles == ["File", "Edit", "View", "Study", "Window", "Help"]
+    assert not bar.wordmark.isVisible()
+    button = window.workspaces.button("Slices")
+    assert button.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonIconOnly
+    assert bar.sizeHint().width() <= 900
+
+
+def test_the_lab_top_bar_fits_a_narrow_window(window, qapp):
+    window.resize(850, 800)
+    window.workspaces.switch("Lab")
+    qapp.processEvents()
+    assert window.topbar.minimumSizeHint().width() <= 850
+    for box in (window.lab.speed_box, window.lab.length_box):
+        assert box.width() >= box.minimumSizeHint().width()
+
+
+def test_long_status_text_is_cut_with_a_tooltip(window, qapp):
+    window.resize(850, 800)
+    qapp.processEvents()
+    status = window.status
+    status.setText("selected: " + "Paraventricular nucleus of the hypothalamus " * 4)
+    qapp.processEvents()
+    assert status.text().startswith("selected:")
+    assert status.shown_text().endswith("…") and status.toolTip() == status.text()

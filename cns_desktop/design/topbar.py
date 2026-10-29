@@ -4,9 +4,10 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtSvgWidgets import QSvgWidget
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QMenuBar, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QMenuBar, QToolButton, QWidget
 
 from cns_desktop.design.tokens import SIZE
+from cns_desktop.design.widgets import button_icon
 
 WORDMARK = Path(__file__).resolve().parents[1] / "resources" / "wordmark.svg"
 WORDMARK_HEIGHT = 20
@@ -34,11 +35,22 @@ class TopBar(QFrame):
         self._menus: dict[str, QMenu] = {}
         for name in MENUS:
             self._menus[name] = self.menus.addMenu(name)
+        self.menu_button = QToolButton()
+        self.menu_button.setIcon(button_icon("menu"))
+        self.menu_button.setToolTip("Menu")
+        self.menu_button.setFixedSize(SIZE["control"], SIZE["control"])
+        self.menu_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.menu_button.setMenu(QMenu(self.menu_button))
+        for menu in self._menus.values():
+            self.menu_button.menu().addMenu(menu)
+        self.menu_button.hide()
+        self.compact = False
         self._groups: dict[str, QWidget] = {}
         self._row = QHBoxLayout(self)
         self._row.setContentsMargins(SIZE["panel_pad"], 0, 8, 0)
         self._row.setSpacing(8)
         self._row.addWidget(self.wordmark)
+        self._row.addWidget(self.menu_button)
         self._row.addWidget(self.menus)
         self._groups_row = QHBoxLayout()
         self._groups_row.setContentsMargins(0, 0, 0, 0)
@@ -54,6 +66,14 @@ class TopBar(QFrame):
         for name, menu in self._menus.items():
             if name != "Experiment":
                 menu.menuAction().setVisible(bool(menu.actions()))
+
+    def set_compact(self, compact: bool) -> None:
+        self.compact = compact
+        self.menus.setVisible(not compact)
+        self.menu_button.setVisible(compact)
+        self.wordmark.setVisible(not compact)
+        if self.switch is not None and hasattr(self.switch, "set_compact"):
+            self.switch.set_compact(compact)
 
     def set_switch(self, widget: QWidget) -> None:
         self.switch = widget

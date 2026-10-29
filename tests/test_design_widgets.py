@@ -133,3 +133,38 @@ def test_cards_are_raised_surfaces(qapp):
     card = widgets.Card()
     card.ensurePolished()
     assert card.palette().color(card.backgroundRole()).name() == COLOURS["s2"]
+
+
+def test_removed_segments_disappear_at_once(qapp):
+    control = widgets.SegmentedControl([("info", "Info")])
+    control.show()
+    for _ in range(3):
+        control.add_option("slices", "Slices")
+        control.remove_option("slices")
+    shown = [b.text() for b in control.findChildren(type(control.button("info")))
+             if b.isVisible()]
+    assert shown == ["Info"]
+    assert control.layout().count() == 1
+
+
+def test_segments_can_show_icons_only(qapp):
+    control = widgets.SegmentedControl([("brain", "Explore")], icons={"brain": "brain"})
+    control.set_compact(True)
+    assert control.button("brain").toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonIconOnly
+    assert control.button("brain").toolTip().startswith("Explore")
+    control.set_compact(False)
+    assert control.button("brain").toolButtonStyle() == \
+        Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+
+
+def test_an_elided_label_keeps_its_full_text(qapp):
+    label = widgets.ElidedLabel()
+    label.setFixedWidth(60)
+    label.show()
+    label.setText("selected: Paraventricular nucleus of the hypothalamus")
+    assert label.text() == "selected: Paraventricular nucleus of the hypothalamus"
+    assert label.shown_text().endswith("…")
+    assert label.toolTip() == label.text()
+    label.setFixedWidth(1200)
+    QApplication.processEvents()
+    assert label.shown_text() == label.text() and label.toolTip() == ""

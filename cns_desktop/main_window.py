@@ -169,7 +169,7 @@ class MainWindow(QMainWindow):
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
                 widget.installEventFilter(self)
-        self.status = QLabel()
+        self.status = widgets.ElidedLabel()
         self.statusBar().addWidget(self.status, 1)
         self.statusBar().setFixedHeight(SIZE["status"])
         self.status_keys = QWidget()
@@ -221,6 +221,12 @@ class MainWindow(QMainWindow):
     @property
     def warm_up_done(self) -> bool:
         return self._warm_up.done
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.topbar.set_compact(event.size().width() < SIZE["narrow"])
+        if hasattr(self, "workspaces"):
+            self.workspaces.width_changed(event.oldSize().width(), event.size().width())
 
     def showEvent(self, event) -> None:
         if not getattr(self, "_fitted", False):
