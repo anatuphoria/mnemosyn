@@ -182,6 +182,10 @@ class MainWindow(QMainWindow):
         ids = self.view.ids + self.view.shell_ids
         jobs += [lambda c=ids[k:k + 40]: self.view.warm_outline(c) for k in range(0, len(ids), 40)]
         jobs.append(lambda: self.view.warm_outline(ids))
+        if self.lab is not None:
+            experiment = self.lab.document.experiment
+            jobs.append(lambda: self.lab.document.simulator.normal(experiment.length,
+                                                                   experiment.start_clock))
         return jobs
 
     @property

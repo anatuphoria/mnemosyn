@@ -34,7 +34,8 @@ class LabDocument(QObject):
     selection_changed = Signal(object)
     wants_longer = Signal(float)
 
-    def __init__(self, atlas: Atlas, model_key: str, length: float = DAY) -> None:
+    def __init__(self, atlas: Atlas, model_key: str, length: float = DAY,
+                 compute: bool = True) -> None:
         super().__init__()
         self.atlas = atlas
         self.model = atlas.models[model_key]
@@ -50,7 +51,13 @@ class LabDocument(QObject):
         self.path: Path | None = None
         self._experiments = {e.key: e for e in self.model.experiments}
         self._tests = {t.key: t for t in self.model.tests}
-        self._recompute()
+        if compute:
+            self._recompute()
+
+    def ensure_run(self) -> None:
+        if self.run is None and not self.error:
+            self._recompute()
+            self.changed.emit()
 
     def _blank(self, length: float) -> Experiment:
         return Experiment(self.model.key, self.model.version, length, self.model.start_clock)

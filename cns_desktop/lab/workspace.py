@@ -37,7 +37,7 @@ def _count(n: int, one: str, many: str) -> str:
 class LabWorkspace:
     def __init__(self, window, model_key: str) -> None:
         self.window = window
-        self.document = LabDocument(window.state.atlas, model_key)
+        self.document = LabDocument(window.state.atlas, model_key, compute=False)
         doc = self.document
         self.speed = 1.0
         self.playing = False
@@ -214,6 +214,7 @@ class LabWorkspace:
 
     def enter(self) -> None:
         self._saved = self.window._snapshot()
+        self.document.ensure_run()
         self.window.viewport.show_lab_parts(True)
         self.toolbar.show()
         self.experiment_menu.menuAction().setVisible(True)
