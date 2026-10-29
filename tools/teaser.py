@@ -240,7 +240,10 @@ def main(argv: list[str] | None = None) -> int:
     for name, command in encode_commands(frames, args.out):
         subprocess.run(command, check=True)
         print(args.out / f"teaser.{name}")
-    for name in ("teaser.avif", "teaser.webp"):
+    last = max(frames.glob("f*.png"))
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(last), "-q:v", "3",
+                    str(args.out / "teaser-poster.jpg")], check=True)
+    for name in ("teaser.avif", "teaser.webp", "teaser.mp4", "teaser-poster.jpg"):
         shutil.copy(args.out / name, ROOT / "brand" / name)
         print(ROOT / "brand" / name)
     return 0

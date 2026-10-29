@@ -165,11 +165,26 @@ def test_the_home_page_opens_with_the_seal_and_shows_the_product(tmp_path):
     assert "assets/logo-seal-dark.svg#only-dark" in home
     assert "assets/logo-seal-light.svg#only-light" in home
     assert "The Lab" in home and "guide.md#the-lab" in home
-    for name in ("screenshot.png", "screenshot-slices.png", "screenshot-activity.png",
-                 "screenshot-lab.png"):
+    for name in ("screenshot-slices.png", "screenshot-activity.png", "screenshot-lab.png"):
         assert f"assets/{name}" in home, name
         assert (tmp_path / "out/assets" / name).exists(), name
     assert "divider" not in home
     assert "# Mnemosyn { .visually-hidden }" in home
     css = (REPO / "site/stylesheets/extra.css").read_text()
     assert ".visually-hidden {" in css and "clip: rect(0 0 0 0)" in css
+
+
+def test_the_home_page_plays_the_teaser_video(tmp_path):
+    from tools.build_site import build_site
+
+    build_site(REPO, tmp_path / "out")
+    home = (tmp_path / "out/index.md").read_text()
+    video = re.search(r"<video [^>]*>", home).group(0)
+    for word in ("autoplay", "muted", "loop", "playsinline", 'src="assets/teaser.mp4"',
+                 'poster="assets/teaser-poster.jpg"'):
+        assert word in video, word
+    assert (tmp_path / "out/assets/teaser.mp4").exists()
+    assert (tmp_path / "out/assets/teaser-poster.jpg").exists()
+    script = (REPO / "site/javascripts/teaser.js").read_text()
+    assert "prefers-reduced-motion: reduce" in script and "controls" in script
+    assert "javascripts/teaser.js" in (REPO / "mkdocs.yml").read_text()

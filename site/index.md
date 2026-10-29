@@ -17,7 +17,7 @@ see what follows. Made for students; every shape and sentence cites its source.
 
 </div>
 
-![Mnemosyn following the cerebellar motor loop: the dentate nucleus lit in 3D, outlined in an axial slice, with its role and the effect of a lesion](assets/screenshot.png){ .shot }
+<video class="shot teaser" src="assets/teaser.mp4" poster="assets/teaser-poster.jpg" autoplay muted loop playsinline aria-label="Mnemosyn in 17 seconds: the brain turning in 3D, an axial slice gliding through it, the cerebellar loop lit station by station, and the Lab cutting the pituitary stalk while the curves and the Why chain follow"></video>
 
 <div class="features" markdown>
 

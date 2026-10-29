@@ -18,7 +18,7 @@
 .md-typeset .hero .md-button { font-size: .75rem; padding: .5em 1.6em; }
 .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 1.6rem 0; }
 .md-typeset .hero .logo { width: 18rem; max-width: 80%; margin: 0 0 1.2rem; }
-.md-typeset img.shot { display: block; width: 100%; border: 1px solid var(--md-default-fg-color--lightest); border-radius: .4rem; }
+.md-typeset img.shot, .md-typeset video.shot { display: block; width: 100%; border: 1px solid var(--md-default-fg-color--lightest); border-radius: .4rem; }
 .closer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .md-typeset .closer p { font-size: .72rem; }
 .features > div { border: 1px solid var(--md-default-fg-color--lightest); border-radius: .4rem; padding: .9rem 1rem; font-size: .72rem; }
