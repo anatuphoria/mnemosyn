@@ -69,3 +69,10 @@ def test_the_about_box_names_inter_and_lucide():
 
     assert "Inter" in BUILT_WITH and "SIL Open Font License" in BUILT_WITH
     assert "Lucide" in BUILT_WITH and "ISC" in BUILT_WITH
+
+
+def test_icon_files_are_tinted_copies_for_the_stylesheet():
+    path = icons.file("chevron-down", "text2")
+    text = path.read_text(encoding="utf-8")
+    assert tokens.COLOURS["text2"] in text and "currentColor" not in text
+    assert icons.file("chevron-down", "text2") == path

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QComboBox, QMessageBox, QToolButton
+from PySide6.QtWidgets import QComboBox, QMessageBox
 from shiboken6 import isValid
 
 from cns_desktop.design import widgets
@@ -95,7 +95,7 @@ class LabWorkspace:
         self._saved = None
         self._set_enabled(False)
         window.workspaces.register_lab(self.docks, self.enter, self.leave, self._arrange,
-                                       narrow=[("Lab tools", "Lab explain")])
+                                       narrow=[("Lab time", "Lab explain")])
 
     def _arrange(self) -> None:
         window = self.window
@@ -123,23 +123,11 @@ class LabWorkspace:
         return action
 
     def _build_switch(self) -> None:
-        bar = self.window.viewport.top_bar.layout()
-        self.brain_button = QToolButton(text="Brain", checkable=True, checked=True,
-                                        autoRaise=True)
-        self.circuit_button = QToolButton(text="Circuit", checkable=True, autoRaise=True)
-        self.brain_button.clicked.connect(lambda: self.show_circuit(False))
-        self.circuit_button.clicked.connect(lambda: self.show_circuit(True))
-        bar.addStretch(1)
-        bar.addWidget(self.brain_button)
-        bar.addWidget(self.circuit_button)
-        bar.addStretch(1)
         self._add("Switch Brain and Circuit", lambda: self.show_circuit(
             not self.window.viewport.showing_circuit), "V")
 
     def show_circuit(self, shown: bool) -> None:
         self.window.viewport.show_circuit(shown)
-        self.brain_button.setChecked(not self.window.viewport.showing_circuit)
-        self.circuit_button.setChecked(self.window.viewport.showing_circuit)
 
     def _build_toolbar(self) -> None:
         doc = self.document
@@ -267,8 +255,6 @@ class LabWorkspace:
         self.pause()
         self.brain.deactivate()
         self.window.viewport.show_lab_parts(False)
-        self.brain_button.setChecked(True)
-        self.circuit_button.setChecked(False)
         self.toolbar.hide()
         self.experiment_menu.menuAction().setVisible(False)
         self._set_enabled(False)

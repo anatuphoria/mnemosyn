@@ -71,6 +71,11 @@ def contrast(a: str, b: str) -> float:
     return (la + 0.05) / (lb + 0.05)
 
 
+def rgb(name: str) -> tuple[int, int, int]:
+    value = COLOURS[name].lstrip("#")
+    return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4))
+
+
 def color(name: str, alpha: float = 1.0):
     from PySide6.QtGui import QColor
 

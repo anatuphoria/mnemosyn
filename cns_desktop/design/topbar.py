@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QMenuBar, QToolButton, QWidget
 
@@ -58,6 +58,9 @@ class TopBar(QFrame):
         self._row.addLayout(self._groups_row)
         self._row.addStretch(1)
         self.switch: QWidget | None = None
+
+    def minimumSizeHint(self):
+        return QSize(0, SIZE["header"])
 
     def menu(self, name: str) -> QMenu:
         return self._menus[name]

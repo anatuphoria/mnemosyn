@@ -120,31 +120,43 @@ class Workspaces(QObject):
         self.settings.setValue(self._key(name), state)
         self.settings.setValue(f"workspaces/joins/{name}", [f"{h}:{g}" for h, g in joins])
 
+    def _restore_state(self, state: QByteArray) -> None:
+        size = self.window.size()
+        self.window.restoreState(state)
+        if self.window.isVisible() and self.window.size() != size:
+            self.window.resize(size)
+
     def _restore(self, state: QByteArray, joins: list[Join]) -> None:
         self._applying += 1
         try:
             self.release_joins()
-            self.window.restoreState(state)
+            self._restore_state(state)
             self.apply_joins(joins)
         finally:
             self._applying -= 1
 
     def _apply_default(self, name: str) -> None:
+        self.window.before_layout(name)
         state, joins = self.defaults[name]
         if self.window.width() < SIZE["narrow"]:
             joins = [*joins, *self.narrow.get(name, [])]
+        size = self.window.size()
         self._applying += 1
         try:
             self.release_joins()
-            self.window.restoreState(state)
+            self._restore_state(state)
+            self.apply_joins(joins)
             if name in self.arrange:
                 self.arrange[name]()
             self.apply_joins(joins)
+            if self.window.isVisible() and self.window.size() != size:
+                self.window.resize(size)
         finally:
             self._applying -= 1
         self.touched.discard(name)
 
     def _apply(self, name: str) -> None:
+        self.window.before_layout(name)
         stored = self._stored(name)
         if stored is None:
             self._apply_default(name)
@@ -158,7 +170,7 @@ class Workspaces(QObject):
         base = self.window.saveState()
         for name, build in arrange.items():
             self.release_joins()
-            self.window.restoreState(base)
+            self._restore_state(base)
             joins = build()
             self.apply_joins(joins)
             self.defaults[name] = (self.window.saveState(), list(joins))
@@ -213,7 +225,7 @@ class Workspaces(QObject):
 
     def width_changed(self, old: int, new: int) -> None:
         narrow = SIZE["narrow"]
-        if (old < narrow) == (new < narrow) or old <= 0:
+        if (old < narrow) == (new < narrow) or old <= 0 or self._applying:
             return
         if self._stored(self.current) is None and self.current not in self.touched:
             self._apply_default(self.current)

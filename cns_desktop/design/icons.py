@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tempfile
 from functools import cache
 from pathlib import Path
 
@@ -7,6 +8,7 @@ from cns_desktop.design.tokens import COLOURS, ICON_STROKE
 
 ICONS = Path(__file__).resolve().parents[1] / "resources" / "icons"
 NAMES = tuple(sorted(path.stem for path in ICONS.glob("*.svg")))
+CACHE = Path(tempfile.gettempdir()) / "mnemosyn-icons"
 
 
 @cache
@@ -48,3 +50,13 @@ def icon(name: str, role: str = "text2", size: int = 16):
         result.addPixmap(_render(name, role, size * scale), QIcon.Mode.Normal)
         result.addPixmap(_render(name, "text3", size * scale), QIcon.Mode.Disabled)
     return result
+
+
+@cache
+def file(name: str, role: str = "text2") -> Path:
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path = CACHE / f"{name}-{role}.svg"
+    data = _svg(name, role)
+    if not path.is_file() or path.read_bytes() != data:
+        path.write_bytes(data)
+    return path

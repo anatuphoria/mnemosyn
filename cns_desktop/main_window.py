@@ -200,6 +200,7 @@ class MainWindow(QMainWindow):
         default = next((s.id for s in atlas.structures
                         if s.name.startswith("Hippocampus") and atlas.has_mesh(s.id)), None)
         self.state.select(default)
+        self.view.setFocus()
         self._warm_up = WarmUp(self._warm_up_jobs(), self)
         self._first_draw = None
 
@@ -225,6 +226,8 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         self.topbar.set_compact(event.size().width() < SIZE["narrow"])
+        self.viewport.fit(self.workspaces.current if hasattr(self, "workspaces") else "Explore",
+                          event.size().width())
         if hasattr(self, "workspaces"):
             self.workspaces.width_changed(event.oldSize().width(), event.size().width())
 
@@ -285,6 +288,9 @@ class MainWindow(QMainWindow):
         self.topbar.add_group("Explore", buttons(full))
         self.topbar.add_group("Slices", buttons(full))
         self.topbar.add_group("Pathways", buttons(("Tracts", None, "Start quiz")))
+        for name, icon in (("Frame selection", "maximize"), ("Reset view", "rotate-ccw")):
+            self.viewport.add_tool(widgets.icon_button(self.shortcuts[name], icon))
+        self.viewport.add_tool(buttons(("Tracts",))[0])
         leave = QAction("Leave pathway", self, shortcut=QKeySequence("Esc"),
                         triggered=self.pathways.leave)
         leave.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
@@ -364,7 +370,11 @@ class MainWindow(QMainWindow):
         if self.workspaces.current == "Lab":
             self.workspaces.switch("Explore")
 
+    def before_layout(self, name: str) -> None:
+        self.viewport.fit(name, self.width())
+
     def sync_after_layout(self, name: str) -> None:
+        self.viewport.fit(name, self.width())
         self._sync_chart()
 
     def _show_hover(self, name: str) -> None:
@@ -633,6 +643,10 @@ class MainWindow(QMainWindow):
         if self._store is not None:
             self._store.close()
         self.view.close()
-        # A closed window can outlive its close; the 3D widget's GL context goes now.
+        # A closed window can outlive its close, so its GL context is freed now. pyvistaqt keeps
+        # Python handles to Qt's context and surface; they are dropped first so none goes stale.
+        forget = getattr(self.view, "_forget_context", None)
+        if forget is not None:
+            forget()
         delete(self.view)
         super().closeEvent(event)

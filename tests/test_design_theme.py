@@ -54,3 +54,9 @@ def test_text_roles_set_size_and_colour(qapp):
     theme.set_role(label, "heading")
     assert label.font().pixelSize() == 15
     assert label.palette().color(label.foregroundRole()).name() == COLOURS["text"]
+
+
+def test_arrows_are_drawn_with_chevron_icons():
+    css = stylesheet.build()
+    assert re.search(r"QComboBox::down-arrow \{ image: url\([^)]*chevron-down", css)
+    assert re.search(r"::up-arrow \{ image: url\([^)]*chevron-up", css)

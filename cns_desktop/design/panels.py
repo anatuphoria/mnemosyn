@@ -50,7 +50,8 @@ class PanelGroup(QDockWidget):
         return label, widget
 
     def _sync_header(self) -> None:
-        self.setMinimumWidth(max(SIZE["panel_min"], self.stack.minimumSizeHint().width()))
+        pages = [page.minimumSizeHint().width() for page in self._pages.values()]
+        self.setMinimumWidth(max([SIZE["panel_min"], *pages]))
         several = len(self._pages) > 1
         self.header.tabs.setVisible(several)
         self.header.title.setVisible(not several)
@@ -71,6 +72,12 @@ class PanelGroup(QDockWidget):
         if key in self._pages:
             self.stack.setCurrentWidget(self._pages[key])
             self.page_changed.emit(key)
+
+    def setVisible(self, visible: bool) -> None:
+        if visible and self._host is not None:
+            self._host.setVisible(True)
+            return
+        super().setVisible(visible)
 
     def keys(self) -> list[str]:
         return list(self._pages)

@@ -7,10 +7,12 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import QPointF, QSignalBlocker, Qt, QTimer, Signal
 from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QPushButton, QSlider,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QToolButton, QVBoxLayout, QWidget
 
 from .. import slices
+from ..design.theme import set_role
+from ..design.tokens import SIZE
+from ..design.widgets import SegmentedControl, button_icon
 from ..state import AppState
 from .navigation import WHEEL_FACTOR
 
@@ -85,35 +87,34 @@ class SlicePanel(QWidget):
         self._redraw_soon.timeout.connect(self.redraw)
         self.redraw_count = 0
         self._centre_tables: dict[str, object] = {}
-        self.volume_buttons: dict[str, QPushButton] = {}
+        self.volume_buttons: dict[str, QToolButton] = {}
         self._view_key: tuple[str, str] | None = None
 
-        regions = QHBoxLayout()
-        if len(atlas.volumes) > 1:
-            region_group = QButtonGroup(self)
-            for volume in atlas.volumes:
-                button = QPushButton(VOLUME_TITLES.get(volume.name, volume.name.capitalize()))
-                button.setCheckable(True)
-                button.clicked.connect(
-                    lambda _checked=False, n=volume.name: self.state.set_slice_volume(n))
-                region_group.addButton(button)
-                regions.addWidget(button)
-                self.volume_buttons[volume.name] = button
-            self.volume_buttons[atlas.volumes[0].name].setChecked(True)
-
         bar = QHBoxLayout()
-        group = QButtonGroup(self)
-        self.buttons: dict[str, QPushButton] = {}
-        for axis in slices.AXES:
-            button = QPushButton(axis.capitalize())
-            button.setCheckable(True)
-            button.clicked.connect(lambda _checked=False, a=axis: self.set_axis(a))
-            group.addButton(button)
-            bar.addWidget(button)
-            self.buttons[axis] = button
-        self.centre_button = QPushButton("Centre on selection (C)")
+        bar.setContentsMargins(8, 8, 8, 8)
+        bar.setSpacing(8)
+        self.volume_control = None
+        if len(atlas.volumes) > 1:
+            self.volume_control = SegmentedControl(
+                [(v.name, VOLUME_TITLES.get(v.name, v.name.capitalize())) for v in atlas.volumes])
+            self.volume_control.changed.connect(self.state.set_slice_volume)
+            self.volume_buttons = {v.name: self.volume_control.button(v.name)
+                                   for v in atlas.volumes}
+        self.axis_control = SegmentedControl([(axis, axis.capitalize()) for axis in slices.AXES])
+        self.axis_control.changed.connect(self.set_axis)
+        self.buttons = {axis: self.axis_control.button(axis) for axis in slices.AXES}
+        self.centre_button = QToolButton()
+        self.centre_button.setIcon(button_icon("crosshair"))
+        self.centre_button.setFixedSize(SIZE["control"], SIZE["control"])
+        self.centre_button.setToolTip("Centre on selection  C")
         self.centre_button.clicked.connect(self.centre_on_selection)
-        bar.addWidget(self.centre_button)
+        bar.addWidget(self.axis_control)
+        bar.addStretch(1)
+        regions = QHBoxLayout()
+        regions.setContentsMargins(8, 0, 8, 0)
+        if self.volume_control is not None:
+            regions.addWidget(self.volume_control)
+            regions.addStretch(1)
 
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.position = QLabel()
@@ -138,14 +139,22 @@ class SlicePanel(QWidget):
             self.box.addItem(letter)
 
         controls = QHBoxLayout()
+        controls.setContentsMargins(8, 8, 8, 8)
+        controls.setSpacing(8)
+        controls.addWidget(self.centre_button)
+        set_role(self.position, "data")
+        labels = QLabel("Labels")
+        set_role(labels, "data")
         controls.addWidget(self.slider, 3)
         controls.addWidget(self.position)
-        controls.addWidget(QLabel("Labels"))
+        controls.addWidget(labels)
         controls.addWidget(self.opacity_slider, 1)
+        set_role(self.note, "secondary")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addLayout(regions)
+        layout.setSpacing(0)
         layout.addLayout(bar)
+        layout.addLayout(regions)
         layout.addWidget(self.view, 1)
         layout.addLayout(controls)
         layout.addWidget(self.note)
@@ -190,7 +199,8 @@ class SlicePanel(QWidget):
         with QSignalBlocker(self.slider):
             self.slider.setRange(0, slices.slice_count(shape, axis) - 1)
             self.slider.setValue(index)
-        self.buttons[axis].setChecked(True)
+        with QSignalBlocker(self.axis_control):
+            self.axis_control.set_current(axis)
         self.position.setText(f"{COORDINATE[axis]} = {snapped:+.0f} mm")
         self.redraw()
 
@@ -201,8 +211,9 @@ class SlicePanel(QWidget):
         self.labels = volume
         self.template = self.state.atlas.templates.get(name)
         self.fill = self.state.atlas.fills.get(name)
-        if name in self.volume_buttons:
-            self.volume_buttons[name].setChecked(True)
+        if self.volume_control is not None:
+            with QSignalBlocker(self.volume_control):
+                self.volume_control.set_current(name)
         axis = self.state.slice_axis
         middle = volume.shape[slices.AXIS_INDEX[axis]] // 2
         mm = self._last_mm.get((name, axis), slices.mm_for_index(volume.affine, axis, middle))

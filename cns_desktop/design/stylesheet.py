@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import cache
 from string import Template
 
+from cns_desktop.design import icons
 from cns_desktop.design.tokens import COLOURS, RADIUS, SIZE, TYPE
 
 
@@ -56,15 +57,11 @@ QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabl
 QSpinBox, QDoubleSpinBox { padding-right: 20px; min-height: ${spin}px; max-height: ${spin}px; }
 QSpinBox::up-button, QDoubleSpinBox::up-button, QSpinBox::down-button,
 QDoubleSpinBox::down-button { width: 18px; border: none; background: transparent; }
-QSpinBox::up-arrow, QDoubleSpinBox::up-arrow { image: none; border-left: 4px solid transparent;
-    border-right: 4px solid transparent; border-bottom: 4px solid $text2; width: 0; height: 0; }
-QSpinBox::down-arrow, QDoubleSpinBox::down-arrow { image: none;
-    border-left: 4px solid transparent; border-right: 4px solid transparent;
-    border-top: 4px solid $text2; width: 0; height: 0; }
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow { image: url($up); width: 10px; height: 10px; }
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow { image: url($down); width: 10px; height: 10px; }
 QComboBox { padding-right: 24px; }
 QComboBox::drop-down { border: none; width: 22px; }
-QComboBox::down-arrow { image: none; border-left: 4px solid transparent;
-    border-right: 4px solid transparent; border-top: 5px solid $text2; width: 0; height: 0; }
+QComboBox::down-arrow { image: url($down); width: 12px; height: 12px; }
 QComboBox QAbstractItemView { background: $s3; border: 1px solid $line; padding: 4px;
     selection-background-color: $s2; outline: none; }
 
@@ -150,12 +147,18 @@ QFrame[segmented="true"] { background: $s0; border: 1px solid $line;
     border-radius: ${r_control}px; }
 QFrame[segmented="true"]:focus { border: 1px solid $accent; }
 QToolButton[segment="true"] { background: transparent; color: $text2; border: none;
-    border-radius: ${r_small}px; padding: 0 12px; font-weight: 500; }
+    border-radius: ${r_small}px; padding: 0 10px; font-weight: 500; }
 QToolButton[segment="true"]:hover { color: $text; }
 QToolButton[segment="true"]:checked { background: $s3; color: $text; }
 QFrame[panelheader="true"] { background: $s1; border: none; border-bottom: 1px solid $line; }
 QFrame[card="true"] { background: $s2; border: 1px solid $line; border-radius: ${r_panel}px; }
 QFrame[card="true"] QLabel { background: transparent; }
+QToolButton[card="true"] { background: $s2; border: 1px solid $line; border-radius: ${r_panel}px;
+    padding: 8px 12px; color: $text; text-align: left; }
+QToolButton[card="true"]:hover { background: $s3; }
+QToolButton[card="true"][tone="raised"] { color: $raised; }
+QToolButton[card="true"][tone="lowered"] { color: $lowered; }
+QScrollArea[strip="true"], QScrollArea[strip="true"] > QWidget > QWidget { background: $s0; }
 QLabel[chip="true"] { background: $s2; border: 1px solid $line; border-radius: ${r_small}px;
     padding: 0 6px; font-size: 11px; font-weight: 500; }
 QLabel[keycap="true"] { background: $s3; border: 1px solid $line; border-radius: ${r_small}px;
@@ -179,5 +182,6 @@ def build() -> str:
         r_small=RADIUS["small"], r_control=RADIUS["control"], r_panel=RADIUS["panel"],
         inner=SIZE["control"] - 2, spin=SIZE["control"] - 5, row=SIZE["row"], status=SIZE["status"],
         sel=_rgba("accent", 0.15), roles=_roles(),
+        down=icons.file("chevron-down").as_posix(), up=icons.file("chevron-up").as_posix(),
     )
     return SHEET.substitute(values).strip() + "\n"

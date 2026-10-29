@@ -149,3 +149,13 @@ def test_releasing_a_wide_page_gives_back_the_narrow_minimum(window, qapp):
     info.release(slices)
     qapp.processEvents()
     assert info.minimumWidth() == narrow
+
+
+def test_showing_a_joined_panel_shows_its_host(window, qapp):
+    info = group(window, "Info", [("info", "Info")])
+    slices = group(window, "Slices", [("slices", "Slices")])
+    window.show()
+    info.join(slices)
+    info.hide()
+    slices.show()
+    assert slices.isHidden() and info.isVisible()
