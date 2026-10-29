@@ -19,10 +19,9 @@ INTER = ROOT / "cns_desktop" / "resources" / "fonts" / "Inter-Medium.ttf"
 INK, LIGHT, BLUE, GOLD, GREY = "#16161d", "#e8e6df", "#3d6fd6", "#d9a441", "#9a9aa8"
 RULE = {INK: "#d8d8e0", LIGHT: "#2a2a33"}
 LATIN = {INK: "#5a5a68", LIGHT: "#b4b4bc"}
-NAME, MARK, LATIN_NAME = "ΜΝΗΜΟΣΥΝΗ", "\U0001684e", "MNEMOSYN"
+NAME, LATIN_NAME = "ΜΝΗΜΟΣΥΝΗ", "MNEMOSYN"
 NAME_SIZE, NAME_TRACKING = 64, 22
 PAD = 16
-MARK_WEIGHT = 600
 
 
 class BrandError(Exception):
@@ -124,19 +123,11 @@ LOCKUPS = ("line", "latin", "seal", "signature")
 
 
 def mark(background: bool) -> str:
-    face = font("NotoSansBamum.ttf")
-    x0, y0, x1, y1 = glyph_bounds(face, MARK, 100, MARK_WEIGHT)
-    size = 100 * (176 if background else 200) / max(x1 - x0, y1 - y0)
-    path, _ = text_path(face, MARK, size, weight=MARK_WEIGHT)
-    x0, y0, x1, y1 = glyph_bounds(face, MARK, size, MARK_WEIGHT)
     if background:
-        dx, dy = 128 - (x0 + x1) / 2, 128 - (y0 + y1) / 2
+        inset = 256 * 6 / KEY_BOX
         square = f'<rect width="256" height="256" rx="52" fill="{INK}"/>'
-        return svg(256, 256, square + f'<path d="{path}" transform="translate({dx:.1f} {dy:.1f})" '
-                   f'fill="{LIGHT}"/>')
-    width, height = x1 - x0 + 16, y1 - y0 + 16
-    return svg(width, height, f'<path d="{path}" transform="translate({8 - x0:.1f} {8 - y0:.1f})" '
-               f'fill="{BLUE}"/>')
+        return svg(256, 256, square + key(256 - 2 * inset, inset, inset))
+    return svg(200, 200, key(200, 0, 0))
 
 
 def badges(version: str) -> dict[str, tuple[str, str]]:

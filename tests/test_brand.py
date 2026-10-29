@@ -119,9 +119,27 @@ def test_the_committed_brand_files_match_the_project_version(tmp_path):
                 f"{name} is out of date; run python -m tools.brand")
 
 
-def test_a_missing_mark_glyph_is_named():
-    with pytest.raises(brand.BrandError, match="not in NotoSansBamum"):
-        brand.glyph_bounds(brand.font("NotoSansBamum.ttf"), "\U0001f600", 100)
+def test_the_icon_is_the_blue_key_on_the_dark_square(made):
+    icon = (made / "brand/mark.svg").read_text()
+    assert f'fill="{brand.INK}"' in icon and f'stroke="{brand.BLUE}"' in icon
+    assert 'rx="52"' in icon and "<text" not in icon
+    header = (made / "site/assets/mark.svg").read_text()
+    assert f'stroke="{brand.BLUE}"' in header and "<rect" not in header
+
+
+def test_the_icon_images_show_the_key(made):
+    from PySide6.QtGui import QImage
+
+    image = QImage(str(made / "cns_desktop/resources/mark.png"))
+    centre_row = [image.pixelColor(x, 128) for x in range(256)]
+    blue = [c for c in centre_row if c.blue() > 150 and c.red() < 120]
+    assert len(blue) > 20
+
+
+def test_the_bamum_font_is_no_longer_needed():
+    assert not (brand.FONTS / "NotoSansBamum.ttf").exists()
+    assert not (brand.FONTS / "OFL-NotoSansBamum.txt").exists()
+    assert "Bamum" not in README.read_text()
 
 
 def test_the_readme_keeps_the_layout_and_the_site_preview_setup():
