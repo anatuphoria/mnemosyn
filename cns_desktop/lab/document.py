@@ -179,6 +179,12 @@ class LabDocument(QObject):
         blocks = tuple(self._fit(b, minutes) for b in experiment.blocks)
         self.apply(experiment.replace(blocks=blocks), "Change the run length")
 
+    def set_title(self, title: str) -> None:
+        self.apply(self.experiment.replace(title=title), "Change the title")
+
+    def set_note(self, note: str) -> None:
+        self.apply(self.experiment.replace(note=note), "Change the note")
+
     def set_playhead(self, t: float) -> None:
         t = min(max(float(t), 0.0), self.experiment.length)
         if t != self.playhead:

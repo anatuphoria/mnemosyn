@@ -19,6 +19,7 @@ from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, Session, utc_now
 
 from .lab.viewport import Viewport
+from .lab.workspace import LabWorkspace
 from .state import AppState
 from .views.about_dialog import AboutDialog
 from .views.activity_chart import ActivityChart
@@ -134,6 +135,8 @@ class MainWindow(QMainWindow):
         self._add_window_menu()
         self.workspaces.capture_defaults({"Slices": self._arrange_slices,
                                           "Pathways": self._arrange_pathways})
+        self.ask = lambda title, text, buttons: QMessageBox.question(self, title, text, buttons)
+        self.lab = LabWorkspace(self, next(iter(atlas.models))) if atlas.models else None
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
                 widget.installEventFilter(self)
@@ -146,6 +149,7 @@ class MainWindow(QMainWindow):
         self.quiz.dim_grey.connect(
             lambda dim: self.view.set_grey_opacity(GREY_DIMMED if dim else 1.0))
         self.pathways.entered.connect(self.enter_pathway)
+        self.pathways.lab_requested.connect(self.open_lab)
         self.pathways.left.connect(self.leave_pathway)
         self.pathways.centre_requested.connect(self.slices.centre_on_selection)
         self.pathways.timeline_changed.connect(self._on_timeline)
@@ -247,6 +251,12 @@ class MainWindow(QMainWindow):
         self.window_separator = self.window_menu.addSeparator()
         self.window_menu.addAction(QAction("Reset layout", self,
                                            triggered=lambda: self.workspaces.reset()))
+
+    def open_lab(self, route: str) -> None:
+        if self.lab is None:
+            return
+        self.pathways.leave()
+        self.workspaces.switch("Lab")
 
     def _arrange_slices(self) -> None:
         self.splitDockWidget(self.slice_dock, self.info_dock, Qt.Orientation.Vertical)
@@ -458,6 +468,9 @@ class MainWindow(QMainWindow):
     def _update_status(self) -> None:
         if self.quiz_active:
             self.status.setText("quiz in progress   │   Esc ends the quiz")
+            return
+        if self.lab is not None and self.workspaces.current == "Lab":
+            self.status.setText(self.lab.status_text())
             return
         panel = self.pathways
         if self.pathway_active and panel.pathway is not None:

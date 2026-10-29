@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
+from PySide6.QtCore import QLineF, QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QPainterPath, QPainterPathStroker, QPen
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (QGraphicsLineItem, QGraphicsRectItem, QGraphicsScene,
-                               QGraphicsSimpleTextItem, QGraphicsView)
+                               QGraphicsSimpleTextItem, QGraphicsView, QMenu)
 
 CELL_X, CELL_Y = 180.0, 110.0
 BOX_W, BOX_H = 150.0, 56.0
@@ -25,6 +26,9 @@ class _Arrow(QGraphicsLineItem):
 
 
 class CircuitView(QGraphicsView):
+    show_in_atlas = Signal(str)
+    show_chart = Signal(str)
+
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
         self.document = document
@@ -133,6 +137,19 @@ class CircuitView(QGraphicsView):
                 self.document.select(item.data(0))
                 return
         super().mousePressEvent(event)
+
+    def contextMenuEvent(self, event) -> None:
+        item = self.itemAt(event.pos())
+        while item is not None and item.data(0) is None:
+            item = item.parentItem()
+        if item is None or item.data(0)[0] != "part":
+            return
+        key = item.data(0)[1]
+        menu = QMenu(self)
+        menu.addAction(QAction("Show in the atlas", menu,
+                               triggered=lambda: self.show_in_atlas.emit(key)))
+        menu.addAction(QAction("Show its chart", menu, triggered=lambda: self.show_chart.emit(key)))
+        menu.exec(event.globalPos())
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

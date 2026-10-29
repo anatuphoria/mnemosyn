@@ -3,8 +3,8 @@ from __future__ import annotations
 from html import escape
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFormLayout, QLabel, QPushButton,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit,
+                               QPlainTextEdit, QPushButton, QVBoxLayout, QWidget)
 
 from cns_lab.checks import read_test
 from cns_lab.experiment import FROM_A_TIME, PRESENT
@@ -15,6 +15,14 @@ from .why_panel import DRAFT
 
 RULE_WORDS = {"below": "below", "at least": "at least", "suppressed by": "suppressed by at least"}
 MODES = (("Present from the start", PRESENT), ("From a time", FROM_A_TIME))
+
+
+class _NoteBox(QPlainTextEdit):
+    left = Signal()
+
+    def focusOutEvent(self, event) -> None:
+        super().focusOutEvent(event)
+        self.left.emit()
 
 
 class Inspector(QWidget):
@@ -33,9 +41,12 @@ class Inspector(QWidget):
         self._start: QDoubleSpinBox | None = None
         self._mode: QComboBox | None = None
         self._labels: list[QLabel] = []
+        self._title: QLineEdit | None = None
+        self._note_box: QPlainTextEdit | None = None
         document.selection_changed.connect(lambda _s: self.rebuild())
         document.changed.connect(self.rebuild)
-        document.playhead_moved.connect(lambda _t: self.rebuild())
+        document.playhead_moved.connect(
+            lambda _t: self.rebuild() if document.selection is not None else None)
         self.rebuild()
 
     def option_spin(self, key: str) -> QDoubleSpinBox:
@@ -47,6 +58,12 @@ class Inspector(QWidget):
     def mode_box(self) -> QComboBox:
         return self._mode
 
+    def title_box(self) -> QLineEdit:
+        return self._title
+
+    def note_box(self) -> QPlainTextEdit:
+        return self._note_box
+
     def text(self) -> str:
         return "\n".join(label.text() for label in self._labels)
 
@@ -54,6 +71,7 @@ class Inspector(QWidget):
         while self.form.rowCount():
             self.form.removeRow(0)
         self._spins, self._start, self._mode, self._labels = {}, None, None, []
+        self._title, self._note_box = None, None
 
     def _note(self, text: str, bold: bool = False) -> QLabel:
         label = QLabel(f"<b>{escape(text)}</b>" if bold else escape(text))
@@ -76,7 +94,7 @@ class Inspector(QWidget):
         self._clear()
         selection = self.document.selection
         if selection is None:
-            self._note("Select a change, a part, a link or a value to see it here.")
+            self._experiment()
             return
         kind, key = selection
         if kind == "block" and key < len(self.document.experiment.blocks):
@@ -88,6 +106,23 @@ class Inspector(QWidget):
         elif kind == "value":
             self._value(key)
         self._note(DRAFT)
+
+    def _experiment(self) -> None:
+        doc = self.document
+        self._note("This experiment", bold=True)
+        title = QLineEdit(doc.experiment.title)
+        title.setPlaceholderText("A title for this experiment")
+        title.editingFinished.connect(lambda: doc.set_title(title.text())
+                                      if title.text() != doc.experiment.title else None)
+        self.form.addRow("Title", title)
+        note = _NoteBox(doc.experiment.note)
+        note.setPlaceholderText("Notes for yourself or a student")
+        note.setMaximumHeight(90)
+        note.left.connect(lambda: doc.set_note(note.toPlainText())
+                          if note.toPlainText() != doc.experiment.note else None)
+        self.form.addRow("Note", note)
+        self._title, self._note_box = title, note
+        self._note("Select a change, a part, a link or a value to see it here.")
 
     def _hours(self, minutes: float, low: float, high: float, slot) -> QDoubleSpinBox:
         spin = QDoubleSpinBox()
