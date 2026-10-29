@@ -44,7 +44,7 @@ def test_a_both_sides_route_lights_both_sides_without_a_switch(window):
     panel = window.pathways
     panel.open("mood")
     assert window.state.focus == MOOD_ROUTE
-    assert all(b.isHidden() for b in panel.side_buttons.values())
+    assert panel.side_control.isHidden()
     assert labels(panel) == ["1 Beta nucleus", "2 Toy relay", "3 Alpha gyrus", "4 Gamma body"]
     assert panel.start.text() == "Start: beta nucleus"
     assert window.state.emphasis == (111, 112)
@@ -284,13 +284,13 @@ def test_the_controls_are_media_symbols_with_named_tips(window):
     panel = window.pathways
     panel.open("loop")
     assert panel.play_button.text() == "" and not panel.play_button.icon().isNull()
-    assert panel.play_button.toolTip() == "Play (Space)"
-    assert panel.back_button.toolTip() == "Back (Left)"
-    assert panel.next_button.toolTip() == "Next (Right)"
+    assert panel.play_button.toolTip() == "Play  Space"
+    assert panel.back_button.toolTip() == "Back  Left"
+    assert panel.next_button.toolTip() == "Next  Right"
     assert [panel.speed_picker.itemText(i) for i in range(3)] == ["½×", "1×", "2×"]
     playing_icon = panel.play_button.icon().cacheKey()
     panel.play()
-    assert panel.play_button.toolTip() == "Pause (Space)"
+    assert panel.play_button.toolTip() == "Pause  Space"
     assert panel.play_button.icon().cacheKey() != playing_icon
 
 

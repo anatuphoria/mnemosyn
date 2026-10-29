@@ -15,14 +15,17 @@ from cns_study.choices import choices
 from cns_study.items import Item, item_for
 from cns_study.session import Session
 
+from ..design import rich
+from ..design.theme import set_role
+from ..design.tokens import COLOURS, SIZE
 from ..state import AppState
 from .info_panel import entry_html
 
 ENTER = (Qt.Key.Key_Return, Qt.Key.Key_Enter)
 CHOICE_KEYS = {Qt.Key.Key_1: 0, Qt.Key.Key_2: 1, Qt.Key.Key_3: 2, Qt.Key.Key_4: 3}
 RATING_KEYS = {Qt.Key.Key_1: 1, Qt.Key.Key_2: 2, Qt.Key.Key_3: 3, Qt.Key.Key_4: 4}
-RIGHT = "<span style='color:#5c5'><b>Correct</b></span>"
-WRONG = "<span style='color:#e66'><b>Wrong</b></span>"
+RIGHT = f"<span style='color:{COLOURS['success']}'><b>Correct</b></span>"
+WRONG = f"<span style='color:{COLOURS['danger']}'><b>Wrong</b></span>"
 RATINGS = ("1 Again", "2 Hard", "3 Good", "4 Easy")
 WHAT = {"structures": "structure", "groups": "group", "tracts": "tract"}
 SAVE_FAILED = {"feedback": "Could not save this answer. Press Enter to try again.",
@@ -76,12 +79,22 @@ class QuizPanel(QWidget):
         self.choice_buttons = [QPushButton() for _ in range(4)]
         self.feedback = _rich_label()
         self.back = QTextBrowser()
-        self.reveal_button = QPushButton("Show the description (Space)")
+        self.reveal_button = QPushButton("Show the description")
+        self.reveal_button.setToolTip("Space")
+        self.reveal_button.setProperty("variant", "primary")
         self.rate_buttons = [QPushButton(label) for label in RATINGS]
         self.next_button = QPushButton("Next")
         self.hint = QLabel()
-        self.end_button = QPushButton("End quiz (Esc)")
+        self.end_button = QPushButton("End quiz")
+        self.end_button.setToolTip("Esc")
+        self.end_button.setProperty("variant", "ghost")
+        set_role(self.counter, "data")
+        set_role(self.hint, "secondary")
+        self.back.document().setDefaultStyleSheet(rich.document_css())
         layout = QVBoxLayout(self)
+        pad = SIZE["panel_pad"]
+        layout.setContentsMargins(pad, pad, pad, pad)
+        layout.setSpacing(8)
         for widget in (self.counter, self.prompt, self.answer_box, *self.choice_buttons,
                        self.feedback, self.back, self.reveal_button):
             layout.addWidget(widget)

@@ -4,31 +4,38 @@ from contextlib import nullcontext
 from html import escape
 
 from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Signal
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QButtonGroup, QComboBox, QHBoxLayout, QLabel, QListWidget,
-                               QListWidgetItem, QPushButton, QStackedWidget, QStyle, QTextBrowser,
-                               QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
+                               QPushButton, QStackedWidget, QTextBrowser, QToolButton, QVBoxLayout,
+                               QWidget)
 
 from cns_atlas import DISCLAIMER, Crossing, Pathway, Relay, Station, Timeline
 from cns_atlas.pathways import PathwayText, lights, side_of
 
+from ..design import rich
+from ..design.fonts import font
+from ..design.theme import set_role
+from ..design.tokens import SIZE, color
+from ..design.widgets import SegmentedControl, button_icon
 from ..state import AppState
 from .info_panel import references_html
 
 NO_PATHWAYS = "This atlas has no pathways yet."
-RELAY_COLOR = QColor("#8a8a99")
+RELAY_COLOR = color("normal")
 KEY_ROLE = Qt.ItemDataRole.UserRole
 TICK_MS = 50
 STEP_SECONDS = 3.0
-PLAY_TIP = "Play (Space)"
-PAUSE_TIP = "Pause (Space)"
+PLAY_TIP = "Play  Space"
+PAUSE_TIP = "Pause  Space"
 SPEEDS = ((0.5, "½×"), (1.0, "1×"), (2.0, "2×"))
 
 
 def _column(*widgets) -> QWidget:
     page = QWidget()
     layout = QVBoxLayout(page)
-    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setContentsMargins(SIZE["panel_pad"], SIZE["panel_pad"], SIZE["panel_pad"],
+                              SIZE["panel_pad"])
+    layout.setSpacing(8)
     for widget in widgets:
         if isinstance(widget, QHBoxLayout):
             layout.addLayout(widget)
@@ -72,9 +79,10 @@ class PathwayPanel(QWidget):
         for group in groups:
             header = QListWidgetItem(group)
             header.setFlags(Qt.ItemFlag.NoItemFlags)
-            font = header.font()
-            font.setBold(True)
-            header.setFont(font)
+            heading = font("data")
+            heading.setCapitalization(QFont.Capitalization.AllUppercase)
+            header.setFont(heading)
+            header.setForeground(color("text2"))
             self.choices.addItem(header)
             for pathway in (p for p in state.atlas.pathways if p.group == group):
                 item = QListWidgetItem(pathway.name)
@@ -85,26 +93,22 @@ class PathwayPanel(QWidget):
 
         self.title = QLabel()
         self.title.setWordWrap(True)
+        set_role(self.title, "heading")
         self.start = QLabel()
+        set_role(self.start, "secondary")
         sides = QHBoxLayout()
-        group = QButtonGroup(self)
-        self.side_buttons: dict[str, QPushButton] = {}
-        for side in ("left", "right"):
-            button = QPushButton(side.capitalize())
-            button.setCheckable(True)
-            button.clicked.connect(lambda _checked=False, s=side: self.set_side(s))
-            group.addButton(button)
-            sides.addWidget(button)
-            self.side_buttons[side] = button
-        self.draft = QLabel("<b>Draft</b>: not yet reviewed.")
-        icon = self.style().standardIcon
-        self._play_icon = icon(QStyle.StandardPixmap.SP_MediaPlay)
-        self._pause_icon = icon(QStyle.StandardPixmap.SP_MediaPause)
-        self.back_button = self._control(icon(QStyle.StandardPixmap.SP_MediaSkipBackward),
-                                         "Back (Left)", self.back)
+        self.side_control = SegmentedControl([("left", "Left"), ("right", "Right")])
+        self.side_control.changed.connect(self.set_side)
+        self.side_buttons = {side: self.side_control.button(side) for side in ("left", "right")}
+        sides.addWidget(self.side_control)
+        sides.addStretch(1)
+        self.draft = QLabel(f"{rich.chip('Draft', 'edited')} · not yet reviewed")
+        set_role(self.draft, "secondary")
+        self._play_icon = button_icon("play")
+        self._pause_icon = button_icon("pause")
+        self.back_button = self._control(button_icon("skip-back"), "Back  Left", self.back)
         self.play_button = self._control(self._play_icon, PLAY_TIP, self.toggle_play)
-        self.next_button = self._control(icon(QStyle.StandardPixmap.SP_MediaSkipForward),
-                                         "Next (Right)", self.next)
+        self.next_button = self._control(button_icon("skip-forward"), "Next  Right", self.next)
         self.speed_picker = QComboBox()
         for value, text in SPEEDS:
             self.speed_picker.addItem(text, value)
@@ -119,6 +123,7 @@ class PathwayPanel(QWidget):
         controls.addStretch(1)
         self.step_label = QLabel()
         self.step_label.setWordWrap(True)
+        set_role(self.step_label, "label")
         self.playing_changed.connect(self._show_playing)
         self.edges_changed.connect(self._show_edges)
         self.step_changed.connect(self.step_label.setText)
@@ -127,8 +132,11 @@ class PathwayPanel(QWidget):
         self.steps.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.details = QTextBrowser()
         self.details.setOpenExternalLinks(True)
-        self.leave_button = QPushButton("Leave pathway (Esc)")
+        self.details.document().setDefaultStyleSheet(rich.document_css())
+        self.leave_button = QPushButton("Leave pathway")
+        self.leave_button.setToolTip("Leave pathway  Esc")
         self.lab_button = QPushButton("Open in the Lab")
+        self.lab_button.setProperty("variant", "primary")
         self.lab_button.hide()
         self.lab_routes = frozenset(m.route for m in state.atlas.models.values() if m.route)
         self.timer = QTimer(self, interval=TICK_MS, timeout=lambda: self.advance(TICK_MS / 1000))
@@ -156,6 +164,7 @@ class PathwayPanel(QWidget):
     def _control(self, icon, tip: str, action) -> QToolButton:
         button = QToolButton()
         button.setIcon(icon)
+        button.setFixedSize(SIZE["control"], SIZE["control"])
         button.setToolTip(tip)
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.clicked.connect(action)
@@ -181,14 +190,13 @@ class PathwayPanel(QWidget):
             self.entered.emit()
         self.pathway, self.index = pathway, 0
         both = pathway.sides == "both"
-        for button in self.side_buttons.values():
-            button.setVisible(not both)
+        self.side_control.setVisible(not both)
         self.timeline = self.state.atlas.timelines.get(key)
         self.time = 0.0
         if self.timeline is not None:
             self.index = self.timeline.step_at(0.0)
         self.timeline_changed.emit(self.timeline)
-        self.title.setText(f"<b>{escape(pathway.name)}</b>")
+        self.title.setText(escape(pathway.name))
         self.lab_button.setVisible(key in self.lab_routes)
         self.pages.setCurrentIndex(1)
         with self.hold():
@@ -202,7 +210,8 @@ class PathwayPanel(QWidget):
             return
         atlas = self.state.atlas
         self.side = side
-        self.side_buttons[side].setChecked(True)
+        with QSignalBlocker(self.side_control):
+            self.side_control.set_current(side)
         self.lights = lights(atlas, self.pathway, side)
         self.route = frozenset(i for ids in self.lights for i in ids)
         self.text = atlas.pathway_text(self.pathway.key, side)

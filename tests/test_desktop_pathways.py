@@ -277,7 +277,7 @@ def test_leaving_draws_the_3d_view_once(window):
 def test_the_pathway_page_holds_the_controls_and_the_leave_button(window):
     panel = enter(window)
     assert not hasattr(window.chart, "back_button") and not hasattr(window.chart, "next_button")
-    assert panel.leave_button.text() == "Leave pathway (Esc)"
+    assert panel.leave_button.text() == "Leave pathway"
     assert panel.back_button.isEnabled() is False
     panel.go(2)
     assert panel.back_button.isEnabled() and panel.next_button.isEnabled()

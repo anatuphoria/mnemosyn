@@ -103,7 +103,7 @@ def gpu_name(view: BrainView) -> str:
 class MainWindow(QMainWindow):
     def __init__(self, atlas: Atlas, progress_path: Path | None = None, settings=None) -> None:
         super().__init__()
-        title = f"{APP_NAME} - {atlas.metadata.get('name', 'atlas')}"
+        title = f"{APP_NAME}: {atlas.metadata.get('name', 'atlas')}"
         if atlas.local_only:
             title += " (local build, not for sharing)"
         self.base_title = title

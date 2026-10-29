@@ -63,8 +63,8 @@ def short_authors(source: Source) -> str:
 
 
 def source_row(source: Source, local: bool) -> str:
-    tag = " - local only" if local else ""
-    return f"{source_label(source)} - {short_authors(source)} {source.year}{tag} - {source.licence}"
+    tag = " · local only" if local else ""
+    return f"{source_label(source)} · {short_authors(source)} {source.year}{tag} · {source.licence}"
 
 
 class AboutDialog(QDialog):
