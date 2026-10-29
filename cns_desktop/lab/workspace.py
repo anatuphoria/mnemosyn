@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QComboBox, QMenu, QMessageBox, QToolBar, QToolButton
+from shiboken6 import isValid
+
+from cns_lab.files import EXTENSION, FileError, read, write
 
 from .brain_overlay import LabBrain
 from .charts import LabCharts
@@ -21,6 +25,9 @@ SPEEDS = (0.5, 1.0, 2.0, 4.0)
 LENGTHS = (("6 h", 360.0), ("1 d", DAY), ("3 d", 3 * DAY), ("1 w", 7 * DAY), ("4 w", 28 * DAY),
            ("8 w", 56 * DAY))
 STATUS_HINT = "Space plays, drag a change to move it"
+RECENT_KEY = "lab/recent"
+RECENT_COUNT = 8
+FILE_ACTIONS = ("New experiment", "Open", "Save", "Save as")
 
 
 def _count(n: int, one: str, many: str) -> str:
@@ -65,9 +72,13 @@ class LabWorkspace:
         self._build_switch()
         self._build_toolbar()
         self._build_menu()
+        self._recent: list[str] = []
+        self._build_file_menu()
         for dock in self.docks:
             window.window_menu.insertAction(window.window_separator, dock.toggleViewAction())
         doc.changed.connect(window._update_status)
+        doc.undo.cleanChanged.connect(lambda _clean: self.update_title())
+        doc.changed.connect(self.update_title)
         doc.wants_longer.connect(self._offer_longer)
         self.inspector.show_in_atlas.connect(self.show_part_in_atlas)
         self.circuit.show_in_atlas.connect(self.show_part_in_atlas)
@@ -194,8 +205,9 @@ class LabWorkspace:
         menu.menuAction().setVisible(False)
 
     def _set_enabled(self, on: bool) -> None:
-        for action in self._actions.values():
-            action.setEnabled(on)
+        for name, action in self._actions.items():
+            if name not in FILE_ACTIONS:
+                action.setEnabled(on)
         if on:
             self._actions["Undo"].setEnabled(self.document.undo.canUndo())
             self._actions["Redo"].setEnabled(self.document.undo.canRedo())
@@ -293,3 +305,109 @@ class LabWorkspace:
         changes = _count(len(doc.experiment.blocks), "change", "changes")
         values = _count(len(doc.experiment.values), "value edited", "values edited")
         return f"{doc.model.name} · healthy adult   │   {changes} · {values}   │   {STATUS_HINT}"
+
+    def _build_file_menu(self) -> None:
+        window = self.window
+        menu = QMenu("File", window)
+        window.menuBar().insertMenu(window.menuBar().actions()[0], menu)
+        for name, key, slot in (("New experiment", "Ctrl+N", self.new),
+                                ("Open", "Ctrl+O", self.open),
+                                ("Save", "Ctrl+S", self.save),
+                                ("Save as", "Ctrl+Shift+S", self.save_as)):
+            menu.addAction(self._add(name, slot, key))
+        self.recent_menu = menu.addMenu("Open recent")
+        self.file_menu = menu
+        settings = window.settings
+        if settings is not None:
+            stored = settings.value(RECENT_KEY, [])
+            self._recent = [str(p) for p in (stored if isinstance(stored, list) else [stored])
+                            if p]
+        self._fill_recent()
+
+    def recent_files(self) -> list[Path]:
+        return [Path(p) for p in self._recent]
+
+    def _remember(self, path: Path) -> None:
+        text = str(path)
+        self._recent = [text, *[p for p in self._recent if p != text]][:RECENT_COUNT]
+        if self.window.settings is not None:
+            self.window.settings.setValue(RECENT_KEY, self._recent)
+        self._fill_recent()
+
+    def _fill_recent(self) -> None:
+        self.recent_menu.clear()
+        for text in self._recent:
+            path = Path(text)
+            self.recent_menu.addAction(QAction(path.name, self.recent_menu,
+                                               triggered=lambda _=False, p=path: self.open(p)))
+        self.recent_menu.setEnabled(bool(self._recent))
+
+    def update_title(self) -> None:
+        window, doc = self.window, self.document
+        if not (isValid(window) and isValid(doc.undo)):
+            return
+        title = window.base_title
+        if doc.path is not None or doc.is_modified():
+            title += f" · {doc.path.name if doc.path else 'Untitled experiment'}[*]"
+        window.setWindowTitle(title)
+        window.setWindowModified(doc.is_modified())
+
+    def confirm_discard(self) -> bool:
+        if not self.document.is_modified():
+            return True
+        buttons = (QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard
+                   | QMessageBox.StandardButton.Cancel)
+        answer = self.window.ask("Unsaved experiment",
+                                 "Save the changes to this experiment first?", buttons)
+        if answer == QMessageBox.StandardButton.Save:
+            return self.save()
+        return answer == QMessageBox.StandardButton.Discard
+
+    def new(self) -> None:
+        if self.confirm_discard():
+            self.document.new()
+            self.window.workspaces.switch("Lab")
+            self.update_title()
+
+    def open(self, path: Path | None = None) -> None:
+        if not self.confirm_discard():
+            return
+        path = path or self.window.pick_open()
+        if not path:
+            return
+        path = Path(path)
+        try:
+            experiment, report = read(path, self.window.state.atlas.models)
+        except FileError as exc:
+            self.window.inform("Cannot open the experiment", str(exc))
+            return
+        self.document.load(experiment, path)
+        self._remember(path)
+        self.window.workspaces.switch("Lab")
+        if report:
+            self.window.inform("Opened with changes", "\n".join(report))
+        self.update_title()
+
+    def _write(self, path: Path) -> bool:
+        path = Path(path)
+        if path.suffix != EXTENSION:
+            path = path.with_suffix(EXTENSION)
+        try:
+            write(path, self.document.experiment)
+        except OSError as exc:
+            self.window.inform("Cannot save the experiment", str(exc))
+            return False
+        self.document.path = path
+        self.document.undo.setClean()
+        self._remember(path)
+        self.update_title()
+        return True
+
+    def save(self) -> bool:
+        if self.document.path is None:
+            return self.save_as()
+        return self._write(self.document.path)
+
+    def save_as(self) -> bool:
+        path = self.window.pick_save()
+        return bool(path) and self._write(path)

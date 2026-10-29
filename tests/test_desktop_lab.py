@@ -26,6 +26,7 @@ def open_window(qapp, atlas_path, tmp_path):
 def window(qapp, toy_lab_atlas, tmp_path):
     w = open_window(qapp, toy_lab_atlas, tmp_path)
     yield w
+    w.lab.document.undo.setClean()
     qapp.processEvents()
     w.close()
 

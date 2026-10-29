@@ -9,7 +9,7 @@ from pathlib import Path
 from PySide6.QtCore import QEvent, QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QAbstractSlider, QAbstractSpinBox, QCheckBox,
-                               QDockWidget, QLabel, QMainWindow, QMessageBox)
+                               QDockWidget, QFileDialog, QLabel, QMainWindow, QMessageBox)
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_study.answers import AnswerIndex
@@ -91,6 +91,7 @@ class MainWindow(QMainWindow):
         title = f"{APP_NAME} - {atlas.metadata.get('name', 'atlas')}"
         if atlas.local_only:
             title += " (local build, not for sharing)"
+        self.base_title = title
         self.setWindowTitle(title)
         self.resize(1500, 900)
         self.state = AppState(atlas)
@@ -136,6 +137,11 @@ class MainWindow(QMainWindow):
         self.workspaces.capture_defaults({"Slices": self._arrange_slices,
                                           "Pathways": self._arrange_pathways})
         self.ask = lambda title, text, buttons: QMessageBox.question(self, title, text, buttons)
+        self.inform = lambda title, text: QMessageBox.information(self, title, text)
+        self.pick_open = lambda: QFileDialog.getOpenFileName(
+            self, "Open experiment", "", "Lab experiments (*.mnemolab)")[0]
+        self.pick_save = lambda: QFileDialog.getSaveFileName(
+            self, "Save experiment", "", "Lab experiments (*.mnemolab)")[0]
         self.lab = LabWorkspace(self, next(iter(atlas.models))) if atlas.models else None
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
@@ -492,6 +498,9 @@ class MainWindow(QMainWindow):
         return super().eventFilter(watched, event)
 
     def closeEvent(self, event) -> None:
+        if self.lab is not None and not self.lab.confirm_discard():
+            event.ignore()
+            return
         self.workspaces.save()
         if self.settings is not None:
             self.settings.sync()

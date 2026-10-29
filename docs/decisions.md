@@ -71,6 +71,7 @@ entry replaces it and the old one says so.
 | 63 | 2026-10-29 | The physiology layer is a Lab workspace driven by model files, starting with the stress axis | in force |
 | 64 | 2026-10-29 | Lab results are computed from cited models in real units, and the Why chain comes only from declared links | in force |
 | 65 | 2026-10-29 | Workspaces arrange the window; behaviour inside the existing ones does not change | in force |
+| 66 | 2026-10-29 | Experiments are saved as plain text .mnemolab files that hold nothing personal | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -644,3 +645,16 @@ open route first.
 Why: a professional program arranges its panels by task, like Premiere's workspaces, while the
 existing views keep working exactly as before.
 Design: [simulation Lab, section 7](specs/2026-10-29-simulation-lab-design.md).
+
+## 66. Experiments are saved as plain text .mnemolab files that hold nothing personal
+
+2026-10-29, chosen by the owner. File, Save writes the experiment (the system and model version, the
+run length and start time, the changes with their settings, the edited values, and an optional title
+and note) as a readable TOML file with the extension `.mnemolab`. Nothing about the person, the
+computer or the app is written. Opening a file from another model version says what differs; unknown
+changes, options and values are left out and values out of range are brought into range, each named
+in a message. The File menu keeps the eight most recent files, and closing, New or Open with unsaved
+changes asks first.
+Why: people will share experiments with friends and students, so a file must be safe to pass on and
+readable without the app.
+Design: [simulation Lab, section 9](specs/2026-10-29-simulation-lab-design.md).
