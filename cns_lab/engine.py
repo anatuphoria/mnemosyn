@@ -207,13 +207,7 @@ class Simulator:
         tail = (*params, speedup)
 
         def f(t: float, y: list[float]) -> list[float]:
-            try:
-                rates = list(function(t, (clock0 + t) % DAY, *y, *tail))
-            except (ArithmeticError, TypeError, ValueError) as exc:
-                raise SolverError(f"the model cannot be computed at {t:.3f} min") from exc
-            if any(isinstance(r, complex) for r in rates):
-                raise SolverError(f"the model gave a value that is not a number at {t:.3f} min")
-            return rates
+            return list(function(t, (clock0 + t) % DAY, *y, *tail))
 
         return f
 
@@ -235,7 +229,15 @@ class Simulator:
                 states.append(list(y))
             f = self._derivative(params, clamps, speedup, experiment.start_clock)
             rtol = RUN_RTOL if times is not None else SETTLE_RTOL
-            step_times, step_states = integrate(f, a, y, b, self.model.max_step, rtol=rtol)
+            try:
+                step_times, step_states = integrate(f, a, y, b, self.model.max_step, rtol=rtol)
+            except SolverError:
+                raise
+            except (ArithmeticError, TypeError, ValueError) as exc:
+                raise SolverError(f"the model cannot be computed between {a:.3f} and "
+                                  f"{b:.3f} min") from exc
+            if any(isinstance(v, complex) for v in step_states[-1]):
+                raise SolverError(f"the model gave a value that is not a number by {b:.3f} min")
             y = step_states[-1]
             if times is not None:
                 times.extend(step_times[1:])
