@@ -349,11 +349,13 @@ class MainWindow(QMainWindow):
         self.routes_group.hide()
         self.slices_group.show()
         self.info_group.show()
-        width = max(self.width(), 1500)
-        side = SIZE["panel_left"]
+        width, side = self.width(), SIZE["panel_left"]
+        wide = width >= SIZE["narrow"]
+        central = SIZE["central_min_slices"] if wide else 0
+        info = side if wide else 0
+        slices = max(SIZE["central_min"], width - side - central - info)
         self.resizeDocks([self.structures_group, self.slices_group, self.info_group],
-                         [side, width - 2 * side - SIZE["central_min_slices"], side],
-                         Qt.Orientation.Horizontal)
+                         [side, slices, side], Qt.Orientation.Horizontal)
         return []
 
     def _arrange_pathways(self) -> list[tuple[str, str]]:
@@ -639,6 +641,8 @@ class MainWindow(QMainWindow):
             self.quiz.stop()
         self._status_timer.stop()
         self.pathways.pause()
+        if self.lab is not None:
+            self.lab.pause()
         if self._store is not None:
             self._store.close()
         self.view.close()

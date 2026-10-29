@@ -73,16 +73,18 @@ class Workspaces(QObject):
                 self._watched.add(id(group))
                 group.dockLocationChanged.connect(lambda _area: self._moved())
                 group.topLevelChanged.connect(lambda _floating: self._moved())
+                group.close_button.clicked.connect(lambda _checked=False: self._moved())
+                group.toggleViewAction().triggered.connect(lambda _checked=False: self._moved())
 
     def _moved(self) -> None:
         if not self._applying:
             self.touched.add(self.current)
 
-    def release_joins(self) -> None:
+    def release_joins(self, show: bool = True) -> None:
         self._applying += 1
         try:
             for group in self.groups():
-                group.release_all()
+                group.release_all(show)
         finally:
             self._applying -= 1
 
@@ -129,7 +131,7 @@ class Workspaces(QObject):
     def _restore(self, state: QByteArray, joins: list[Join]) -> None:
         self._applying += 1
         try:
-            self.release_joins()
+            self.release_joins(show=False)
             self._restore_state(state)
             self.apply_joins(joins)
         finally:
@@ -143,13 +145,14 @@ class Workspaces(QObject):
         size = self.window.size()
         self._applying += 1
         try:
-            self.release_joins()
+            self.release_joins(show=False)
             self._restore_state(state)
             self.apply_joins(joins)
             if name in self.arrange:
                 self.arrange[name]()
             self.apply_joins(joins)
             if self.window.isVisible() and self.window.size() != size:
+                self.window.layout().activate()
                 self.window.resize(size)
         finally:
             self._applying -= 1
@@ -248,9 +251,11 @@ class Workspaces(QObject):
         self._store(self.current)
         if self.current == "Lab" and self._leave is not None:
             self._leave()
+        size = self.window.size()
         self._apply(name)
         self.current = name
         self._after_restore(name)
+        self._keep_size(size)
         if name == "Lab" and self._enter is not None:
             self._enter()
         self.switcher.set_current(name)
@@ -260,8 +265,15 @@ class Workspaces(QObject):
         name = name or self.current
         if name != self.current:
             return
+        size = self.window.size()
         self._apply_default(name)
         self._after_restore(name)
+        self._keep_size(size)
+
+    def _keep_size(self, size) -> None:
+        if self.window.isVisible() and self.window.size() != size:
+            self.window.layout().activate()
+            self.window.resize(size)
 
     def save(self) -> None:
         self._store(self.current)

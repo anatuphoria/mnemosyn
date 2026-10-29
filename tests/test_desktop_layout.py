@@ -44,6 +44,7 @@ def test_every_workspace_survives_a_small_window(qapp, toy_lab_atlas, tmp_path, 
             window.workspaces.switch(name)
             qapp.processEvents()
             qapp.processEvents()
+            assert window.width() == size[0], name
             groups = docked(window)
             for n, one in enumerate(groups):
                 for other in groups[n + 1:]:
@@ -75,6 +76,26 @@ def test_every_workspace_fills_a_large_window(qapp, toy_lab_atlas, tmp_path):
         window.workspaces.switch("Lab")
         qapp.processEvents()
         assert abs(window.lab.time_group.height() - 1440 // 3) <= 80
+    finally:
+        window.lab.document.undo.setClean()
+        window.close()
+
+
+@pytest.mark.parametrize("width", [850, 1000, 1400, 1600])
+def test_slices_gives_the_slice_view_its_room(qapp, toy_lab_atlas, tmp_path, width):
+    window = open_at(qapp, toy_lab_atlas, tmp_path, width, 800)
+    try:
+        window.workspaces.switch("Slices")
+        qapp.processEvents()
+        qapp.processEvents()
+        assert window.slices.width() >= SIZE["central_min"], width
+        if width >= SIZE["narrow"]:
+            assert window.viewport.width() >= SIZE["central_min_slices"], width
+        else:
+            assert not window.viewport.isVisible()
+        window.workspaces.switch("Explore")
+        qapp.processEvents()
+        assert window.viewport.isVisible() and window.viewport.width() >= SIZE["central_min"]
     finally:
         window.lab.document.undo.setClean()
         window.close()

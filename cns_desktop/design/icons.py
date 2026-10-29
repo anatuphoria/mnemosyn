@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import atexit
+import shutil
 import tempfile
 from functools import cache
 from pathlib import Path
@@ -8,7 +10,6 @@ from cns_desktop.design.tokens import COLOURS, ICON_STROKE
 
 ICONS = Path(__file__).resolve().parents[1] / "resources" / "icons"
 NAMES = tuple(sorted(path.stem for path in ICONS.glob("*.svg")))
-CACHE = Path(tempfile.gettempdir()) / "mnemosyn-icons"
 
 
 @cache
@@ -53,10 +54,23 @@ def icon(name: str, role: str = "text2", size: int = 16):
 
 
 @cache
-def file(name: str, role: str = "text2") -> Path:
-    CACHE.mkdir(parents=True, exist_ok=True)
-    path = CACHE / f"{name}-{role}.svg"
-    data = _svg(name, role)
-    if not path.is_file() or path.read_bytes() != data:
-        path.write_bytes(data)
+def _folder() -> Path | None:
+    try:
+        folder = Path(tempfile.mkdtemp(prefix="mnemosyn-icons-"))
+    except OSError:
+        return None
+    atexit.register(shutil.rmtree, folder, True)
+    return folder
+
+
+@cache
+def file(name: str, role: str = "text2") -> Path | None:
+    folder = _folder()
+    if folder is None:
+        return None
+    path = folder / f"{name}-{role}.svg"
+    try:
+        path.write_bytes(_svg(name, role))
+    except OSError:
+        return None
     return path

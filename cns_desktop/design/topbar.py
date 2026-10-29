@@ -47,6 +47,8 @@ class TopBar(QFrame):
         self.compact = False
         self.level = 0
         self._fitting = False
+        self._fitted: tuple = ()
+        self._shown = ""
         self._groups: dict[str, QWidget] = {}
         self._row = QHBoxLayout(self)
         self._row.setContentsMargins(SIZE["panel_pad"], 0, 8, 0)
@@ -84,6 +86,9 @@ class TopBar(QFrame):
         if self.switch is not None and hasattr(self.switch, "set_compact"):
             self.switch.set_compact(level >= 1)
 
+    def _signature(self, width: int) -> tuple:
+        return width, self._shown, self.level, self._row.sizeHint().width()
+
     def fit(self, width: int | None = None) -> None:
         width = self.width() if width is None else width
         for level in range(3):
@@ -92,16 +97,19 @@ class TopBar(QFrame):
             if self._row.sizeHint().width() <= width:
                 break
         self._row.activate()
+        self._fitted = self._signature(width)
 
     def event(self, event) -> bool:
-        if event.type() == QEvent.Type.LayoutRequest and not self._fitting:
+        if (event.type() == QEvent.Type.LayoutRequest and not self._fitting
+                and self._signature(self.width()) != self._fitted):
             self._fitting = True
             QTimer.singleShot(0, self._refit)
         return super().event(event)
 
     def _refit(self) -> None:
-        self.fit()
         self._fitting = False
+        if self._signature(self.width()) != self._fitted:
+            self.fit()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -129,6 +137,7 @@ class TopBar(QFrame):
         return self._groups.get(workspace)
 
     def show_group(self, workspace: str) -> None:
+        self._shown = workspace
         for name, group in self._groups.items():
             group.setVisible(name == workspace)
             if name == workspace:

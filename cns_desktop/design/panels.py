@@ -131,7 +131,7 @@ class PanelGroup(QDockWidget):
         self._sync_header()
         guest._sync_header()
 
-    def release(self, guest: PanelGroup) -> None:
+    def release(self, guest: PanelGroup, show: bool = True) -> None:
         if guest not in self._guests:
             return
         for key in guest._own:
@@ -140,14 +140,14 @@ class PanelGroup(QDockWidget):
         guest._host = None
         self._guests.remove(guest)
         guest.toggleViewAction().setVisible(True)
-        if self.isVisible():
+        if show and self.isVisible():
             guest.show()
         self._sync_header()
         guest._sync_header()
 
-    def release_all(self) -> None:
+    def release_all(self, show: bool = True) -> None:
         for guest in list(self._guests):
-            self.release(guest)
+            self.release(guest, show)
 
     @staticmethod
     def of(widget: QWidget) -> PanelGroup | None:

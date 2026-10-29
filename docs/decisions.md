@@ -665,7 +665,8 @@ Design: [simulation Lab, section 9](specs/2026-10-29-simulation-lab-design.md).
 icon size lives in `cns_desktop/design/`, and one stylesheet built from it styles the whole app. The
 theme is Black: surfaces from #000000 to #1c1c21 with lightness for depth, text at 4.5:1 or more and
 controls, focus rings and chart lines at 3:1 or more. Only the dark theme exists for now. A test fails
-if a view writes its own colours or sizes.
+if a view writes its own colours or font sizes; spacing and fixed sizes are meant to come from the
+same tokens but are not checked yet.
 Why: the interface had grown view by view, with sizes and colours that disagreed and text that was
 cut; one system makes every part look and behave alike and keeps it that way.
 Design: [design system, section 5](specs/2026-10-29-design-system-design.md).

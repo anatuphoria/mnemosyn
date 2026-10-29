@@ -13,6 +13,11 @@ def _rgba(name: str, alpha: float) -> str:
     return f"rgba({red}, {green}, {blue}, {round(alpha * 255)})"
 
 
+def _image(name: str, role: str = "text2") -> str:
+    path = icons.file(name, role)
+    return "none" if path is None else f"url({path.as_posix()})"
+
+
 def _roles() -> str:
     colours = {"title": "text", "heading": "text", "body": "text", "label": "text",
                "secondary": "text2", "data": "text2"}
@@ -57,11 +62,11 @@ QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabl
 QSpinBox, QDoubleSpinBox { padding-right: 20px; min-height: ${spin}px; max-height: ${spin}px; }
 QSpinBox::up-button, QDoubleSpinBox::up-button, QSpinBox::down-button,
 QDoubleSpinBox::down-button { width: 18px; border: none; background: transparent; }
-QSpinBox::up-arrow, QDoubleSpinBox::up-arrow { image: url($up); width: 10px; height: 10px; }
-QSpinBox::down-arrow, QDoubleSpinBox::down-arrow { image: url($down); width: 10px; height: 10px; }
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow { image: $up; width: 10px; height: 10px; }
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow { image: $down; width: 10px; height: 10px; }
 QComboBox { padding-right: 24px; }
 QComboBox::drop-down { border: none; width: 22px; }
-QComboBox::down-arrow { image: url($down); width: 12px; height: 12px; }
+QComboBox::down-arrow { image: $down; width: 12px; height: 12px; }
 QComboBox QAbstractItemView { background: $s3; border: 1px solid $line; padding: 4px;
     selection-background-color: $s2; outline: none; }
 
@@ -75,6 +80,7 @@ QPushButton:checked { background: $s3; border-color: $accent; }
 QPushButton:disabled { color: $text3; border-color: $line; background: $s1; }
 QPushButton[variant="primary"] { background: $accent; color: white; border: 1px solid $accent; }
 QPushButton[variant="primary"]:hover { background: $accent_text; border-color: $accent_text; }
+QPushButton[variant="primary"]:focus { border: 1px solid $text; }
 QPushButton[variant="ghost"] { background: transparent; border: 1px solid transparent;
     color: $text2; }
 QPushButton[variant="ghost"]:hover { background: $s2; color: $text; }
@@ -95,10 +101,10 @@ QCheckBox::indicator, QRadioButton::indicator, QAbstractItemView::indicator {
 QRadioButton::indicator { border-radius: 7px; }
 QCheckBox::indicator:checked, QRadioButton::indicator:checked,
 QAbstractItemView::indicator:checked { background: $accent; border-color: $accent;
-    image: url($check); }
+    image: $check; }
 QCheckBox::indicator:indeterminate, QAbstractItemView::indicator:indeterminate {
-    background: $s3; border-color: $accent; image: url($minus); }
-QCheckBox:focus { color: $text; }
+    background: $s3; border-color: $accent; image: $minus; }
+QCheckBox::indicator:focus { border: 1px solid $text; }
 
 QTreeView, QListView, QTableView { background: $s1; border: none; outline: none;
     show-decoration-selected: 0; }
@@ -183,7 +189,7 @@ def build() -> str:
         r_small=RADIUS["small"], r_control=RADIUS["control"], r_panel=RADIUS["panel"],
         inner=SIZE["control"] - 2, spin=SIZE["control"] - 5, row=SIZE["row"], status=SIZE["status"],
         sel=_rgba("accent", 0.15), roles=_roles(),
-        down=icons.file("chevron-down").as_posix(), up=icons.file("chevron-up").as_posix(),
-        check=icons.file("check", "text").as_posix(), minus=icons.file("minus", "text").as_posix(),
+        down=_image("chevron-down"), up=_image("chevron-up"), check=_image("check", "text"),
+        minus=_image("minus", "text"),
     )
     return SHEET.substitute(values).strip() + "\n"

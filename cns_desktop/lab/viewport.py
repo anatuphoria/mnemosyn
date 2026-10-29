@@ -125,7 +125,9 @@ class Viewport(QWidget):
         return SIZE["central_min_slices"] if window_width >= SIZE["narrow"] else 0
 
     def fit(self, workspace: str, window_width: int) -> None:
-        self.setMinimumWidth(self.minimum_width(workspace, window_width))
+        minimum = self.minimum_width(workspace, window_width)
+        self.setMinimumWidth(minimum)
+        self.setVisible(minimum > 0)
 
     def add_circuit(self, circuit) -> None:
         self.circuit = circuit
