@@ -9,7 +9,7 @@ from pathlib import Path
 from PySide6.QtCore import QEvent, QStandardPaths, Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QAbstractSlider, QAbstractSpinBox, QCheckBox,
-                               QDockWidget, QLabel, QMainWindow, QMessageBox)
+                               QDockWidget, QFileDialog, QLabel, QMainWindow, QMessageBox)
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_study.answers import AnswerIndex
@@ -18,6 +18,8 @@ from cns_study.items import (group_items, items, structure_items, tract_items,
 from cns_study.progress import ProgressStore
 from cns_study.session import QuizChoice, Session, utc_now
 
+from .lab.viewport import Viewport
+from .lab.workspace import LabWorkspace
 from .state import AppState
 from .views.about_dialog import AboutDialog
 from .views.activity_chart import ActivityChart
@@ -30,6 +32,7 @@ from .views.quiz_setup import QuizSetup
 from .views.slice_panel import SlicePanel
 from .views.structure_tree import StructureTree
 from .warm_up import WarmUp
+from .workspaces import Workspaces
 
 APP_NAME = "Mnemosyn"
 APP_FOLDER = "mnemosyn"
@@ -83,11 +86,12 @@ def gpu_name(view: BrainView) -> str:
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, atlas: Atlas, progress_path: Path | None = None) -> None:
+    def __init__(self, atlas: Atlas, progress_path: Path | None = None, settings=None) -> None:
         super().__init__()
         title = f"{APP_NAME} - {atlas.metadata.get('name', 'atlas')}"
         if atlas.local_only:
             title += " (local build, not for sharing)"
+        self.base_title = title
         self.setWindowTitle(title)
         self.resize(1500, 900)
         self.state = AppState(atlas)
@@ -101,8 +105,10 @@ class MainWindow(QMainWindow):
         self._pathway_saved: tuple | None = None
         self.shortcuts: dict[str, QAction] = {}
 
+        self.settings = settings
         self.view = BrainView(self.state, self)
-        self.setCentralWidget(self.view)
+        self.viewport = Viewport(self.view)
+        self.setCentralWidget(self.viewport)
         self.tree = StructureTree(self.state)
         self.slices = SlicePanel(self.state)
         self.info = InfoPanel(self.state)
@@ -126,6 +132,17 @@ class MainWindow(QMainWindow):
         self._sync_chart()
 
         self._add_actions()
+        self.workspaces = Workspaces(self, settings)
+        self._add_window_menu()
+        self.workspaces.capture_defaults({"Slices": self._arrange_slices,
+                                          "Pathways": self._arrange_pathways})
+        self.ask = lambda title, text, buttons: QMessageBox.question(self, title, text, buttons)
+        self.inform = lambda title, text: QMessageBox.information(self, title, text)
+        self.pick_open = lambda: QFileDialog.getOpenFileName(
+            self, "Open experiment", "", "Lab experiments (*.mnemolab)")[0]
+        self.pick_save = lambda: QFileDialog.getSaveFileName(
+            self, "Save experiment", "", "Lab experiments (*.mnemolab)")[0]
+        self.lab = LabWorkspace(self, next(iter(atlas.models))) if atlas.models else None
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
                 widget.installEventFilter(self)
@@ -138,6 +155,7 @@ class MainWindow(QMainWindow):
         self.quiz.dim_grey.connect(
             lambda dim: self.view.set_grey_opacity(GREY_DIMMED if dim else 1.0))
         self.pathways.entered.connect(self.enter_pathway)
+        self.pathways.lab_requested.connect(self.open_lab)
         self.pathways.left.connect(self.leave_pathway)
         self.pathways.centre_requested.connect(self.slices.centre_on_selection)
         self.pathways.timeline_changed.connect(self._on_timeline)
@@ -164,6 +182,10 @@ class MainWindow(QMainWindow):
         ids = self.view.ids + self.view.shell_ids
         jobs += [lambda c=ids[k:k + 40]: self.view.warm_outline(c) for k in range(0, len(ids), 40)]
         jobs.append(lambda: self.view.warm_outline(ids))
+        if self.lab is not None:
+            experiment = self.lab.document.experiment
+            jobs.append(lambda: self.lab.document.simulator.normal(experiment.length,
+                                                                   experiment.start_clock))
         return jobs
 
     @property
@@ -231,6 +253,42 @@ class MainWindow(QMainWindow):
             self.addAction(route_key)
             self.shortcuts[name] = route_key
 
+    def _add_window_menu(self) -> None:
+        self.window_menu = self.menuBar().addMenu("Window")
+        for dock in (self.tree_dock, self.pathway_dock, self.slice_dock, self.info_dock,
+                     self.chart_dock):
+            self.window_menu.addAction(dock.toggleViewAction())
+        self.window_separator = self.window_menu.addSeparator()
+        self.window_menu.addAction(QAction("Reset layout", self,
+                                           triggered=lambda: self.workspaces.reset()))
+
+    def open_lab(self, route: str) -> None:
+        if self.lab is None:
+            return
+        self.pathways.leave()
+        self.workspaces.switch("Lab")
+
+    def _arrange_slices(self) -> None:
+        self.splitDockWidget(self.slice_dock, self.info_dock, Qt.Orientation.Vertical)
+        width = max(self.width(), 1500)
+        self.resizeDocks([self.tree_dock, self.slice_dock], [280, int(width * 0.6)],
+                         Qt.Orientation.Horizontal)
+
+    def _arrange_pathways(self) -> None:
+        self.pathway_dock.raise_()
+
+    def workspace_docks(self) -> list[QDockWidget]:
+        return [self.tree_dock, self.pathway_dock, self.slice_dock, self.info_dock]
+
+    def _out_of_lab(self) -> None:
+        if self.workspaces.current == "Lab":
+            self.workspaces.switch("Explore")
+
+    def sync_after_layout(self, name: str) -> None:
+        if name == "Pathways" and self.pathway_dock.isVisible():
+            self.pathway_dock.raise_()
+        self._sync_chart()
+
     def _show_hover(self, name: str) -> None:
         if self.quiz_active:
             return
@@ -263,6 +321,7 @@ class MainWindow(QMainWindow):
         return self._answers
 
     def open_quiz_setup(self) -> QuizSetup:
+        self._out_of_lab()
         self.slices.label_centres()
         dialog = QuizSetup(self.state.atlas, self.progress_store(), self)
         dialog.accepted.connect(lambda: self.start_quiz(dialog.choice()))
@@ -286,6 +345,7 @@ class MainWindow(QMainWindow):
                           rng=rng)
         if self.pathway_active:
             self.pathways.leave()
+        self._out_of_lab()
         self.enter_quiz()
         shown = choice.level == "tracts" and choice.mode == "find"
         self.state.set_hidden(self.state.tract_ids, not shown)
@@ -303,6 +363,7 @@ class MainWindow(QMainWindow):
         self._saved = (self.saveState(), *self._snapshot(),
                        [(w, w.focusPolicy()) for w in (self.view, self.slices.view)])
         self.quiz_active = True
+        self.workspaces.set_locked(True)
         for action in self._quiz_locked():
             action.setEnabled(False)
         state.set_hidden([i for i in state.geometry_ids if not state.is_tract(i)], False)
@@ -321,6 +382,7 @@ class MainWindow(QMainWindow):
             return
         layout, hidden, selected, axis, mm, volume, focus = self._saved
         self.quiz_active = False
+        self.workspaces.set_locked(False)
         for action in self._quiz_locked():
             action.setEnabled(True)
         for widget, policy in focus:
@@ -426,6 +488,9 @@ class MainWindow(QMainWindow):
         if self.quiz_active:
             self.status.setText("quiz in progress   │   Esc ends the quiz")
             return
+        if self.lab is not None and self.workspaces.current == "Lab":
+            self.status.setText(self.lab.status_text())
+            return
         panel = self.pathways
         if self.pathway_active and panel.pathway is not None:
             self.status.setText(
@@ -446,6 +511,12 @@ class MainWindow(QMainWindow):
         return super().eventFilter(watched, event)
 
     def closeEvent(self, event) -> None:
+        if self.lab is not None and not self.lab.confirm_discard():
+            event.ignore()
+            return
+        self.workspaces.save()
+        if self.settings is not None:
+            self.settings.sync()
         self._warm_up.stop()
         if self.quiz_active:
             self.quiz.stop()

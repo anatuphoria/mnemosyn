@@ -31,7 +31,9 @@
 
 Turn the brain and spinal cord in 3D, cut through them in axial, coronal and sagittal slices, follow
 sensory, motor and behaviour pathways station by station with what a lesion there causes, and test
-yourself with spaced-repetition quizzes. Every shape comes from open, cited research data, and every
+yourself with spaced-repetition quizzes. In the Lab, change the stress axis (surgery, drugs, diseases,
+stressors, clinical tests or any model value) and watch the computed result over minutes to weeks,
+with a cited chain of causes. Every shape comes from open, cited research data, and every
 choice behind the project is recorded in its [decision log](https://mnemo.saeed.cool/decisions/).
 
 - **Explore in 3D:** hide, isolate, search and frame any structure; tracts and a see-through cord.

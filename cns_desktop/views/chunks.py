@@ -43,6 +43,7 @@ class Chunks:
         self.actors, self.mappers, self.attributes = [], [], []
         self._where: dict[int, tuple[int, int]] = {}
         self._blocks = blocks
+        self._colors = dict(colors)
         self._hidden: list[set[int]] = []
         self._marked: list[set[int]] = []
         for chunk, members in enumerate(groups):
@@ -80,6 +81,13 @@ class Chunks:
                 attributes.SetBlockVisibility(self._blocks[structure_id],
                                               structure_id not in self._hidden[chunk])
             self._marked[chunk] = set(self._hidden[chunk])
+
+    def set_colors(self, colors: dict) -> None:
+        for structure_id, color in colors.items():
+            if structure_id in self._where:
+                self.attributes_for(structure_id).SetBlockColor(
+                    self._blocks[structure_id],
+                    self._colors[structure_id] if color is None else color)
 
     def is_visible(self, structure_id: int) -> bool:
         chunk = self._where[structure_id][0]

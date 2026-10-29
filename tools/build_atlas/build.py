@@ -27,6 +27,7 @@ from .meshing import bands, cut_levels, field_surface, levels, surface
 from .pathways import check_pathway_texts, check_pathways, for_package, load_pathways
 from .recipe import BuildError, Recipe, VolumeSpec, load_recipe
 from .templates import covers, on_grid, to_uint8
+from .models import load_models
 from .timelines import load_timelines
 from .tracts import place
 from .validate import (check_hierarchy, check_ids, check_knowledge, check_sources,
@@ -142,6 +143,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     except KnowledgeError as exc:
         raise BuildError([str(exc)]) from exc
     timelines = load_timelines(src / "timelines", pathways, references)
+    models = load_models(src / "models", src / "knowledge", {r.id for r in raws}, references,
+                         {p.key for p in pathways})
     problems = check_hierarchy(raws) + check_ids(raws, lock) + check_sources(raws, recipe, src)
     problems += check_templates(recipe, src)
     problems += check_knowledge(src / "knowledge", references, {r.id: r.concept for r in raws},
@@ -368,7 +371,7 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
                       src / "knowledge", licence_files, report, templates, tracts,
                       for_package(pathways, {r.id: r.name for r in raws}, left_out), included,
-                      timelines=timelines, fills=fills)
+                      timelines=timelines, fills=fills, models=models)
         size = sum(p.stat().st_size for p in package.rglob("*") if p.is_file())
         with (package / "build-report.md").open("a", encoding="utf-8") as report_file:
             report_file.write("".join(f"{line}\n" for line in report_lines(changes)))

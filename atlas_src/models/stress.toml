@@ -1,0 +1,653 @@
+key = "stress"
+version = 1
+route = "stress"
+start_clock = "08:00"
+settle_speedup = 15
+settle_days = 10
+max_step = "30 min"
+why_threshold = 0.1
+
+[[values]]
+key = "crh"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+lane = 1
+refs = ["karin2020"]
+
+[[values]]
+key = "acth"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+lane = 2
+refs = ["karin2020"]
+
+[[values]]
+key = "cortisol"
+unit = "model units"
+start = 1.0
+display_scale = 11.9
+display_unit = "µg/dL"
+other_unit = "nmol/L"
+other_scale = 27.59
+normal = [2, 20.6]
+lane = 3
+refs = ["debono2009"]
+
+[[values]]
+key = "corticotrophs"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+slow = true
+refs = ["karin2020"]
+
+[[values]]
+key = "adrenal"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+slow = true
+lane = 4
+refs = ["karin2020"]
+
+[[values]]
+key = "dex_gut"
+unit = "mg"
+start = 0.0
+display_scale = 1.0
+display_unit = "mg"
+
+[[values]]
+key = "dex"
+unit = "mg"
+start = 0.0
+display_scale = 1.0
+display_unit = "mg"
+refs = ["harahap2009", "loew1986"]
+
+[[values]]
+key = "hc_gut"
+unit = "mg"
+start = 0.0
+display_scale = 1.0
+display_unit = "mg"
+refs = ["mollmann1991"]
+
+[[parameters]]
+key = "w1"
+value = 0.17
+unit = "/min"
+low = 0.05
+high = 0.5
+refs = ["andersen2013", "karin2020"]
+
+[[parameters]]
+key = "w2"
+value = 0.035
+unit = "/min"
+low = 0.01
+high = 0.1
+refs = ["andersen2013", "karin2020"]
+
+[[parameters]]
+key = "w3"
+value = 0.0091
+unit = "/min"
+low = 0.003
+high = 0.03
+refs = ["andersen2013", "karin2020"]
+
+[[parameters]]
+key = "wC"
+value = 0.0000688
+unit = "/min"
+low = 0.00002
+high = 0.0002
+refs = ["karin2020"]
+
+[[parameters]]
+key = "wA"
+value = 0.000034
+unit = "/min"
+low = 0.00001
+high = 0.0001
+refs = ["karin2020"]
+
+[[parameters]]
+key = "K_GR"
+value = 4
+unit = "model cortisol units"
+low = 1
+high = 12
+refs = ["karin2020"]
+
+[[parameters]]
+key = "n"
+value = 3
+unit = "Hill power"
+low = 1
+high = 4
+refs = ["andersen2013", "karin2020"]
+
+[[parameters]]
+key = "K_MR"
+value = 0.15
+unit = "model cortisol units"
+low = 0.05
+high = 1
+refs = ["andersen2013"]
+
+[[parameters]]
+key = "K_sat"
+value = 4
+unit = "times normal ACTH"
+low = 1
+high = 20
+
+[[parameters]]
+key = "C_max"
+value = 3
+unit = "times normal"
+low = 1.5
+high = 10
+
+[[parameters]]
+key = "A_max"
+value = 2
+unit = "times normal"
+low = 1.5
+high = 10
+
+[[parameters]]
+key = "depth"
+value = 1.0
+unit = "fraction"
+low = 0
+high = 2
+refs = ["debono2009"]
+
+[[parameters]]
+key = "phase"
+value = 500
+unit = "minutes after midnight"
+low = 0
+high = 1439
+refs = ["debono2009"]
+
+[[parameters]]
+key = "depth2"
+value = 0.3
+unit = "fraction"
+low = 0
+high = 1
+refs = ["debono2009"]
+
+[[parameters]]
+key = "phase2"
+value = 370
+unit = "minutes after midnight"
+low = 0
+high = 719
+refs = ["debono2009"]
+
+[[parameters]]
+key = "stress"
+value = 0
+unit = "times basal drive"
+low = 0
+high = 10
+
+[[parameters]]
+key = "stalk"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+
+[[parameters]]
+key = "dex_ka"
+value = 0.02
+unit = "/min"
+low = 0.005
+high = 0.1
+refs = ["loew1986"]
+
+[[parameters]]
+key = "dex_ke"
+value = 0.0034
+unit = "/min"
+low = 0.001
+high = 0.01
+refs = ["harahap2009"]
+
+[[parameters]]
+key = "dex_potency"
+value = 35
+unit = "model cortisol units per mg"
+low = 5
+high = 500
+
+[[parameters]]
+key = "hc_ka"
+value = 0.04
+unit = "/min"
+low = 0.005
+high = 0.2
+refs = ["mollmann1991"]
+
+[[parameters]]
+key = "hc_units"
+value = 0.24
+unit = "model cortisol units per mg"
+low = 0.05
+high = 1
+refs = ["mollmann1991"]
+
+[[parameters]]
+key = "acth_tumour"
+value = 0
+unit = "times normal ACTH"
+low = 0
+high = 20
+
+[[parameters]]
+key = "K_tumour"
+value = 20
+unit = "model cortisol units"
+low = 2
+high = 100
+refs = ["tyrrell1986"]
+
+[[parameters]]
+key = "cortisol_tumour"
+value = 0
+unit = "model cortisol units"
+low = 0
+high = 10
+
+[[parts]]
+key = "pvn"
+structure = 2510
+x = 0
+y = 0
+values = ["crh"]
+
+[[parts]]
+key = "pituitary"
+structure = 2700
+x = 1
+y = 0
+values = ["acth", "corticotrophs"]
+
+[[parts]]
+key = "adrenal_cortex"
+x = 2
+y = 0
+values = ["adrenal"]
+
+[[parts]]
+key = "blood"
+x = 1
+y = 1
+values = ["cortisol", "dex"]
+
+[[effects]]
+key = "rhythm"
+expr = "pos(1 + depth * cos(2 * pi * (clock - phase) / 1440) + depth2 * cos(4 * pi * (clock - phase2) / 1440)) * (1 + stress)"
+kind = "drives"
+
+[[effects]]
+key = "gr_signal"
+expr = "cortisol + dex_potency * dex"
+kind = "holds back"
+
+[[effects]]
+key = "mr_hold"
+expr = "(1 + K_MR) / (cortisol + K_MR)"
+kind = "holds back"
+arrow = ["blood", "pvn"]
+
+[[effects]]
+key = "gr_hold"
+expr = "hill(gr_signal, K_GR, n) / hill(1, K_GR, n)"
+kind = "holds back"
+arrow = ["blood", "pituitary"]
+
+[[effects]]
+key = "portal_crh"
+expr = "crh * stalk"
+kind = "drives"
+arrow = ["pvn", "pituitary"]
+
+[[effects]]
+key = "acth_drive"
+expr = "acth * (1 + K_sat) / (acth + K_sat)"
+kind = "drives"
+arrow = ["pituitary", "adrenal_cortex"]
+
+[[terms]]
+key = "make_crh"
+value = "crh"
+sign = 1
+expr = "w1 * rhythm * mr_hold * gr_hold"
+kind = "drives"
+
+[[terms]]
+key = "clear_crh"
+value = "crh"
+sign = -1
+expr = "w1 * crh"
+kind = "clears"
+
+[[terms]]
+key = "make_acth"
+value = "acth"
+sign = 1
+expr = "w2 * corticotrophs * gr_hold * portal_crh"
+kind = "drives"
+
+[[terms]]
+key = "tumour_acth"
+value = "acth"
+sign = 1
+expr = "w2 * acth_tumour * hill(gr_signal, K_tumour, n) / hill(1, K_tumour, n)"
+kind = "drives"
+
+[[terms]]
+key = "clear_acth"
+value = "acth"
+sign = -1
+expr = "w2 * acth"
+kind = "clears"
+
+[[terms]]
+key = "make_cortisol"
+value = "cortisol"
+sign = 1
+expr = "w3 * adrenal * acth_drive"
+kind = "drives"
+arrow = ["adrenal_cortex", "blood"]
+
+[[terms]]
+key = "tumour_cortisol"
+value = "cortisol"
+sign = 1
+expr = "w3 * cortisol_tumour"
+kind = "drives"
+
+[[terms]]
+key = "absorb_hydrocortisone"
+value = "cortisol"
+sign = 1
+expr = "hc_ka * hc_gut * hc_units"
+kind = "absorbs"
+
+[[terms]]
+key = "clear_cortisol"
+value = "cortisol"
+sign = -1
+expr = "w3 * cortisol"
+kind = "clears"
+
+[[terms]]
+key = "grow_corticotrophs"
+value = "corticotrophs"
+sign = 1
+expr = "wC * corticotrophs * (pos(crh - 1) * (C_max - corticotrophs) / (C_max - 1) - pos(1 - crh))"
+kind = "grows"
+
+[[terms]]
+key = "grow_adrenal"
+value = "adrenal"
+sign = 1
+expr = "wA * adrenal * (pos(acth - 1) * (A_max - adrenal) / (A_max - 1) - pos(1 - acth))"
+kind = "grows"
+
+[[terms]]
+key = "dex_leaves_gut"
+value = "dex_gut"
+sign = -1
+expr = "dex_ka * dex_gut"
+kind = "clears"
+
+[[terms]]
+key = "absorb_dex"
+value = "dex"
+sign = 1
+expr = "dex_ka * dex_gut"
+kind = "absorbs"
+
+[[terms]]
+key = "clear_dex"
+value = "dex"
+sign = -1
+expr = "dex_ke * dex"
+kind = "clears"
+
+[[terms]]
+key = "hydrocortisone_leaves_gut"
+value = "hc_gut"
+sign = -1
+expr = "hc_ka * hc_gut"
+kind = "clears"
+
+[[experiments]]
+key = "hypophysectomy"
+group = "Remove or cut"
+edits = [{ op = "clamp", target = "corticotrophs", expr = "0" }]
+
+[[experiments]]
+key = "stalk_cut"
+group = "Remove or cut"
+edits = [{ op = "set", target = "stalk", expr = "0" }]
+
+[[experiments]]
+key = "adrenalectomy"
+group = "Remove or cut"
+edits = [{ op = "clamp", target = "adrenal", expr = "0" }]
+
+[[experiments]]
+key = "dexamethasone"
+group = "Drugs"
+options = [{ key = "dose", unit = "mg", default = 1, low = 0.25, high = 16 }]
+edits = [{ op = "dose", target = "dex_gut", expr = "dose" }]
+
+[[experiments]]
+key = "hydrocortisone"
+group = "Drugs"
+options = [{ key = "dose", unit = "mg", default = 20, low = 2.5, high = 100 }]
+edits = [{ op = "dose", target = "hc_gut", expr = "dose" }]
+
+[[experiments]]
+key = "hydrocortisone_course"
+group = "Drugs"
+length = "4 w"
+weeks = true
+options = [{ key = "dose", unit = "mg a day", default = 40, low = 5, high = 100 }]
+edits = [{ op = "dose", target = "hc_gut", expr = "dose", daily = true }]
+
+[[experiments]]
+key = "addison"
+group = "Conditions"
+mode = "present"
+options = [{ key = "destroyed", unit = "fraction", default = 0.9, low = 0.1, high = 1 }]
+edits = [{ op = "clamp", target = "adrenal", expr = "1 - destroyed" }]
+
+[[experiments]]
+key = "cushing_disease"
+group = "Conditions"
+mode = "present"
+options = [{ key = "size", unit = "times normal ACTH", default = 1.5, low = 0.5, high = 20 }]
+edits = [{ op = "set", target = "acth_tumour", expr = "size" }]
+
+[[experiments]]
+key = "adrenal_tumour"
+group = "Conditions"
+mode = "present"
+options = [{ key = "output", unit = "model cortisol units", default = 2, low = 0.5, high = 10 }]
+edits = [{ op = "set", target = "cortisol_tumour", expr = "output" }]
+
+[[experiments]]
+key = "short_stressor"
+group = "Stressors"
+length = "1 h"
+options = [{ key = "strength", unit = "times basal drive", default = 2, low = 0.2, high = 10 }]
+edits = [{ op = "add", target = "stress", expr = "strength" }]
+
+[[experiments]]
+key = "long_stressor"
+group = "Stressors"
+length = "3 w"
+weeks = true
+options = [{ key = "strength", unit = "times basal drive", default = 1, low = 0.2, high = 10 }]
+edits = [{ op = "add", target = "stress", expr = "strength" }]
+
+[[tests]]
+key = "low_dose_test"
+doses = [{ value = "dex_gut", amount = "1" }]
+readings = [{ value = "cortisol", after = "9 h" }]
+rule = "below"
+cutoff = 1.8
+
+[[tests]]
+key = "high_dose_test"
+doses = [{ value = "dex_gut", amount = "8" }]
+readings = [{ value = "cortisol", after = "9 h" }]
+rule = "suppressed by"
+cutoff = 0.5
+
+[[tests]]
+key = "acth_test"
+doses = [{ value = "acth", amount = "40" }]
+readings = [{ value = "cortisol", after = "30 min" }, { value = "cortisol", after = "1 h" }]
+rule = "at least"
+cutoff = 18
+
+[[checks]]
+key = "daily_rhythm"
+length = "2 d"
+asserts = [
+  { kind = "peak_within", value = "cortisol", window = ["day 1 23:00", "day 2 22:59"], expect = ["07:30", "09:30"] },
+  { kind = "trough_within", value = "cortisol", window = ["day 1 12:00", "day 2 11:59"], expect = ["23:00", "01:30"] },
+  { kind = "within", value = "cortisol", at = "day 2 08:30", low = 11.7, high = 20.6 },
+  { kind = "within", value = "cortisol", at = "day 2 00:15", low = 0.5, high = 2.5 },
+]
+
+[[checks]]
+key = "stress_response"
+length = "1 d"
+blocks = [{ experiment = "short_stressor", start = "day 1 14:00" }]
+asserts = [
+  { kind = "peak_before", first = "acth", then = "cortisol", window = ["day 1 14:00", "day 1 17:00"] },
+  { kind = "vs_normal", value = "cortisol", at = "day 1 15:00", rises = 1.2 },
+  { kind = "back_to_normal", value = "cortisol", by = "day 1 20:00", tolerance = 0.1 },
+]
+
+[[checks]]
+key = "low_dose_normal"
+length = "2 d"
+blocks = [{ experiment = "low_dose_test", start = "day 1 23:00" }]
+asserts = [{ kind = "test_result", block = 0, expect = "normal" }]
+
+[[checks]]
+key = "hypophysectomy"
+length = "2 d"
+blocks = [{ experiment = "hypophysectomy", start = "day 1 09:00" }]
+asserts = [
+  { kind = "vs_normal", value = "acth", at = "day 1 12:00", falls = 0.2 },
+  { kind = "vs_normal", value = "cortisol", at = "day 2 08:00", falls = 0.3 },
+  { kind = "vs_normal", value = "crh", at = "day 2 08:00", rises = 1.3 },
+]
+
+[[checks]]
+key = "adrenal_loss"
+length = "2 d"
+blocks = [{ experiment = "addison", mode = "present" }]
+asserts = [
+  { kind = "vs_normal", value = "cortisol", at = "day 2 08:00", falls = 0.5 },
+  { kind = "vs_normal", value = "acth", at = "day 2 08:00", rises = 2 },
+  { kind = "vs_normal", value = "crh", at = "day 2 08:00", rises = 1.3 },
+]
+
+[[checks]]
+key = "adrenalectomy"
+length = "2 d"
+blocks = [{ experiment = "adrenalectomy", start = "day 1 09:00" }]
+asserts = [
+  { kind = "vs_normal", value = "cortisol", at = "day 2 08:00", falls = 0.1 },
+  { kind = "vs_normal", value = "acth", at = "day 2 08:00", rises = 2 },
+]
+
+[[checks]]
+key = "cushing_disease"
+length = "3 d"
+blocks = [
+  { experiment = "cushing_disease", mode = "present" },
+  { experiment = "low_dose_test", start = "day 1 23:00" },
+  { experiment = "high_dose_test", start = "day 2 23:00" },
+]
+asserts = [
+  { kind = "vs_normal", value = "acth", at = "day 1 20:00", rises = 1.5 },
+  { kind = "vs_normal", value = "cortisol", at = "day 1 20:00", rises = 1.5 },
+  { kind = "test_result", block = 1, expect = "abnormal" },
+  { kind = "test_result", block = 2, expect = "normal" },
+]
+
+[[checks]]
+key = "adrenal_tumour"
+length = "2 d"
+blocks = [{ experiment = "adrenal_tumour", mode = "present" }]
+asserts = [
+  { kind = "vs_normal", value = "cortisol", at = "day 1 20:00", rises = 1.5 },
+  { kind = "vs_normal", value = "acth", at = "day 1 20:00", falls = 0.5 },
+  { kind = "vs_normal", value = "adrenal", at = "day 2 08:00", falls = 0.8 },
+]
+
+[[checks]]
+key = "atrophy_after_hypophysectomy"
+length = "5 w"
+blocks = [
+  { experiment = "hypophysectomy", start = "day 1 09:00" },
+  { experiment = "acth_test", start = "day 1 11:00" },
+  { experiment = "acth_test", start = "day 29 09:00" },
+]
+asserts = [
+  { kind = "test_result", block = 1, expect = "normal" },
+  { kind = "test_result", block = 2, expect = "abnormal" },
+  { kind = "vs_normal", value = "adrenal", at = "day 29 08:00", falls = 0.5 },
+]
+
+[[checks]]
+key = "recovery_after_hydrocortisone"
+length = "8 w"
+blocks = [{ experiment = "hydrocortisone_course", start = "day 1 08:00" }]
+asserts = [
+  { kind = "vs_normal", value = "adrenal", at = "day 29 07:59", falls = 0.75 },
+  { kind = "vs_normal", value = "cortisol", at = "day 31 08:00", falls = 0.8 },
+  { kind = "back_to_normal", value = "cortisol", by = "day 56 08:00", tolerance = 0.15 },
+]
+
+[[normal]]
+key = "morning_rise"
+from = "05:30"
+to = "09:30"
+
+[[normal]]
+key = "daytime_fall"
+from = "09:30"
+to = "19:45"
+
+[[normal]]
+key = "night_low"
+from = "19:45"
+to = "05:30"

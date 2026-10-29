@@ -40,6 +40,7 @@ def _column(*widgets) -> QWidget:
 class PathwayPanel(QWidget):
     entered = Signal()
     left = Signal()
+    lab_requested = Signal(str)
     centre_requested = Signal()
     timeline_changed = Signal(object)
     time_changed = Signal(float)
@@ -127,6 +128,9 @@ class PathwayPanel(QWidget):
         self.details = QTextBrowser()
         self.details.setOpenExternalLinks(True)
         self.leave_button = QPushButton("Leave pathway (Esc)")
+        self.lab_button = QPushButton("Open in the Lab")
+        self.lab_button.hide()
+        self.lab_routes = frozenset(m.route for m in state.atlas.models.values() if m.route)
         self.timer = QTimer(self, interval=TICK_MS, timeout=lambda: self.advance(TICK_MS / 1000))
         for widget in (*self.side_buttons.values(), self.steps, self.details, self.leave_button):
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -135,7 +139,7 @@ class PathwayPanel(QWidget):
         self.pages.addWidget(_column(self.choices, self.empty))
         self.pages.addWidget(_column(self.title, self.start, sides, self.draft, controls,
                                      self.step_label, self.steps, self.details,
-                                     self.leave_button))
+                                     self.lab_button, self.leave_button))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.pages)
@@ -145,6 +149,8 @@ class PathwayPanel(QWidget):
         self.steps.currentRowChanged.connect(self._on_row)
         self.steps.itemClicked.connect(self._on_step_clicked)
         self.leave_button.clicked.connect(self.leave)
+        self.lab_button.clicked.connect(
+            lambda: self.lab_requested.emit(self.pathway.key) if self.pathway else None)
         state.selection_changed.connect(self._on_selection)
 
     def _control(self, icon, tip: str, action) -> QToolButton:
@@ -183,6 +189,7 @@ class PathwayPanel(QWidget):
             self.index = self.timeline.step_at(0.0)
         self.timeline_changed.emit(self.timeline)
         self.title.setText(f"<b>{escape(pathway.name)}</b>")
+        self.lab_button.setVisible(key in self.lab_routes)
         self.pages.setCurrentIndex(1)
         with self.hold():
             self.set_side(side)

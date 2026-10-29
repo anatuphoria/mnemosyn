@@ -128,7 +128,8 @@ def main(argv: list[str] | None = None) -> int:
 
     from .main_window import MainWindow, migrate_progress
 
-    window = MainWindow(atlas)
+    settings = None if (args.bench or args.first_frame) else QSettings("mnemosyn", "mnemosyn")
+    window = MainWindow(atlas, settings=settings)
     if args.bench:
         window.showFullScreen()
         deadline = time.perf_counter() + 2.0
@@ -158,7 +159,6 @@ def main(argv: list[str] | None = None) -> int:
         window.close()
         return 0
     migrate_progress()
-    settings = QSettings("mnemosyn", "mnemosyn")
     offer_disclaimer(window, settings)
     return app.exec()
 
