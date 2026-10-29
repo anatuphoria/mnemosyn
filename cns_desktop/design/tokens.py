@@ -62,6 +62,10 @@ RADIUS = {"small": 4, "control": 6, "panel": 8}
 
 ICON_STROKE = 1.75
 
+KEY_BOX = 40.0
+KEY = ((6, 34), (6, 6), (34, 6), (34, 30), (14, 30), (14, 14), (26, 14), (26, 22), (20, 22))
+KEY_STROKE = 3.2
+
 
 def _luminance(hex_colour: str) -> float:
     value = hex_colour.lstrip("#")

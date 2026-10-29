@@ -7,13 +7,18 @@ pytest.importorskip("fontTools")
 
 from tools import brand
 
-OUTPUTS = ["brand/wordmark-dark.svg", "brand/wordmark-light.svg", "brand/mark.svg",
-           "brand/mark-blue.svg", "brand/divider.svg", "brand/divider-gold.svg",
+LOCKUPS = ("line", "latin", "seal", "signature")
+OUTPUTS = [*(f"brand/logo-{kind}-{theme}.svg" for kind in LOCKUPS for theme in ("dark", "light")),
+           "brand/key.svg", "brand/mark.svg", "brand/mark-blue.svg",
            "brand/badge-release.svg", "brand/badge-licence.svg", "brand/badge-platforms.svg",
            "brand/badge-website.svg", "brand/badge-review.svg",
-           "cns_desktop/resources/mark.png", "cns_desktop/resources/wordmark.svg",
+           "cns_desktop/resources/mark.png", "cns_desktop/resources/logo.svg",
            "tools/package/mnemosyn.png", "tools/package/mnemosyn.ico",
-           "site/assets/mark.svg", "site/assets/favicon.png", "site/assets/divider.svg"]
+           "site/assets/mark.svg", "site/assets/favicon.png", "site/assets/logo-seal-dark.svg",
+           "site/assets/logo-seal-light.svg"]
+GONE = ["brand/wordmark-dark.svg", "brand/wordmark-light.svg", "brand/divider.svg",
+        "brand/divider-gold.svg", "cns_desktop/resources/wordmark.svg",
+        "site/assets/divider.svg"]
 
 
 @pytest.fixture(scope="module")
@@ -26,6 +31,21 @@ def made(tmp_path_factory):
 def test_every_brand_file_is_made(made):
     missing = [name for name in OUTPUTS if not (made / name).exists()]
     assert missing == []
+
+
+def test_the_old_wordmark_and_dividers_are_gone(made):
+    assert [name for name in GONE if (made / name).exists()] == []
+    assert [name for name in GONE if (brand.ROOT / name).exists()] == []
+
+
+def test_every_lockup_draws_the_key_in_blue_and_the_name_in_ink(made):
+    from cns_desktop.design.tokens import KEY
+
+    for kind in LOCKUPS:
+        for theme, ink in (("dark", brand.LIGHT), ("light", brand.INK)):
+            text = (made / f"brand/logo-{kind}-{theme}.svg").read_text()
+            assert f'stroke="{brand.BLUE}"' in text and f'fill="{ink}"' in text, (kind, theme)
+            assert text.count("L") >= len(KEY) - 1
 
 
 def test_svgs_are_outlines_only(made):
@@ -57,11 +77,12 @@ def test_the_icon_holds_every_windows_size(made):
 README = brand.ROOT / "README.md"
 
 
-def test_the_readme_opens_with_the_wordmark_for_both_themes():
+def test_the_readme_opens_with_the_seal_for_both_themes():
     text = README.read_text()
     assert text.index("<picture>") < text.index("## ")
-    assert 'media="(prefers-color-scheme: dark)" srcset="brand/wordmark-dark.svg"' in text
-    assert 'src="brand/wordmark-light.svg"' in text
+    assert 'media="(prefers-color-scheme: dark)" srcset="brand/logo-seal-dark.svg"' in text
+    assert 'src="brand/logo-seal-light.svg"' in text
+    assert "divider" not in text
 
 
 def test_the_readme_badges_and_links_lead_where_they_should():

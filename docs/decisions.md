@@ -66,12 +66,19 @@ entry replaces it and the old one says so.
 | 58 | 2026-10-19 | Test releases are not signed | in force |
 | 59 | 2026-10-19 | Local-only data may be packaged for the owner's own machines, never shared | in force |
 | 60 | 2026-10-19 | Releases come from version tags, as pre-releases below 1.0 | in force |
-| 61 | 2026-10-19 | ΜΝΗΜΟΣΥΝΗ is the project's identity | in force |
+| 61 | 2026-10-19 | ΜΝΗΜΟΣΥΝΗ is the project's identity | changed by 73 |
 | 62 | 2026-10-19 | The README is a clean front page; the website holds the details | in force |
 | 63 | 2026-10-29 | The physiology layer is a Lab workspace driven by model files, starting with the stress axis | in force |
 | 64 | 2026-10-29 | Lab results are computed from cited models in real units, and the Why chain comes only from declared links | in force |
 | 65 | 2026-10-29 | Workspaces arrange the window; behaviour inside the existing ones does not change | in force |
 | 66 | 2026-10-29 | Experiments are saved as plain text .mnemolab files that hold nothing personal | in force |
+| 67 | 2026-10-29 | One design system, defined in one place, in a Black dark theme | in force |
+| 68 | 2026-10-29 | Inter and the Lucide icons are bundled | in force |
+| 69 | 2026-10-29 | Tabs and switches are segmented controls at the top of panels | in force |
+| 70 | 2026-10-29 | Charts are small multiples with one time axis | in force |
+| 71 | 2026-10-29 | Each workspace shows only its own panels | in force |
+| 72 | 2026-10-29 | The top bar's mark is one turn of the Greek key | in force |
+| 73 | 2026-10-29 | The Greek key stands beside ΜΝΗΜΟΣΥΝΗ in a family of four logos, and the meander dividers are gone | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -579,10 +586,10 @@ Design: [packaging, sections 5 and 6](specs/2026-10-19-packaging-design.md).
 
 ## 61. ΜΝΗΜΟΣΥΝΗ is the project's identity
 
-2026-10-19, chosen by the owner from mockups. The wordmark is ΜΝΗΜΟΣΥΝΗ in GFS Didot, spaced like an
-inscription, between two blue Greek key (meander) bands; the mark is the single character 𖡎
-(Bamum letter MAEM, chosen for its shape) on the app's dark square, used as the app, installer,
-AppImage and website icon; the meander is the divider between sections; the badges are our own, in
+2026-10-19, chosen by the owner from mockups. Changed by 73. The wordmark is ΜΝΗΜΟΣΥΝΗ in GFS
+Didot, spaced like an inscription, between two blue Greek key (meander) bands; the mark is the
+single character 𖡎 (Bamum letter MAEM, chosen for its shape) on the app's dark square, used as
+the app, installer, AppImage and website icon; the meander is the divider between sections; the badges are our own, in
 the same lettering between thin rules. Everything is drawn as outlines by `python -m tools.brand`
 from the two fonts kept in `brand/fonts/` under the SIL Open Font Licence.
 Why: the owner likes the Greek letters in this classical style and wants them to be the look of the
@@ -718,3 +725,15 @@ role of the theme, so a future theme recolours it, and its path can be reused fo
 variants and animation.
 Why: the full wordmark was too large and too detailed for a 40 px bar, and the endless line of the
 key carries the idea of memory on its own.
+
+## 73. The Greek key stands beside ΜΝΗΜΟΣΥΝΗ in a family of four logos, and the meander dividers are gone
+
+2026-10-29, chosen by the owner from mockups. The blue Greek key of decision 72 now goes with the name
+in four logos, each kept for its own place: the line (key and name side by side, used in About), the
+latin (a larger key with MNEMOSYN under the Greek name), the seal (the key centred above the name,
+which opens the README and the website) and the signature (key, hairline, name). Each comes in a
+dark and a light version, drawn as outlines by `python -m tools.brand` from the same key points the
+app uses. The meander bands around the name and the meander dividers between sections are gone. The
+app, installer and website icon stays the Bamum mark of decision 61 for now.
+Why: the key carries the identity on its own, and one repeating band between every section was
+decoration without meaning.

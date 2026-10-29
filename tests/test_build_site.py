@@ -154,4 +154,19 @@ def test_the_website_keeps_its_pages_whatever_the_readme_says(tmp_path):
 def test_the_website_wears_the_mark():
     config = (REPO / "mkdocs.yml").read_text()
     assert "logo: assets/mark.svg" in config and "favicon: assets/favicon.png" in config
-    assert "assets/divider.svg" in (REPO / "site/stylesheets/extra.css").read_text()
+    assert "divider" not in (REPO / "site/stylesheets/extra.css").read_text()
+
+
+def test_the_home_page_opens_with_the_seal_and_shows_the_product(tmp_path):
+    from tools.build_site import build_site
+
+    build_site(REPO, tmp_path / "out")
+    home = (tmp_path / "out/index.md").read_text()
+    assert "assets/logo-seal-dark.svg#only-dark" in home
+    assert "assets/logo-seal-light.svg#only-light" in home
+    assert "The Lab" in home and "guide.md#the-lab" in home
+    for name in ("screenshot.png", "screenshot-slices.png", "screenshot-activity.png",
+                 "screenshot-lab.png"):
+        assert f"assets/{name}" in home, name
+        assert (tmp_path / "out/assets" / name).exists(), name
+    assert "divider" not in home

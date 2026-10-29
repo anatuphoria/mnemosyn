@@ -174,6 +174,8 @@ def _reviewers_page(settings: dict) -> str:
 def build_site(repo: Path, out: Path) -> None:
     shutil.rmtree(out, ignore_errors=True)
     shutil.copytree(repo / "site", out)
+    for shot in sorted((repo / "brand").glob("screenshot*.png")):
+        shutil.copy(shot, out / "assets" / shot.name)
     (out / "atlas").mkdir()
     (out / "design").mkdir()
     structures = tomllib.loads((repo / "atlas_src/structures.toml").read_text())

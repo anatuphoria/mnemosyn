@@ -10,11 +10,18 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
 
+from cns_desktop.design.tokens import KEY as KEY_POINTS
+from cns_desktop.design.tokens import KEY_BOX, KEY_STROKE
+
 ROOT = Path(__file__).resolve().parents[2]
 FONTS = ROOT / "brand" / "fonts"
+INTER = ROOT / "cns_desktop" / "resources" / "fonts" / "Inter-Medium.ttf"
 INK, LIGHT, BLUE, GOLD, GREY = "#16161d", "#e8e6df", "#3d6fd6", "#d9a441", "#9a9aa8"
-NAME, MARK = "ΜΝΗΜΟΣΥΝΗ", "\U0001684e"
-KEY = "M{x},13 h20 M{end},13 v-12 h-14 v8 h8 v-4 h-4"
+RULE = {INK: "#d8d8e0", LIGHT: "#2a2a33"}
+LATIN = {INK: "#5a5a68", LIGHT: "#b4b4bc"}
+NAME, MARK, LATIN_NAME = "ΜΝΗΜΟΣΥΝΗ", "\U0001684e", "MNEMOSYN"
+NAME_SIZE, NAME_TRACKING = 64, 22
+PAD = 16
 MARK_WEIGHT = 600
 
 
@@ -24,7 +31,7 @@ class BrandError(Exception):
 
 @cache
 def font(name: str) -> TTFont:
-    return TTFont(FONTS / name)
+    return TTFont(INTER if name == INTER.name else FONTS / name)
 
 
 def glyph_set(face: TTFont, weight: float | None):
@@ -56,25 +63,64 @@ def glyph_bounds(face: TTFont, char: str, size: float,
     return pen.bounds
 
 
-def meander(width: float, colour: str, y: float = 0.0, scale: float = 1.0) -> str:
-    steps = max(1, int(width // (20 * scale)))
-    start = (width - steps * 20 * scale) / 2
-    left = start / scale
-    path = "".join(KEY.format(x=left + 20 * i, end=left + 20 * i + 18) for i in range(steps))
-    return (f'<path d="{path}" transform="translate(0 {y}) scale({scale})" fill="none" '
-            f'stroke="{colour}" stroke-width="1.6" stroke-linejoin="miter"/>')
-
-
 def svg(width: float, height: float, body: str) -> str:
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width:.0f}" height="{height:.0f}" '
             f'viewBox="0 0 {width:.1f} {height:.1f}">{body}</svg>\n')
 
 
-def wordmark(ink: str) -> str:
-    path, width = text_path(font("GFSDidot-Regular.ttf"), NAME, 64, tracking=22)
-    total, height = width + 80, 172
-    letters = f'<path d="{path}" transform="translate(40 116)" fill="{ink}"/>'
-    return svg(total, height, meander(total, BLUE, 6, 1.5) + letters + meander(total, BLUE, 142, 1.5))
+def key(size: float, x: float, y: float, colour: str = BLUE) -> str:
+    scale = size / KEY_BOX
+    points = " L".join(f"{x + px * scale:.2f},{y + py * scale:.2f}" for px, py in KEY_POINTS)
+    return (f'<path d="M{points}" fill="none" stroke="{colour}" '
+            f'stroke-width="{KEY_STROKE * scale:.2f}" stroke-linecap="square" '
+            'stroke-linejoin="miter"/>')
+
+
+def name(ink: str, x: float, baseline: float, size: float = NAME_SIZE,
+         tracking: float = NAME_TRACKING) -> tuple[str, float, float]:
+    face = font("GFSDidot-Regular.ttf")
+    path, width = text_path(face, NAME, size, tracking=tracking)
+    cap = -glyph_bounds(face, "Μ", size)[1]
+    return f'<path d="{path}" transform="translate({x:.1f} {baseline:.1f})" fill="{ink}"/>', width, cap
+
+
+def lockup(kind: str, ink: str) -> str:
+    _, width, cap = name(ink, 0, 0)
+    visible = (KEY_POINTS[2][0] - KEY_POINTS[0][0]) / KEY_BOX
+    if kind == "line":
+        size = cap / visible
+        height = cap * 2 + 2 * PAD
+        text, _, _ = name(ink, PAD + size + 28, (height + cap) / 2)
+        return svg(PAD * 2 + size + 28 + width, height, key(size, PAD, (height - size) / 2) + text)
+    if kind == "signature":
+        size, gap = cap / visible, 20
+        height = cap * 2 + 2 * PAD
+        rule_x = PAD + size + gap
+        text, _, _ = name(ink, rule_x + gap, (height + cap) / 2)
+        rule = (f'<path d="M{rule_x:.1f},{(height - cap * 1.3) / 2:.1f} v{cap * 1.3:.1f}" '
+                f'stroke="{RULE[ink]}" stroke-width="1.5"/>')
+        return svg(rule_x + gap + width + PAD, height,
+                   key(size, PAD, (height - size) / 2) + rule + text)
+    if kind == "seal":
+        size, gap = cap * 1.6, cap * 0.9
+        total = width + 2 * PAD
+        height = PAD + size + gap + cap + PAD
+        text, _, _ = name(ink, PAD, PAD + size + gap + cap)
+        return svg(total, height, key(size, (total - size) / 2, PAD) + text)
+    if kind == "latin":
+        latin_path, latin_width = text_path(font(INTER.name), LATIN_NAME, 18, tracking=7)
+        size = cap * 2.1
+        height = size + 2 * PAD
+        left = PAD + size + 30
+        top = (height - size) / 2
+        text, _, _ = name(ink, left, top + cap)
+        latin = (f'<path d="{latin_path}" transform="translate({left + 3:.1f} '
+                 f'{top + size - 2:.1f})" fill="{LATIN[ink]}"/>')
+        return svg(left + max(width, latin_width) + PAD, height, key(size, PAD, top) + text + latin)
+    raise BrandError(f"unknown lockup {kind!r}")
+
+
+LOCKUPS = ("line", "latin", "seal", "signature")
 
 
 def mark(background: bool) -> str:
@@ -91,10 +137,6 @@ def mark(background: bool) -> str:
     width, height = x1 - x0 + 16, y1 - y0 + 16
     return svg(width, height, f'<path d="{path}" transform="translate({8 - x0:.1f} {8 - y0:.1f})" '
                f'fill="{BLUE}"/>')
-
-
-def divider(colour: str) -> str:
-    return svg(800, 16, meander(800, colour, 1, 1.0))
 
 
 def badges(version: str) -> dict[str, tuple[str, str]]:
@@ -152,12 +194,15 @@ def project_version() -> str:
 
 def write_all(root: Path, version: str) -> list[Path]:
     icon = mark(background=True)
-    files = {"brand/wordmark-dark.svg": wordmark(LIGHT), "brand/wordmark-light.svg": wordmark(INK),
-             "brand/mark.svg": icon, "brand/mark-blue.svg": mark(background=False),
-             "brand/divider.svg": divider(BLUE), "brand/divider-gold.svg": divider(GOLD),
-             "cns_desktop/resources/wordmark.svg": wordmark(LIGHT),
+    files = {"brand/mark.svg": icon, "brand/mark-blue.svg": mark(background=False),
+             "brand/key.svg": svg(KEY_BOX * 4, KEY_BOX * 4, key(KEY_BOX * 4, 0, 0)),
+             "cns_desktop/resources/logo.svg": lockup("line", LIGHT),
              "site/assets/mark.svg": mark(background=False),
-             "site/assets/divider.svg": divider(BLUE)}
+             "site/assets/logo-seal-dark.svg": lockup("seal", LIGHT),
+             "site/assets/logo-seal-light.svg": lockup("seal", INK)}
+    for kind in LOCKUPS:
+        files[f"brand/logo-{kind}-dark.svg"] = lockup(kind, LIGHT)
+        files[f"brand/logo-{kind}-light.svg"] = lockup(kind, INK)
     for name, (label, value) in badges(version).items():
         files[f"brand/badge-{name}.svg"] = badge(label, value, GOLD if name == "review" else BLUE)
     binaries = {"cns_desktop/resources/mark.png": raster(icon, 256),

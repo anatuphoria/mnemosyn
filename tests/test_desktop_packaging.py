@@ -48,10 +48,10 @@ def test_the_app_wears_the_mark():
     qapp = QApplication.instance() or QApplication([])
     app.apply_identity(qapp)
     assert not qapp.windowIcon().isNull()
-    assert (app.RESOURCES / "mark.png").exists() and (app.RESOURCES / "wordmark.svg").exists()
+    assert (app.RESOURCES / "mark.png").exists() and (app.RESOURCES / "logo.svg").exists()
 
 
-def test_the_about_box_opens_with_the_wordmark(tmp_path):
+def test_the_about_box_opens_with_the_logo(tmp_path):
     from PySide6.QtSvgWidgets import QSvgWidget
     from PySide6.QtWidgets import QApplication
 

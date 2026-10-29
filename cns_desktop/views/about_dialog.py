@@ -14,8 +14,8 @@ from cns_atlas import DISCLAIMER, Atlas
 from cns_atlas.model import Source
 
 APP_NAME = "Mnemosyn"
-WORDMARK = Path(__file__).resolve().parents[1] / "resources" / "wordmark.svg"
-WORDMARK_WIDTH = 320
+LOGO = Path(__file__).resolve().parents[1] / "resources" / "logo.svg"
+LOGO_WIDTH = 320
 SIZE = (720, 520)
 BUILT_WITH = ("The interface uses the Inter typeface by Rasmus Andersson (SIL Open Font License 1.1) "
               "and the Lucide icons (ISC License).")
@@ -92,13 +92,13 @@ class AboutDialog(QDialog):
         column.addWidget(self.sources, 1)
         column.addWidget(self.detail)
 
-        wordmark = QSvgWidget(str(WORDMARK))
-        natural = wordmark.renderer().defaultSize()
-        wordmark.setFixedSize(WORDMARK_WIDTH,
-                              round(WORDMARK_WIDTH * natural.height() / max(natural.width(), 1)))
+        logo = QSvgWidget(str(LOGO))
+        natural = logo.renderer().defaultSize()
+        logo.setFixedSize(LOGO_WIDTH,
+                              round(LOGO_WIDTH * natural.height() / max(natural.width(), 1)))
         front = QWidget()
         front_layout = QVBoxLayout(front)
-        front_layout.addWidget(wordmark, 0, Qt.AlignmentFlag.AlignHCenter)
+        front_layout.addWidget(logo, 0, Qt.AlignmentFlag.AlignHCenter)
         front_layout.addWidget(about, 1)
         self.tabs = QTabWidget()
         self.tabs.addTab(front, "About")
