@@ -133,6 +133,8 @@ class Workspaces(QObject):
     def _restore_state(self, state: QByteArray) -> None:
         size = self.window.size()
         self.window.restoreState(state)
+        for group in self.groups():
+            group.sync_minimum()
         if self.window.isVisible() and self.window.size() != size:
             self.window.resize(size)
 

@@ -61,9 +61,12 @@ class PanelGroup(QDockWidget):
         self.tabs.remove_option(key)
         return label, widget
 
-    def _sync_header(self) -> None:
+    def sync_minimum(self) -> None:
         pages = [page.minimumSizeHint().width() for page in self._pages.values()]
         self.setMinimumWidth(max([SIZE["panel_min"], *pages]))
+
+    def _sync_header(self) -> None:
+        self.sync_minimum()
         several = len(self._pages) > 1
         self.header.tabs.setVisible(several)
         self.header.title.setVisible(not several)

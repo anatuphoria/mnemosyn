@@ -122,3 +122,20 @@ def test_the_first_lab_opens_with_every_lane_shown(window, qapp):
     qapp.processEvents()
     timeline = window.lab.timeline
     assert timeline.height() >= timeline.wanted_height()
+
+
+def test_lesion_panels_come_back_to_their_width_after_narrow_mode(window, qapp):
+    from PySide6.QtTest import QTest
+
+    from cns_desktop.design.theme import apply_theme
+
+    apply_theme(qapp)
+    window.workspaces.switch("Lesion")
+    QTest.qWait(700)
+    tools = window.lesion.tools_group
+    before = tools.width()
+    window.resize(1000, 700)
+    QTest.qWait(700)
+    window.resize(1400, 900)
+    QTest.qWait(900)
+    assert abs(tools.width() - before) <= 2, (before, tools.width())
