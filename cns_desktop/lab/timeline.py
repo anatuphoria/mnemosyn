@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QAction, QColor, QFontMetricsF, QPainter, QPainterPath, QPen, QPixmap
-from PySide6.QtWidgets import QMenu, QWidget
+from PySide6.QtWidgets import QMenu, QScrollBar, QWidget
 
 from cns_desktop.design import icons
 from cns_desktop.design.fonts import font
@@ -15,6 +15,8 @@ from .lane_values import lane_scale, mark_text, tone
 
 LABEL_WIDTH = 150
 RULER_HEIGHT = 24
+OVERVIEW_HEIGHT = SIZE["overview"]
+RIGHT_MARGIN = 8
 CHANGES_HEIGHT = SIZE["lane"]
 LANE_HEIGHT = SIZE["lane"]
 PAD = SIZE["panel_pad"]
@@ -54,6 +56,7 @@ class Timeline(QWidget):
         super().__init__(parent)
         self.document = document
         self.compare_on = True
+        self.show_overview = True
         self.hidden: set[str] = set()
         self.span = (0.0, document.experiment.length)
         self.setAcceptDrops(True)
@@ -63,8 +66,12 @@ class Timeline(QWidget):
         self._cache: QPixmap | None = None
         self._cache_key = None
         self._length = document.experiment.length
+        self.scroll = QScrollBar(Qt.Orientation.Vertical, self)
+        self.scroll.hide()
+        self.scroll.valueChanged.connect(lambda _v: self.update())
         document.changed.connect(self._on_changed)
         self._fit_height()
+        self._sync_scroll()
         document.model_changed.connect(self._on_model)
         document.playhead_moved.connect(lambda _t: self.update())
         document.selection_changed.connect(lambda _s: self.update())
@@ -83,18 +90,48 @@ class Timeline(QWidget):
         self._length = self.document.experiment.length
         self.span = (0.0, self._length)
         self._cache = None
+        self.scroll.setValue(0)
         self._fit_height()
+        self._sync_scroll()
 
     def _fit_height(self) -> None:
-        self.setMinimumHeight(round(self._lanes_top() + len(self.lane_keys()) * LANE_HEIGHT))
+        self.setMinimumHeight(round(self.body_top() + CHANGES_HEIGHT + LANE_HEIGHT))
 
     def _on_changed(self) -> None:
         length = self.document.experiment.length
         if length != self._length:
             self._length = length
             self.span = (0.0, length)
-        self._fit_height()
+            self.scroll.setValue(0)
+        self._sync_scroll()
         self.update()
+
+    def overview_rect(self) -> QRectF:
+        return QRectF(0, 0, self.width(), OVERVIEW_HEIGHT if self.show_overview else 0)
+
+    def ruler_rect(self) -> QRectF:
+        return QRectF(0, self.overview_rect().bottom(), self.width(), RULER_HEIGHT)
+
+    def body_top(self) -> float:
+        return self.ruler_rect().bottom()
+
+    def _body_height(self) -> float:
+        return self.changes_height() + len(self.lane_keys()) * LANE_HEIGHT
+
+    def _sync_scroll(self) -> None:
+        visible = self.height() - self.body_top()
+        extra = max(0, round(self._body_height() - visible))
+        self.scroll.setRange(0, extra)
+        self.scroll.setPageStep(max(round(visible), 1))
+        self.scroll.setSingleStep(LANE_HEIGHT // 2)
+        width = self.scroll.sizeHint().width()
+        self.scroll.setGeometry(self.width() - width, round(self.body_top()), width,
+                                max(round(visible), 0))
+        self.scroll.setVisible(extra > 0)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._sync_scroll()
 
     def lane_keys(self) -> list[str]:
         values = [v for v in self.document.model.values if v.lane is not None]
@@ -102,19 +139,23 @@ class Timeline(QWidget):
 
     def hide_lane(self, key: str) -> None:
         self.hidden.add(key)
-        self._fit_height()
+        self._sync_scroll()
         self.update()
 
     def show_lanes(self) -> None:
         self.hidden.clear()
-        self._fit_height()
+        self._sync_scroll()
         self.update()
 
     def _plot_width(self) -> float:
-        return max(self.width() - LABEL_WIDTH - 8, 10)
+        right = self.scroll.sizeHint().width() if not self.scroll.isHidden() else RIGHT_MARGIN
+        return max(self.width() - LABEL_WIDTH - right, 10)
 
     def _plot_area(self) -> QRectF:
-        return QRectF(LABEL_WIDTH, 0, self.width() - LABEL_WIDTH, self.height())
+        return QRectF(LABEL_WIDTH, 0, self._plot_width(), self.height())
+
+    def _body_area(self) -> QRectF:
+        return QRectF(0, self.body_top(), self.width(), self.height() - self.body_top())
 
     def _block_span(self, index: int) -> tuple[float, float]:
         block = self.document.experiment.blocks[index]
@@ -139,15 +180,19 @@ class Timeline(QWidget):
             rows[index] = row
         return rows
 
-    def _changes_height(self) -> float:
+    def changes_height(self) -> float:
         return CHANGES_HEIGHT * max(max(self.block_rows(), default=0) + 1, 1)
 
+    def _changes_top(self) -> float:
+        return self.body_top() - self.scroll.value()
+
     def _lanes_top(self) -> float:
-        return RULER_HEIGHT + self._changes_height()
+        return self._changes_top() + self.changes_height()
 
     def _lane_height(self) -> float:
         count = max(len(self.lane_keys()), 1)
-        return max(LANE_HEIGHT, (self.height() - self._lanes_top()) / count)
+        room = self.height() - self.body_top() - self.changes_height()
+        return max(LANE_HEIGHT, room / count)
 
     def x_of(self, t: float) -> float:
         start, end = self.span
@@ -199,11 +244,11 @@ class Timeline(QWidget):
             right = start + size if size is not None else length
         x0 = self.x_of(left)
         x1 = max(self.x_of(right), x0 + MIN_BLOCK_WIDTH)
-        top = RULER_HEIGHT + self.block_rows()[index] * CHANGES_HEIGHT
+        top = self._changes_top() + self.block_rows()[index] * CHANGES_HEIGHT
         return QRectF(x0, top + 4, x1 - x0, CHANGES_HEIGHT - 8)
 
     def _block_at(self, pos: QPointF) -> int | None:
-        if pos.x() < LABEL_WIDTH:
+        if pos.x() < LABEL_WIDTH or pos.y() < self.body_top():
             return None
         blocks = self.document.experiment.blocks
         newest_first = list(reversed(range(len(blocks))))
@@ -266,7 +311,8 @@ class Timeline(QWidget):
     def _background(self) -> QPixmap:
         doc = self.document
         key = (self.size().toTuple(), self.span, self.compare_on, frozenset(self.hidden),
-               self._changes_height(), id(doc.run), id(doc.normal), id(doc.snapshot))
+               self.changes_height(), self.scroll.value(), self.scroll.isHidden(),
+               self.show_overview, id(doc.run), id(doc.normal), id(doc.snapshot))
         if self._cache is None or key != self._cache_key:
             ratio = self.devicePixelRatioF()
             pixmap = QPixmap(self.size() * ratio)
@@ -274,9 +320,12 @@ class Timeline(QWidget):
             pixmap.fill(BACKGROUND)
             painter = QPainter(pixmap)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            self._paint_ruler(painter)
+            painter.setClipRect(self._body_area())
+            self._paint_changes_row(painter)
             for n, lane in enumerate(self.lane_keys()):
                 self._paint_lane(painter, lane, QColor(LANE_COLORS[n % len(LANE_COLORS)]))
+            painter.setClipping(False)
+            self._paint_header(painter)
             painter.end()
             self._cache, self._cache_key = pixmap, key
         return self._cache
@@ -285,31 +334,39 @@ class Timeline(QWidget):
         painter = QPainter(self)
         painter.drawPixmap(0, 0, self._background())
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        body = self._body_area()
+        painter.setClipRect(body)
         self._paint_names(painter)
-        painter.setClipRect(self._plot_area())
+        painter.setClipRect(self._plot_area().intersected(body))
         self._paint_blocks(painter)
+        painter.setClipRect(self._plot_area())
         x = self.x_of(self.document.playhead)
         painter.setPen(QPen(PLAYHEAD, 2))
-        painter.drawLine(QPointF(x, 0), QPointF(x, self.height()))
+        painter.drawLine(QPointF(x, self.ruler_rect().top()), QPointF(x, self.height()))
         painter.end()
 
-    def _paint_ruler(self, painter: QPainter) -> None:
+    def _paint_header(self, painter: QPainter) -> None:
+        header = QRectF(0, 0, self.width(), self.body_top())
+        painter.fillRect(header, BACKGROUND)
+        ruler = self.ruler_rect()
         painter.setPen(LINE)
-        painter.drawLine(QPointF(0, RULER_HEIGHT), QPointF(self.width(), RULER_HEIGHT))
-        painter.drawLine(QPointF(LABEL_WIDTH, 0), QPointF(LABEL_WIDTH, self.height()))
+        painter.drawLine(QPointF(0, ruler.bottom()), QPointF(self.width(), ruler.bottom()))
+        painter.drawLine(QPointF(LABEL_WIDTH, ruler.top()), QPointF(LABEL_WIDTH, self.height()))
         painter.setFont(font("data"))
         painter.setPen(MUTED)
         for x, rect, text in self.ruler_labels():
-            painter.drawLine(QPointF(x, RULER_HEIGHT - 6), QPointF(x, RULER_HEIGHT))
+            painter.drawLine(QPointF(x, ruler.bottom() - 6), QPointF(x, ruler.bottom()))
             painter.drawText(rect, Qt.AlignmentFlag.AlignBottom, text)
+
+    def _paint_changes_row(self, painter: QPainter) -> None:
+        top, changes = self._changes_top(), self.changes_height()
         painter.setFont(font("label"))
         painter.setPen(INK)
-        changes = self._changes_height()
-        painter.drawText(QRectF(PAD, RULER_HEIGHT, LABEL_WIDTH - PAD, changes),
+        painter.drawText(QRectF(PAD, top, LABEL_WIDTH - PAD, changes),
                          Qt.AlignmentFlag.AlignVCenter, "Changes")
         painter.setPen(LINE)
-        painter.drawLine(QPointF(0, RULER_HEIGHT + changes),
-                         QPointF(self.width(), RULER_HEIGHT + changes))
+        painter.drawLine(QPointF(0, top + changes), QPointF(self.width(), top + changes))
+        painter.drawLine(QPointF(LABEL_WIDTH, top), QPointF(LABEL_WIDTH, self.height()))
 
     def ruler_labels(self) -> list[tuple[float, QRectF, str]]:
         metrics = QFontMetricsF(font("data"))
@@ -321,7 +378,8 @@ class Timeline(QWidget):
         while tick <= end:
             x = self.x_of(tick)
             text = time_text(tick)
-            rect = QRectF(x + 4, 0, metrics.horizontalAdvance(text), RULER_HEIGHT - 4)
+            rect = QRectF(x + 4, self.ruler_rect().top(), metrics.horizontalAdvance(text),
+                          RULER_HEIGHT - 4)
             if rect.right() > self.width():
                 rect.moveRight(x - 4)
             if x >= LABEL_WIDTH and rect.left() >= LABEL_WIDTH:
@@ -414,7 +472,10 @@ class Timeline(QWidget):
         if event.button() != Qt.MouseButton.LeftButton:
             return super().mousePressEvent(event)
         self.setFocus()
-        if pos.y() < RULER_HEIGHT or self._on_playhead(pos):
+        if pos.y() < self.ruler_rect().top():
+            self._press = None
+            return
+        if self.ruler_rect().contains(pos) or self._on_playhead(pos):
             self._press = {"kind": "scrub"}
             self.document.set_playhead(self.t_of(pos.x()))
             return
@@ -433,7 +494,7 @@ class Timeline(QWidget):
         self._press = {"kind": "pan", "x": pos.x()}
 
     def _on_playhead(self, pos: QPointF) -> bool:
-        return pos.x() >= LABEL_WIDTH and abs(pos.x() - self.x_of(self.document.playhead)) <= GRAB
+        return pos.x() >= LABEL_WIDTH and pos.y() >= self.ruler_rect().top() and abs(pos.x() - self.x_of(self.document.playhead)) <= GRAB
 
     def _limits(self, start: float, length: float | None) -> tuple[float, float | None]:
         run = self.document.experiment.length
@@ -468,7 +529,7 @@ class Timeline(QWidget):
 
     def _show_cursor(self, pos: QPointF) -> None:
         index = self._block_at(pos)
-        if self._on_playhead(pos) or pos.y() < RULER_HEIGHT:
+        if self._on_playhead(pos) or self.ruler_rect().contains(pos):
             shape = Qt.CursorShape.SizeHorCursor
         elif index is not None and not self.document.experiment.blocks[index].present:
             block = self.document.experiment.blocks[index]
@@ -479,7 +540,7 @@ class Timeline(QWidget):
         self.setCursor(shape)
 
     def mouseDoubleClickEvent(self, event) -> None:
-        if event.position().y() < RULER_HEIGHT:
+        if self.ruler_rect().contains(event.position()):
             self.show_whole_run()
             return
         super().mouseDoubleClickEvent(event)
@@ -499,6 +560,10 @@ class Timeline(QWidget):
 
     def wheelEvent(self, event) -> None:
         sideways, steps = event.angleDelta().x() / 120, event.angleDelta().y() / 120
+        if event.position().x() < LABEL_WIDTH and not sideways and steps:
+            self.scroll.setValue(self.scroll.value() - round(steps * LANE_HEIGHT))
+            event.accept()
+            return
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier and not sideways:
             sideways, steps = steps, 0.0
         if sideways:

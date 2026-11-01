@@ -40,6 +40,7 @@ SIZE = {
     "header": 40,
     "status": 24,
     "lane": 44,
+    "overview": 24,
     "chart_row": 56,
     "chart_name": 150,
     "icon": 16,

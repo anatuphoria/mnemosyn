@@ -8,7 +8,8 @@ from cns_atlas import Atlas
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import MIME
 from cns_desktop.lab.labels import plain
-from cns_desktop.lab.timeline import LABEL_WIDTH, LANE_HEIGHT, RULER_HEIGHT, Timeline
+from cns_desktop.lab.timeline import (CHANGES_HEIGHT, LABEL_WIDTH, LANE_HEIGHT, RULER_HEIGHT,
+                                     Timeline)
 
 DAY = 1440.0
 
@@ -105,7 +106,8 @@ def test_present_blocks_cannot_be_moved(timeline):
 def test_the_ruler_scrubs_the_playhead(timeline):
     doc = timeline.document
     x = round(timeline.x_of(720.0))
-    drag(timeline, QPoint(x, 5), QPoint(round(timeline.x_of(900.0)), 5))
+    y = round(timeline.ruler_rect().center().y())
+    drag(timeline, QPoint(x, y), QPoint(round(timeline.x_of(900.0)), y))
     assert doc.playhead == pytest.approx(900.0, abs=2.0)
 
 
@@ -215,7 +217,8 @@ def test_the_whole_run_comes_back_after_zooming(timeline):
     timeline.show_whole_run()
     assert timeline.span == (0.0, DAY)
     timeline.zoom(0.1, 720.0)
-    mouse(timeline, QMouseEvent.Type.MouseButtonDblClick, QPoint(500, 5))
+    mouse(timeline, QMouseEvent.Type.MouseButtonDblClick,
+          QPoint(500, round(timeline.ruler_rect().center().y())))
     assert timeline.span == (0.0, DAY)
 
 
@@ -240,16 +243,15 @@ def test_lanes_share_the_height_they_are_given(timeline):
     assert timeline.lane_rect(keys[0]).height() == LANE_HEIGHT
 
 
-def test_every_lane_and_change_row_fits_in_the_minimum_height(timeline):
+def test_every_lane_can_be_scrolled_into_view(timeline):
     doc = timeline.document
     for start in (100.0, 110.0, 120.0):
         doc.add_block("pill", start)
     keys = timeline.lane_keys()
     timeline.resize(1000, timeline.minimumHeight())
+    timeline.scroll.setValue(timeline.scroll.maximum())
     assert timeline.lane_rect(keys[-1]).bottom() <= timeline.height()
     assert timeline.block_rect(2).bottom() <= timeline.lane_rect(keys[0]).top()
-    timeline.hide_lane(keys[0])
-    assert timeline.minimumHeight() < timeline.height()
 
 
 def test_lane_values_match_the_run_at_the_playhead(timeline):
@@ -288,6 +290,63 @@ def test_a_long_name_never_meets_its_value(timeline):
         name, unit, value = timeline.name_layout(key)
         assert not name.intersects(value) and not unit.intersects(value)
         assert value.right() <= LABEL_WIDTH and value.width() > 0
+
+
+def crowd(timeline):
+    for start in (100.0, 110.0, 120.0, 130.0):
+        timeline.document.add_block("pill", start)
+    timeline.resize(1000, 260)
+
+
+def test_the_header_stays_while_the_body_scrolls(timeline):
+    crowd(timeline)
+    assert timeline.scroll.isVisible() and timeline.scroll.maximum() > 0
+    assert timeline.ruler_rect().top() == timeline.overview_rect().bottom()
+    assert timeline.body_top() == timeline.ruler_rect().bottom()
+    top = timeline.lane_rect("x").top()
+    before = timeline.grab().toImage()
+    timeline.scroll.setValue(timeline.scroll.maximum())
+    assert timeline.lane_rect("x").top() == top - timeline.scroll.maximum()
+    after = timeline.grab().toImage()
+    for y in range(0, round(timeline.body_top()), 3):
+        for x in range(0, timeline.width(), 7):
+            assert before.pixel(x, y) == after.pixel(x, y)
+
+
+def test_scrolled_away_changes_cannot_be_grabbed_through_the_header(timeline):
+    crowd(timeline)
+    timeline.scroll.setValue(timeline.scroll.maximum())
+    assert timeline.block_rect(0).top() < timeline.body_top()
+    y = round(timeline.ruler_rect().center().y())
+    assert timeline._block_at(QPointF(timeline.block_rect(0).center().x(), y)) is None
+
+
+def test_the_scrollbar_hides_when_everything_fits(timeline):
+    timeline.resize(1000, 900)
+    assert not timeline.scroll.isVisible() and timeline.scroll.value() == 0
+
+
+def test_the_wheel_over_the_names_scrolls_the_lanes(timeline):
+    crowd(timeline)
+    before = timeline.span
+    y = round(timeline.lane_rect("x").center().y())
+    event = QWheelEvent(QPointF(40, y), QPointF(timeline.mapToGlobal(QPoint(40, y))),
+                        QPoint(0, 0), QPoint(0, -120), Qt.MouseButton.NoButton,
+                        Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.NoScrollPhase, False)
+    timeline.wheelEvent(event)
+    assert timeline.scroll.value() > 0 and timeline.span == before
+
+
+def test_a_new_length_resets_zoom_and_scroll(timeline):
+    crowd(timeline)
+    timeline.zoom(0.2, 600.0)
+    timeline.scroll.setValue(timeline.scroll.maximum())
+    timeline.document.set_length(3 * DAY)
+    assert timeline.span == (0.0, 3 * DAY) and timeline.scroll.value() == 0
+
+
+def test_the_minimum_height_holds_the_header_one_row_and_one_lane(timeline):
+    assert timeline.minimumHeight() == round(timeline.body_top() + CHANGES_HEIGHT + LANE_HEIGHT)
 
 
 def test_timed_blocks_stay_reachable_under_a_present_one(timeline):
