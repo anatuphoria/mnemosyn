@@ -35,6 +35,10 @@ BACKGROUND = color("s1")
 BAR = color("s2")
 WINDOW = color("accent")
 BAR_INSET = 5
+BADGE_PAD = 6
+BADGE_INSET = 3
+GUIDE_ALPHA = 110
+FINE_STEPS = 10
 LANE_COLORS = DATA_PALETTE
 NAME_ROW = 15
 VALUE_GAP = 6
@@ -60,6 +64,7 @@ class Timeline(QWidget):
         self.document = document
         self.compare_on = True
         self.show_overview = True
+        self.show_guides = True
         self.hidden: set[str] = set()
         self.span = (0.0, document.experiment.length)
         self.setAcceptDrops(True)
@@ -389,12 +394,14 @@ class Timeline(QWidget):
         painter.setClipRect(body)
         self._paint_names(painter)
         painter.setClipRect(self._plot_area().intersected(body))
+        self._paint_guides(painter)
         self._paint_blocks(painter)
         painter.setClipRect(self._plot_area())
         x = self.x_of(self.document.playhead)
         painter.setPen(QPen(PLAYHEAD, 2))
         painter.drawLine(QPointF(x, self.ruler_rect().top()), QPointF(x, self.height()))
         painter.setClipping(False)
+        self._paint_badge(painter)
         if self.show_overview:
             self._paint_overview(painter)
         painter.end()
@@ -468,29 +475,84 @@ class Timeline(QWidget):
         blocks = doc.experiment.blocks
         for index in sorted(range(len(blocks)), key=lambda i: not blocks[i].present):
             block = blocks[index]
-            preview = None
-            if self._press and self._press.get("block") == index and "preview" in self._press:
-                preview = self._press["preview"]
+            preview = self._preview_of(index)
             rect = self.block_rect(index, preview)
+            label = self.block_label_rect(index, preview)
             fill = QColor(BLOCK)
             fill.setAlpha(40 if block.present else 64)
             painter.setBrush(fill)
             selected = doc.selection == ("block", index)
             painter.setPen(QPen(PLAYHEAD if selected else BLOCK, 2 if selected else 1))
             painter.drawRoundedRect(rect, RADIUS["small"], RADIUS["small"])
-            text_rect = rect.adjusted(6, 0, -4, 0)
-            if rect.width() > 40:
+            text_rect = label.adjusted(6, 0, -4, 0)
+            if label.width() > 40:
                 size = SIZE["icon_header"]
                 top = rect.center().y() - size / 2
-                painter.drawPixmap(QPointF(rect.left() + 6, top),
+                painter.drawPixmap(QPointF(label.left() + 6, top),
                                    icons.pixmap(self.block_icon(index), "edited", size))
-                text_rect = rect.adjusted(10 + size, 0, -4, 0)
+                text_rect = label.adjusted(10 + size, 0, -4, 0)
             painter.setFont(font("secondary"))
             painter.setPen(INK if selected else BLOCK)
             name = painter.fontMetrics().elidedText(doc.name_of(block.experiment),
                                                     Qt.TextElideMode.ElideRight,
                                                     max(int(text_rect.width()), 0))
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter, name)
+
+    def block_label_rect(self, index: int,
+                         preview: tuple[float, float | None] | None = None) -> QRectF:
+        rect = self.block_rect(index, preview)
+        left = max(rect.left(), LABEL_WIDTH)
+        right = min(rect.right(), LABEL_WIDTH + self._plot_width())
+        return QRectF(left, rect.top(), max(right - left, 0.0), rect.height())
+
+    def _preview_of(self, index: int):
+        press = self._press
+        if press and press.get("block") == index and "preview" in press:
+            return press["preview"]
+        return None
+
+    def guide_xs(self) -> list[float]:
+        if not self.show_guides:
+            return []
+        xs = []
+        for index, block in enumerate(self.document.experiment.blocks):
+            if block.present:
+                continue
+            preview = self._preview_of(index)
+            x = self.x_of(preview[0] if preview is not None else block.start)
+            if LABEL_WIDTH <= x <= LABEL_WIDTH + self._plot_width():
+                xs.append(x)
+        return xs
+
+    def badge_rect(self) -> QRectF:
+        ruler = self.ruler_rect()
+        text = time_text(self.document.playhead)
+        width = QFontMetricsF(font("data")).horizontalAdvance(text) + 2 * BADGE_PAD
+        left = self.x_of(self.document.playhead) - width / 2
+        left = min(max(left, LABEL_WIDTH), LABEL_WIDTH + self._plot_width() - width)
+        return QRectF(left, ruler.top() + BADGE_INSET, width, ruler.height() - 2 * BADGE_INSET)
+
+    def _paint_guides(self, painter: QPainter) -> None:
+        keys = self.lane_keys()
+        if not keys:
+            return
+        top, bottom = self._lanes_top(), self.lane_rect(keys[-1]).bottom()
+        ink = QColor(BLOCK)
+        ink.setAlpha(GUIDE_ALPHA)
+        pen = QPen(ink, 1)
+        pen.setStyle(Qt.PenStyle.DashLine)
+        painter.setPen(pen)
+        for x in self.guide_xs():
+            painter.drawLine(QPointF(x, top), QPointF(x, bottom))
+
+    def _paint_badge(self, painter: QPainter) -> None:
+        badge = self.badge_rect()
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(PLAYHEAD)
+        painter.drawRoundedRect(badge, RADIUS["small"], RADIUS["small"])
+        painter.setFont(font("data"))
+        painter.setPen(BACKGROUND)
+        painter.drawText(badge, Qt.AlignmentFlag.AlignCenter, time_text(self.document.playhead))
 
     def _paint_names(self, painter: QPainter) -> None:
         for key in self.lane_keys():
@@ -660,12 +722,25 @@ class Timeline(QWidget):
         event.accept()
 
     def keyPressEvent(self, event) -> None:
+        doc = self.document
+        width = self.span[1] - self.span[0]
+        shift = bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
+        step = width / FINE_STEPS if shift else width / self._plot_width()
+        moves = {Qt.Key.Key_Right: doc.playhead + step, Qt.Key.Key_Left: doc.playhead - step,
+                 Qt.Key.Key_Home: 0.0, Qt.Key.Key_End: doc.experiment.length}
+        if event.key() in moves:
+            doc.set_playhead(moves[event.key()])
+            return
         selection = self.document.selection
         if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace) and selection and (
                 selection[0] == "block"):
             self.document.delete_block(selection[1])
             return
         super().keyPressEvent(event)
+
+    def _set_guides(self, on: bool) -> None:
+        self.show_guides = bool(on)
+        self.update()
 
     def dragEnterEvent(self, event) -> None:
         if event.mimeData().hasFormat(MIME):
@@ -705,4 +780,7 @@ class Timeline(QWidget):
             toggle = QAction("Show normal line", menu, checkable=True, checked=self.compare_on)
             toggle.toggled.connect(lambda on: setattr(self, "compare", on))
             menu.addAction(toggle)
+            guides = QAction("Show change guides", menu, checkable=True, checked=self.show_guides)
+            guides.toggled.connect(self._set_guides)
+            menu.addAction(guides)
         menu.exec(event.globalPos())

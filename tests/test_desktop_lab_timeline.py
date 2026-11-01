@@ -400,6 +400,61 @@ def test_the_overview_can_be_turned_off(timeline):
     assert timeline.overview_rect().height() == 0 and timeline.ruler_rect().top() == 0
 
 
+def test_guides_drop_from_timed_changes_only(timeline):
+    doc = timeline.document
+    doc.add_block("remove_b", 0.0)
+    doc.add_block("stress", 300.0)
+    assert timeline.guide_xs() == [pytest.approx(timeline.x_of(300.0))]
+    timeline.show_guides = False
+    assert timeline.guide_xs() == []
+
+
+def test_a_guide_follows_a_change_while_it_is_dragged(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    middle = timeline.block_rect(0).center().toPoint()
+    mouse(timeline, QMouseEvent.Type.MouseButtonPress, middle)
+    mouse(timeline, QMouseEvent.Type.MouseMove, middle + QPoint(100, 0))
+    assert timeline.guide_xs()[0] == pytest.approx(timeline.x_of(300.0) + 100, abs=3)
+    mouse(timeline, QMouseEvent.Type.MouseButtonRelease, middle + QPoint(100, 0))
+
+
+def test_guides_outside_the_zoomed_span_are_left_out(timeline):
+    timeline.document.add_block("stress", 100.0)
+    timeline.zoom(0.25, 900.0)
+    assert timeline.guide_xs() == []
+
+
+def test_the_badge_stays_inside_the_ruler_and_plot(timeline):
+    for t in (0.0, 720.0, DAY):
+        timeline.document.set_playhead(t)
+        badge = timeline.badge_rect()
+        assert timeline.ruler_rect().contains(badge.center())
+        assert LABEL_WIDTH <= badge.left() and badge.right() <= LABEL_WIDTH + timeline._plot_width()
+
+
+def test_keys_move_the_playhead(timeline):
+    doc = timeline.document
+    timeline.setFocus()
+    doc.set_playhead(600.0)
+    QTest.keyClick(timeline, Qt.Key.Key_Right)
+    assert doc.playhead == pytest.approx(600.0 + DAY / timeline._plot_width())
+    doc.set_playhead(600.0)
+    QTest.keyClick(timeline, Qt.Key.Key_Left, Qt.KeyboardModifier.ShiftModifier)
+    assert doc.playhead == pytest.approx(600.0 - DAY / 10)
+    QTest.keyClick(timeline, Qt.Key.Key_End)
+    assert doc.playhead == DAY
+    QTest.keyClick(timeline, Qt.Key.Key_Home)
+    assert doc.playhead == 0.0
+
+
+def test_a_zoomed_change_keeps_its_name_in_view(timeline):
+    timeline.document.add_block("pill", 120.0)
+    timeline.zoom(0.25, 720.0)
+    assert timeline.block_rect(0).left() < LABEL_WIDTH
+    assert timeline.block_label_rect(0).left() >= LABEL_WIDTH
+
+
 def test_timed_blocks_stay_reachable_under_a_present_one(timeline):
     doc = timeline.document
     doc.add_block("pill", 300.0)
