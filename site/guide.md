@@ -152,7 +152,7 @@ the lesion touches by share; click one to select it.
 explains them, and **Check** marks each sign as matched, missed or extra, then shows the real lesion
 in blue. Cases are made by the same engine, so a case never contradicts its own lesion.
 
-The public download has no spinal cord yet, because its authors have not allowed sharing, and no
-arterial territories yet, because their files need a login to download; the Place tab says so. Medullary syndromes that need cranial nerve nuclei the
+The public download has no spinal cord yet, because its authors have not allowed sharing; the Place
+tab says so. Medullary syndromes that need cranial nerve nuclei the
 atlas does not have are not modelled. Like the rest of Mnemosyn, lesion mode is for studying, not for
 diagnosis or treatment.

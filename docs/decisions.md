@@ -779,9 +779,11 @@ Design: [lesion mode](specs/2026-11-01-lesion-mode-design.md).
 2026-11-01. The arterial territory atlas of Liu and colleagues (2023, doi 10.1038/s41597-022-01923-0)
 is used at level 1 (15 territories a side under ACA, MCA, PCA and the vertebrobasilar arteries), from
 the MNI152 version on the brain grid; the two ventricle labels are dropped. Its label file states
-CC BY-SA 4.0, so it may be shared, but NITRC only gives the files after a login, so it enters the
-build as a manual, optional source: a build without the file skips it with one line saying where to
-put it. It lives in a volume of its own (role "territories") and is not meshed. Label values stored
+CC BY-SA 4.0, so it may be shared. NITRC only gives the files after a login, so it enters the build
+as a manual, optional source: a build without the file skips it with one line saying where to put
+it. The owner chose on 2026-11-01 to host the zip, with its credit and licence, on the repository's
+"sources" release, where the release workflow fetches it like the Edlow atlas, so public downloads
+carry the territories. It lives in a volume of its own (role "territories") and is not meshed. Label values stored
 within 0.001 of a whole number, as in this file, are rounded.
 Why: a lesion by artery is how strokes happen; the territories overlap every structure, so they
 cannot share the brain labels; a missing file must never stop a build.

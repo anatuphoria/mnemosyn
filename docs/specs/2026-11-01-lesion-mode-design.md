@@ -47,7 +47,8 @@ a public build shows something that needs a local only source.
    (left and right of each level 1 territory under its level 2 artery: ACA, MCA, PCA,
    vertebrobasilar). Its page lists an attribution licence without a version; the label file in
    the download states CC BY-SA 4.0, so the source is shared (decision 77). NITRC needs a login,
-   so it stays a manual, optional source that a build skips when the file is missing.
+   so it stays a manual, optional source that a build skips when the file is missing; the release
+   build fetches it from the repository's "sources" release.
 3. **Deficit texts.** Each step of a route already has a cited `Lesion:` line with `{same}` and
    `{opposite}` side words. These are the deficit explanations. A new optional `Sign:` line per step
    gives the same deficit in a patient's terms without naming any structure, side words filled the
