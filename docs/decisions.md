@@ -812,3 +812,15 @@ with its first, as the desmopressin test does.
 Why: the water deprivation and desmopressin tests need both, and other clinical tests work the same
 way.
 Design: [water balance, section 4](specs/2026-11-01-water-balance-design.md).
+
+## 80. Water balance keeps a few simplifications, stated in its texts
+
+2026-11-01, after the review of water balance. The model drinks evenly through the day instead of
+at meals, so a normal day is nearly flat; meals would add small daily swings without changing any
+test or disorder. The atlas has the pituitary as one gland, so the whole gland stands for the
+posterior lobe, and the thirst route says so. Settings that only make sense as timed changes (access
+to water, the salt infusion, the drip and unregulated vasopressin) stay off the Model panel, and
+the other ranges stop where the model still settles. Urine follows vasopressin within about ten
+minutes, so a litre of water dilutes the urine within about an hour, as Guyton and Hall show; how
+fast it can be passed is set by the solute in the diet.
+Why: each keeps the model honest about what it leaves out without adding parts no test needs.

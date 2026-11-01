@@ -19,7 +19,7 @@ Role: Large neurons of the paraventricular nucleus also make vasopressin for the
 Disorders: Central diabetes insipidus appears only when most vasopressin neurons, here and in the supraoptic nucleus, are lost [christcrain2019].
 
 ## Step 4
-Role: The posterior pituitary releases vasopressin into the blood as osmolality rises above about 282 mOsm/kg [robertson1976] [baylis1980].
+Role: The posterior pituitary releases vasopressin into the blood as osmolality rises above about 282 mOsm/kg [robertson1976] [baylis1980]. The atlas has the pituitary as one whole gland, so the whole gland is shown here; vasopressin comes from its posterior lobe [hall2021].
 Disorders: Vasopressin released while osmolality is low, from the pituitary or from a tumour, as in the syndrome of inappropriate antidiuresis (SIADH), keeps water and lowers plasma sodium [hall2021].
 
 ## Step 5

@@ -154,3 +154,26 @@ def test_the_texts_say_what_the_model_leaves_out_and_when_a_test_stops():
     assert "stopped early" in texts["test.water_deprivation_test.description"]
     assert "Baylis" not in texts["experiment.hypertonic_saline.description"]
     assert "choice of this project" in texts["experiment.hypertonic_saline.description"]
+
+
+def test_the_route_says_the_pituitary_is_shown_whole():
+    text = (SRC / "knowledge" / "en" / "pathway-thirst.md").read_text()
+    step = text.split("## Step 4")[1].split("## Step 5")[0]
+    assert "whole gland" in step and "posterior lobe" in step
+
+
+@pytest.mark.slow
+def test_every_panel_setting_settles_to_a_living_state(sim):
+    for parameter in sim.model.parameters:
+        if not parameter.panel:
+            continue
+        for value in (parameter.low, (parameter.low + parameter.high) / 2, parameter.high):
+            state = sim.settle((), ((parameter.key, value),))
+            sodium = state[sim.keys.index("sodium")] * sim.values["sodium"].display_scale
+            water = state[sim.keys.index("water")]
+            assert 110 < sodium < 180 and 25 < water < 60, (parameter.key, value, sodium, water)
+
+
+def test_experiment_only_switches_stay_off_the_panel():
+    hidden = {p.key for p in load_water().parameters if not p.panel}
+    assert hidden == {"drinking", "salt_in", "iv_water", "avp_auto"}

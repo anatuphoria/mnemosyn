@@ -39,7 +39,9 @@ def normal_note(model: LabModel, clock: float) -> str | None:
     clock %= 1440
     for note in model.normal_notes:
         start, end = note.start_clock, note.end_clock
-        inside = start <= clock < end if start <= end else clock >= start or clock < end
+        if start == end:
+            return note.key
+        inside = start <= clock < end if start < end else clock >= start or clock < end
         if inside:
             return note.key
     return None

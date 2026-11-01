@@ -25,7 +25,7 @@
 "parameter.n_u.name" = "Kidney steepness"
 "parameter.n_u.meaning" = "An assumption of this project: how sharply urine concentration follows vasopressin."
 "parameter.k_kidney.name" = "Kidney response rate"
-"parameter.k_kidney.meaning" = "An assumption of this project: urine concentration follows vasopressin with a delay of about half an hour."
+"parameter.k_kidney.meaning" = "An assumption of this project: urine concentration follows vasopressin with a delay of about ten minutes, so a water load dilutes the urine within about an hour as Guyton and Hall show [hall2021]."
 "parameter.solute.name" = "Solute passed in urine"
 "parameter.solute.meaning" = "The solute the kidneys pass each minute, about 600 mOsm a day on an ordinary diet, balanced by solute eaten [hall2021]."
 "parameter.solute_ref.name" = "Normal body solute"
@@ -130,7 +130,7 @@
 "test.desmopressin_test.normal" = "Little further rise, so read the first number. Urine that was already concentrated means vasopressin and the kidneys both work; in healthy people the rise is usually under about 10% [christcrain2019]. Urine that stayed dilute means the kidneys cannot answer vasopressin, as in nephrogenic diabetes insipidus [christcrain2019]."
 "test.desmopressin_test.abnormal" = "A rise of more than half: vasopressin was missing and the kidneys answer it, as in central diabetes insipidus [christcrain2019]."
 
-"check.water_load" = "A litre of water lowers plasma sodium within the hour and is passed within about four hours [hall2021] [robertson1973]."
+"check.water_load" = "A litre of water lowers plasma sodium within the hour, brings the urine close to its most dilute within about an hour, and is mostly passed within four hours [hall2021] [robertson1973]."
 "check.deprivation_normal" = "Eight hours without water concentrate the urine to 800 mOsm/kg or more in a healthy person [christcrain2019]."
 "check.central_di_tests" = "In central diabetes insipidus the urine stays dilute without water and rises by more than half after desmopressin [christcrain2019]."
 "check.nephrogenic_di_tests" = "In nephrogenic diabetes insipidus the urine stays dilute without water and barely rises after desmopressin [christcrain2019]."

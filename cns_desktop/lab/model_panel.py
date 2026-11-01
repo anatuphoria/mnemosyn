@@ -55,13 +55,14 @@ class ModelPanel(QWidget):
         document = self.document
         model, atlas = document.model, document.atlas
         self.table.setRowCount(0)
-        self.table.setRowCount(len(model.parameters))
+        shown = [p for p in model.parameters if p.panel]
+        self.table.setRowCount(len(shown))
         self._spins: dict[str, QDoubleSpinBox] = {}
         self._resets: dict[str, QToolButton] = {}
         self._labels: dict[str, QLabel] = {}
         self._texts: dict[str, tuple[str, str, str]] = {}
         references = atlas.references
-        for row, parameter in enumerate(model.parameters):
+        for row, parameter in enumerate(shown):
             meaning = atlas.lab_text(model.key, f"parameter.{parameter.key}.meaning")
             source = short_source([references[k] for k in parameter.refs if k in references])
             self._texts[parameter.key] = (parameter.name, meaning[0] if meaning else "", source)
@@ -121,6 +122,8 @@ class ModelPanel(QWidget):
     def refresh(self) -> None:
         edited = self.document.experiment.value_map
         for parameter in self.document.model.parameters:
+            if parameter.key not in self._spins:
+                continue
             spin = self._spins[parameter.key]
             spin.blockSignals(True)
             spin.setValue(edited.get(parameter.key, parameter.value))

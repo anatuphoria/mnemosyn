@@ -41,6 +41,8 @@ MISTAKES = [
     ("unknown structure", swap("structure = 111", "structure = 999"), "unknown structure 999"),
     ("unknown arrow part", swap('arrow = ["b", "a"]', 'arrow = ["b", "q"]'),
      "unknown part 'q'"),
+    ("panel not true or false", swap('value = 0.1\n', 'value = 0.1\npanel = "no"\n'),
+     "panel must be true or false"),
     ("unknown via part", swap('arrow = ["b", "body"]', 'arrow = ["b", "body"]\nvia = ["q"]'),
      "via names unknown part 'q'"),
     ("via without arrow", swap('kind = "clears"', 'kind = "clears"\nvia = ["a"]'),

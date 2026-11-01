@@ -101,3 +101,16 @@ def test_every_setting_shows_in_a_narrow_panel(doc, qapp):
         assert spin.width() >= spin.fontMetrics().horizontalAdvance(spin.text()) + 24
     assert panel.table.horizontalScrollBar().maximum() == 0
     panel.close()
+
+
+def test_a_parameter_kept_off_the_panel_is_not_listed(doc):
+    from dataclasses import replace
+
+    parameters = tuple(replace(p, panel=False) if p.key == "k" else p
+                       for p in doc.model.parameters)
+    doc.model = replace(doc.model, parameters=parameters)
+    panel = ModelPanel(doc)
+    assert "k" not in panel._spins
+    assert panel.table.rowCount() == len(parameters) - 1
+    doc.set_value("w", doc.model.parameter("w").value * 2)
+    panel.refresh()

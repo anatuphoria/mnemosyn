@@ -72,6 +72,7 @@ class Parameter(_Record):
     low: float
     high: float
     refs: tuple[str, ...] = ()
+    panel: bool = True
 
 
 @dataclass(frozen=True)

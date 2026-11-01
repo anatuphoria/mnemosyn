@@ -91,3 +91,12 @@ def test_a_test_that_holds_a_change_starts_the_chain(sim):
     run = sim.run(Experiment("toy", 1, DAY, 480.0, (Block("hold_test", 120.0),)))
     steps = chain(sim, run, 200.0)
     assert steps[0].source == "hold_test" and len(steps) > 1
+
+
+def test_a_note_from_midnight_to_midnight_covers_the_whole_day(sim):
+    from dataclasses import replace
+
+    from cns_atlas.models import NormalNote
+
+    model = replace(sim.model, normal_notes=(NormalNote("steady", 0.0, 0.0),))
+    assert all(normal_note(model, clock) == "steady" for clock in (0.0, 720.0, 1439.5))

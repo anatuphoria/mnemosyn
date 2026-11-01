@@ -129,7 +129,7 @@ high = 4
 
 [[parameters]]
 key = "k_kidney"
-value = 0.033
+value = 0.1
 unit = "/min"
 low = 0.005
 high = 0.2
@@ -239,13 +239,14 @@ value = 1
 unit = "fraction"
 low = 0
 high = 1
+panel = false
 
 [[parameters]]
 key = "habit_scale"
 value = 1
 unit = "times normal"
 low = 0
-high = 10
+high = 5
 
 [[parameters]]
 key = "avp_scale"
@@ -260,6 +261,7 @@ value = 0
 unit = "pg/mL"
 low = 0
 high = 30
+panel = false
 
 [[parameters]]
 key = "kidney"
@@ -274,6 +276,7 @@ value = 0
 unit = "mOsm/min"
 low = 0
 high = 20
+panel = false
 
 [[parameters]]
 key = "iv_water"
@@ -281,6 +284,7 @@ value = 0
 unit = "L/min"
 low = 0
 high = 0.02
+panel = false
 
 [[effects]]
 key = "avp_release"
@@ -483,7 +487,7 @@ values = ["sodium", "water"]
 [[normal]]
 key = "steady"
 from = "00:00"
-to = "23:59"
+to = "00:00"
 
 [[checks]]
 key = "normal_day"
@@ -574,7 +578,8 @@ length = "1 d"
 blocks = [{ experiment = "water_load", start = "day 1 10:00" }]
 asserts = [
   { kind = "vs_normal", value = "sodium", at = "day 1 11:00", falls = 0.99 },
-  { kind = "back_to_normal", value = "water", by = "day 1 14:00", tolerance = 0.01 },
+  { kind = "within", value = "uosm", at = "day 1 11:00", low = 50, high = 100 },
+  { kind = "back_to_normal", value = "water", by = "day 1 14:00", tolerance = 0.005 },
 ]
 
 [[checks]]

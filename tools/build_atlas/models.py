@@ -19,7 +19,7 @@ TOP = {"key", "version", "route", "start_clock", "settle_speedup", "settle_days"
 FIELDS = {
     "values": {"key", "unit", "start", "display_scale", "display_unit", "other_unit",
                "other_scale", "relative", "normal", "lane", "slow", "refs"},
-    "parameters": {"key", "value", "unit", "low", "high", "refs"},
+    "parameters": {"key", "value", "unit", "low", "high", "refs", "panel"},
     "effects": {"key", "expr", "kind", "arrow", "via"},
     "terms": {"key", "value", "sign", "expr", "kind", "arrow", "via"},
     "parts": {"key", "structure", "x", "y", "values"},
@@ -241,12 +241,14 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
         if not _text(row.get("unit")):
             r.say(f"{where}: needs unit")
         ok = r.ranged(row, "value", where)
+        if not isinstance(row.get("panel", True), bool):
+            r.say(f"{where}: panel must be true or false")
         text(f"parameter.{k}.meaning")
         parameters.append(Parameter(k, text(f"parameter.{k}.name"),
                                     float(row["value"]) if ok else 0.0, str(row.get("unit", "")),
                                     float(row["low"]) if ok else 0.0,
                                     float(row["high"]) if ok else 0.0,
-                                    r.refs(row, references, where)))
+                                    r.refs(row, references, where), row.get("panel", True) is True))
     parameter_keys = {p.key for p in parameters}
     clash = value_keys & parameter_keys
     if clash:
