@@ -1,0 +1,471 @@
+key = "water"
+version = 1
+route = "thirst"
+start_clock = "08:00"
+settle_speedup = 10
+settle_days = 6
+max_step = "15 min"
+why_threshold = 0.02
+
+[[values]]
+key = "sodium"
+unit = "mOsm/kg"
+start = 286.0
+display_scale = 0.4895
+display_unit = "mmol/L"
+other_unit = "mOsm/kg"
+other_scale = 2.043
+normal = [135, 145]
+lane = 1
+refs = ["hall2021"]
+
+[[values]]
+key = "avp"
+unit = "pg/mL"
+start = 1.6
+display_scale = 1.0
+display_unit = "pg/mL"
+normal = [0.5, 5.5]
+lane = 2
+refs = ["robertson1973", "robertson1976"]
+
+[[values]]
+key = "uosm"
+unit = "mOsm/kg"
+start = 500.0
+display_scale = 1.0
+display_unit = "mOsm/kg"
+normal = [50, 1200]
+lane = 3
+refs = ["hall2021", "robertson1973"]
+
+[[values]]
+key = "thirst"
+unit = "cm"
+start = 1.5
+display_scale = 1.0
+display_unit = "cm"
+lane = 4
+refs = ["thompson1986"]
+
+[[values]]
+key = "water"
+unit = "L"
+start = 42.0
+display_scale = 1.0
+display_unit = "L"
+refs = ["hall2021"]
+
+[[values]]
+key = "gut"
+unit = "L"
+start = 0.0
+display_scale = 1.0
+display_unit = "L"
+
+[[values]]
+key = "ddavp"
+unit = "µg"
+start = 0.0
+display_scale = 1.0
+display_unit = "µg"
+refs = ["agerso2004"]
+
+[[parameters]]
+key = "avp_threshold"
+value = 282
+unit = "mOsm/kg"
+low = 275
+high = 295
+refs = ["robertson1976", "baylis1980"]
+
+[[parameters]]
+key = "avp_slope"
+value = 0.4
+unit = "pg/mL per mOsm/kg"
+low = 0.1
+high = 1.0
+refs = ["robertson1976", "baylis1980"]
+
+[[parameters]]
+key = "k_avp"
+value = 0.0288
+unit = "/min"
+low = 0.01
+high = 0.1
+refs = ["baumann1976"]
+
+[[parameters]]
+key = "uosm_min"
+value = 50
+unit = "mOsm/kg"
+low = 30
+high = 100
+refs = ["hall2021"]
+
+[[parameters]]
+key = "uosm_max"
+value = 1200
+unit = "mOsm/kg"
+low = 800
+high = 1400
+refs = ["hall2021"]
+
+[[parameters]]
+key = "K_u"
+value = 2.0
+unit = "pg/mL"
+low = 0.5
+high = 5
+refs = ["robertson1973"]
+
+[[parameters]]
+key = "n_u"
+value = 2
+unit = "exponent"
+low = 1
+high = 4
+
+[[parameters]]
+key = "k_kidney"
+value = 0.033
+unit = "/min"
+low = 0.005
+high = 0.2
+
+[[parameters]]
+key = "solute"
+value = 0.6
+unit = "mOsm/min"
+low = 0.3
+high = 1.2
+refs = ["hall2021"]
+
+[[parameters]]
+key = "solute_ref"
+value = 12012
+unit = "mOsm"
+low = 8000
+high = 16000
+refs = ["hall2021"]
+
+[[parameters]]
+key = "insensible"
+value = 0.0005
+unit = "L/min"
+low = 0.0002
+high = 0.002
+refs = ["hall2021"]
+
+[[parameters]]
+key = "habit"
+value = 0.00167
+unit = "L/min"
+low = 0.0005
+high = 0.005
+refs = ["hall2021"]
+
+[[parameters]]
+key = "drink_threshold"
+value = 294
+unit = "mOsm/kg"
+low = 285
+high = 300
+refs = ["thompson1986", "baylis1980"]
+
+[[parameters]]
+key = "drink_gain"
+value = 0.005
+unit = "L/min per mOsm/kg"
+low = 0.0005
+high = 0.02
+
+[[parameters]]
+key = "k_thirst"
+value = 0.1
+unit = "/min"
+low = 0.01
+high = 1
+
+[[parameters]]
+key = "k_gut"
+value = 0.046
+unit = "/min"
+low = 0.01
+high = 0.2
+
+[[parameters]]
+key = "ddavp_clear"
+value = 0.00312
+unit = "/min"
+low = 0.001
+high = 0.01
+refs = ["agerso2004"]
+
+[[parameters]]
+key = "ddavp_potency"
+value = 10
+unit = "pg/mL per µg"
+low = 1
+high = 50
+
+[[parameters]]
+key = "drinking"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+
+[[parameters]]
+key = "habit_scale"
+value = 1
+unit = "times normal"
+low = 0
+high = 10
+
+[[parameters]]
+key = "avp_scale"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+
+[[parameters]]
+key = "avp_auto"
+value = 0
+unit = "pg/mL"
+low = 0
+high = 30
+
+[[parameters]]
+key = "kidney"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+
+[[parameters]]
+key = "salt_in"
+value = 0
+unit = "mOsm/min"
+low = 0
+high = 20
+
+[[parameters]]
+key = "iv_water"
+value = 0
+unit = "L/min"
+low = 0
+high = 0.02
+
+[[effects]]
+key = "avp_release"
+expr = "avp_scale * pos(avp_slope * (sodium - avp_threshold)) + avp_auto"
+kind = "drives"
+arrow = ["osmoreceptors", "pituitary"]
+
+[[effects]]
+key = "kidney_signal"
+expr = "kidney * (avp + ddavp_potency * ddavp)"
+kind = "drives"
+arrow = ["pituitary", "kidney"]
+
+[[effects]]
+key = "concentrating"
+expr = "uosm_min + (uosm_max - uosm_min) * (1 - hill(kidney_signal, K_u, n_u))"
+kind = "drives"
+
+[[effects]]
+key = "solute_out"
+expr = "solute * sodium * water / solute_ref"
+kind = "drives"
+
+[[effects]]
+key = "urine_flow"
+expr = "1000 * solute_out / uosm"
+kind = "holds back"
+arrow = ["kidney", "blood"]
+
+[[effects]]
+key = "thirst_drive"
+expr = "0.3 * pos(sodium - 281)"
+kind = "drives"
+
+[[effects]]
+key = "drink"
+expr = "drinking * (habit * habit_scale + drink_gain * pos(sodium - drink_threshold))"
+kind = "drives"
+arrow = ["osmoreceptors", "blood"]
+
+[[terms]]
+key = "release_avp"
+value = "avp"
+sign = 1
+expr = "k_avp * avp_release"
+kind = "drives"
+
+[[terms]]
+key = "clear_avp"
+value = "avp"
+sign = -1
+expr = "k_avp * avp"
+kind = "clears"
+
+[[terms]]
+key = "concentrate_urine"
+value = "uosm"
+sign = 1
+expr = "k_kidney * concentrating"
+kind = "drives"
+
+[[terms]]
+key = "relax_urine"
+value = "uosm"
+sign = -1
+expr = "k_kidney * uosm"
+kind = "clears"
+
+[[terms]]
+key = "feel_thirst"
+value = "thirst"
+sign = 1
+expr = "k_thirst * thirst_drive"
+kind = "drives"
+
+[[terms]]
+key = "fade_thirst"
+value = "thirst"
+sign = -1
+expr = "k_thirst * thirst"
+kind = "clears"
+
+[[terms]]
+key = "swallow"
+value = "gut"
+sign = 1
+expr = "drink"
+kind = "drives"
+
+[[terms]]
+key = "absorb_gut"
+value = "gut"
+sign = -1
+expr = "k_gut * gut"
+kind = "absorbs"
+
+[[terms]]
+key = "absorb_water"
+value = "water"
+sign = 1
+expr = "k_gut * gut + iv_water"
+kind = "absorbs"
+
+[[terms]]
+key = "lose_urine"
+value = "water"
+sign = -1
+expr = "urine_flow / 1000"
+kind = "clears"
+
+[[terms]]
+key = "lose_insensible"
+value = "water"
+sign = -1
+expr = "insensible"
+kind = "clears"
+
+[[terms]]
+key = "dilute"
+value = "sodium"
+sign = -1
+expr = "sodium * (k_gut * gut + iv_water) / water"
+kind = "clears"
+
+[[terms]]
+key = "concentrate"
+value = "sodium"
+sign = 1
+expr = "sodium * (urine_flow / 1000 + insensible) / water"
+kind = "drives"
+
+[[terms]]
+key = "eat_solute"
+value = "sodium"
+sign = 1
+expr = "solute / water"
+kind = "drives"
+
+[[terms]]
+key = "pass_solute"
+value = "sodium"
+sign = -1
+expr = "solute_out / water"
+kind = "clears"
+
+[[terms]]
+key = "add_salt"
+value = "sodium"
+sign = 1
+expr = "salt_in / water"
+kind = "drives"
+
+[[terms]]
+key = "clear_ddavp"
+value = "ddavp"
+sign = -1
+expr = "ddavp_clear * ddavp"
+kind = "clears"
+
+[[parts]]
+key = "osmoreceptors"
+x = 0
+y = 0
+values = ["thirst"]
+
+[[parts]]
+key = "son"
+structure = 2580
+x = 1
+y = 0
+values = []
+
+[[parts]]
+key = "pvn"
+structure = 2510
+x = 1
+y = 1
+values = []
+
+[[parts]]
+key = "pituitary"
+structure = 2700
+x = 2
+y = 0
+values = ["avp"]
+
+[[parts]]
+key = "kidney"
+x = 3
+y = 0
+values = ["uosm"]
+
+[[parts]]
+key = "blood"
+x = 2
+y = 1
+values = ["sodium", "water"]
+
+[[normal]]
+key = "steady"
+from = "00:00"
+to = "23:59"
+
+[[checks]]
+key = "normal_day"
+length = "2 d"
+asserts = [
+  { kind = "within", value = "sodium", at = "day 2 08:00", low = 137, high = 143 },
+  { kind = "within", value = "sodium", at = "day 2 20:00", low = 137, high = 143 },
+  { kind = "within", value = "uosm", at = "day 2 12:00", low = 300, high = 900 },
+  { kind = "within", value = "avp", at = "day 2 12:00", low = 0.5, high = 5 },
+]

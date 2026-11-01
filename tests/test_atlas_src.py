@@ -22,9 +22,9 @@ SRC = Path(__file__).resolve().parent.parent / "atlas_src"
 AAL3_EMPTY_LABELS = {35, 36, 81, 82}
 PATHWAY_KEYS = ["visual", "auditory", "papez", "motor", "touch", "pain", "basal-ganglia",
                 "cerebellar", "dopamine", "serotonin", "noradrenaline", "acetylcholine", "fear",
-                "stress", "body-clock", "hunger", "memory", "decision"]
+                "stress", "body-clock", "hunger", "memory", "decision", "thirst"]
 BEHAVIOUR = ["dopamine", "serotonin", "noradrenaline", "acetylcholine", "fear", "stress",
-             "body-clock", "hunger", "memory", "decision"]
+             "body-clock", "hunger", "memory", "decision", "thirst"]
 REAL_ATLAS = SRC.parent / "atlases" / "cns"
 OPEN_CENTRES = {2051: (-5.0, -35.0, -10.0), 2801: (-13.0, -41.0, -44.0),
                 2901: (-14.0, -60.0, -34.0), 2040: (0.0, -30.0, -8.0)}
@@ -91,7 +91,7 @@ def test_acronyms_are_unique():
 
 def test_every_description_cites_a_reference():
     paths = sorted((SRC / "knowledge").glob("*/*.md"))
-    assert len(paths) == 25
+    assert len(paths) == 26
     for path in paths:
         assert parse_entry(path.read_text(encoding="utf-8"), str(path)).citations, path
 
@@ -172,7 +172,7 @@ def test_every_lesion_route_has_signs_that_name_no_structure():
 
 def test_pathway_texts_are_drafts_citing_a_reference_in_every_section():
     paths = sorted((SRC / "knowledge" / "en").glob("pathway-*.md"))
-    assert len(paths) == 18
+    assert len(paths) == 19
     for path in paths:
         entry = parse_entry(path.read_text(encoding="utf-8"), str(path))
         assert entry.status == "draft", path

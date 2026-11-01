@@ -285,3 +285,19 @@ steps = [
   { structures = [1870, 1880] },
   { structures = [1410, 1440] },
 ]
+
+[[pathways]]
+key = "thirst"
+name = "Thirst and water balance"
+start = "a rise in plasma osmolality"
+group = "Behaviour"
+sides = "both"
+texts = "behaviour"
+steps = [
+  { relay = "Osmoreceptors of the lamina terminalis" },
+  { structures = [2580] },
+  { structures = [2510] },
+  { structures = [2700], fallback = "Posterior pituitary" },
+  { relay = "Collecting ducts of the kidney" },
+]
+

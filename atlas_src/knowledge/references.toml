@@ -265,3 +265,74 @@ volume = "80(9)"
 pages = "835-836"
 year = 1991
 doi = "10.1002/jps.2600800906"
+
+[hall2021]
+authors = "Hall JE, Hall ME"
+title = "Guyton and Hall Textbook of Medical Physiology"
+edition = "14th"
+year = 2021
+publisher = "Elsevier"
+isbn = "9780323597128"
+
+[robertson1976]
+authors = "Robertson GL, Athar S"
+title = "The interaction of blood osmolality and blood volume in regulating plasma vasopressin in man"
+journal = "The Journal of Clinical Endocrinology and Metabolism"
+volume = "42"
+pages = "613-620"
+year = 1976
+doi = "10.1210/jcem-42-4-613"
+
+[robertson1973]
+authors = "Robertson GL, Mahr EA, Athar S, Sinha T"
+title = "Development and clinical application of a new method for the radioimmunoassay of arginine vasopressin in human plasma"
+journal = "The Journal of Clinical Investigation"
+volume = "52"
+pages = "2340-2352"
+year = 1973
+doi = "10.1172/JCI107423"
+
+[baylis1980]
+authors = "Baylis PH, Robertson GL"
+title = "Plasma vasopressin response to hypertonic saline infusion to assess posterior pituitary function"
+journal = "Journal of the Royal Society of Medicine"
+volume = "73"
+pages = "255-260"
+year = 1980
+doi = "10.1177/014107688007300408"
+
+[baumann1976]
+authors = "Baumann G, Dingman JF"
+title = "Distribution, blood transport, and degradation of antidiuretic hormone in man"
+journal = "The Journal of Clinical Investigation"
+volume = "57"
+pages = "1109-1116"
+year = 1976
+doi = "10.1172/JCI108377"
+
+[thompson1986]
+authors = "Thompson CJ, Bland J, Burd J, Baylis PH"
+title = "The osmotic thresholds for thirst and vasopressin release are similar in healthy man"
+journal = "Clinical Science"
+volume = "71"
+pages = "651-656"
+year = 1986
+doi = "10.1042/cs0710651"
+
+[agerso2004]
+authors = "Agersø H, Larsen LS, Riis A, Lövgren U, Karlsson MO, Senderovitz T"
+title = "Pharmacokinetics and renal excretion of desmopressin after intravenous administration to healthy subjects and renally impaired patients"
+journal = "British Journal of Clinical Pharmacology"
+volume = "58"
+pages = "352-358"
+year = 2004
+doi = "10.1111/j.1365-2125.2004.02175.x"
+
+[christcrain2019]
+authors = "Christ-Crain M, Bichet DG, Fenske WK, Goldman MB, Rittig S, Verbalis JG, Verkman AS"
+title = "Diabetes insipidus"
+journal = "Nature Reviews Disease Primers"
+volume = "5"
+pages = "54"
+year = 2019
+doi = "10.1038/s41572-019-0103-2"
