@@ -10,6 +10,8 @@ from cns_desktop.design.fonts import font
 from cns_desktop.design.tokens import DATA_PALETTE, RADIUS, SIZE, color
 
 from .experiments_panel import MIME, icon_for
+from .labels import plain
+from .lane_values import lane_scale, mark_text, tone
 
 LABEL_WIDTH = 150
 RULER_HEIGHT = 24
@@ -29,6 +31,10 @@ PLAYHEAD = color("text")
 LINE = color("line")
 BACKGROUND = color("s1")
 LANE_COLORS = DATA_PALETTE
+NAME_ROW = 15
+VALUE_GAP = 6
+MARK_INSET = 4
+MARK_BACKING = 210
 DAY = 1440.0
 
 
@@ -214,20 +220,48 @@ class Timeline(QWidget):
     def block_icon(self, index: int) -> str:
         return icon_for(self.document.model, self.document.experiment.blocks[index].experiment)
 
-    def lane_lines(self, key: str) -> dict[str, np.ndarray]:
-        start, end = self.span
-        grid = np.linspace(start, end, max(int(self._plot_width()), 2))
-        lines = {}
+    def _shown_runs(self) -> list[tuple[str, object]]:
         doc = self.document
         runs = [("run", doc.run)]
         if self.compare_on:
             runs.append(("normal", doc.normal))
         if doc.snapshot is not None:
             runs.append(("snapshot", doc.snapshot))
-        for name, run in runs:
-            if run is not None:
-                lines[name] = np.interp(grid, run.times, run.value(key))
-        return lines
+        return [(name, run) for name, run in runs if run is not None]
+
+    def lane_lines(self, key: str) -> dict[str, np.ndarray]:
+        start, end = self.span
+        grid = np.linspace(start, end, max(int(self._plot_width()), 2))
+        return {name: np.interp(grid, run.times, run.value(key))
+                for name, run in self._shown_runs()}
+
+    def lane_value(self, key: str) -> tuple[str, str]:
+        doc = self.document
+        if doc.run is None:
+            return "", ""
+        mine = doc.run.display(key, doc.playhead)
+        normal = doc.normal.display(key, doc.playhead) if doc.normal is not None else None
+        return plain(mine, 3), tone(mine, normal)
+
+    def lane_marks(self, key: str) -> tuple[str, str]:
+        runs = [run for _name, run in self._shown_runs()]
+        if not runs:
+            return "", ""
+        scale = self.document.simulator.values[key].display_scale
+        low, high = lane_scale(runs, key)
+        return mark_text(low * scale), mark_text(high * scale)
+
+    def name_layout(self, key: str) -> tuple[QRectF, QRectF, QRectF]:
+        rect = self.lane_rect(key)
+        column = QRectF(PAD, rect.top() + 6, LABEL_WIDTH - PAD - 8, rect.height() - 12)
+        text, _tone = self.lane_value(key)
+        width = QFontMetricsF(font("label")).horizontalAdvance(text) if text else 0.0
+        bottom = column.bottom() - NAME_ROW
+        name = QRectF(column.left(), column.top(), column.width(), NAME_ROW)
+        value = QRectF(column.right() - width, bottom, width, NAME_ROW)
+        unit = QRectF(column.left(), bottom,
+                      max(value.left() - VALUE_GAP - column.left(), 0.0), NAME_ROW)
+        return name, unit, value
 
     def _background(self) -> QPixmap:
         doc = self.document
@@ -251,6 +285,7 @@ class Timeline(QWidget):
         painter = QPainter(self)
         painter.drawPixmap(0, 0, self._background())
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self._paint_names(painter)
         painter.setClipRect(self._plot_area())
         self._paint_blocks(painter)
         x = self.x_of(self.document.playhead)
@@ -323,27 +358,31 @@ class Timeline(QWidget):
                                                     max(int(text_rect.width()), 0))
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter, name)
 
+    def _paint_names(self, painter: QPainter) -> None:
+        for key in self.lane_keys():
+            name_rect, unit_rect, value_rect = self.name_layout(key)
+            name, unit = self.lane_heading(key)
+            text, shade = self.lane_value(key)
+            for rect, words, role, ink in ((name_rect, name, "label", INK),
+                                           (unit_rect, unit, "secondary", MUTED)):
+                painter.setFont(font(role))
+                painter.setPen(ink)
+                painter.drawText(rect, Qt.AlignmentFlag.AlignVCenter, painter.fontMetrics()
+                                 .elidedText(words, Qt.TextElideMode.ElideRight, int(rect.width())))
+            painter.setFont(font("label"))
+            painter.setPen(color(shade) if shade else INK)
+            painter.drawText(value_rect, Qt.AlignmentFlag.AlignVCenter
+                             | Qt.AlignmentFlag.AlignRight, text)
+
     def _paint_lane(self, painter: QPainter, key: str, color: QColor) -> None:
         rect = self.lane_rect(key)
-        name, unit = self.lane_heading(key)
-        head = QRectF(PAD, rect.top() + 6, LABEL_WIDTH - PAD - 8, rect.height() - 12)
-        painter.setFont(font("label"))
-        painter.setPen(INK)
-        metrics = painter.fontMetrics()
-        painter.drawText(head, Qt.AlignmentFlag.AlignTop,
-                         metrics.elidedText(name, Qt.TextElideMode.ElideRight, int(head.width())))
-        painter.setFont(font("secondary"))
-        painter.setPen(MUTED)
-        painter.drawText(head, Qt.AlignmentFlag.AlignBottom, unit)
         painter.setPen(LINE)
         painter.drawLine(QPointF(0, rect.bottom()), QPointF(self.width(), rect.bottom()))
         lines = self.lane_lines(key)
         if not lines:
             return
-        low = min(float(v.min()) for v in lines.values())
-        high = max(float(v.max()) for v in lines.values())
-        if high - low < 1e-9:
-            low, high = low - 0.5, high + 0.5
+        low, high = lane_scale([run for _name, run in self._shown_runs()], key)
+        bottom_mark, top_mark = self.lane_marks(key)
         xs = np.linspace(rect.left(), rect.right(), len(next(iter(lines.values()))))
         for name in ("normal", "snapshot", "run"):
             if name not in lines:
@@ -358,6 +397,17 @@ class Timeline(QWidget):
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawPath(path)
+        painter.setFont(font("data"))
+        metrics = painter.fontMetrics()
+        backing = QColor(BACKGROUND)
+        backing.setAlpha(MARK_BACKING)
+        for text, top in ((top_mark, rect.top() + 2), (bottom_mark,
+                                                       rect.bottom() - 2 - metrics.height())):
+            box = QRectF(rect.left(), top, metrics.horizontalAdvance(text) + 2 * MARK_INSET,
+                         metrics.height())
+            painter.fillRect(box, backing)
+            painter.setPen(MUTED)
+            painter.drawText(box, Qt.AlignmentFlag.AlignCenter, text)
 
     def mousePressEvent(self, event) -> None:
         pos = event.position()

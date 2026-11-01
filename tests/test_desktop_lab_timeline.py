@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QApplication
 from cns_atlas import Atlas
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import MIME
+from cns_desktop.lab.labels import plain
 from cns_desktop.lab.timeline import LABEL_WIDTH, LANE_HEIGHT, RULER_HEIGHT, Timeline
 
 DAY = 1440.0
@@ -249,6 +250,44 @@ def test_every_lane_and_change_row_fits_in_the_minimum_height(timeline):
     assert timeline.block_rect(2).bottom() <= timeline.lane_rect(keys[0]).top()
     timeline.hide_lane(keys[0])
     assert timeline.minimumHeight() < timeline.height()
+
+
+def test_lane_values_match_the_run_at_the_playhead(timeline):
+    doc = timeline.document
+    doc.set_playhead(600.0)
+    text, _tone = timeline.lane_value("x")
+    assert text == plain(doc.run.display("x", 600.0), 3)
+
+
+def test_lane_values_are_toned_against_the_normal_run(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 100.0)
+    doc.set_playhead(105.0)
+    assert timeline.lane_value("y")[1] == "raised" and timeline.lane_value("x")[1] == "lowered"
+    doc.set_playhead(700.0)
+    assert timeline.lane_value("y")[1] == ""
+
+
+def test_the_lane_scale_does_not_change_with_zoom(timeline):
+    before = timeline.lane_marks("x")
+    timeline.zoom(0.1, 300.0)
+    assert timeline.lane_marks("x") == before
+
+
+def test_a_failed_run_shows_no_values(timeline):
+    timeline.document.run = None
+    assert timeline.lane_value("x") == ("", "")
+    timeline.grab()
+
+
+def test_a_long_name_never_meets_its_value(timeline):
+    timeline.resize(500, 260)
+    timeline.document.add_block("pill", 100.0)
+    timeline.document.set_playhead(700.0)
+    for key in timeline.lane_keys():
+        name, unit, value = timeline.name_layout(key)
+        assert not name.intersects(value) and not unit.intersects(value)
+        assert value.right() <= LABEL_WIDTH and value.width() > 0
 
 
 def test_timed_blocks_stay_reachable_under_a_present_one(timeline):
