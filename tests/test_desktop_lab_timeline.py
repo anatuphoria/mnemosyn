@@ -8,8 +8,8 @@ from cns_atlas import Atlas
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import MIME
 from cns_desktop.lab.labels import plain
-from cns_desktop.lab.timeline import (CHANGES_HEIGHT, LABEL_WIDTH, LANE_HEIGHT, RULER_HEIGHT,
-                                     Timeline)
+from cns_desktop.lab.timeline import (CHANGES_HEIGHT, LABEL_WIDTH, LANE_HEIGHT, MIN_SPAN,
+                                     RULER_HEIGHT, Timeline)
 
 DAY = 1440.0
 
@@ -347,6 +347,57 @@ def test_a_new_length_resets_zoom_and_scroll(timeline):
 
 def test_the_minimum_height_holds_the_header_one_row_and_one_lane(timeline):
     assert timeline.minimumHeight() == round(timeline.body_top() + CHANGES_HEIGHT + LANE_HEIGHT)
+
+
+def test_the_overview_window_fills_the_bar_for_the_whole_run(timeline):
+    window = timeline.overview_window()
+    assert window.left() == pytest.approx(LABEL_WIDTH)
+    assert window.width() == pytest.approx(timeline._plot_width())
+    assert timeline.overview_rect().contains(window.center())
+
+
+def test_dragging_the_overview_window_moves_the_span(timeline):
+    timeline.zoom(0.25, 360.0)
+    width = timeline.span[1] - timeline.span[0]
+    centre = timeline.overview_window().center().toPoint()
+    drag(timeline, centre, centre + QPoint(100, 0))
+    assert timeline.span[0] > 0
+    assert timeline.span[1] - timeline.span[0] == pytest.approx(width)
+    assert timeline.overview_window().center().x() == pytest.approx(centre.x() + 100, abs=2)
+
+
+def test_dragging_an_overview_edge_zooms(timeline):
+    timeline.zoom(0.5, 720.0)
+    start, end = timeline.span
+    window = timeline.overview_window()
+    edge = QPoint(round(window.right()) - 1, round(window.center().y()))
+    drag(timeline, edge, edge - QPoint(200, 0))
+    assert timeline.span[0] == pytest.approx(start)
+    assert timeline.span[1] < end
+    drag(timeline, QPoint(round(timeline.overview_window().right()) - 1, edge.y()),
+         QPoint(0, edge.y()))
+    assert timeline.span[1] - timeline.span[0] == pytest.approx(MIN_SPAN)
+
+
+def test_pressing_outside_the_overview_window_centres_it_there(timeline):
+    timeline.zoom(0.25, 0.0)
+    y = round(timeline.overview_rect().center().y())
+    mouse(timeline, QMouseEvent.Type.MouseButtonPress, QPoint(round(timeline.overview_x(1000.0)), y))
+    mouse(timeline, QMouseEvent.Type.MouseButtonRelease, QPoint(round(timeline.overview_x(1000.0)), y))
+    start, end = timeline.span
+    assert (start + end) / 2 == pytest.approx(1000.0, abs=3.0)
+
+
+def test_double_clicking_the_overview_shows_the_whole_run(timeline):
+    timeline.zoom(0.25, 360.0)
+    point = timeline.overview_window().center().toPoint()
+    mouse(timeline, QMouseEvent.Type.MouseButtonDblClick, point)
+    assert timeline.span == (0.0, DAY)
+
+
+def test_the_overview_can_be_turned_off(timeline):
+    timeline.show_overview = False
+    assert timeline.overview_rect().height() == 0 and timeline.ruler_rect().top() == 0
 
 
 def test_timed_blocks_stay_reachable_under_a_present_one(timeline):

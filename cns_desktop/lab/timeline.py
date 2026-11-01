@@ -32,6 +32,9 @@ BLOCK = color("edited")
 PLAYHEAD = color("text")
 LINE = color("line")
 BACKGROUND = color("s1")
+BAR = color("s2")
+WINDOW = color("accent")
+BAR_INSET = 5
 LANE_COLORS = DATA_PALETTE
 NAME_ROW = 15
 VALUE_GAP = 6
@@ -105,6 +108,54 @@ class Timeline(QWidget):
             self.scroll.setValue(0)
         self._sync_scroll()
         self.update()
+
+    def overview_x(self, t: float) -> float:
+        return LABEL_WIDTH + t / self.document.experiment.length * self._plot_width()
+
+    def _overview_t(self, x: float) -> float:
+        return (x - LABEL_WIDTH) / self._plot_width() * self.document.experiment.length
+
+    def overview_window(self) -> QRectF:
+        bar = self.overview_rect()
+        left, right = self.overview_x(self.span[0]), self.overview_x(self.span[1])
+        if right - left < 2 * GRAB:
+            middle = (left + right) / 2
+            left, right = middle - GRAB, middle + GRAB
+        return QRectF(left, bar.top() + BAR_INSET, right - left, bar.height() - 2 * BAR_INSET)
+
+    def _set_span(self, start: float, end: float) -> None:
+        length = self.document.experiment.length
+        width = min(max(end - start, MIN_SPAN), length)
+        start = min(max(start, 0.0), length - width)
+        self.span = (start, start + width)
+        self.update()
+
+    def _press_overview(self, pos: QPointF) -> None:
+        window = self.overview_window()
+        if abs(pos.x() - window.right()) <= GRAB:
+            kind = "window_right"
+        elif abs(pos.x() - window.left()) <= GRAB:
+            kind = "window_left"
+        else:
+            kind = "window"
+            if not window.contains(QPointF(pos.x(), window.center().y())) and pos.x() >= LABEL_WIDTH:
+                width = self.span[1] - self.span[0]
+                middle = self._overview_t(pos.x())
+                self._set_span(middle - width / 2, middle + width / 2)
+        self._press = {"kind": kind, "x": pos.x(), "span": self.span}
+
+    def _drag_overview(self, press: dict, x: float) -> None:
+        minutes = (x - press["x"]) / self._plot_width() * self.document.experiment.length
+        start, end = press["span"]
+        length = self.document.experiment.length
+        if press["kind"] == "window":
+            self._set_span(start + minutes, end + minutes)
+        elif press["kind"] == "window_left":
+            self._set_span(min(max(start + minutes, 0.0), end - MIN_SPAN), end)
+        else:
+            end = max(min(end + minutes, length), start + MIN_SPAN)
+            self.span = (start, end)
+            self.update()
 
     def overview_rect(self) -> QRectF:
         return QRectF(0, 0, self.width(), OVERVIEW_HEIGHT if self.show_overview else 0)
@@ -343,7 +394,32 @@ class Timeline(QWidget):
         x = self.x_of(self.document.playhead)
         painter.setPen(QPen(PLAYHEAD, 2))
         painter.drawLine(QPointF(x, self.ruler_rect().top()), QPointF(x, self.height()))
+        painter.setClipping(False)
+        if self.show_overview:
+            self._paint_overview(painter)
         painter.end()
+
+    def _paint_overview(self, painter: QPainter) -> None:
+        bar = self.overview_rect()
+        painter.setFont(font("secondary"))
+        painter.setPen(MUTED)
+        painter.drawText(QRectF(PAD, bar.top(), LABEL_WIDTH - PAD, bar.height()),
+                         Qt.AlignmentFlag.AlignVCenter, "Whole run")
+        track = QRectF(LABEL_WIDTH, bar.top() + BAR_INSET, self._plot_width(),
+                       bar.height() - 2 * BAR_INSET)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(BAR)
+        painter.drawRoundedRect(track, RADIUS["small"], RADIUS["small"])
+        painter.setPen(QPen(BLOCK, 2))
+        for index in range(len(self.document.experiment.blocks)):
+            x = self.overview_x(self._block_span(index)[0])
+            painter.drawLine(QPointF(x, track.top() + 2), QPointF(x, track.bottom() - 2))
+        x = self.overview_x(self.document.playhead)
+        painter.setPen(QPen(PLAYHEAD, 1))
+        painter.drawLine(QPointF(x, track.top()), QPointF(x, track.bottom()))
+        painter.setPen(QPen(WINDOW, 1.5))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(self.overview_window(), RADIUS["small"], RADIUS["small"])
 
     def _paint_header(self, painter: QPainter) -> None:
         header = QRectF(0, 0, self.width(), self.body_top())
@@ -473,7 +549,7 @@ class Timeline(QWidget):
             return super().mousePressEvent(event)
         self.setFocus()
         if pos.y() < self.ruler_rect().top():
-            self._press = None
+            self._press_overview(pos)
             return
         if self.ruler_rect().contains(pos) or self._on_playhead(pos):
             self._press = {"kind": "scrub"}
@@ -509,6 +585,9 @@ class Timeline(QWidget):
             self._show_cursor(event.position())
             return super().mouseMoveEvent(event)
         x = event.position().x()
+        if press["kind"].startswith("window"):
+            self._drag_overview(press, x)
+            return
         if press["kind"] == "scrub":
             self.document.set_playhead(self.t_of(x))
             return
@@ -529,7 +608,13 @@ class Timeline(QWidget):
 
     def _show_cursor(self, pos: QPointF) -> None:
         index = self._block_at(pos)
-        if self._on_playhead(pos) or self.ruler_rect().contains(pos):
+        window = self.overview_window()
+        if pos.y() < self.ruler_rect().top():
+            edge = min(abs(pos.x() - window.left()), abs(pos.x() - window.right())) <= GRAB
+            inside = window.left() <= pos.x() <= window.right()
+            shape = (Qt.CursorShape.SizeHorCursor if edge else Qt.CursorShape.OpenHandCursor
+                     if inside else Qt.CursorShape.PointingHandCursor)
+        elif self._on_playhead(pos) or self.ruler_rect().contains(pos):
             shape = Qt.CursorShape.SizeHorCursor
         elif index is not None and not self.document.experiment.blocks[index].present:
             block = self.document.experiment.blocks[index]
@@ -540,7 +625,7 @@ class Timeline(QWidget):
         self.setCursor(shape)
 
     def mouseDoubleClickEvent(self, event) -> None:
-        if self.ruler_rect().contains(event.position()):
+        if event.position().y() < self.body_top():
             self.show_whole_run()
             return
         super().mouseDoubleClickEvent(event)
