@@ -522,6 +522,37 @@ def test_highlighting_a_lane_scrolls_it_into_view(timeline):
     assert rect.top() >= timeline.body_top() and rect.bottom() <= timeline.height()
 
 
+def test_a_narrow_overview_window_still_moves(timeline):
+    timeline.document.set_length(28 * DAY)
+    timeline.zoom(180.0 / (28 * DAY), 14 * DAY)
+    width = timeline.span[1] - timeline.span[0]
+    assert timeline.overview_window().width() <= 4 * 5
+    centre = timeline.overview_window().center().toPoint()
+    drag(timeline, centre, centre + QPoint(50, 0))
+    assert timeline.span[1] - timeline.span[0] == pytest.approx(width)
+    assert timeline.span[0] > 14 * DAY
+
+
+def test_a_widened_overview_window_stays_on_its_track(timeline):
+    timeline.document.set_length(28 * DAY)
+    for around in (0.0, 28 * DAY):
+        timeline.zoom(MIN_SPAN / (28 * DAY), around)
+        window = timeline.overview_window()
+        assert window.left() >= LABEL_WIDTH
+        assert window.right() <= LABEL_WIDTH + timeline._plot_width()
+
+
+def test_keys_bring_the_view_along_with_the_playhead(timeline):
+    doc = timeline.document
+    timeline.zoom(0.1, 0.0)
+    timeline.setFocus()
+    QTest.keyClick(timeline, Qt.Key.Key_End)
+    assert timeline.span[0] <= doc.playhead <= timeline.span[1]
+    doc.set_playhead(timeline.span[0] + 1.0)
+    QTest.keyClick(timeline, Qt.Key.Key_Left, Qt.KeyboardModifier.ShiftModifier)
+    assert timeline.span[0] <= doc.playhead <= timeline.span[1]
+
+
 def test_timed_blocks_stay_reachable_under_a_present_one(timeline):
     doc = timeline.document
     doc.add_block("pill", 300.0)

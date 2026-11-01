@@ -700,7 +700,7 @@ Design: [design system, section 6](specs/2026-10-29-design-system-design.md).
 
 ## 70. Charts are small multiples with one time axis
 
-2026-10-29, chosen by the owner. The Lab charts and the Activity panel show one row per value, at
+2026-10-29, chosen by the owner. Changed by 75. The Lab charts and the Activity panel show one row per value, at
 least 56 px high, with the name, unit and current value beside it, the normal run in grey, one time
 axis at the bottom and one playhead. Rows scroll instead of shrinking, axes never use SI prefixes and
 nothing is drawn over the data.

@@ -134,6 +134,11 @@ class Timeline(QWidget):
         if right - left < 2 * GRAB:
             middle = (left + right) / 2
             left, right = middle - GRAB, middle + GRAB
+        end = LABEL_WIDTH + self._plot_width()
+        if left < LABEL_WIDTH:
+            left, right = LABEL_WIDTH, right + LABEL_WIDTH - left
+        if right > end:
+            left, right = left - (right - end), end
         return QRectF(left, bar.top() + BAR_INSET, right - left, bar.height() - 2 * BAR_INSET)
 
     def _set_span(self, start: float, end: float) -> None:
@@ -145,7 +150,10 @@ class Timeline(QWidget):
 
     def _press_overview(self, pos: QPointF) -> None:
         window = self.overview_window()
-        if abs(pos.x() - window.right()) <= GRAB:
+        inside = window.left() <= pos.x() <= window.right()
+        if inside and window.width() <= 4 * GRAB:
+            kind = "window"
+        elif abs(pos.x() - window.right()) <= GRAB:
             kind = "window_right"
         elif abs(pos.x() - window.left()) <= GRAB:
             kind = "window_left"
@@ -825,6 +833,7 @@ class Timeline(QWidget):
                  Qt.Key.Key_Home: 0.0, Qt.Key.Key_End: doc.experiment.length}
         if event.key() in moves:
             doc.set_playhead(moves[event.key()])
+            self._follow(doc.playhead)
             return
         selection = self.document.selection
         if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace) and selection and (
@@ -832,6 +841,13 @@ class Timeline(QWidget):
             self.document.delete_block(selection[1])
             return
         super().keyPressEvent(event)
+
+    def _follow(self, t: float) -> None:
+        start, end = self.span
+        if t < start:
+            self._set_span(t, t + end - start)
+        elif t > end:
+            self._set_span(t - (end - start), t)
 
     def _set_guides(self, on: bool) -> None:
         self.show_guides = bool(on)
