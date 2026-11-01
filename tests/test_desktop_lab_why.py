@@ -1,10 +1,11 @@
 import pytest
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.inspector import Inspector
-from cns_desktop.lab.why_panel import WhyPanel, time_heading
+from cns_desktop.lab.why_panel import INTERVAL_MS, WhyPanel, time_heading
 
 
 @pytest.fixture(scope="session")
@@ -173,3 +174,38 @@ def test_typing_in_the_inspector_survives_playback(qapp, doc):
     qapp.processEvents()
     assert title.text() == "half"
     inspector.close()
+
+
+def test_a_fast_scrub_refreshes_at_most_every_interval_and_settles(doc):
+    panel = WhyPanel(doc)
+    before = panel.refresh_count
+    for k in range(30):
+        doc.set_playhead(100.0 + k)
+    assert panel.refresh_count - before == 1
+    QTest.qWait(INTERVAL_MS + 60)
+    assert panel.refresh_count - before == 2
+    assert "At 2 h 9 min" in panel.toPlainText()
+
+
+def test_the_why_panel_keeps_its_scroll_position(doc):
+    panel = WhyPanel(doc)
+    panel.resize(300, 120)
+    panel.show()
+    doc.add_block("remove_b", 0.0)
+    doc.set_playhead(240.0)
+    QTest.qWait(INTERVAL_MS + 60)
+    bar = panel.verticalScrollBar()
+    assert bar.maximum() > 0
+    bar.setValue(bar.maximum() // 2)
+    kept = bar.value()
+    doc.set_playhead(250.0)
+    QTest.qWait(INTERVAL_MS + 60)
+    assert bar.value() == kept
+
+
+def test_unchanged_text_is_not_rebuilt(doc):
+    panel = WhyPanel(doc)
+    before = panel.refresh_count
+    panel.refresh()
+    panel.refresh()
+    assert panel.refresh_count == before

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from html import escape
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QTextBrowser
 
 from cns_atlas.timelines import note_parts
@@ -12,6 +13,7 @@ from ..views.info_panel import references_html
 
 DRAFT = "Draft: not yet reviewed."
 SEPARATOR = "\x1f"
+INTERVAL_MS = 100
 
 
 def duration_text(minutes: float) -> str:
@@ -71,16 +73,41 @@ class WhyPanel(QTextBrowser):
         self.setOpenExternalLinks(True)
         QTextBrowser.document(self).setDefaultStyleSheet(rich.document_css())
         QTextBrowser.document(self).setDocumentMargin(12)
+        self.refresh_count = 0
+        self._shown = None
+        self._waiting = False
+        self._calm = QTimer(self, singleShot=True, interval=INTERVAL_MS, timeout=self._settle)
         document.changed.connect(self.refresh)
-        document.playhead_moved.connect(lambda _t: self.refresh())
+        document.playhead_moved.connect(lambda _t: self._playhead_moved())
         self.refresh()
+
+    def _playhead_moved(self) -> None:
+        if self._calm.isActive():
+            self._waiting = True
+            return
+        self.refresh()
+        self._calm.start()
+
+    def _settle(self) -> None:
+        if self._waiting:
+            self._waiting = False
+            self.refresh()
+            self._calm.start()
 
     def _source(self, key: str) -> str:
         doc = self.document
         return doc.atlas.lab_source(doc.model.key, key) or ""
 
     def refresh(self) -> None:
-        self.setHtml(self.html())
+        text = self.html()
+        if text == self._shown:
+            return
+        bar = self.verticalScrollBar()
+        kept = bar.value()
+        self.setHtml(text)
+        bar.setValue(kept)
+        self._shown = text
+        self.refresh_count += 1
 
     def html(self) -> str:
         doc = self.document
