@@ -665,3 +665,16 @@ def test_the_lab_on_the_real_atlas_meets_its_budgets(tmp_path, timing):
                           "recompute after an edit of a one day run": (edited, 0.060),
                           "scrub one playhead step": (scrub, 0.016),
                           "switch Brain and Circuit": (switched, 0.050)})
+
+
+@pytest.mark.slow
+def test_a_lesion_report_meets_its_budget(timing):
+    from cns_atlas.lesions import report, structure_lesion
+
+    atlas = Atlas.open(real_atlas_or_skip())
+    biggest = max((s for s in atlas.structures if s.kind != "group" and atlas.has_mesh(s.id)),
+                  key=lambda s: atlas.mesh(s.id).vertices.shape[0])
+    lesion = structure_lesion(atlas, biggest.id)
+    report(atlas, lesion)
+    timing.assert_within({"lesion report": (best_of(lambda: report(atlas, lesion), runs=3),
+                                            0.050)})

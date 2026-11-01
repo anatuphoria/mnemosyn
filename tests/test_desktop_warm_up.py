@@ -116,3 +116,12 @@ def test_warm_up_starts_only_after_the_first_frame(qapp, toy_spine_atlas, tmp_pa
     started = window._warm_up.started_after_render
     assert started is not None and 1 <= started <= drawn + 1
     window.close()
+
+
+def test_warm_up_counts_the_labels_lesions_need(qapp, toy_pathway_atlas, tmp_path):
+    from cns_atlas import lesions
+
+    window = open_window(qapp, toy_pathway_atlas, tmp_path)
+    assert window.lesion is not None and wait_for_warm_up(qapp, window)
+    assert all(volume in lesions._totals for volume in window.state.atlas.volumes)
+    window.close()

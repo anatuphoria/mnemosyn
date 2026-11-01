@@ -83,11 +83,11 @@ review.
 ## Workspaces
 
 The bar under the window title holds the menus (File, Edit, View, Study, Experiment, Window and
-Help), the tools of the current workspace as icons, and at the right the switch between four
+Help), the tools of the current workspace as icons, and at the right the switch between five
 arrangements of the window: **Explore** (the 3D view with the structure tree on the left and Info
 and Slices on the right), **Slices** (a large slice view beside the structure tree and Info),
 **Pathways** (the Pathways panel, Info and Slices, and the Activity panel when a route has a
-timeline) and the **Lab**. Every icon names its key when you hover it. The 3D view has its own small
+timeline), the **Lab** and **Lesion**. Every icon names its key when you hover it. The 3D view has its own small
 bar with Frame selection, Reset view and Tracts.
 
 Panels that share a place, such as Info and Slices, switch with the control in their header. Drag a
@@ -129,3 +129,30 @@ model for experts, each with its normal value, range and source; edited values a
 someone; it holds only the experiment. All Lab texts are drafts until reviewed, and the Lab is for
 studying, not for diagnosis or treatment.
 
+## Lesion
+
+The **Lesion** workspace teaches localization: where a lesion is, and why it causes the signs it
+does. Place a lesion and Mnemosyn shows which structures it hits, how much of each, and which steps
+of the sensory and motor routes it breaks, then turns each broken step into the deficit it causes,
+using the same cited texts as the Pathways panel.
+
+**Place** offers three ways to make a lesion. **Brush**: click or drag on the slice to paint
+spheres of the size you choose (2 to 20 mm), and hold `Ctrl` to erase. **Structure**: click a
+structure in the slice or the 3D view to make all of it the lesion. **By artery** appears when your
+build holds the arterial territories of Liu and colleagues (2023): pick a territory and a side. The
+lesion is drawn in gold on the slice and in 3D, and **Undo**, **Redo** and **Clear** work as you
+would expect.
+
+**Deficits** lists the routes the lesion breaks, starting from the side each route begins on, with
+the deficit of every broken step, the structures behind it, a **partly** mark when only a small
+share of a station is hit, and the sources; then the routes it spares. **Hit** ranks every structure
+the lesion touches by share; click one to select it.
+
+**Cases** turns it around: **New case** describes a patient's signs, you place the lesion you think
+explains them, and **Check** marks each sign as matched, missed or extra, then shows the real lesion
+in blue. Cases are made by the same engine, so a case never contradicts its own lesion.
+
+The public download has no spinal cord and no arterial territories yet, because their authors have
+not allowed sharing; the Place tab says so. Medullary syndromes that need cranial nerve nuclei the
+atlas does not have are not modelled. Like the rest of Mnemosyn, lesion mode is for studying, not for
+diagnosis or treatment.

@@ -81,6 +81,8 @@ entry replaces it and the old one says so.
 | 73 | 2026-10-29 | The Greek key stands beside ΜΝΗΜΟΣΥΝΗ in a family of four logos, and the meander dividers are gone | changed by 74 |
 | 74 | 2026-10-29 | The app icon is the blue Greek key on the dark square | in force |
 | 75 | 2026-11-01 | The Lab has one timeline that carries the charts | in force |
+| 76 | 2026-11-01 | Lesion mode computes deficits from the cited route texts | in force |
+| 77 | 2026-11-01 | The arterial territories are an optional local source until their authors confirm | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -758,3 +760,28 @@ of the Pathways workspace keeps the small multiples of decision 70.
 Why: the two tabs showed the same values twice, one with no numbers and one with no changes, and their
 time axes did not line up.
 Design: [one Lab timeline](specs/2026-11-01-lab-timeline-design.md).
+
+## 76. Lesion mode computes deficits from the cited route texts
+
+2026-11-01, chosen by the owner from mockups (layout A). A fifth workspace, Lesion, places a lesion
+by brush, structure or artery and reports the structures it hits and the route steps it breaks. A
+step breaks when a station loses at least 5 percent of its voxels, partly below 25 percent; its
+deficit is the step's cited Lesion line, filled for the side the route starts on. Each step may also
+have a Sign line in a patient's terms, naming no structure; cases are generated from those signs by
+the same engine and checked sign by sign. The Workspaces now take any number of registered
+workspaces, and the top bar hides spare buttons that also live in a menu when space runs out.
+Why: localization is the core skill of neuroanatomy, and deficits that come from cited routes can be
+explained step by step and never contradict the rest of the app.
+Design: [lesion mode](specs/2026-11-01-lesion-mode-design.md).
+
+## 77. The arterial territories are an optional local source until their authors confirm
+
+2026-11-01. The arterial territory atlas of Liu and colleagues (2023, doi 10.1038/s41597-022-01923-0)
+lists an attribution licence without a version on NITRC, and its files need a NITRC login. It enters
+the build as an optional, manual, local only source in a volume of its own (role "territories"),
+not meshed; a build without the file skips it with one line saying where to put it. Its recipe and
+structure entries are written once the owner has the label file, and it becomes shared when the
+authors confirm the terms.
+Why: the licence is likely open but not certain, and its label names cannot be checked without the
+file; a wrong guess could swap arteries silently.
+Design: [lesion mode, section 3](specs/2026-11-01-lesion-mode-design.md).

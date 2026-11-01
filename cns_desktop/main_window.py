@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QAbstractSlider, QAbstractSpin
 from shiboken6 import delete
 
 from cns_atlas import DISCLAIMER, Atlas
+from cns_atlas.lesions import prepare as prepare_lesions
 from cns_study.answers import AnswerIndex
 from cns_study.items import (group_items, items, structure_items, tract_items,
                              with_reviewed_entries)
@@ -218,6 +219,8 @@ class MainWindow(QMainWindow):
         ids = self.view.ids + self.view.shell_ids
         jobs += [lambda c=ids[k:k + 40]: self.view.warm_outline(c) for k in range(0, len(ids), 40)]
         jobs.append(lambda: self.view.warm_outline(ids))
+        if self.lesion is not None:
+            jobs += [lambda v=v: prepare_lesions(v) for v in atlas.volumes]
         if self.lab is not None:
             experiment = self.lab.document.experiment
             jobs.append(lambda: self.lab.document.simulator.normal(experiment.length,

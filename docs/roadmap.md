@@ -25,6 +25,13 @@ place of the Timeline and Charts tabs (decision 75).
 
 ## Unfinished
 
+Lesion mode (decision 76) is built. Its arterial territories wait for the owner to download the
+atlas from NITRC (a free login) so the recipe can be written, and for the authors to confirm that
+the files may be shared; a draft email is in `review/emails/`. Cord lesions work only in local
+builds until PAM50 allows sharing, and medullary syndromes need cranial nerve nuclei the atlas does
+not have.
+
+
 1. The cells view (neuron scale) is on hold on the `cells` branch. The approach needs a new design
    before any further work; the old plan is not to be continued as it is.
 2. The specialist review: the review pages and booklet are live; the request form link waits for
@@ -72,20 +79,13 @@ so a change to the model can never leave a page wrong without a failing test.
 
 Ranked by how much they would add to the vision. None of them has a design yet.
 
-1. Lesion mode. Place a lesion (a cord hemisection, a small infarct in the medulla) and see which
-   tracts and nuclei it hits and the deficits it causes, side by side. The reverse is a quiz: a
-   case is described and the student places the lesion, then compares what that lesion would cause
-   with the case. This teaches localization, the core skill of clinical neuroanatomy.
-2. Blood supply. Arteries and their territories, which make lesion mode realistic since strokes
-   follow them. An open arterial territory atlas in MNI space has to be found and its licence
-   checked first.
-3. Visible trust. A review status on each structure (checked by a named specialist, or not yet) and
+1. Visible trust. A review status on each structure (checked by a named specialist, or not yet) and
    a way to report a mistake from inside the app.
-4. Lessons. A teacher saves a set of views, a route, a Lab experiment and questions as one file and
+2. Lessons. A teacher saves a set of views, a route, a Lab experiment and questions as one file and
    shares it with a class.
-5. Reach. A macOS build first; a browser version much later, only once the content is clearly
+3. Reach. A macOS build first; a browser version much later, only once the content is clearly
    ahead.
-6. A Settings window. The owner asked to keep one in mind. The Lab timeline already names its
+4. A Settings window. The owner asked to keep one in mind. The Lab timeline already names its
    display options (`compare_on`, `show_guides`, `show_hover`, `show_overview`) so a window can
    offer them; nothing is stored yet.
 

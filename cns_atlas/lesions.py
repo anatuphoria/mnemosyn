@@ -64,6 +64,10 @@ def _label_totals(volume) -> np.ndarray:
     return _totals[volume]
 
 
+def prepare(volume) -> None:
+    _label_totals(volume)
+
+
 def _tract_volume(atlas):
     tracts = atlas.tracts
     if tracts is None:
