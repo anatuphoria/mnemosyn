@@ -99,7 +99,7 @@ regions never overlap at any zoom or scroll, values and tones match the run, the
 change with zoom, the overview drags and zooms, keys move the playhead, the hover tags show and
 hide, and the Why panel refreshes at most every 100 ms with a final refresh. Tests that used the
 Charts tab move to the timeline. The timing budget for a playhead move stays within the existing
-budgets (decision 13).
+budgets (decisions 9 and 44).
 
 ## 9. Decisions to log
 

@@ -52,6 +52,22 @@ These were left out of earlier designs on purpose and are expected to come back.
 6. Code signing of the Windows installer, for example through the SignPath Foundation programme.
 7. macOS, automatic updates, and package managers (winget, Flathub).
 
+## Handbook (after the main features)
+
+Agreed with the owner on 2026-11-01, to start once the main features are finished, so that all
+later work is enhancements and fixes. First a stabilization pass (the deferred minors, one polish pass per
+workspace, a full Windows check), then a handbook on the website in place of the single guide page:
+
+1. Start here: install and a ten minute tour of each workspace.
+2. One page per workspace (Explore, Slices, Pathways, Lab): every panel, button and shortcut.
+3. Experiments to try, about eight to start, each with a question, a prediction, a button that
+   opens it in Mnemosyn (a ready `.mnemolab` file for the Lab), what you will see and why, with
+   sources.
+4. Why you can trust it: sources, models, decisions and the specialist review.
+
+Screenshots are taken from the real app by a script, and each experiment's stated result has a test,
+so a change to the model can never leave a page wrong without a failing test.
+
 ## Ideas
 
 Ranked by how much they would add to the vision. None of them has a design yet.
