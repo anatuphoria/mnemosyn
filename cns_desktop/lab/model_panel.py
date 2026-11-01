@@ -34,7 +34,6 @@ class ModelPanel(QWidget):
         self.table.horizontalHeader().hide()
         self.table.verticalHeader().hide()
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
@@ -84,7 +83,8 @@ class ModelPanel(QWidget):
             reset.setToolTip(f"Back to the normal value, {parameter.value:g} {parameter.unit}")
             reset.clicked.connect(lambda _=False, k=parameter.key: document.reset_value(k))
             cell = QWidget()
-            controls = QHBoxLayout()
+            buttons = QWidget()
+            controls = QHBoxLayout(buttons)
             controls.setContentsMargins(0, 0, 0, 0)
             controls.setSpacing(GAP["tight"])
             controls.addWidget(spin, 1)
@@ -93,8 +93,9 @@ class ModelPanel(QWidget):
             stack.setContentsMargins(GAP["small"], GAP["tight"], GAP["tight"], GAP["tight"])
             stack.setSpacing(GAP["tight"])
             stack.addWidget(label)
-            stack.addLayout(controls)
+            stack.addWidget(buttons)
             self.table.setCellWidget(row, 0, cell)
+            self.table.setRowHeight(row, cell.sizeHint().height())
             self._spins[parameter.key] = spin
             self._resets[parameter.key] = reset
             self._labels[parameter.key] = label

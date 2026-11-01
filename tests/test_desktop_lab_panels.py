@@ -114,3 +114,20 @@ def test_a_parameter_kept_off_the_panel_is_not_listed(doc):
     assert panel.table.rowCount() == len(parameters) - 1
     doc.set_value("w", doc.model.parameter("w").value * 2)
     panel.refresh()
+
+
+@pytest.mark.slow
+def test_the_panel_tests_exit_cleanly():
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen"}
+    command = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-m", "not slow",
+               str(Path(__file__))]
+    for _ in range(3):
+        done = subprocess.run(command, cwd=root, env=env, capture_output=True, timeout=120,
+                              check=False)
+        assert done.returncode == 0, done.stdout.decode()[-400:] + done.stderr.decode()[-400:]
