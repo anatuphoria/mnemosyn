@@ -52,6 +52,8 @@ def _surface_actor(block: pv.PolyData, color) -> vtkActor:
     return actor
 
 
+HOME_FILL = 0.92
+
 class BrainView(QtInteractor):
     def __init__(self, state: AppState, parent=None) -> None:
         super().__init__(parent, auto_update=False)
@@ -64,6 +66,7 @@ class BrainView(QtInteractor):
         self.inside_ids = self._inside_of_covers()
         self.preferred: frozenset[int] = frozenset()
         self._looking = False
+        self._home: tuple[tuple[float, ...], int] | None = None
         shells = frozenset(self.shell_ids)
         self.ids = [i for i in state.geometry_ids if not state.is_tract(i) and i not in shells]
         self.tract_ids = list(state.tract_ids)
@@ -130,10 +133,50 @@ class BrainView(QtInteractor):
         self._on_slice_changed(state.slice_axis, state.slice_mm)
         install_navigation(self)
 
+    def home(self) -> tuple[float, ...] | None:
+        return None if self._home is None else self._home[0]
+
+    def set_home(self, bounds: tuple[float, ...] | None, reserve: int = 0) -> None:
+        self._home = None if bounds is None else (tuple(float(b) for b in bounds), int(reserve))
+        if bounds is None:
+            self.renderer.GetActiveCamera().SetWindowCenter(0.0, 0.0)
+
+    def projected_box(self, bounds: tuple[float, ...]) -> tuple[float, float, float, float]:
+        renderer = self.renderer
+        xs, ys = [], []
+        for x in bounds[0:2]:
+            for y in bounds[2:4]:
+                for z in bounds[4:6]:
+                    renderer.SetWorldPoint(x, y, z, 1.0)
+                    renderer.WorldToDisplay()
+                    dx, dy, _ = renderer.GetDisplayPoint()
+                    xs.append(dx)
+                    ys.append(dy)
+        return min(xs), max(xs), min(ys), max(ys)
+
+    def _frame_home(self) -> None:
+        bounds, reserve = self._home
+        camera = self.renderer.GetActiveCamera()
+        camera.SetWindowCenter(0.0, 0.0)
+        self.reset_camera(render=False, bounds=bounds)
+        width, height = self.renderer.GetSize()
+        if width <= 0 or height <= 0:
+            return
+        room = max(width - reserve * self.devicePixelRatioF(), width / 2)
+        left, right, low, high = self.projected_box(bounds)
+        if right - left <= 0 or high - low <= 0:
+            return
+        camera.Zoom(min(HOME_FILL * room / (right - left), HOME_FILL * height / (high - low)))
+        left, right, low, high = self.projected_box(bounds)
+        centre_x, centre_y = (left + right) / 2, (low + high) / 2
+        camera.SetWindowCenter(2 * (centre_x - room / 2) / width, 2 * (centre_y - height / 2) / height)
+
     def reset_view(self) -> None:
         """World frame is MNI millimetres: x right, y anterior, z superior."""
         self.camera_position = [(-400.0, 250.0, 150.0), (0.0, -18.0, 10.0), (0.0, 0.0, 1.0)]
-        if len(self.state.atlas.volumes) > 1:
+        if self._home is not None:
+            self._frame_home()
+        elif len(self.state.atlas.volumes) > 1:
             self.reset_camera(render=False, bounds=self.scene_bounds)
         else:
             self.reset_camera()

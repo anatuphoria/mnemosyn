@@ -141,6 +141,7 @@ class LabBrain:
         self.on_show_on_timeline = None
         self.on_show_in_atlas = None
         document.changed.connect(self.refresh)
+        document.model_changed.connect(self._on_model)
         document.playhead_moved.connect(lambda _t: self.refresh())
         document.selection_changed.connect(self._from_lab)
         state.selection_changed.connect(self._from_brain)
@@ -176,14 +177,38 @@ class LabBrain:
                                    triggered=lambda: self.on_show_on_timeline(key)))
         return menu
 
+    def brain_bounds(self) -> tuple[float, ...]:
+        atlas = self.state.atlas
+        brain = next((s for s in atlas.structures if s.name == "Brain" and s.parent is not None
+                      and atlas.get(s.parent).parent is None), None)
+        ids = [] if brain is None else [i for i in self.state.geometry_in(brain.id)
+                                        if atlas.has_mesh(i) and i in self.view.blocks]
+        if not ids:
+            return tuple(self.view.scene_bounds)
+        extents = [self.view.extent_of(i) for i in ids]
+        low = np.min([e[0] for e in extents], axis=0)
+        high = np.max([e[1] for e in extents], axis=0)
+        return (low[0], high[0], low[1], high[1], low[2], high[2])
+
+    def frame(self) -> None:
+        self.view.set_home(self.brain_bounds(), self.viewport.strip_reserve())
+        self.view.reset_view()
+
+    def _on_model(self) -> None:
+        if self.active:
+            self._fill_strip()
+            self.frame()
+
     def activate(self) -> None:
         self.active = True
         self._fill_strip()
         self.state.set_focus([i for ids in self._shaped().values() for i in ids])
         self.refresh()
+        self.frame()
 
     def deactivate(self) -> None:
         self.active = False
+        self.view.set_home(None)
         self.view.set_lab_colors({i: None for ids in self._shaped().values() for i in ids})
         self.overlay.clear()
         self.state.set_focus(None)
@@ -198,12 +223,14 @@ class LabBrain:
         for key in self.strip_keys():
             button = StripCard()
             button.clicked.connect(lambda _=False, k=key: self.document.select(("part", k)))
+            button.hover_changed.connect(self.viewport.place_strip)
             button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             button.customContextMenuRequested.connect(
                 lambda pos, k=key, b=button: self.strip_menu(k).exec(b.mapToGlobal(pos)))
             layout.addWidget(button)
             button.show()
             self._buttons[key] = button
+        self.viewport.place_strip()
 
     def _ratio(self, key: str) -> float:
         doc = self.document
@@ -228,10 +255,19 @@ class LabBrain:
         shown = self.document.run.display(key, self.document.playhead)
         return f"{part.name} · {value.name} {plain(shown, 3)} {value.display_unit}", colour
 
+    def _short(self, part, text: str) -> str:
+        _title, _, detail = text.partition(" · ")
+        if part.values:
+            name = self.document.simulator.values[part.values[0]].name
+            detail = detail.removeprefix(f"{name} ")
+        detail = detail.removeprefix("= ")
+        return f"{part.name} · {detail}" if detail else part.name
+
     def refresh(self) -> None:
         if not self.active:
             return
         shaped = self._shaped()
+        before = self.viewport.strip.content_height()
         colors, labels, positions, extents = {}, {}, {}, {}
         atlas = self.state.atlas
         for part in self.document.model.parts:
@@ -254,12 +290,14 @@ class LabBrain:
                     colors[structure_id] = _mix(own, target, amount)
             elif part.key in self._buttons:
                 button = self._buttons[part.key]
-                button.setText(text.replace(" · ", "\n", 1))
+                button.setText(text.replace(" · ", "\n", 1), self._short(part, text))
                 button.setToolTip(text)
                 button.set_tone("raised" if colour == RAISED else
                                 "lowered" if colour == LOWERED else "")
         self.view.set_lab_colors(colors)
         self.overlay.show(labels, positions, extents)
+        if self._buttons and self.viewport.strip.content_height() != before:
+            self.viewport.place_strip()
 
     def _from_lab(self, selection) -> None:
         if not self.active or self._syncing or not selection or selection[0] != "part":

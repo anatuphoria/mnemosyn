@@ -175,7 +175,8 @@ QToolButton[card="true"] { background: $s2; border: 1px solid $line; border-radi
 QToolButton[card="true"]:hover { background: $s3; }
 QToolButton[card="true"][tone="raised"] { color: $raised; }
 QToolButton[card="true"][tone="lowered"] { color: $lowered; }
-QScrollArea[strip="true"], QScrollArea[strip="true"] > QWidget > QWidget { background: $s0; }
+QScrollArea[strip="true"], QScrollArea[strip="true"] > QWidget > QWidget { background: transparent; }
+QScrollArea[strip="true"] QFrame[card="true"] { background: $card_float; }
 QLabel[chip="true"] { background: $s2; border: 1px solid $line; border-radius: ${r_small}px;
     padding: 0 6px; font-size: 11px; font-weight: 500; }
 QLabel[keycap="true"] { background: $s3; border: 1px solid $line; border-radius: ${r_small}px;
@@ -200,7 +201,7 @@ def build() -> str:
         inner=SIZE["control"] - 2, spin=SIZE["control"] - 5,
         inner_focus=SIZE["control"] - 4, spin_focus=SIZE["control"] - 7, row=SIZE["row"],
         row_inner=SIZE["row"] - 2 * GAP["tight"], tight=GAP["tight"], status=SIZE["status"],
-        sel=_rgba("accent", 0.15), roles=_roles(),
+        sel=_rgba("accent", 0.15), card_float=_rgba("s2", 0.86), roles=_roles(),
         down=_image("chevron-down"), up=_image("chevron-up"), check=_image("check", "text"),
         minus=_image("minus", "text"), branch_closed=_image("chevron-right"),
         branch_open=_image("chevron-down"),
