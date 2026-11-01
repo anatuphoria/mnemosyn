@@ -113,7 +113,7 @@ refs = ["hall2021"]
 
 [[parameters]]
 key = "K_u"
-value = 2.0
+value = 1.5
 unit = "pg/mL"
 low = 0.5
 high = 5
@@ -121,7 +121,7 @@ refs = ["robertson1973"]
 
 [[parameters]]
 key = "n_u"
-value = 2
+value = 3
 unit = "exponent"
 low = 1
 high = 4
@@ -266,13 +266,13 @@ arrow = ["osmoreceptors", "pituitary"]
 
 [[effects]]
 key = "kidney_signal"
-expr = "kidney * (avp + ddavp_potency * ddavp)"
+expr = "avp + ddavp_potency * ddavp"
 kind = "drives"
 arrow = ["pituitary", "kidney"]
 
 [[effects]]
 key = "concentrating"
-expr = "uosm_min + (uosm_max - uosm_min) * (1 - hill(kidney_signal, K_u, n_u))"
+expr = "uosm_min + kidney * (uosm_max - uosm_min) * (1 - hill(kidney_signal, K_u, n_u))"
 kind = "drives"
 
 [[effects]]
@@ -469,3 +469,121 @@ asserts = [
   { kind = "within", value = "uosm", at = "day 2 12:00", low = 300, high = 900 },
   { kind = "within", value = "avp", at = "day 2 12:00", low = 0.5, high = 5 },
 ]
+
+[[experiments]]
+key = "water_load"
+icon = "droplet"
+group = "Drinks and infusions"
+options = [{ key = "volume", unit = "L", default = 1, low = 0.25, high = 2 }]
+edits = [{ op = "dose", target = "gut", expr = "volume" }]
+
+[[experiments]]
+key = "stop_drinking"
+icon = "clock-3"
+group = "Drinks and infusions"
+edits = [{ op = "set", target = "drinking", expr = "0" }]
+
+[[experiments]]
+key = "hypertonic_saline"
+icon = "droplet"
+group = "Drinks and infusions"
+length = "2 h"
+edits = [{ op = "set", target = "salt_in", expr = "4.275" }, { op = "set", target = "iv_water", expr = "0.004167" }]
+
+[[experiments]]
+key = "desmopressin"
+icon = "pill"
+group = "Drugs"
+options = [{ key = "dose", unit = "µg", default = 2, low = 0.5, high = 4 }]
+edits = [{ op = "dose", target = "ddavp", expr = "dose" }]
+
+[[experiments]]
+key = "central_di"
+icon = "heart-pulse"
+group = "Conditions"
+mode = "present"
+edits = [{ op = "set", target = "avp_scale", expr = "0.05" }]
+
+[[experiments]]
+key = "nephrogenic_di"
+icon = "heart-pulse"
+group = "Conditions"
+mode = "present"
+edits = [{ op = "set", target = "kidney", expr = "0.05" }]
+
+[[experiments]]
+key = "siadh"
+icon = "heart-pulse"
+group = "Conditions"
+edits = [{ op = "set", target = "avp_auto", expr = "8" }]
+
+[[experiments]]
+key = "primary_polydipsia"
+icon = "heart-pulse"
+group = "Conditions"
+mode = "present"
+edits = [{ op = "set", target = "habit_scale", expr = "4" }]
+
+[[tests]]
+key = "water_deprivation_test"
+icon = "test-tube"
+length = "8 h"
+edits = [{ op = "set", target = "drinking", expr = "0" }]
+readings = [{ value = "uosm", after = "8 h" }]
+rule = "at least"
+cutoff = 600
+
+[[tests]]
+key = "desmopressin_test"
+icon = "test-tube"
+length = "10 h"
+edits = [{ op = "set", target = "drinking", expr = "0" }]
+doses = [{ value = "ddavp", amount = "2", after = "8 h" }]
+readings = [{ value = "uosm", after = "8 h" }, { value = "uosm", after = "10 h" }]
+rule = "rises by"
+cutoff = 0.5
+
+[[checks]]
+key = "water_load"
+length = "1 d"
+blocks = [{ experiment = "water_load", start = "day 1 10:00" }]
+asserts = [
+  { kind = "vs_normal", value = "sodium", at = "day 1 11:00", falls = 0.99 },
+  { kind = "back_to_normal", value = "water", by = "day 1 14:00", tolerance = 0.01 },
+]
+
+[[checks]]
+key = "deprivation_normal"
+length = "1 d"
+blocks = [{ experiment = "water_deprivation_test", start = "day 1 08:00" }]
+asserts = [{ kind = "test_result", block = 0, expect = "normal" }]
+
+[[checks]]
+key = "central_di_tests"
+length = "1 d"
+blocks = [{ experiment = "central_di" }, { experiment = "desmopressin_test", start = "day 1 08:00" }]
+asserts = [{ kind = "within", value = "uosm", at = "day 1 16:00", low = 0, high = 300 }, { kind = "test_result", block = 1, expect = "abnormal" }]
+
+[[checks]]
+key = "nephrogenic_di_tests"
+length = "1 d"
+blocks = [{ experiment = "nephrogenic_di" }, { experiment = "desmopressin_test", start = "day 1 08:00" }]
+asserts = [{ kind = "within", value = "uosm", at = "day 1 16:00", low = 0, high = 300 }, { kind = "test_result", block = 1, expect = "normal" }]
+
+[[checks]]
+key = "polydipsia_tests"
+length = "1 d"
+blocks = [{ experiment = "primary_polydipsia" }, { experiment = "desmopressin_test", start = "day 1 08:00" }]
+asserts = [{ kind = "within", value = "uosm", at = "day 1 16:00", low = 300, high = 1200 }, { kind = "test_result", block = 1, expect = "normal" }]
+
+[[checks]]
+key = "siadh_sodium"
+length = "5 d"
+blocks = [{ experiment = "siadh", start = "day 1 08:00" }]
+asserts = [{ kind = "within", value = "sodium", at = "day 5 08:00", low = 110, high = 135 }]
+
+[[checks]]
+key = "saline_vasopressin"
+length = "1 d"
+blocks = [{ experiment = "hypertonic_saline", start = "day 1 10:00" }]
+asserts = [{ kind = "vs_normal", value = "avp", at = "day 1 12:00", rises = 1.5 }]

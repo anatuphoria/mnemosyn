@@ -81,3 +81,26 @@ def test_extremes_from_a_normal_day_stay_finite(sim, values):
     assert np.all(np.isfinite(states))
     sodium = states[:, sim.keys.index("sodium")] * sim.values["sodium"].display_scale
     assert 100 < sodium.min() and sodium.max() < 200
+
+
+OFFERED = ["water_load", "stop_drinking", "hypertonic_saline", "desmopressin", "central_di",
+           "nephrogenic_di", "siadh", "primary_polydipsia"]
+CHECKS = {"normal_day", "water_load", "deprivation_normal", "central_di_tests",
+          "nephrogenic_di_tests", "polydipsia_tests", "siadh_sodium", "saline_vasopressin"}
+
+
+def test_the_water_experiments_and_tests_are_offered():
+    model = load_water()
+    assert [e.key for e in model.experiments] == OFFERED
+    assert [t.key for t in model.tests] == ["water_deprivation_test", "desmopressin_test"]
+    texts = tomllib.loads((SRC / "knowledge" / "en" / "lab-water.toml").read_text())
+    for test in model.tests:
+        for suffix in ("", ".description", ".normal", ".abnormal"):
+            assert texts[f"test.{test.key}{suffix}"]
+
+
+def test_every_published_outcome_holds(sim):
+    assert {c.key for c in sim.model.checks} == CHECKS
+    for check in sim.model.checks:
+        outcome = run_check(sim, check)
+        assert outcome.passed, (check.key, outcome)

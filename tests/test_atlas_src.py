@@ -552,3 +552,14 @@ def test_steps_that_need_both_sides_say_so():
     path = SRC / "knowledge" / "en" / "pathway-papez.md"
     entry = parse_entry(path.read_text(encoding="utf-8"), str(path))
     assert [n for n in range(1, 10) if step_text(entry.sections[f"Step {n}"]).sides] == [2, 3, 9]
+
+
+def test_the_thirst_route_falls_back_to_a_relay_without_the_pituitary():
+    from tools.build_atlas.pathways import for_package
+
+    pathways = load_pathways(SRC / "pathways.toml")
+    raws = load_structures(SRC / "structures.toml")
+    names = {r.id: r.name for r in raws}
+    (thirst,) = [p for p in for_package(pathways, names, {2700}) if p.key == "thirst"]
+    assert isinstance(thirst.steps[3], Relay) and thirst.steps[3].name == "Posterior pituitary"
+    assert isinstance(thirst.steps[1], Station) and thirst.steps[1].structures == (2580,)

@@ -80,11 +80,10 @@ def test_suppression_compares_with_the_run_without_the_test(sim):
     assert result.normal == (expected >= 0.05)
 
 
-def test_a_rise_compares_with_the_run_without_the_test(sim):
+def test_a_rise_compares_the_last_reading_with_the_first(sim):
     block = Block("hold_test", 120.0)
     run = sim.run(Experiment("toy", 1, DAY, 480.0, (block,)))
-    without = sim.run(Experiment("toy", 1, DAY, 480.0))
     result = read_test(sim, run, block)
-    expected = run.display("x", 240.0) / without.display("x", 240.0) - 1
+    expected = run.display("x", 240.0) / run.display("x", 180.0) - 1
     assert result.value == pytest.approx(expected) and result.unit == "fraction"
     assert result.normal == (expected < 0.5)
