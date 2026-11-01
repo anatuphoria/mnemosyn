@@ -48,7 +48,7 @@ def fake_lab(window):
 
 
 def test_explore_is_todays_layout(window):
-    assert NAMES == ("Explore", "Slices", "Pathways", "Lab")
+    assert NAMES == ("Explore", "Slices", "Pathways", "Lab", "Lesion")
     assert window.workspaces.current == "Explore"
     assert window.dockWidgetArea(window.tree_dock) == LEFT
     assert window.dockWidgetArea(window.pathway_dock) == LEFT

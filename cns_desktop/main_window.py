@@ -28,6 +28,7 @@ from .design.tokens import GAP, SIZE
 from .design.topbar import TopBar
 from .lab.viewport import Viewport
 from .lab.workspace import LabWorkspace
+from .lesion.workspace import LesionWorkspace
 from .state import AppState
 from .views.about_dialog import AboutDialog
 from .views.activity_chart import ActivityChart
@@ -168,6 +169,8 @@ class MainWindow(QMainWindow):
         self.pick_save = lambda: QFileDialog.getSaveFileName(
             self, "Save experiment", "", "Lab experiments (*.mnemolab)")[0]
         self.lab = LabWorkspace(self, next(iter(atlas.models))) if atlas.models else None
+        lesions = any(p.texts == "lesion" for p in atlas.pathways)
+        self.lesion = LesionWorkspace(self) if lesions else None
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
                 widget.installEventFilter(self)

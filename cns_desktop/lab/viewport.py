@@ -120,7 +120,7 @@ class Viewport(QWidget):
 
     @staticmethod
     def minimum_width(workspace: str, window_width: int) -> int:
-        if workspace != "Slices":
+        if workspace not in ("Slices", "Lesion"):
             return SIZE["central_min"]
         return SIZE["central_min_slices"] if window_width >= SIZE["narrow"] else 0
 

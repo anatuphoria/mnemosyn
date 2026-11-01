@@ -8,7 +8,7 @@ from cns_desktop.design.theme import apply_theme
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.main_window import MainWindow
 
-NAMES = ("Explore", "Slices", "Pathways", "Lab")
+NAMES = ("Explore", "Slices", "Pathways", "Lab", "Lesion")
 
 
 @pytest.fixture(scope="session")

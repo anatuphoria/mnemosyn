@@ -78,13 +78,17 @@ class TopBar(QFrame):
         self.menu_button.setVisible(level >= 2)
         if self.switch is not None and hasattr(self.switch, "set_compact"):
             self.switch.set_compact(level >= 1)
+        for group in self._groups.values():
+            for child in group.findChildren(QWidget):
+                if child.property("spare"):
+                    child.setVisible(level < 3)
 
     def _signature(self, width: int) -> tuple:
         return width, self._shown, self.level, self._row.sizeHint().width()
 
     def fit(self, width: int | None = None) -> None:
         width = self.width() if width is None else width
-        for level in range(3):
+        for level in range(4):
             self._set_level(level)
             self._row.invalidate()
             if self._row.sizeHint().width() <= width:

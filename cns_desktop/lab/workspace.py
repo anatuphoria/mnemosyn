@@ -176,12 +176,14 @@ class LabWorkspace:
         for box in (self.speed_box, self.system_box, self.length_box):
             box.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.play_button = widgets.icon_button(play, "play")
+        spare = [widgets.icon_button(snapshot, "camera"), widgets.icon_button(scope, "info")]
+        for button in spare:
+            button.setProperty("spare", True)
         self.toolbar = self.window.topbar.add_group("Lab", [
             self.play_button, widgets.icon_button(back, "skip-back"), self.speed_box, None,
             widgets.icon_button(undo, "undo-2"), widgets.icon_button(redo, "redo-2"), None,
-            widgets.icon_button(compare, "git-compare-arrows"),
-            widgets.icon_button(snapshot, "camera"), None,
-            self.system_box, self.length_box, widgets.icon_button(scope, "info")])
+            widgets.icon_button(compare, "git-compare-arrows"), spare[0], None,
+            self.system_box, self.length_box, spare[1]])
 
     def _show_playing(self) -> None:
         self._actions["Play or pause"].setIcon(

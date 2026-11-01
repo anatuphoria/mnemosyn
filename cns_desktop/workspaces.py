@@ -10,8 +10,10 @@ from cns_desktop.design.panels import PanelGroup
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.design.widgets import SegmentedControl
 
-NAMES = ("Explore", "Slices", "Pathways", "Lab")
-ICONS = {"Explore": "brain", "Slices": "layers-2", "Pathways": "route", "Lab": "flask-conical"}
+NAMES = ("Explore", "Slices", "Pathways", "Lab", "Lesion")
+ICONS = {"Explore": "brain", "Slices": "layers-2", "Pathways": "route", "Lab": "flask-conical",
+         "Lesion": "target"}
+OPTIONAL = ("Lab", "Lesion")
 VERSION = 2
 
 Join = tuple[str, str]
@@ -29,9 +31,7 @@ class Workspaces(QObject):
         self.memory: dict[str, tuple[QByteArray, list[Join]]] = {}
         self.current = "Explore"
         self.locked = False
-        self.lab_docks: list = []
-        self._enter: Callable[[], None] | None = None
-        self._leave: Callable[[], None] | None = None
+        self.extra: dict[str, dict] = {}
         self.defaults: dict[str, tuple[QByteArray, list[Join]]] = {}
         self.arrange: dict[str, Callable[[], object]] = {}
         self.narrow: dict[str, list[Join]] = {}
@@ -50,9 +50,17 @@ class Workspaces(QObject):
             action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
             window.addAction(action)
             self.actions[name] = action
-        self.switcher.button("Lab").hide()
-        self.actions["Lab"].setEnabled(False)
+        for name in OPTIONAL:
+            self.switcher.button(name).hide()
+            self.actions[name].setEnabled(False)
         window.topbar.set_switch(self.switcher)
+
+    @property
+    def lab_docks(self) -> list:
+        return self.docks_of("Lab")
+
+    def docks_of(self, name: str) -> list:
+        return list(self.extra.get(name, {}).get("docks", []))
 
     def button(self, name: str) -> QToolButton:
         return self.switcher.button(name)
@@ -184,25 +192,31 @@ class Workspaces(QObject):
     def register_lab(self, docks: list, enter: Callable[[], None],
                      leave: Callable[[], None], arrange: Callable[[], None] | None = None,
                      narrow: list[Join] | None = None) -> None:
-        self.lab_docks = list(docks)
-        self._enter, self._leave = enter, leave
+        self.register("Lab", docks, enter, leave, arrange, narrow)
+
+    def register(self, name: str, docks: list, enter: Callable[[], None],
+                 leave: Callable[[], None], arrange: Callable[[], None] | None = None,
+                 narrow: list[Join] | None = None, shared: list | None = None) -> None:
+        self.extra[name] = {"docks": list(docks), "shared": list(shared or []),
+                            "enter": enter, "leave": leave}
         if narrow:
-            self.narrow["Lab"] = list(narrow)
+            self.narrow[name] = list(narrow)
         joins = self.joins()
         state = self.window.saveState()
         self.release_joins()
+        shown = [*docks, *(shared or [])]
         for dock in self.groups():
-            if dock not in self.lab_docks:
+            if dock not in shown:
                 dock.hide()
-        for dock in self.lab_docks:
+        for dock in shown:
             dock.show()
         if arrange is not None:
             arrange()
-            self.arrange["Lab"] = arrange
-        self.defaults["Lab"] = (self.window.saveState(), [])
+            self.arrange[name] = arrange
+        self.defaults[name] = (self.window.saveState(), [])
         self._restore(state, joins)
-        self.switcher.button("Lab").show()
-        self.actions["Lab"].setEnabled(not self.locked)
+        self.switcher.button(name).show()
+        self.actions[name].setEnabled(not self.locked)
         self._watch()
         self._after_restore(self.current)
 
@@ -210,18 +224,21 @@ class Workspaces(QObject):
         self.locked = locked
         for name in NAMES:
             self.switcher.button(name).setEnabled(not locked)
-            self.actions[name].setEnabled(not locked and (name != "Lab" or bool(self.lab_docks)))
+            self.actions[name].setEnabled(not locked and (name not in OPTIONAL
+                                                          or name in self.extra))
 
     def _after_restore(self, name: str) -> None:
-        in_lab = name == "Lab"
-        for dock in self.lab_docks:
-            if not in_lab:
-                dock.hide()
-            dock.toggleViewAction().setEnabled(in_lab)
-        if self.lab_docks:
+        own = self.extra.get(name)
+        for other, info in self.extra.items():
+            for dock in info["docks"]:
+                if other != name:
+                    dock.hide()
+                dock.toggleViewAction().setEnabled(other == name)
+        if self.extra:
+            shared = own["shared"] if own else []
             for dock in self.window.workspace_docks():
-                dock.toggleViewAction().setEnabled(not in_lab)
-        if not in_lab:
+                dock.toggleViewAction().setEnabled(own is None or dock in shared)
+        if own is None:
             self.window.quiz_dock.setVisible(self.window.quiz_active)
         self.window.topbar.show_group(name)
         self.window.sync_after_layout(name)
@@ -243,21 +260,21 @@ class Workspaces(QObject):
         if name not in NAMES or name == self.current or self.locked:
             self.switcher.set_current(self.current)
             return
-        if name == "Lab" and not self.lab_docks:
+        if name in OPTIONAL and name not in self.extra:
             self.switcher.set_current(self.current)
             return
-        if name == "Lab" and self.window.pathway_active:
+        if name in self.extra and self.window.pathway_active:
             self.window.pathways.leave()
         self._store(self.current)
-        if self.current == "Lab" and self._leave is not None:
-            self._leave()
+        if self.current in self.extra:
+            self.extra[self.current]["leave"]()
         size = self.window.size()
         self._apply(name)
         self.current = name
         self._after_restore(name)
         self._keep_size(size)
-        if name == "Lab" and self._enter is not None:
-            self._enter()
+        if name in self.extra:
+            self.extra[name]["enter"]()
         self.switcher.set_current(name)
         self.changed.emit(name)
 

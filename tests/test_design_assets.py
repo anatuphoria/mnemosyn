@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QApplication
 from cns_desktop.design import fonts, icons, tokens
 
 RESOURCES = Path(__file__).resolve().parents[1] / "cns_desktop" / "resources"
-SPEC_ICONS = ["brain", "layers-2", "route", "flask-conical", "eye-off", "scan", "eye", "waypoints", "rotate-ccw", "maximize", "crosshair", "graduation-cap", "info", "play", "pause", "skip-back", "undo-2", "redo-2", "git-compare-arrows", "camera", "activity", "clock-3", "scissors", "unlink", "pill", "calendar-days", "heart-pulse", "zap", "test-tube", "search", "ellipsis", "chevron-right", "chevron-down", "check", "zoom-in", "zoom-out", "network"]
+SPEC_ICONS = ["brain", "layers-2", "route", "flask-conical", "eye-off", "scan", "eye", "waypoints", "rotate-ccw", "maximize", "crosshair", "graduation-cap", "info", "play", "pause", "skip-back", "undo-2", "redo-2", "git-compare-arrows", "camera", "activity", "clock-3", "scissors", "unlink", "pill", "calendar-days", "heart-pulse", "zap", "test-tube", "search", "ellipsis", "chevron-right", "chevron-down", "check", "zoom-in", "zoom-out", "network", "target"]
 
 
 @pytest.fixture(scope="session")

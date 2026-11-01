@@ -68,7 +68,7 @@ def test_the_top_bar_holds_menus_actions_and_the_switch(window):
     assert [m for m in window.findChildren(QMenuBar) if m is not window.topbar.menus] == []
     switch = window.workspaces.switcher
     assert switch.parent() is window.topbar
-    assert switch.keys() == ["Explore", "Slices", "Pathways", "Lab"]
+    assert switch.keys() == ["Explore", "Slices", "Pathways", "Lab", "Lesion"]
     group = window.topbar.group("Explore")
     tips = [b.toolTip() for b in group.findChildren(type(window.workspaces.button("Lab")))]
     assert tips == ["Hide  H", "Isolate  I", "Show all  U", "Tracts  T", "Start quiz  Q"]
