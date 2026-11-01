@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QAction, QColor, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QAction, QColor, QFontMetricsF, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QMenu, QWidget
 
 from cns_desktop.design import icons
@@ -17,6 +17,8 @@ CHANGES_HEIGHT = SIZE["lane"]
 LANE_HEIGHT = SIZE["lane"]
 PAD = SIZE["panel_pad"]
 EDGE = 6
+GRAB = 5
+SWIPE = 0.1
 MIN_BLOCK_WIDTH = 6
 MIN_SPAN = 30.0
 INK = color("text")
@@ -51,12 +53,12 @@ class Timeline(QWidget):
         self.setAcceptDrops(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
-        self.setMinimumHeight(RULER_HEIGHT + CHANGES_HEIGHT + LANE_HEIGHT)
         self._press = None
         self._cache: QPixmap | None = None
         self._cache_key = None
         self._length = document.experiment.length
         document.changed.connect(self._on_changed)
+        self._fit_height()
         document.model_changed.connect(self._on_model)
         document.playhead_moved.connect(lambda _t: self.update())
         document.selection_changed.connect(lambda _s: self.update())
@@ -75,12 +77,17 @@ class Timeline(QWidget):
         self._length = self.document.experiment.length
         self.span = (0.0, self._length)
         self._cache = None
+        self._fit_height()
+
+    def _fit_height(self) -> None:
+        self.setMinimumHeight(round(self._lanes_top() + len(self.lane_keys()) * LANE_HEIGHT))
 
     def _on_changed(self) -> None:
         length = self.document.experiment.length
         if length != self._length:
             self._length = length
             self.span = (0.0, length)
+        self._fit_height()
         self.update()
 
     def lane_keys(self) -> list[str]:
@@ -89,14 +96,52 @@ class Timeline(QWidget):
 
     def hide_lane(self, key: str) -> None:
         self.hidden.add(key)
+        self._fit_height()
         self.update()
 
     def show_lanes(self) -> None:
         self.hidden.clear()
+        self._fit_height()
         self.update()
 
     def _plot_width(self) -> float:
         return max(self.width() - LABEL_WIDTH - 8, 10)
+
+    def _plot_area(self) -> QRectF:
+        return QRectF(LABEL_WIDTH, 0, self.width() - LABEL_WIDTH, self.height())
+
+    def _block_span(self, index: int) -> tuple[float, float]:
+        block = self.document.experiment.blocks[index]
+        length = self.document.experiment.length
+        if block.present:
+            return 0.0, length
+        return block.start, block.start + block.length if block.length is not None else length
+
+    def block_rows(self) -> list[int]:
+        blocks = self.document.experiment.blocks
+        order = sorted(range(len(blocks)),
+                       key=lambda i: (not blocks[i].present, self._block_span(i)[0], i))
+        ends: list[float] = []
+        rows = [0] * len(blocks)
+        for index in order:
+            start, end = self._block_span(index)
+            row = next((r for r, last in enumerate(ends) if last <= start), len(ends))
+            if row == len(ends):
+                ends.append(end)
+            else:
+                ends[row] = end
+            rows[index] = row
+        return rows
+
+    def _changes_height(self) -> float:
+        return CHANGES_HEIGHT * max(max(self.block_rows(), default=0) + 1, 1)
+
+    def _lanes_top(self) -> float:
+        return RULER_HEIGHT + self._changes_height()
+
+    def _lane_height(self) -> float:
+        count = max(len(self.lane_keys()), 1)
+        return max(LANE_HEIGHT, (self.height() - self._lanes_top()) / count)
 
     def x_of(self, t: float) -> float:
         start, end = self.span
@@ -109,6 +154,10 @@ class Timeline(QWidget):
     def _snap(self, t: float) -> float:
         step = 1.0 if self.span[1] - self.span[0] < 2 * DAY else 15.0
         return round(t / step) * step
+
+    def show_whole_run(self) -> None:
+        self.span = (0.0, self.document.experiment.length)
+        self.update()
 
     def zoom(self, factor: float, around: float) -> None:
         length = self.document.experiment.length
@@ -130,8 +179,8 @@ class Timeline(QWidget):
 
     def lane_rect(self, key: str) -> QRectF:
         index = self.lane_keys().index(key)
-        top = RULER_HEIGHT + CHANGES_HEIGHT + index * LANE_HEIGHT
-        return QRectF(LABEL_WIDTH, top, self._plot_width(), LANE_HEIGHT)
+        height = self._lane_height()
+        return QRectF(LABEL_WIDTH, self._lanes_top() + index * height, self._plot_width(), height)
 
     def block_rect(self, index: int, preview: tuple[float, float | None] | None = None) -> QRectF:
         block = self.document.experiment.blocks[index]
@@ -144,9 +193,12 @@ class Timeline(QWidget):
             right = start + size if size is not None else length
         x0 = self.x_of(left)
         x1 = max(self.x_of(right), x0 + MIN_BLOCK_WIDTH)
-        return QRectF(x0, RULER_HEIGHT + 4, x1 - x0, CHANGES_HEIGHT - 8)
+        top = RULER_HEIGHT + self.block_rows()[index] * CHANGES_HEIGHT
+        return QRectF(x0, top + 4, x1 - x0, CHANGES_HEIGHT - 8)
 
     def _block_at(self, pos: QPointF) -> int | None:
+        if pos.x() < LABEL_WIDTH:
+            return None
         blocks = self.document.experiment.blocks
         newest_first = list(reversed(range(len(blocks))))
         order = [i for i in newest_first if not blocks[i].present]
@@ -180,7 +232,7 @@ class Timeline(QWidget):
     def _background(self) -> QPixmap:
         doc = self.document
         key = (self.size().toTuple(), self.span, self.compare_on, frozenset(self.hidden),
-               id(doc.run), id(doc.normal), id(doc.snapshot))
+               self._changes_height(), id(doc.run), id(doc.normal), id(doc.snapshot))
         if self._cache is None or key != self._cache_key:
             ratio = self.devicePixelRatioF()
             pixmap = QPixmap(self.size() * ratio)
@@ -199,6 +251,7 @@ class Timeline(QWidget):
         painter = QPainter(self)
         painter.drawPixmap(0, 0, self._background())
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setClipRect(self._plot_area())
         self._paint_blocks(painter)
         x = self.x_of(self.document.playhead)
         painter.setPen(QPen(PLAYHEAD, 2))
@@ -211,23 +264,35 @@ class Timeline(QWidget):
         painter.drawLine(QPointF(LABEL_WIDTH, 0), QPointF(LABEL_WIDTH, self.height()))
         painter.setFont(font("data"))
         painter.setPen(MUTED)
+        for x, rect, text in self.ruler_labels():
+            painter.drawLine(QPointF(x, RULER_HEIGHT - 6), QPointF(x, RULER_HEIGHT))
+            painter.drawText(rect, Qt.AlignmentFlag.AlignBottom, text)
+        painter.setFont(font("label"))
+        painter.setPen(INK)
+        changes = self._changes_height()
+        painter.drawText(QRectF(PAD, RULER_HEIGHT, LABEL_WIDTH - PAD, changes),
+                         Qt.AlignmentFlag.AlignVCenter, "Changes")
+        painter.setPen(LINE)
+        painter.drawLine(QPointF(0, RULER_HEIGHT + changes),
+                         QPointF(self.width(), RULER_HEIGHT + changes))
+
+    def ruler_labels(self) -> list[tuple[float, QRectF, str]]:
+        metrics = QFontMetricsF(font("data"))
         start, end = self.span
         steps = [30, 60, 120, 240, 360, 720, 1440, 2880, 10080]
         step = next((s for s in steps if (end - start) / s <= 8), 10080)
+        labels = []
         tick = (start // step) * step
         while tick <= end:
             x = self.x_of(tick)
-            if x >= LABEL_WIDTH:
-                painter.drawLine(QPointF(x, RULER_HEIGHT - 6), QPointF(x, RULER_HEIGHT))
-                painter.drawText(QPointF(x + 4, RULER_HEIGHT - 8), time_text(tick))
+            text = time_text(tick)
+            rect = QRectF(x + 4, 0, metrics.horizontalAdvance(text), RULER_HEIGHT - 4)
+            if rect.right() > self.width():
+                rect.moveRight(x - 4)
+            if x >= LABEL_WIDTH and rect.left() >= LABEL_WIDTH:
+                labels.append((x, rect, text))
             tick += step
-        painter.setFont(font("label"))
-        painter.setPen(INK)
-        painter.drawText(QRectF(PAD, RULER_HEIGHT, LABEL_WIDTH - PAD, CHANGES_HEIGHT),
-                         Qt.AlignmentFlag.AlignVCenter, "Changes")
-        painter.setPen(LINE)
-        painter.drawLine(QPointF(0, RULER_HEIGHT + CHANGES_HEIGHT),
-                         QPointF(self.width(), RULER_HEIGHT + CHANGES_HEIGHT))
+        return labels
 
     def _paint_blocks(self, painter: QPainter) -> None:
         doc = self.document
@@ -299,7 +364,7 @@ class Timeline(QWidget):
         if event.button() != Qt.MouseButton.LeftButton:
             return super().mousePressEvent(event)
         self.setFocus()
-        if pos.y() < RULER_HEIGHT:
+        if pos.y() < RULER_HEIGHT or self._on_playhead(pos):
             self._press = {"kind": "scrub"}
             self.document.set_playhead(self.t_of(pos.x()))
             return
@@ -317,6 +382,9 @@ class Timeline(QWidget):
             return
         self._press = {"kind": "pan", "x": pos.x()}
 
+    def _on_playhead(self, pos: QPointF) -> bool:
+        return pos.x() >= LABEL_WIDTH and abs(pos.x() - self.x_of(self.document.playhead)) <= GRAB
+
     def _limits(self, start: float, length: float | None) -> tuple[float, float | None]:
         run = self.document.experiment.length
         start = min(max(start, 0.0), run - 1)
@@ -327,6 +395,7 @@ class Timeline(QWidget):
     def mouseMoveEvent(self, event) -> None:
         press = self._press
         if not press or not (event.buttons() & Qt.MouseButton.LeftButton):
+            self._show_cursor(event.position())
             return super().mouseMoveEvent(event)
         x = event.position().x()
         if press["kind"] == "scrub":
@@ -347,6 +416,24 @@ class Timeline(QWidget):
         press["preview"] = (start, length)
         self.update()
 
+    def _show_cursor(self, pos: QPointF) -> None:
+        index = self._block_at(pos)
+        if self._on_playhead(pos) or pos.y() < RULER_HEIGHT:
+            shape = Qt.CursorShape.SizeHorCursor
+        elif index is not None and not self.document.experiment.blocks[index].present:
+            block = self.document.experiment.blocks[index]
+            edge = block.length is not None and pos.x() >= self.block_rect(index).right() - EDGE
+            shape = Qt.CursorShape.SizeHorCursor if edge else Qt.CursorShape.OpenHandCursor
+        else:
+            shape = Qt.CursorShape.ArrowCursor
+        self.setCursor(shape)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        if event.position().y() < RULER_HEIGHT:
+            self.show_whole_run()
+            return
+        super().mouseDoubleClickEvent(event)
+
     def mouseReleaseEvent(self, event) -> None:
         press, self._press = self._press, None
         if not press or "preview" not in press:
@@ -361,10 +448,15 @@ class Timeline(QWidget):
         self.update()
 
     def wheelEvent(self, event) -> None:
-        steps = event.angleDelta().y() / 120
-        if not steps:
+        sideways, steps = event.angleDelta().x() / 120, event.angleDelta().y() / 120
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier and not sideways:
+            sideways, steps = steps, 0.0
+        if sideways:
+            self._pan(-sideways * SWIPE * (self.span[1] - self.span[0]))
+        elif steps:
+            self.zoom(0.8 ** steps, self.t_of(event.position().x()))
+        else:
             return
-        self.zoom(0.8 ** steps, self.t_of(event.position().x()))
         event.accept()
 
     def keyPressEvent(self, event) -> None:
@@ -408,6 +500,8 @@ class Timeline(QWidget):
                 menu.addAction(QAction("Hide lane", menu, triggered=lambda: self.hide_lane(lane)))
             if self.hidden:
                 menu.addAction(QAction("Show every lane", menu, triggered=self.show_lanes))
+            if self.span != (0.0, self.document.experiment.length):
+                menu.addAction(QAction("Show the whole run", menu, triggered=self.show_whole_run))
             toggle = QAction("Show normal line", menu, checkable=True, checked=self.compare_on)
             toggle.toggled.connect(lambda on: setattr(self, "compare", on))
             menu.addAction(toggle)

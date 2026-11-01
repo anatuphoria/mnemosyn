@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QApplication
 from cns_atlas import Atlas
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import MIME
-from cns_desktop.lab.timeline import LABEL_WIDTH, RULER_HEIGHT, Timeline
+from cns_desktop.lab.timeline import LABEL_WIDTH, LANE_HEIGHT, RULER_HEIGHT, Timeline
 
 DAY = 1440.0
 
@@ -155,6 +155,100 @@ def test_lanes_draw_the_normal_run_behind(timeline):
 def test_hidden_lanes_are_skipped(timeline):
     timeline.hide_lane("y")
     assert timeline.lane_keys() == ["x", "m"]
+
+
+def test_a_zoomed_block_stays_out_of_the_name_column(timeline):
+    doc = timeline.document
+    blank = timeline.grab().toImage()
+    doc.add_block("pill", 120.0)
+    timeline.zoom(0.25, 720.0)
+    assert timeline.x_of(120.0) < LABEL_WIDTH
+    y = round(timeline.block_rect(0).center().y())
+    assert timeline._block_at(QPointF(LABEL_WIDTH - 20, y)) is None
+    image = timeline.grab().toImage()
+    for x in range(0, LABEL_WIDTH - 2, 4):
+        assert image.pixel(x, y) == blank.pixel(x, y)
+
+
+def test_the_playhead_can_be_grabbed_anywhere_along_its_line(timeline):
+    doc = timeline.document
+    doc.set_playhead(600.0)
+    before = timeline.span
+    y = round(timeline.lane_rect("y").center().y())
+    x = round(timeline.x_of(600.0))
+    drag(timeline, QPoint(x + 2, y), QPoint(round(timeline.x_of(800.0)), y))
+    assert doc.playhead == pytest.approx(800.0, abs=3.0) and timeline.span == before
+
+
+def test_the_playhead_wins_over_a_block_under_it(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    doc.set_playhead(320.0)
+    y = round(timeline.block_rect(0).center().y())
+    drag(timeline, QPoint(round(timeline.x_of(320.0)), y), QPoint(round(timeline.x_of(500.0)), y))
+    assert doc.playhead == pytest.approx(500.0, abs=3.0)
+    assert doc.experiment.blocks[0].start == 300.0
+
+
+def test_overlapping_changes_stack_in_rows(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 300.0)
+    doc.add_block("stress", 600.0)
+    doc.add_block("stress", 100.0)
+    first, second, third = (timeline.block_rect(i) for i in range(3))
+    assert not first.intersects(second)
+    assert second.top() > first.top()
+    assert third.top() == first.top()
+    assert timeline.lane_rect("x").top() >= second.bottom()
+
+
+def test_ruler_labels_stay_inside_the_widget(timeline):
+    for x, rect, _text in timeline.ruler_labels():
+        assert LABEL_WIDTH <= rect.left() and rect.right() <= timeline.width()
+    texts = [text for _x, _rect, text in timeline.ruler_labels()]
+    assert texts[0] == "0 h" and texts[-1] == "1 d"
+
+
+def test_the_whole_run_comes_back_after_zooming(timeline):
+    timeline.zoom(0.1, 720.0)
+    timeline.show_whole_run()
+    assert timeline.span == (0.0, DAY)
+    timeline.zoom(0.1, 720.0)
+    mouse(timeline, QMouseEvent.Type.MouseButtonDblClick, QPoint(500, 5))
+    assert timeline.span == (0.0, DAY)
+
+
+def test_a_sideways_swipe_pans_when_zoomed(timeline):
+    timeline.zoom(0.25, 720.0)
+    before = timeline.span
+    event = QWheelEvent(QPointF(500, 100), QPointF(timeline.mapToGlobal(QPoint(500, 100))),
+                        QPoint(0, 0), QPoint(-120, 0), Qt.MouseButton.NoButton,
+                        Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.NoScrollPhase, False)
+    timeline.wheelEvent(event)
+    assert timeline.span[0] > before[0]
+    assert timeline.span[1] - timeline.span[0] == pytest.approx(before[1] - before[0])
+
+
+def test_lanes_share_the_height_they_are_given(timeline):
+    timeline.resize(1000, 900)
+    keys = timeline.lane_keys()
+    heights = {round(timeline.lane_rect(k).height()) for k in keys}
+    assert len(heights) == 1 and heights.pop() > LANE_HEIGHT
+    assert timeline.lane_rect(keys[-1]).bottom() == pytest.approx(timeline.height(), abs=2)
+    timeline.resize(1000, 100)
+    assert timeline.lane_rect(keys[0]).height() == LANE_HEIGHT
+
+
+def test_every_lane_and_change_row_fits_in_the_minimum_height(timeline):
+    doc = timeline.document
+    for start in (100.0, 110.0, 120.0):
+        doc.add_block("pill", start)
+    keys = timeline.lane_keys()
+    timeline.resize(1000, timeline.minimumHeight())
+    assert timeline.lane_rect(keys[-1]).bottom() <= timeline.height()
+    assert timeline.block_rect(2).bottom() <= timeline.lane_rect(keys[0]).top()
+    timeline.hide_lane(keys[0])
+    assert timeline.minimumHeight() < timeline.height()
 
 
 def test_timed_blocks_stay_reachable_under_a_present_one(timeline):
