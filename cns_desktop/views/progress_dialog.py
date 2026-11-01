@@ -4,8 +4,8 @@ from collections.abc import Callable
 from datetime import datetime
 
 from fsrs import Scheduler
-from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QLabel, QListWidget, QTableWidget,
-                               QTableWidgetItem, QVBoxLayout)
+from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QHeaderView, QLabel, QListWidget,
+                               QTableWidget, QTableWidgetItem, QVBoxLayout)
 
 from cns_atlas import Atlas
 from cns_study.items import LEVELS, items
@@ -32,6 +32,8 @@ class ProgressDialog(QDialog):
         self.table = QTableWidget(len(MODES) * len(LEVELS), len(COLUMNS))
         self.table.setHorizontalHeaderLabels(COLUMNS)
         self.table.verticalHeader().setVisible(False)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setStretchLastSection(True)
         weak = []
         row = 0
         for mode in MODES:
@@ -58,8 +60,11 @@ class ProgressDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(GAP["wide"], GAP["wide"], GAP["wide"], GAP["large"])
         layout.setSpacing(GAP["medium"])
-        layout.addWidget(self.table)
+        layout.addWidget(self.table, 2)
         layout.addWidget(self.heading)
-        layout.addWidget(self.weakest)
+        layout.addWidget(self.weakest, 1)
         layout.addWidget(buttons)
-        self.resize(*SIZE["dialog"])
+        width, height = SIZE["dialog"]
+        frame = 2 * self.table.frameWidth() + self.table.verticalScrollBar().sizeHint().width()
+        needed = self.table.horizontalHeader().length() + frame + 2 * GAP["wide"]
+        self.resize(max(width, needed), height)

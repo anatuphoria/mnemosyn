@@ -2,7 +2,7 @@ import re
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_desktop.design.theme import apply_theme
@@ -111,3 +111,45 @@ def test_progress_lists_use_no_dashes(window, qapp):
     assert not any(" - " in row for row in rows)
     assert dialog.heading.property("role") == "heading"
     dialog.reject()
+
+
+def test_the_progress_table_shows_every_column_whole(window, qapp):
+    from cns_desktop.views.progress_dialog import COLUMNS, MODE_LABELS, ProgressDialog
+
+    dialog = ProgressDialog(window.state.atlas, window.progress_store(), window)
+    dialog.show()
+    qapp.processEvents()
+    table = dialog.table
+    assert table.horizontalScrollBar().maximum() == 0
+    metrics = table.fontMetrics()
+    widest = max(metrics.horizontalAdvance(label) for label in MODE_LABELS.values())
+    assert table.columnWidth(0) >= widest
+    header = table.horizontalHeader().fontMetrics()
+    for n, name in enumerate(COLUMNS):
+        assert table.columnWidth(n) >= header.horizontalAdvance(name), name
+    dialog.reject()
+
+
+def test_dialog_buttons_carry_no_desktop_icons(window, qapp):
+    from cns_desktop.views.progress_dialog import ProgressDialog
+
+    from PySide6.QtWidgets import QDialogButtonBox, QStyle
+
+    dialog = ProgressDialog(window.state.atlas, window.progress_store(), window)
+    dialog.show()
+    qapp.processEvents()
+    from cns_desktop.design import stylesheet
+
+    assert "dialogbuttonbox-buttons-have-icons: 0" in stylesheet.build()
+    box = dialog.findChild(QDialogButtonBox)
+    hint = QStyle.StyleHint.SH_DialogButtonBox_ButtonsHaveIcons
+    assert box.style().styleHint(hint, None, box) == 0
+    for button in dialog.findChildren(QPushButton):
+        assert button.icon().isNull(), button.text()
+    dialog.reject()
+
+
+def test_dialog_labels_sit_on_the_dialog_background(window, qapp):
+    from cns_desktop.design import stylesheet
+
+    assert "QDialog QLabel { background: transparent; }" in stylesheet.build()

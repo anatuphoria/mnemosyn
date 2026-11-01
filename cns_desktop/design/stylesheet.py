@@ -35,6 +35,8 @@ SHEET = Template("""
 QWidget { color: $text; background: $s1; selection-background-color: $accent;
           selection-color: white; }
 QMainWindow, QDialog { background: $s0; }
+QDialog QLabel { background: transparent; }
+QDialogButtonBox { dialogbuttonbox-buttons-have-icons: 0; }
 QMainWindow::separator { background: $line; width: 1px; height: 1px; }
 QMainWindow::separator:hover { background: $accent; }
 QDockWidget { color: $text; }
