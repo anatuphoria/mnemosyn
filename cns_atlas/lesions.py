@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from weakref import WeakKeyDictionary
 
@@ -180,3 +181,64 @@ def territory_lesion(atlas, structure_id: int) -> Lesion:
         resampled[ok] = inside[tuple(voxels[:, ok])]
         inside = resampled.reshape(brain.shape)
     return Lesion.empty(atlas).with_mask(brain.name, inside)
+
+
+CITATION = re.compile(r"\s*\[\d+(?:,\s*\d+)*\]")
+CASE_TRIES = 12
+
+
+@dataclass(frozen=True)
+class Case:
+    target: Lesion
+    target_id: int
+    label: str
+    signs: tuple[str, ...]
+
+
+def clean_sign(sign: str) -> str:
+    return CITATION.sub("", sign).strip()
+
+
+def signs_of(found: Report) -> tuple[str, ...]:
+    signs: list[str] = []
+    for deficit in found.deficits:
+        sign = clean_sign(deficit.sign)
+        if sign and sign not in signs:
+            signs.append(sign)
+    return tuple(signs)
+
+
+def compare(case: tuple[str, ...], mine: tuple[str, ...]) -> tuple[list[str], list[str],
+                                                                   list[str]]:
+    return ([s for s in case if s in mine], [s for s in case if s not in mine],
+            [s for s in mine if s not in case])
+
+
+def _case_candidates(atlas) -> list[int]:
+    found: list[int] = []
+    for pathway in atlas.pathways:
+        if pathway.texts != "lesion":
+            continue
+        for side in SIDES:
+            text = atlas.pathway_text(pathway.key, side)
+            if text is None:
+                continue
+            for index, step in enumerate(pathway.steps):
+                if isinstance(step, Station) and text.steps[index].sign:
+                    found += [i for i in resolve(atlas, step, side) if i not in found]
+    return found + [s.id for s in territories(atlas)]
+
+
+def new_case(atlas, rng) -> Case | None:
+    candidates = _case_candidates(atlas)
+    if not candidates:
+        return None
+    for _ in range(CASE_TRIES):
+        target_id = rng.choice(candidates)
+        kind = atlas.get(target_id).kind
+        target = (territory_lesion(atlas, target_id) if kind == "territory"
+                  else structure_lesion(atlas, target_id))
+        signs = signs_of(report(atlas, target))
+        if signs:
+            return Case(target, target_id, atlas.get(target_id).name, signs)
+    return None

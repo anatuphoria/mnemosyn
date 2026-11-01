@@ -3,12 +3,12 @@ from __future__ import annotations
 import numpy as np
 import pyvista as pv
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget
 
 from cns_desktop.design.panels import PanelGroup
 from cns_desktop.design.tokens import SIZE
 
 from .document import LesionDocument
+from .cases_panel import CasesPanel
 from .place_panel import PlacePanel
 from .results_panel import DeficitsPanel, HitPanel
 
@@ -35,7 +35,8 @@ class LesionWorkspace:
     def __init__(self, window) -> None:
         self.window = window
         self.document = LesionDocument(window.state.atlas, window)
-        self.place, self.cases = PlacePanel(self.document, window), QWidget()
+        self.place = PlacePanel(self.document, window)
+        self.cases = CasesPanel(self.document, self)
         self.deficits = DeficitsPanel(self.document)
         self.hit = HitPanel(self.document, window.state)
         self.tools_group = self._group("Lesion tools", [("place", "Place", self.place),
@@ -74,17 +75,28 @@ class LesionWorkspace:
         self.window.slices.set_lesion(self.document.lesion.masks)
         self.window.view.set_lesion_body(lesion_mesh(self.document.atlas, self.document.lesion))
 
+    def show_answer(self, lesion) -> None:
+        if not self.active:
+            return
+        self.window.slices.set_answer(lesion.masks if lesion is not None else {})
+        self.window.view.set_answer_body(lesion_mesh(self.document.atlas, lesion)
+                                         if lesion is not None else None)
+
     def enter(self) -> None:
         self._saved = self.window._snapshot()
         self.active = True
         self.place.activate(True)
         self._show()
+        if self.cases.revealed and self.cases.case is not None:
+            self.show_answer(self.cases.case.target)
 
     def leave(self) -> None:
         self.place.activate(False)
         self.active = False
         self.window.slices.set_lesion({})
+        self.window.slices.set_answer({})
         self.window.view.set_lesion_body(None)
+        self.window.view.set_answer_body(None)
         if self._saved is not None:
             self.window._restore(*self._saved)
             self._saved = None

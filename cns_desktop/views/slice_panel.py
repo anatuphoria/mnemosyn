@@ -100,6 +100,7 @@ class SlicePanel(QWidget):
         self._view_key: tuple[str, str] | None = None
         self.brush = None
         self.lesion_masks: dict[str, np.ndarray] = {}
+        self.answer_masks: dict[str, np.ndarray] = {}
 
         bar = QHBoxLayout()
         bar.setContentsMargins(GAP["small"], GAP["small"], GAP["small"], GAP["small"])
@@ -285,7 +286,8 @@ class SlicePanel(QWidget):
         selected = slices.mask_table(size, chosen)
         self.layer = slices.overlay(labels_2d, self.colors, hidden, selected, self.opacity)
         self._draw_tracts(axis, set(chosen))
-        self._draw_lesion(axis)
+        self._draw_mask(self.lesion_masks, "edited", axis)
+        self._draw_mask(self.answer_masks, "accent", axis)
         self._template_2d, self._image = template_2d, None
         if template_2d is None:
             self.template_item.clear()
@@ -307,14 +309,18 @@ class SlicePanel(QWidget):
         self.lesion_masks = dict(masks)
         self.redraw()
 
-    def _draw_lesion(self, axis: str) -> None:
-        mask = self.lesion_masks.get(self.labels.name)
+    def set_answer(self, masks: dict[str, np.ndarray]) -> None:
+        self.answer_masks = dict(masks)
+        self.redraw()
+
+    def _draw_mask(self, masks: dict[str, np.ndarray], role: str, axis: str) -> None:
+        mask = masks.get(self.labels.name)
         if mask is None or mask.shape != tuple(self.labels.shape):
             return
         flat = slices.extract(mask, self.labels.affine, axis, self.index)
         if not flat.any():
             return
-        tint = color("edited")
+        tint = color(role)
         rgb = np.array([tint.red(), tint.green(), tint.blue()], dtype=float)
         layer = self.layer.astype(float)
         layer[flat, :3] = (1 - LESION_ALPHA) * layer[flat, :3] + LESION_ALPHA * rgb

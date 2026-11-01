@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS reviews (
   rating INTEGER NOT NULL, correct INTEGER NOT NULL, answer_ms INTEGER NOT NULL,
   reviewed_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS reviews_by_item ON reviews (atlas, mode, item, reviewed_at);
+CREATE TABLE IF NOT EXISTS lesion_cases (
+  id INTEGER PRIMARY KEY, atlas TEXT NOT NULL, target INTEGER NOT NULL,
+  matched INTEGER NOT NULL, missed INTEGER NOT NULL, extra INTEGER NOT NULL,
+  played_at TEXT NOT NULL);
 """
 UPSERT_CARD = ("INSERT INTO cards VALUES (?, ?, ?, ?, ?) ON CONFLICT (atlas, item, mode) "
                "DO UPDATE SET card = excluded.card, due = excluded.due")
@@ -117,6 +121,19 @@ class ProgressStore:
             "SELECT COUNT(*) FROM (SELECT MIN(reviewed_at) AS first FROM reviews "
             "WHERE atlas = ? AND mode = ? GROUP BY item) WHERE first >= ?",
             (self.atlas, mode, stamp(since))).fetchone()[0]
+
+    def record_case(self, target: int, matched: int, missed: int, extra: int,
+                    when: datetime) -> None:
+        with self.db:
+            self.db.execute("INSERT INTO lesion_cases (atlas, target, matched, missed, extra, "
+                            "played_at) VALUES (?, ?, ?, ?, ?, ?)",
+                            (self.atlas, int(target), int(matched), int(missed), int(extra),
+                             stamp(when)))
+
+    def cases(self) -> list[tuple[int, int, int, int]]:
+        rows = self.db.execute("SELECT target, matched, missed, extra FROM lesion_cases "
+                               "WHERE atlas = ? ORDER BY id", (self.atlas,))
+        return [tuple(row) for row in rows]
 
     def close(self) -> None:
         self.db.close()

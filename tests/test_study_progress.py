@@ -137,3 +137,14 @@ def test_day_boundaries_follow_the_calendar_across_a_clock_change(berlin):
     moment = datetime(2026, 10, 24, 10, tzinfo=UTC)
     assert day_start(moment, 2).astimezone().hour == 0
     assert day_start(moment, 2) - day_start(moment, 1) == timedelta(hours=25)
+
+
+def test_lesion_cases_are_kept_per_atlas(tmp_path):
+    path = tmp_path / "progress.sqlite"
+    store = ProgressStore(path, "atlas-a")
+    when = datetime(2026, 11, 1, 9, tzinfo=UTC)
+    store.record_case(101, matched=2, missed=1, extra=0, when=when)
+    store.close()
+    again = ProgressStore(path, "atlas-a")
+    assert again.cases() == [(101, 2, 1, 0)]
+    assert ProgressStore(path, "atlas-b").cases() == []

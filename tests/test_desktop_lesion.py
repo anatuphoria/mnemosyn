@@ -7,6 +7,7 @@ from atlas_fixtures import place_territories, sha256_file, write_extended_source
 from cns_atlas import Atlas
 from cns_atlas.lesions import Lesion, structure_lesion, territory_lesion
 from cns_atlas import DISCLAIMER
+from cns_desktop.lesion.cases_panel import NO_CASES
 from cns_desktop.lesion.place_panel import CORD_MISSING, TERRITORIES_MISSING
 from cns_desktop.lesion.results_panel import EMPTY_LESION
 from cns_desktop.main_window import MainWindow
@@ -292,3 +293,60 @@ def test_each_route_group_says_where_it_starts(window, qapp):
     lesion = entered(window, qapp)
     lesion.document.set_lesion(structure_lesion(window.state.atlas, 101), "Alpha")
     assert "From the left alpha gyrus" in lesion.deficits.toPlainText()
+
+
+@pytest.fixture(scope="module")
+def sign_atlas(tmp_path_factory):
+    from atlas_fixtures import TOY_PATHWAY_TEXTS
+
+    root = tmp_path_factory.mktemp("lesionsigns")
+    src = write_extended_source_tree(root, tracts=True, pathways=True)
+    loop = TOY_PATHWAY_TEXTS["pathway-loop"].replace(
+        "Lesion: Loss on the {opposite} side.",
+        "Lesion: Loss on the {opposite} side.\nSign: Numb {opposite} hand [ref2020].", 1)
+    (src / "knowledge" / "en" / "pathway-loop.md").write_text(loop)
+    return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)
+
+
+def test_a_whole_case_runs_and_is_recorded(qapp, sign_atlas, tmp_path):
+    import random
+    w = open_window(qapp, sign_atlas, tmp_path)
+    try:
+        lesion = entered(w, qapp)
+        cases = lesion.cases
+        cases.rng = random.Random(3)
+        cases.new_case_button.click()
+        case = cases.case
+        assert case is not None and all(s in cases.signs_label.text() for s in case.signs)
+        assert not cases.check_button.isEnabled()
+        lesion.document.set_lesion(case.target, "Answer")
+        assert cases.check_button.isEnabled()
+        cases.check_button.click()
+        result = cases.result_label.text()
+        assert "Matched" in result and case.label in result
+        assert w.progress_store().cases() == [(case.target_id, len(case.signs), 0, 0)]
+        assert w.slices.answer_masks and w.view.answer_actor.GetVisibility()
+    finally:
+        w.close()
+
+
+def test_a_case_survives_leaving_and_returning(qapp, sign_atlas, tmp_path):
+    import random
+    w = open_window(qapp, sign_atlas, tmp_path)
+    try:
+        lesion = entered(w, qapp)
+        lesion.cases.rng = random.Random(3)
+        lesion.cases.new_case_button.click()
+        case = lesion.cases.case
+        w.workspaces.switch("Explore")
+        assert not w.slices.answer_masks
+        entered(w, qapp)
+        assert lesion.cases.case is case and case.signs[0] in lesion.cases.signs_label.text()
+    finally:
+        w.close()
+
+
+def test_cases_say_so_when_no_route_has_signs(window, qapp):
+    cases = entered(window, qapp).cases
+    cases.new_case_button.click()
+    assert cases.case is None and cases.signs_label.text() == NO_CASES

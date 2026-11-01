@@ -99,6 +99,7 @@ class BrainView(QtInteractor):
         self.overlay_ids: list[int] = []
         self._plane_key = None
         self.lesion_actor = None
+        self.answer_actor = None
         self.plane = self.add_mesh(pv.Plane(), color="white", opacity=PLANE_OPACITY,
                                    pickable=False, reset_camera=False, lighting=False)
 
@@ -175,15 +176,23 @@ class BrainView(QtInteractor):
         return (low + high) / 2
 
     def set_lesion_body(self, mesh) -> None:
+        self._set_body("lesion_actor", mesh, COLOURS["edited"])
+
+    def set_answer_body(self, mesh) -> None:
+        self._set_body("answer_actor", mesh, COLOURS["accent"])
+
+    def _set_body(self, name: str, mesh, colour: str) -> None:
         empty = mesh is None or mesh.n_points == 0
-        if self.lesion_actor is None:
+        actor = getattr(self, name)
+        if actor is None:
             if empty:
                 return
-            self.lesion_actor = self.add_mesh(mesh, color=COLOURS["edited"], opacity=LESION_OPACITY,
-                                              pickable=False, reset_camera=False)
+            actor = self.add_mesh(mesh, color=colour, opacity=LESION_OPACITY, pickable=False,
+                                  reset_camera=False)
+            setattr(self, name, actor)
         elif not empty:
-            self.lesion_actor.GetMapper().SetInputData(mesh)
-        self.lesion_actor.SetVisibility(not empty)
+            actor.GetMapper().SetInputData(mesh)
+        actor.SetVisibility(not empty)
         self._render_soon.start()
 
     def set_grey_opacity(self, opacity: float) -> None:

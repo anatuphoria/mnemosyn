@@ -2,12 +2,28 @@ import numpy as np
 import pytest
 
 from cns_atlas import Atlas
-from cns_atlas.lesions import BROKEN, PARTLY, Lesion, hits, report, sphere, structure_lesion
+from cns_atlas.lesions import (BROKEN, PARTLY, Lesion, clean_sign, compare, hits, new_case, report,
+                               signs_of, sphere, structure_lesion)
 
 
 @pytest.fixture(scope="module")
 def atlas(toy_pathway_atlas):
     return Atlas.open(toy_pathway_atlas)
+
+
+@pytest.fixture(scope="module")
+def sign_atlas(tmp_path_factory):
+    from atlas_fixtures import TOY_PATHWAY_TEXTS, write_extended_source_tree
+    from tools.build_atlas.build import build
+
+    root = tmp_path_factory.mktemp("signs")
+    src = write_extended_source_tree(root, tracts=True, pathways=True)
+    loop = TOY_PATHWAY_TEXTS["pathway-loop"].replace(
+        "Lesion: Loss on the {opposite} side.",
+        "Lesion: Loss on the {opposite} side.\nSign: Numb {opposite} hand [ref2020].", 1)
+    (src / "knowledge" / "en" / "pathway-loop.md").write_text(loop)
+    return Atlas.open(build(src, root / "out" / "toy", cache=root / "cache",
+                            log=lambda *_: None))
 
 
 def brain(atlas):
@@ -139,3 +155,27 @@ def test_a_structure_lesion_takes_all_of_it(atlas):
     assert hits(atlas, structure_lesion(atlas, 152))[152] == pytest.approx(1.0)
     both = hits(atlas, structure_lesion(atlas, 100))
     assert both[101] == pytest.approx(1.0) and both[102] == pytest.approx(1.0)
+
+
+def test_signs_drop_their_citation_numbers():
+    assert clean_sign("Weakness of the right side of the body [2].") == (
+        "Weakness of the right side of the body.")
+    assert clean_sign("Numb hand [1, 3].") == "Numb hand."
+
+
+def test_compare_sorts_signs_into_matched_missed_and_extra():
+    case = ("A.", "B.")
+    assert compare(case, ("B.", "C.")) == (["B."], ["A."], ["C."])
+
+
+def test_a_case_lists_the_signs_of_its_own_lesion(sign_atlas):
+    import random
+    case = new_case(sign_atlas, random.Random(3))
+    assert case is not None and case.signs
+    expected = signs_of(report(sign_atlas, case.target))
+    assert case.signs == expected and case.label
+
+
+def test_no_case_without_signs(atlas):
+    import random
+    assert new_case(atlas, random.Random(1)) is None
