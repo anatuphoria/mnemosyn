@@ -244,6 +244,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
         allowed = {p.structure.id for p in planned
                    if s.trim_outside in p.structure.structure_id_path}
         for vspec, data, affine in volumes:
+            if vspec.role != "labels":
+                continue
             images[s.source.id] = trim_against(images[s.source.id], data, affine,
                                                allowed if vspec.name == s.volume else None)
     if trimmed:
