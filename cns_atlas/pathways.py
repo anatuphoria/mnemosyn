@@ -8,9 +8,9 @@ from .knowledge import Entry, Reference
 from .model import Pathway, Station, Step, Structure
 
 START_SIDES = ("left", "right")
-STYLE_LABELS = {"lesion": (("Role:", "Lesion:"), ()),
+STYLE_LABELS = {"lesion": (("Role:", "Lesion:"), ("Sign:",)),
                 "behaviour": (("Role:", "Disorders:"), ("Drugs:",))}
-ALL_LABELS = ("Role:", "Lesion:", "Disorders:", "Drugs:")
+ALL_LABELS = ("Role:", "Lesion:", "Disorders:", "Drugs:", "Sign:")
 SIDE_WORD = re.compile(r"\{([^{}\n]*)\}")
 
 
@@ -20,6 +20,7 @@ class StepText:
     lesion: str = ""
     disorders: str = ""
     drugs: str = ""
+    sign: str = ""
 
 
 @dataclass(frozen=True)
@@ -114,7 +115,8 @@ def text_for(entry: Entry, count: int, side: str, sides: str = "one") -> Pathway
         return entry.numbered(fill(text, side) if sides == "one" else text)
 
     parsed = (step_text(entry.sections.get(f"Step {n}", "")) for n in range(1, count + 1))
-    steps = tuple(StepText(show(t.role), show(t.lesion), show(t.disorders), show(t.drugs))
+    steps = tuple(StepText(show(t.role), show(t.lesion), show(t.disorders), show(t.drugs),
+                           show(t.sign))
                   for t in parsed)
     return PathwayText(entry.status, show(entry.sections.get("Overview", "")), steps,
                        entry.references)

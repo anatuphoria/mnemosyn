@@ -149,7 +149,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     problems += check_templates(recipe, src)
     problems += check_knowledge(src / "knowledge", references, {r.id: r.concept for r in raws},
                                 {f"pathway-{p.key}" for p in pathways})
-    problems += check_pathway_texts(src / "knowledge", pathways)
+    problems += check_pathway_texts(src / "knowledge", pathways,
+                                    [n for r in raws for n in (r.name, *r.synonyms)])
     if problems:
         raise BuildError(problems)
     raws = resolve_members(raws, {s.source.id: s.member_values

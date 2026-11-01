@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import replace
 from pathlib import Path
 
 from cns_atlas.knowledge import KnowledgeError, parse_entry
 from cns_atlas.model import (PATHWAY_SIDES, STEP_SIDES, TEXT_STYLES, Pathway, Relay, Station,
                              Structure, step_from_json)
-from cns_atlas.pathways import lit, lit_both, side_words, step_problems, unknown_side_words
+from cns_atlas.pathways import (lit, lit_both, side_words, step_problems, step_text,
+                                unknown_side_words)
 
 from .recipe import BuildError, read_toml
 
@@ -130,8 +132,10 @@ def check_pathways(pathways: list[Pathway], structures: list[Structure], shaped:
     return problems
 
 
-def check_pathway_texts(knowledge_dir: Path, pathways: list[Pathway]) -> list[str]:
+def check_pathway_texts(knowledge_dir: Path, pathways: list[Pathway],
+                        names: Iterable[str] = ()) -> list[str]:
     problems = []
+    named = [(name.lower(), re.compile(rf"\b{re.escape(name.lower())}\b")) for name in names]
     for pathway in pathways:
         name = f"pathway-{pathway.key}.md"
         if not (knowledge_dir / "en" / name).exists():
@@ -148,9 +152,12 @@ def check_pathway_texts(knowledge_dir: Path, pathways: list[Pathway]) -> list[st
                 problems.append(f"{path}: sections must be Overview, then Step 1 to Step {count}")
                 continue
             for n in range(1, count + 1):
+                body = entry.sections[f"Step {n}"]
                 problems += [f"{path}: Step {n}: {problem}"
-                             for problem in step_problems(entry.sections[f"Step {n}"],
-                                                           pathway.texts)]
+                             for problem in step_problems(body, pathway.texts)]
+                sign = step_text(body).sign.lower()
+                problems += [f"{path}: Step {n}: Sign line names {name}"
+                             for name, pattern in named if sign and pattern.search(sign)]
             for section, body in entry.sections.items():
                 if pathway.sides == "both":
                     problems += [f"{path}: {section}: side word {{{word}}} in a both-sides route"

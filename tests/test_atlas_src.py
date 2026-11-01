@@ -160,6 +160,16 @@ def test_pathways_light_shapes_on_both_sides_and_match_their_texts():
     assert check_pathway_texts(SRC / "knowledge", pathways) == []
 
 
+def test_every_lesion_route_has_signs_that_name_no_structure():
+    pathways = load_pathways(SRC / "pathways.toml")
+    raws = load_structures(SRC / "structures.toml")
+    names = [n for r in raws for n in (r.name, *r.synonyms)]
+    assert check_pathway_texts(SRC / "knowledge", pathways, names=names) == []
+    for pathway in (p for p in pathways if p.texts == "lesion"):
+        text = (SRC / "knowledge" / "en" / f"pathway-{pathway.key}.md").read_text()
+        assert "\nSign: " in text, pathway.key
+
+
 def test_pathway_texts_are_drafts_citing_a_reference_in_every_section():
     paths = sorted((SRC / "knowledge" / "en").glob("pathway-*.md"))
     assert len(paths) == 18

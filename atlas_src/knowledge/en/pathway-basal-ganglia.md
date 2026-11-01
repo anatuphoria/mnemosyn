@@ -8,6 +8,7 @@ The basal ganglia motor loop runs from the cortex through the striatum and the p
 ## Step 1
 Role: The supplementary motor area plans and starts self-initiated movements and sends this to the putamen [purves2018].
 Lesion: Fewer self-started movements, mostly of the {opposite} limbs, and reduced speech after a left-sided lesion [kandel2021].
+Sign: Fewer self started movements of the {opposite} arm and leg [kandel2021].
 
 ## Step 2
 Role: Carries excitatory input from the cortex to the striatum [purves2018].
@@ -16,23 +17,29 @@ Lesion: Damage reduces the cortical input the basal ganglia need to select movem
 ## Step 3
 Role: The motor part of the striatum: it receives the cortex and starts the direct pathway, which releases movement, and the indirect pathway, which holds it back [purves2018].
 Lesion: Can cause involuntary movements of the {opposite} limbs, such as dystonia or chorea; a putaminal bleed that reaches the internal capsule also weakens the {opposite} side [kandel2021].
+Sign: Involuntary twisting or jerking movements of the {opposite} arm and leg [kandel2021].
 
 ## Step 4
 Role: Dopamine neurons of the pars compacta tune the putamen, helping the direct pathway and holding back the indirect one [purves2018].
 Lesion: Loss of these neurons causes Parkinson's disease: slowness, rigidity and rest tremor, usually starting on the side of the body opposite the more affected nigra, here the {opposite} side [kandel2021].
+Sign: Slowness, stiffness and a resting tremor, worse on the {opposite} side [kandel2021].
 
 ## Step 5
 Role: The internal part of the globus pallidus is the main output of the basal ganglia; it keeps the motor thalamus under steady inhibition that the direct pathway releases [purves2018].
 Lesion: Lesions can cause dystonia; a surgical lesion (pallidotomy) eases Parkinson's symptoms on the {opposite} side [kandel2021].
+Sign: Abnormal twisting postures [kandel2021].
 
 ## Step 6
 Role: The motor thalamus relays the basal ganglia output back to the motor areas of the frontal cortex [purves2018].
 Lesion: Damage can cause clumsiness and involuntary movements of the {opposite} limbs [kandel2021].
+Sign: Clumsiness and involuntary movements of the {opposite} arm and leg [kandel2021].
 
 ## Step 7
 Role: Fibres between the motor thalamus and the frontal motor areas; in this loop they carry its output back to the cortex [purves2018].
 Lesion: Damage, usually together with the internal capsule around it, causes weakness and clumsiness of the {opposite} limbs [kandel2021].
+Sign: Weakness and clumsiness of the {opposite} arm and leg [kandel2021].
 
 ## Step 8
 Role: The loop ends where movement commands leave the cortex, in the primary motor cortex [penfield1937].
 Lesion: Weakness of the {opposite} side of the body [kandel2021].
+Sign: Weakness of the {opposite} side of the body [kandel2021].

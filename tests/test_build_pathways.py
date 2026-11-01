@@ -168,3 +168,16 @@ def test_unknown_top_level_keys_stop_the_build(tmp_path):
         load_pathways(write(tmp_path, '[[pathway]]\nkey = "p"\n'))
     assert error.value.problems == [
         f"{tmp_path / 'pathways.toml'}: unknown top-level keys ['pathway']"]
+
+
+def test_a_sign_line_may_not_name_a_structure(tmp_path):
+    pathways = load_pathways(write(tmp_path, TOY_PATHWAYS))
+    loop = TOY_PATHWAY_TEXTS["pathway-loop"].replace(
+        "Lesion: Loss on the {opposite} side.",
+        "Lesion: Loss on the {opposite} side.\nSign: Numb {opposite} hand and Alpha Gyrus.", 1)
+    knowledge = text_tree(tmp_path, {**TOY_PATHWAY_TEXTS, "pathway-loop": loop})
+    problems = check_pathway_texts(knowledge, pathways, names=("Alpha gyrus", "Beta nucleus"))
+    assert any(p.endswith("pathway-loop.md: Step 1: Sign line names alpha gyrus") for p in problems), problems
+    clean = loop.replace(" and Alpha Gyrus", "")
+    knowledge = text_tree(tmp_path / "again", {**TOY_PATHWAY_TEXTS, "pathway-loop": clean})
+    assert check_pathway_texts(knowledge, pathways, names=("Alpha gyrus",)) == []

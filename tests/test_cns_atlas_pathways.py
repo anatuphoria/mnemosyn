@@ -216,3 +216,11 @@ def test_lesion_style_refuses_disorder_lines():
 
 def test_side_words_lists_every_braced_word():
     assert side_words("the {same} side and {left}") == ["same", "left"]
+
+
+def test_a_sign_line_is_optional_and_parsed():
+    assert step_problems("Role: A.\nLesion: B.\nSign: C.") == []
+    assert step_problems("Role: A.\nLesion: B.\nSign: C.\nSign: D.") == [
+        "needs at most one 'Sign:' line, found 2"]
+    assert step_text("Role: A.\nLesion: B.\nSign: Weak {opposite} arm.").sign == "Weak {opposite} arm."
+    assert step_text("Role: A.\nLesion: B.").sign == ""
