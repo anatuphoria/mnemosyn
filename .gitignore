@@ -11,3 +11,6 @@ views.json
 atlases/
 .pytest_cache/
 .timing-baseline.json
+ArterialAtlasLables.txt
+Atlas_MNI152.zip
+review/
