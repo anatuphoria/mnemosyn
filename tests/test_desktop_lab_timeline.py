@@ -1,5 +1,5 @@
 import pytest
-from PySide6.QtCore import QMimeData, QPoint, QPointF, Qt
+from PySide6.QtCore import QEvent, QMimeData, QPoint, QPointF, Qt
 from PySide6.QtGui import QDropEvent, QMouseEvent, QWheelEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
@@ -453,6 +453,52 @@ def test_a_zoomed_change_keeps_its_name_in_view(timeline):
     timeline.zoom(0.25, 720.0)
     assert timeline.block_rect(0).left() < LABEL_WIDTH
     assert timeline.block_label_rect(0).left() >= LABEL_WIDTH
+
+
+def hover(timeline, x, y):
+    mouse(timeline, QMouseEvent.Type.MouseMove, QPoint(round(x), round(y)), Qt.MouseButton.NoButton)
+
+
+def test_hovering_a_lane_reads_its_values(timeline):
+    hover(timeline, timeline.x_of(500.0), timeline.lane_rect("y").center().y())
+    assert timeline.hover_t == pytest.approx(500.0, abs=2.0)
+    values = timeline.hover_values()
+    assert set(values) == set(timeline.lane_keys())
+    assert values["x"] == plain(timeline.document.run.display("x", timeline.hover_t), 3)
+
+
+def test_the_hover_goes_away_on_leave_and_on_press(timeline):
+    y = timeline.lane_rect("y").center().y()
+    hover(timeline, timeline.x_of(500.0), y)
+    QApplication.sendEvent(timeline, QEvent(QEvent.Type.Leave))
+    assert timeline.hover_t is None and timeline.hover_values() == {}
+    hover(timeline, timeline.x_of(500.0), y)
+    mouse(timeline, QMouseEvent.Type.MouseButtonPress, QPoint(round(timeline.x_of(500.0)), round(y)))
+    assert timeline.hover_t is None
+    mouse(timeline, QMouseEvent.Type.MouseButtonRelease, QPoint(round(timeline.x_of(500.0)), round(y)))
+
+
+def test_no_hover_over_the_header_the_names_or_when_turned_off(timeline):
+    hover(timeline, timeline.x_of(500.0), timeline.ruler_rect().center().y())
+    assert timeline.hover_t is None
+    hover(timeline, 40, timeline.lane_rect("y").center().y())
+    assert timeline.hover_t is None
+    timeline.show_hover = False
+    hover(timeline, timeline.x_of(500.0), timeline.lane_rect("y").center().y())
+    assert timeline.hover_t is None
+
+
+def test_a_new_length_clears_the_hover(timeline):
+    hover(timeline, timeline.x_of(500.0), timeline.lane_rect("y").center().y())
+    timeline.document.set_length(3 * DAY)
+    assert timeline.hover_t is None
+
+
+def test_a_failed_run_has_no_hover_values(timeline):
+    hover(timeline, timeline.x_of(500.0), timeline.lane_rect("y").center().y())
+    timeline.document.run = None
+    assert timeline.hover_values() == {}
+    timeline.grab()
 
 
 def test_timed_blocks_stay_reachable_under_a_present_one(timeline):

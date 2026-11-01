@@ -39,6 +39,7 @@ BADGE_PAD = 6
 BADGE_INSET = 3
 GUIDE_ALPHA = 110
 FINE_STEPS = 10
+TAG_PAD = 4
 LANE_COLORS = DATA_PALETTE
 NAME_ROW = 15
 VALUE_GAP = 6
@@ -65,6 +66,8 @@ class Timeline(QWidget):
         self.compare_on = True
         self.show_overview = True
         self.show_guides = True
+        self.show_hover = True
+        self.hover_t: float | None = None
         self.hidden: set[str] = set()
         self.span = (0.0, document.experiment.length)
         self.setAcceptDrops(True)
@@ -98,6 +101,7 @@ class Timeline(QWidget):
         self._length = self.document.experiment.length
         self.span = (0.0, self._length)
         self._cache = None
+        self.hover_t = None
         self.scroll.setValue(0)
         self._fit_height()
         self._sync_scroll()
@@ -111,6 +115,7 @@ class Timeline(QWidget):
             self._length = length
             self.span = (0.0, length)
             self.scroll.setValue(0)
+            self.hover_t = None
         self._sync_scroll()
         self.update()
 
@@ -396,11 +401,13 @@ class Timeline(QWidget):
         painter.setClipRect(self._plot_area().intersected(body))
         self._paint_guides(painter)
         self._paint_blocks(painter)
+        self._paint_hover(painter)
         painter.setClipRect(self._plot_area())
         x = self.x_of(self.document.playhead)
         painter.setPen(QPen(PLAYHEAD, 2))
         painter.drawLine(QPointF(x, self.ruler_rect().top()), QPointF(x, self.height()))
         painter.setClipping(False)
+        self._paint_hover_time(painter)
         self._paint_badge(painter)
         if self.show_overview:
             self._paint_overview(painter)
@@ -524,6 +531,70 @@ class Timeline(QWidget):
                 xs.append(x)
         return xs
 
+    def hover_values(self) -> dict[str, str]:
+        run = self.document.run
+        if self.hover_t is None or run is None:
+            return {}
+        return {key: plain(run.display(key, self.hover_t), 3) for key in self.lane_keys()}
+
+    def _hover_at(self, pos: QPointF) -> float | None:
+        keys = self.lane_keys()
+        if not (self.show_hover and keys) or pos.x() < LABEL_WIDTH:
+            return None
+        if pos.x() > LABEL_WIDTH + self._plot_width() or pos.y() < self._lanes_top():
+            return None
+        if pos.y() < self.body_top() or pos.y() > self.lane_rect(keys[-1]).bottom():
+            return None
+        return self.t_of(pos.x())
+
+    def _set_hover(self, t: float | None) -> None:
+        if t != self.hover_t:
+            self.hover_t = t
+            self.update()
+
+    def leaveEvent(self, event) -> None:
+        self._set_hover(None)
+        super().leaveEvent(event)
+
+    def _paint_hover(self, painter: QPainter) -> None:
+        values = self.hover_values()
+        if not values:
+            return
+        x = self.x_of(self.hover_t)
+        keys = self.lane_keys()
+        painter.setPen(QPen(MUTED, 1))
+        painter.drawLine(QPointF(x, self._lanes_top()), QPointF(x, self.lane_rect(keys[-1]).bottom()))
+        painter.setFont(font("data"))
+        metrics = painter.fontMetrics()
+        for key in keys:
+            text = values[key]
+            lane = self.lane_rect(key)
+            width = metrics.horizontalAdvance(text) + 2 * TAG_PAD
+            left = x + TAG_PAD if x + TAG_PAD + width <= lane.right() else x - TAG_PAD - width
+            tag = QRectF(left, lane.center().y() - metrics.height() / 2, width, metrics.height())
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(BAR)
+            painter.drawRoundedRect(tag, RADIUS["small"], RADIUS["small"])
+            painter.setPen(MUTED)
+            painter.drawText(tag, Qt.AlignmentFlag.AlignCenter, text)
+
+    def _paint_hover_time(self, painter: QPainter) -> None:
+        if not self.hover_values():
+            return
+        ruler, text = self.ruler_rect(), time_text(self.hover_t)
+        width = QFontMetricsF(font("data")).horizontalAdvance(text) + 2 * BADGE_PAD
+        left = min(max(self.x_of(self.hover_t) - width / 2, LABEL_WIDTH),
+                   LABEL_WIDTH + self._plot_width() - width)
+        tag = QRectF(left, ruler.top() + BADGE_INSET, width, ruler.height() - 2 * BADGE_INSET)
+        if tag.intersects(self.badge_rect()):
+            return
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(BAR)
+        painter.drawRoundedRect(tag, RADIUS["small"], RADIUS["small"])
+        painter.setFont(font("data"))
+        painter.setPen(MUTED)
+        painter.drawText(tag, Qt.AlignmentFlag.AlignCenter, text)
+
     def badge_rect(self) -> QRectF:
         ruler = self.ruler_rect()
         text = time_text(self.document.playhead)
@@ -609,6 +680,7 @@ class Timeline(QWidget):
         pos = event.position()
         if event.button() != Qt.MouseButton.LeftButton:
             return super().mousePressEvent(event)
+        self._set_hover(None)
         self.setFocus()
         if pos.y() < self.ruler_rect().top():
             self._press_overview(pos)
@@ -645,6 +717,7 @@ class Timeline(QWidget):
         press = self._press
         if not press or not (event.buttons() & Qt.MouseButton.LeftButton):
             self._show_cursor(event.position())
+            self._set_hover(self._hover_at(event.position()))
             return super().mouseMoveEvent(event)
         x = event.position().x()
         if press["kind"].startswith("window"):
