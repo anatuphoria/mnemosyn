@@ -41,6 +41,10 @@ MISTAKES = [
     ("unknown structure", swap("structure = 111", "structure = 999"), "unknown structure 999"),
     ("unknown arrow part", swap('arrow = ["b", "a"]', 'arrow = ["b", "q"]'),
      "unknown part 'q'"),
+    ("unknown via part", swap('arrow = ["b", "body"]', 'arrow = ["b", "body"]\nvia = ["q"]'),
+     "via names unknown part 'q'"),
+    ("via without arrow", swap('kind = "clears"', 'kind = "clears"\nvia = ["a"]'),
+     "via needs an arrow"),
     ("unknown edit target", swap('target = "m"', 'target = "q"'), "clamp needs a value"),
     ("option outside range", swap("default = 1, low = 0, high = 10 }]\nedits = [{ op = \"dose\", "
                                   "target = \"y\", expr = \"dose\" }]",

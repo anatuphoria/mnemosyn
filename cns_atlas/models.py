@@ -80,6 +80,7 @@ class Effect(_Record):
     expr: str
     kind: str
     arrow: tuple[str, str] | None = None
+    via: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -90,6 +91,7 @@ class Term(_Record):
     expr: str
     kind: str
     arrow: tuple[str, str] | None = None
+    via: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

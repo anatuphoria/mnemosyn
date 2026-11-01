@@ -20,8 +20,8 @@ FIELDS = {
     "values": {"key", "unit", "start", "display_scale", "display_unit", "other_unit",
                "other_scale", "relative", "normal", "lane", "slow", "refs"},
     "parameters": {"key", "value", "unit", "low", "high", "refs"},
-    "effects": {"key", "expr", "kind", "arrow"},
-    "terms": {"key", "value", "sign", "expr", "kind", "arrow"},
+    "effects": {"key", "expr", "kind", "arrow", "via"},
+    "terms": {"key", "value", "sign", "expr", "kind", "arrow", "via"},
     "parts": {"key", "structure", "x", "y", "values"},
     "experiments": {"key", "group", "mode", "length", "options", "edits", "weeks", "icon"},
     "tests": {"key", "doses", "readings", "rule", "cutoff", "icon", "edits", "length"},
@@ -281,6 +281,20 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
                 r.say(f"{where}: arrow names unknown part {p!r}")
         return tuple(found)
 
+    def via(row: dict, where: str) -> tuple:
+        found = row.get("via", [])
+        if not found:
+            return ()
+        if not (isinstance(found, list) and all(isinstance(p, str) for p in found)):
+            r.say(f"{where}: via must be a list of parts")
+            return ()
+        if row.get("arrow") is None:
+            r.say(f"{where}: via needs an arrow")
+        for p in found:
+            if p not in part_keys:
+                r.say(f"{where}: via names unknown part {p!r}")
+        return tuple(found)
+
     effects = []
     allowed = value_keys | parameter_keys | {"t", "clock"}
     for row in r.rows(data, "effects"):
@@ -288,7 +302,7 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
         if row.get("kind") not in EFFECT_KINDS:
             r.say(f"{where}: kind must be one of {sorted(EFFECT_KINDS)}")
         effects.append(Effect(k, r.expr(row.get("expr"), allowed, where), str(row.get("kind")),
-                              arrow(row, where)))
+                              arrow(row, where), via(row, where)))
         text(f"effect.{k}")
         allowed = allowed | {k}
 
@@ -303,7 +317,7 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
             r.say(f"{where}: kind must be one of {sorted(TERM_KINDS)}")
         terms.append(Term(k, str(row.get("value")), int(row.get("sign", 1)),
                           r.expr(row.get("expr"), allowed, where), str(row.get("kind")),
-                          arrow(row, where)))
+                          arrow(row, where), via(row, where)))
         text(f"term.{k}")
     names_used = value_keys | parameter_keys | {e.key for e in effects} | {t.key for t in terms}
     if len(names_used) != len(values) + len(parameters) + len(effects) + len(terms):

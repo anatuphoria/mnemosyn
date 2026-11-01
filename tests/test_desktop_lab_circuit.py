@@ -35,7 +35,7 @@ def test_every_part_and_arrow_is_drawn(circuit):
 def test_relative_values_show_their_direction(circuit):
     circuit.document.add_block("pill", 0.0)
     circuit.document.set_playhead(5.0)
-    assert "↑" in circuit.part_label("b") and "×" in circuit.part_label("b")
+    assert "↑" in circuit.part_label("b") and "× healthy" in circuit.part_label("b")
 
 
 def test_arrow_width_follows_the_run(circuit):
@@ -72,3 +72,50 @@ def test_the_viewport_switches_pages(qapp, circuit):
     assert viewport.stack.currentWidget() is circuit and viewport.showing_circuit
     viewport.show_circuit(False)
     assert viewport.stack.currentWidget() is brain
+
+
+def test_an_arrow_passes_through_its_via_parts(qapp, toy_lab_atlas):
+    from dataclasses import replace
+
+    doc = LabDocument(Atlas.open(toy_lab_atlas), "toy")
+    terms = tuple(replace(t, via=("a",)) if t.key == "make_y" else t for t in doc.model.terms)
+    doc.model = replace(doc.model, terms=terms)
+    view = CircuitView(doc)
+    centre = {k: item.rect().center() for k, item in view.part_items.items()}
+    ends = [(line.line().p1(), line.line().p2()) for line in view.segments("make_y")]
+    assert ends == [(centre["b"], centre["a"]), (centre["a"], centre["body"])]
+    widths = {line.pen().widthF() for line in view.segments("make_y")}
+    assert widths == {view.arrow_width("make_y")}
+    view.close()
+
+
+def test_a_long_value_wraps_inside_its_box(circuit):
+    from dataclasses import replace
+
+    from cns_desktop.lab.circuit import BOX_H, BOX_W
+
+    values = circuit.document.simulator.values
+    values["x"] = replace(values["x"], name="Alpha hormone level today")
+    circuit.refresh()
+    text = circuit.part_texts["a"]
+    assert text.boundingRect().width() <= BOX_W - 16
+    assert text.boundingRect().height() <= BOX_H - 8
+    assert circuit.part_label("a").endswith("\n11.2 ng/mL")
+
+
+def test_the_circuit_fits_without_scrollbars(circuit, qapp):
+    for size in ((800, 400), (420, 180), (1200, 300)):
+        circuit.resize(*size)
+        qapp.processEvents()
+        assert not circuit.horizontalScrollBar().isVisible()
+        assert not circuit.verticalScrollBar().isVisible()
+
+
+def test_a_smaller_circuit_after_a_larger_one_has_no_scrollbars(circuit, qapp):
+    from PySide6.QtCore import QRectF
+
+    circuit.scene().addRect(QRectF(4000.0, 0.0, 10.0, 10.0))
+    assert circuit.scene().sceneRect().right() > 4000.0
+    circuit.populate()
+    qapp.processEvents()
+    assert circuit.sceneRect() == circuit.scene().itemsBoundingRect()
