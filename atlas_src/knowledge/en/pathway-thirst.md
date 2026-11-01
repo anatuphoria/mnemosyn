@@ -16,11 +16,11 @@ Drugs: Desmopressin replaces the missing vasopressin in central diabetes insipid
 
 ## Step 3
 Role: Large neurons of the paraventricular nucleus also make vasopressin for the posterior pituitary [hall2021].
-Disorders: Damage to both nuclei together with the supraoptic nucleus is needed for lasting central diabetes insipidus [christcrain2019].
+Disorders: Central diabetes insipidus appears only when most vasopressin neurons, here and in the supraoptic nucleus, are lost [christcrain2019].
 
 ## Step 4
 Role: The posterior pituitary releases vasopressin into the blood as osmolality rises above about 282 mOsm/kg [robertson1976] [baylis1980].
-Disorders: Release that does not follow osmolality, as in the syndrome of inappropriate antidiuresis (SIADH), lowers plasma sodium [hall2021].
+Disorders: Vasopressin released while osmolality is low, from the pituitary or from a tumour, as in the syndrome of inappropriate antidiuresis (SIADH), keeps water and lowers plasma sodium [hall2021].
 
 ## Step 5
 Role: Vasopressin acts on the collecting ducts so the kidneys return water to the blood and pass concentrated urine [hall2021].

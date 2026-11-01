@@ -77,8 +77,8 @@ decides the exact file fields.
 
 Automatic checks hold the model to published facts, at least: plasma sodium stays within 135 to
 145 mmol/L and urine osmolality within its normal range on a normal day; a drunk litre of water is
-mostly excreted within about 3 to 4 hours; 8 hours without water concentrates normal urine well
-above 600 mOsm/kg; in central diabetes insipidus urine stays dilute after deprivation and rises by
+mostly excreted within about 3 to 4 hours; 8 hours without water concentrates normal urine
+to 800 mOsm/kg or more; in central diabetes insipidus urine stays dilute after deprivation and rises by
 more than half after desmopressin; in nephrogenic diabetes insipidus it barely rises; in SIADH with
 normal drinking plasma sodium falls below 135 mmol/L.
 

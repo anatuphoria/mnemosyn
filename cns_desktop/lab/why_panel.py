@@ -117,6 +117,7 @@ class WhyPanel(QTextBrowser):
         parts = [f"<h3>{escape(time_heading(doc, t))}</h3>"]
         items: list[str] = []
         kinds: list[str] = []
+        band = doc.model.why_unchanged
         if doc.run is not None:
             for step in chain(doc.simulator, doc.run, t):
                 kinds.append(step.kind)
@@ -127,9 +128,9 @@ class WhyPanel(QTextBrowser):
                 text = self._source(step.text_key)
                 if step.value is not None:
                     value = doc.simulator.values[step.value]
-                    text += f" {value.name} {phrase(value, step.ratio)}."
+                    text += f" {value.name} {phrase(value, step.ratio, band)}."
                 else:
-                    text += f" Its strength {phrase(None, step.ratio)}."
+                    text += f" Its strength {phrase(None, step.ratio, band)}."
                 items.append(text)
         edited = []
         for key, value in doc.experiment.values:

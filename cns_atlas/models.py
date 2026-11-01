@@ -193,6 +193,7 @@ class LabModel(_Record):
     tests: tuple[LabTest, ...] = ()
     checks: tuple[Check, ...] = ()
     normal_notes: tuple[NormalNote, ...] = ()
+    why_unchanged: float = 0.02
 
     NESTED: ClassVar[dict] = {"values": Value, "parameters": Parameter, "effects": Effect, "terms": Term,
               "parts": Part, "experiments": Experiment, "tests": LabTest, "checks": Check,

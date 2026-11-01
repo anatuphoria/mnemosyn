@@ -295,6 +295,13 @@ class Inspector(QWidget):
             text = (f"{word}: {result.value:.3g} {result.unit}, {RULE_WORDS[test.rule]} "
                     f"{result.cutoff:g} {result.unit}")
         self._note(text, bold=True)
+        if len(result.readings) > 1:
+            parts = []
+            for reading, shown in zip(test.readings, result.readings, strict=True):
+                unit = doc.simulator.values[reading.value].display_unit
+                parts.append(f"{shown:.3g} {unit} after {reading.after / 60:g} h")
+            name = doc.simulator.values[test.readings[0].value].name
+            self._note(f"{name}: " + ", then ".join(parts) + ".")
         self._note(self._text(f"test.{block.experiment}.{'normal' if result.normal else 'abnormal'}"))
 
     def _value_line(self, key: str) -> None:
@@ -333,7 +340,7 @@ class Inspector(QWidget):
             ratio = mine / theirs if abs(theirs) > 1e-12 else (1.0 if abs(mine) < 1e-12 else
                                                                float("inf"))
             self._note(f"Right now it is {ratio:.3g} times normal: its strength "
-                       f"{phrase(None, ratio)}.")
+                       f"{phrase(None, ratio, doc.model.why_unchanged)}.")
 
     def _value(self, key: str) -> None:
         self._note(self.document.simulator.values[key].name, bold=True, layout=self.head)

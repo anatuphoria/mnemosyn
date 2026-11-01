@@ -77,3 +77,22 @@ def test_the_deprivation_test_reads_in_the_inspector(window):
     lab.document.select(("block", 1))
     text = lab.inspector.text()
     assert "Water deprivation test" in text and "Abnormal" in text
+
+
+def test_the_why_panel_names_small_sodium_changes(window):
+    lab = switch_to(window, "water")
+    lab.document.add_block("stop_drinking", 60.0)
+    lab.document.set_playhead(60.0 + 360.0)
+    lab.why.refresh()
+    text = lab.why.toPlainText()
+    assert "Plasma sodium is unchanged" not in text and "Plasma sodium rises" in text
+
+
+def test_the_desmopressin_test_shows_both_readings(window):
+    lab = switch_to(window, "water")
+    lab.document.add_block("nephrogenic_di", 0.0)
+    lab.document.add_block("desmopressin_test", 60.0)
+    lab.document.select(("block", 1))
+    text = lab.inspector.text()
+    assert "after 8 h" in text and "after 10 h" in text
+    assert "stayed dilute" in text and "nephrogenic" in text

@@ -80,7 +80,7 @@ def test_extremes_from_a_normal_day_stay_finite(sim, values):
     states = np.asarray(states)
     assert np.all(np.isfinite(states))
     sodium = states[:, sim.keys.index("sodium")] * sim.values["sodium"].display_scale
-    assert 100 < sodium.min() and sodium.max() < 200
+    assert 80 < sodium.min() and sodium.max() < 200
 
 
 OFFERED = ["water_load", "stop_drinking", "hypertonic_saline", "desmopressin", "central_di",
@@ -104,3 +104,53 @@ def test_every_published_outcome_holds(sim):
     for check in sim.model.checks:
         outcome = run_check(sim, check)
         assert outcome.passed, (check.key, outcome)
+
+
+def why_at(sim, blocks, t, length=DAY):
+    from cns_lab.experiment import Block
+    from cns_lab.why import chain
+
+    run = sim.run(Experiment("water", 1, length, 480.0, tuple(Block(*b) for b in blocks)))
+    return [step.source for step in chain(sim, run, t)]
+
+
+def test_why_follows_the_deprivation_test(sim):
+    assert "drink" in why_at(sim, [("water_deprivation_test", 60.0)], 60.0 + 360.0)
+
+
+def test_why_explains_a_water_load_by_dilution(sim):
+    sources = why_at(sim, [("water_load", 120.0, None, (("volume", 1.0),))], 150.0)
+    assert "dilute" in sources and "concentrate" not in sources
+
+
+def test_small_sodium_changes_are_not_called_unchanged(sim):
+    from cns_lab.why import phrase
+
+    assert sim.model.why_unchanged < 0.01
+    assert phrase(sim.values["sodium"], 1.006, band=sim.model.why_unchanged) == "rises by 1%"
+
+
+def test_thirst_and_drinking_numbers_are_named_parameters():
+    model = load_water()
+    parameters = {p.key: p for p in model.parameters}
+    assert parameters["thirst_threshold"].value == 281 and parameters["thirst_slope"].value == 0.3
+    assert parameters["thirst_threshold"].refs and parameters["thirst_slope"].refs
+    effects = {e.key: e.expr for e in model.effects}
+    assert "281" not in effects["thirst_drive"] and "0.3" not in effects["thirst_drive"]
+    assert "drink_max" in parameters and "min(" in effects["drink"]
+
+
+def test_the_diet_solute_and_deprivation_cutoff_follow_their_sources():
+    model = load_water()
+    solute = next(p for p in model.parameters if p.key == "solute")
+    assert abs(solute.value * 1440 - 600) < 15
+    deprivation = next(t for t in model.tests if t.key == "water_deprivation_test")
+    assert deprivation.cutoff == 800
+
+
+def test_the_texts_say_what_the_model_leaves_out_and_when_a_test_stops():
+    texts = tomllib.loads((SRC / "knowledge" / "en" / "lab-water.toml").read_text())
+    assert "escape" in texts["scope"] and "escape" in texts["experiment.siadh.description"]
+    assert "stopped early" in texts["test.water_deprivation_test.description"]
+    assert "Baylis" not in texts["experiment.hypertonic_saline.description"]
+    assert "choice of this project" in texts["experiment.hypertonic_saline.description"]

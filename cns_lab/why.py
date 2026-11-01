@@ -23,10 +23,10 @@ class Step:
     since: float | None
 
 
-def phrase(value: Value | None, ratio: float) -> str:
+def phrase(value: Value | None, ratio: float, band: float = 0.02) -> str:
     if not math.isfinite(ratio):
         return "rises from nothing"
-    if abs(ratio - 1.0) <= 0.02:
+    if abs(ratio - 1.0) <= band:
         return "is unchanged"
     if ratio < 1.0:
         return f"falls to {round(ratio * 100)}% of normal"
@@ -124,6 +124,10 @@ def chain(sim: Simulator, run: Run, t: float, limit: int = 8) -> tuple[Step, ...
                     found.append(((depth, order, -size, name), step))
                 elif terms[name].kind != "clears":
                     value = terms[name].value
+                    push = terms[name].sign * (mine[name] - theirs[name])
+                    if push * (run.at(value, t) - normal.at(value, t)) <= 0:
+                        queue.extend((n, depth + 1) for n in graph.next(node))
+                        continue
                     ratio = _ratio(run.at(value, t), normal.at(value, t))
                     size = abs(math.log(ratio)) if 0 < ratio < math.inf else 99.0
                     found.append(((depth, order, -size, name),
@@ -139,12 +143,14 @@ def chain(sim: Simulator, run: Run, t: float, limit: int = 8) -> tuple[Step, ...
         found.append(((0, order, 0.0, block.experiment),
                       Step(block.experiment, "change", key, None, 1.0, since)))
         if is_test:
-            starts = [f"value:{v}" for _, v, _ in next(
-                x for x in model.tests if x.key == block.experiment).doses]
+            test = next(x for x in model.tests if x.key == block.experiment)
+            starts = [f"value:{v}" for _, v, _ in test.doses]
+            edits = test.edits
         else:
+            starts = []
             edits = experiments[block.experiment].edits
-            starts = [f"{'value' if e.op in ('clamp', 'dose') else 'param'}:{e.target}"
-                      for e in edits]
+        starts += [f"{'value' if e.op in ('clamp', 'dose') else 'param'}:{e.target}"
+                   for e in edits]
         walk(deque((node, 1) for node in starts), order, since)
     walk(deque((node, 1) for node in memory), len(blocks), None)
     found.sort(key=lambda item: item[0])

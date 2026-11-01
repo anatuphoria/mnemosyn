@@ -6,6 +6,7 @@ settle_speedup = 10
 settle_days = 6
 max_step = "15 min"
 why_threshold = 0.02
+why_unchanged = 0.003
 
 [[values]]
 key = "sodium"
@@ -113,7 +114,7 @@ refs = ["hall2021"]
 
 [[parameters]]
 key = "K_u"
-value = 1.5
+value = 1.0
 unit = "pg/mL"
 low = 0.5
 high = 5
@@ -121,7 +122,7 @@ refs = ["robertson1973"]
 
 [[parameters]]
 key = "n_u"
-value = 3
+value = 4
 unit = "exponent"
 low = 1
 high = 4
@@ -135,9 +136,9 @@ high = 0.2
 
 [[parameters]]
 key = "solute"
-value = 0.6
+value = 0.417
 unit = "mOsm/min"
-low = 0.3
+low = 0.2
 high = 1.2
 refs = ["hall2021"]
 
@@ -179,6 +180,29 @@ value = 0.005
 unit = "L/min per mOsm/kg"
 low = 0.0005
 high = 0.02
+
+[[parameters]]
+key = "thirst_threshold"
+value = 281
+unit = "mOsm/kg"
+low = 270
+high = 295
+refs = ["thompson1986"]
+
+[[parameters]]
+key = "thirst_slope"
+value = 0.3
+unit = "cm per mOsm/kg"
+low = 0.05
+high = 1
+refs = ["thompson1986"]
+
+[[parameters]]
+key = "drink_max"
+value = 0.02
+unit = "L/min"
+low = 0.005
+high = 0.05
 
 [[parameters]]
 key = "k_thirst"
@@ -288,12 +312,12 @@ arrow = ["kidney", "blood"]
 
 [[effects]]
 key = "thirst_drive"
-expr = "0.3 * pos(sodium - 281)"
+expr = "thirst_slope * pos(sodium - thirst_threshold)"
 kind = "drives"
 
 [[effects]]
 key = "drink"
-expr = "drinking * (habit * habit_scale + drink_gain * pos(sodium - drink_threshold))"
+expr = "drinking * min(drink_max, habit * habit_scale + drink_gain * pos(sodium - drink_threshold))"
 kind = "drives"
 arrow = ["osmoreceptors", "blood"]
 
@@ -379,7 +403,7 @@ key = "dilute"
 value = "sodium"
 sign = -1
 expr = "sodium * (k_gut * gut + iv_water) / water"
-kind = "clears"
+kind = "absorbs"
 
 [[terms]]
 key = "concentrate"
@@ -531,7 +555,7 @@ length = "8 h"
 edits = [{ op = "set", target = "drinking", expr = "0" }]
 readings = [{ value = "uosm", after = "8 h" }]
 rule = "at least"
-cutoff = 600
+cutoff = 800
 
 [[tests]]
 key = "desmopressin_test"

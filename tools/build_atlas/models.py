@@ -14,7 +14,7 @@ from cns_lab.times import TimeError, clock, duration, moment
 from .recipe import BuildError, read_toml
 
 TOP = {"key", "version", "route", "start_clock", "settle_speedup", "settle_days", "max_step",
-       "why_threshold", "values", "parameters", "effects", "terms", "parts", "experiments",
+       "why_threshold", "why_unchanged", "values", "parameters", "effects", "terms", "parts", "experiments",
        "tests", "checks", "normal"}
 FIELDS = {
     "values": {"key", "unit", "start", "display_scale", "display_unit", "other_unit",
@@ -197,7 +197,8 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
     start_clock = r.time(clock, data.get("start_clock", "08:00"), "start_clock", 480.0)
     max_step = r.time(duration, data.get("max_step", "30 min"), "max_step", 30.0)
     numbers = {}
-    for name, default in (("settle_speedup", 50), ("settle_days", 10), ("why_threshold", 0.1)):
+    for name, default in (("settle_speedup", 50), ("settle_days", 10), ("why_threshold", 0.1),
+                          ("why_unchanged", 0.02)):
         value = data.get(name, default)
         if not (_number(value) and value > 0):
             r.say(f"{name} must be a positive number")
@@ -471,7 +472,8 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
     model = LabModel(key, name, version, route, start_clock, float(numbers["settle_speedup"]),
                      int(numbers["settle_days"]), max_step, float(numbers["why_threshold"]),
                      tuple(values), tuple(parameters), tuple(effects), tuple(terms), tuple(parts),
-                     tuple(experiments), tuple(tests), tuple(checks), tuple(notes))
+                     tuple(experiments), tuple(tests), tuple(checks), tuple(notes),
+                     float(numbers["why_unchanged"]))
     return model, r.problems
 
 

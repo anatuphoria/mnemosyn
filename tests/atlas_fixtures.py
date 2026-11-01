@@ -947,7 +947,7 @@ cutoff = 10.8
 [[tests]]
 key = "hold_test"
 length = "2 h"
-edits = [{ op = "set", target = "k", expr = "3" }]
+edits = [{ op = "set", target = "stress", expr = "3" }]
 readings = [{ value = "x", after = "1 h" }, { value = "x", after = "2 h" }]
 rule = "rises by"
 cutoff = 0.5

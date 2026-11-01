@@ -80,3 +80,14 @@ def test_edited_values_start_the_chain(sim):
     run = sim.run(Experiment("toy", 1, DAY, 480.0, (), (("a", 0.9),)))
     steps = chain(sim, run, 0.0)
     assert steps and steps[0].source == "rhythm"
+
+
+def test_the_unchanged_band_can_be_narrowed():
+    assert phrase(None, 1.01) == "is unchanged"
+    assert phrase(None, 1.01, band=0.003) == "rises by 1%"
+
+
+def test_a_test_that_holds_a_change_starts_the_chain(sim):
+    run = sim.run(Experiment("toy", 1, DAY, 480.0, (Block("hold_test", 120.0),)))
+    steps = chain(sim, run, 200.0)
+    assert steps[0].source == "hold_test" and len(steps) > 1
