@@ -203,3 +203,14 @@ def test_a_label_image_with_a_single_volume_in_a_fourth_axis_becomes_3d(tmp_path
     nib.save(nib.Nifti1Image(data, np.eye(4)), path)
     image = load_label_image(path, name="four")
     assert image.shape == (4, 4, 4) and np.asarray(image.dataobj)[1, 1, 1] == 3
+
+
+def test_labels_with_missing_values_are_refused(tmp_path):
+    from tools.build_atlas.labels import load_label_image
+
+    data = np.zeros((4, 4, 4), dtype=np.float32)
+    data[1, 1, 1], data[2, 2, 2] = 3.0, np.nan
+    path = tmp_path / "gaps.nii.gz"
+    nib.save(nib.Nifti1Image(data, np.eye(4)), path)
+    with pytest.raises(BuildError, match="not whole numbers"):
+        load_label_image(path, name="gaps")

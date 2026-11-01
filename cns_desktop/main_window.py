@@ -376,7 +376,7 @@ class MainWindow(QMainWindow):
         return [self.structures_group, self.routes_group, self.slices_group, self.info_group]
 
     def _out_of_lab(self) -> None:
-        if self.workspaces.current == "Lab":
+        if self.workspaces.current in self.workspaces.extra:
             self.workspaces.switch("Explore")
 
     def before_layout(self, name: str) -> None:

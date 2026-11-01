@@ -179,3 +179,32 @@ def test_a_case_lists_the_signs_of_its_own_lesion(sign_atlas):
 def test_no_case_without_signs(atlas):
     import random
     assert new_case(atlas, random.Random(1)) is None
+
+
+@pytest.fixture(scope="module")
+def plain_atlas(tmp_path_factory):
+    from atlas_fixtures import TOY_PATHWAY_TEXTS, write_extended_source_tree
+    from tools.build_atlas.build import build
+
+    root = tmp_path_factory.mktemp("plainlines")
+    src = write_extended_source_tree(root, tracts=True, pathways=True)
+    loop = TOY_PATHWAY_TEXTS["pathway-loop"].replace(
+        "Lesion: Loss on the {opposite} side.", "Lesion: Loss of toy function.", 1)
+    (src / "knowledge" / "en" / "pathway-loop.md").write_text(loop)
+    return Atlas.open(build(src, root / "out" / "toy", cache=root / "cache",
+                            log=lambda *_: None))
+
+
+def test_both_sides_count_even_when_the_lesion_line_names_no_side(plain_atlas):
+    mask = label_mask(plain_atlas, 101) | label_mask(plain_atlas, 102)
+    result = report(plain_atlas, lesion_of(plain_atlas, mask))
+    assert [(d.side, d.step) for d in result.deficits if d.route == "loop"] == [
+        ("left", 0), ("right", 0)]
+
+
+def test_case_signs_leave_out_slivers(sign_atlas):
+    sliver = report(sign_atlas, lesion_of(sign_atlas, label_mask(sign_atlas, 101, 0.10)))
+    assert [d.partly for d in sliver.deficits if d.route == "loop"] == [True]
+    assert signs_of(sliver) == ()
+    whole = report(sign_atlas, lesion_of(sign_atlas, label_mask(sign_atlas, 101)))
+    assert signs_of(whole) == ("Numb right hand.",)

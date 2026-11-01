@@ -8,6 +8,7 @@ from cns_atlas import Atlas
 from cns_atlas.lesions import Lesion, structure_lesion, territory_lesion
 from cns_atlas import DISCLAIMER
 from cns_desktop.lesion.cases_panel import NO_CASES
+from cns_desktop.lesion.document import UNDO_LIMIT
 from cns_desktop.lesion.place_panel import CORD_MISSING, TERRITORIES_MISSING
 from cns_desktop.lesion.results_panel import EMPTY_LESION
 from cns_desktop.main_window import MainWindow
@@ -365,3 +366,97 @@ def test_territories_live_only_in_the_lesion_workspace(qapp, territory_atlas, tm
         assert layout.stretch(layout.indexOf(place.territory_tree)) > 0
     finally:
         w.close()
+
+
+def test_starting_a_quiz_leaves_the_lesion_workspace(window, qapp):
+    from cns_study.session import QuizChoice
+
+    entered(window, qapp).place.set_tool("brush")
+    window.start_quiz(QuizChoice("find", "structures", None, False))
+    qapp.processEvents()
+    assert window.workspaces.current == "Explore" and window.slices.brush is None
+    assert not window.lesion.tools_group.isVisible() and not window.slices.lesion_masks
+
+
+def test_structures_outside_the_lesion_fade(window, qapp):
+    lesion = entered(window, qapp)
+    state = window.state
+    lesion.document.set_lesion(structure_lesion(state.atlas, 101), "Alpha")
+    assert state.focus is not None and 101 in state.focus and 102 not in state.focus
+    lesion.document.clear()
+    assert state.focus is None
+    lesion.document.set_lesion(structure_lesion(state.atlas, 101), "Alpha")
+    window.workspaces.switch("Explore")
+    assert state.focus is None
+
+
+def test_check_explains_the_case_in_deficits(qapp, sign_atlas, tmp_path):
+    import random
+    w = open_window(qapp, sign_atlas, tmp_path)
+    try:
+        lesion = entered(w, qapp)
+        lesion.cases.rng = random.Random(3)
+        lesion.cases.new_case_button.click()
+        case = lesion.cases.case
+        lesion.document.set_lesion(structure_lesion(w.state.atlas, 110), "Guess")
+        lesion.cases.check_button.click()
+        text = lesion.deficits.toPlainText()
+        assert text.startswith("The case's lesion") and case.label in text
+        assert lesion.results_group.current() == "deficits"
+        lesion.document.clear()
+        assert not lesion.deficits.toPlainText().startswith("The case's lesion")
+    finally:
+        w.close()
+
+
+def test_undo_keeps_a_bounded_history_and_has_keys(window, qapp):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    lesion = entered(window, qapp)
+    doc = lesion.document
+    assert doc.undo.undoLimit() == UNDO_LIMIT
+    doc.set_lesion(structure_lesion(window.state.atlas, 101), "Alpha")
+    window.activateWindow()
+    QTest.keyClick(window, Qt.Key.Key_Z, Qt.KeyboardModifier.ControlModifier)
+    assert doc.lesion.is_empty
+    QTest.keyClick(window, Qt.Key.Key_Z,
+                   Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+    assert not doc.lesion.is_empty
+    window.workspaces.switch("Explore")
+    assert not lesion.undo_action.isEnabled()
+
+
+def test_a_hit_row_click_keeps_the_lesion_in_structure_mode(window, qapp):
+    lesion = entered(window, qapp)
+    atlas = window.state.atlas
+    mask = structure_lesion(atlas, 101).masks[atlas.volumes[0].name] | structure_lesion(
+        atlas, 112).masks[atlas.volumes[0].name]
+    lesion.document.set_lesion(Lesion.empty(atlas).with_mask(atlas.volumes[0].name, mask), "Two")
+    lesion.place.set_tool("structure")
+    lesion.hit.itemClicked.emit(lesion.hit.item(1))
+    assert window.state.selected is not None
+    assert lesion.document.undo.count() == 1
+
+
+def test_the_structure_tool_turns_a_territory_into_its_territory_lesion(qapp, territory_atlas,
+                                                                       tmp_path):
+    w = open_window(qapp, territory_atlas, tmp_path)
+    try:
+        lesion = entered(w, qapp)
+        lesion.place.set_tool("structure")
+        atlas = w.state.atlas
+        left = next(s.id for s in atlas.structures if s.name == "Toy artery A territory (left)")
+        w.state.select(left)
+        assert not lesion.document.lesion.is_empty
+    finally:
+        w.close()
+
+
+def test_the_structure_tool_keeps_every_structure_pickable(window, qapp):
+    lesion = entered(window, qapp)
+    lesion.place.set_tool("structure")
+    window.state.select(101)
+    assert window.state.focus is None
+    lesion.place.set_tool("brush")
+    assert window.state.focus is not None and 101 in window.state.focus

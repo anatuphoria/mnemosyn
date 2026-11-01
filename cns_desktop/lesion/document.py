@@ -5,6 +5,8 @@ from PySide6.QtGui import QUndoCommand, QUndoStack
 
 from cns_atlas.lesions import Lesion, report
 
+UNDO_LIMIT = 30
+
 
 class _Change(QUndoCommand):
     def __init__(self, document, before: Lesion, after: Lesion, text: str) -> None:
@@ -27,6 +29,7 @@ class LesionDocument(QObject):
         self.lesion = Lesion.empty(atlas)
         self.report = report(atlas, self.lesion)
         self.undo = QUndoStack(self)
+        self.undo.setUndoLimit(UNDO_LIMIT)
 
     def set_lesion(self, lesion: Lesion, text: str) -> None:
         self.undo.push(_Change(self, self.lesion, lesion, text))

@@ -46,4 +46,3 @@ Sign: Trouble remembering new things [braak1991].
 ## Step 9
 Role: The circuit returns to the hippocampus through the perforant path from the entorhinal cortex [purves2018].
 Lesion: As at the start: damage on both sides prevents new memories from forming [scoville1957].
-Sign: Mild trouble remembering new things [scoville1957].

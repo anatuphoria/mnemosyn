@@ -59,7 +59,7 @@ def load_label_image(path: Path, mask: bool = False, name: str = "", cropped: bo
         data = np.nan_to_num(data)
         data = data >= threshold if threshold is not None else data != 0
     elif not np.issubdtype(data.dtype, np.integer):
-        if np.any(np.abs(data - np.rint(data)) > WHOLE):
+        if not np.all(np.abs(data - np.rint(data)) <= WHOLE):
             raise BuildError([f"source {name}: label values are not whole numbers; "
                               f"set mask = true"])
         data = np.rint(data)

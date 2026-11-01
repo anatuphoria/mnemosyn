@@ -8,7 +8,7 @@ The corticospinal tract carries commands for voluntary movement from the motor c
 ## Step 1
 Role: The primary motor cortex is mapped by body part; its large pyramidal neurons start the corticospinal tract [penfield1937].
 Lesion: Weakness of the {opposite} side of the body, mostly of the face and arm or of the leg depending on the part damaged, with upper motor neuron signs [kandel2021].
-Sign: Weakness of the {opposite} face and arm, or of the {opposite} leg [kandel2021].
+Sign: Weakness of the {opposite} side of the body [kandel2021].
 
 ## Step 2
 Role: Descends through the internal capsule, the cerebral peduncle, the pons and the medullary pyramid on the {same} side [purves2018].

@@ -526,3 +526,20 @@ def test_segment_regions_alternate_and_crowded_groups_get_distinct_colours():
     assert all(raws[g].palette == "alternate" and raws[g].color for g in (5, 6, 7, 8))
     assert len({raws[g].color for g in (5, 6, 7, 8)}) == 4
     assert all(raws[g].palette == "distinct" for g in (21, 22, 30, 43))
+
+
+def sign_at(key, step):
+    from cns_atlas.knowledge import parse_entry
+    from cns_atlas.pathways import step_text
+
+    path = SRC / "knowledge" / "en" / f"pathway-{key}.md"
+    entry = parse_entry(path.read_text(encoding="utf-8"), str(path))
+    return step_text(entry.sections[f"Step {step}"]).sign
+
+
+def test_one_station_gives_one_sign_across_routes():
+    cortex = {sign_at(k, s) for k, s in (("motor", 1), ("basal-ganglia", 8), ("cerebellar", 1),
+                                         ("cerebellar", 10))}
+    assert len(cortex) == 1
+    assert sign_at("touch", 4) == sign_at("pain", 4)
+    assert sign_at("cerebellar", 2) == "" and sign_at("papez", 9) == ""

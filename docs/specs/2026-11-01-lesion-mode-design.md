@@ -45,9 +45,9 @@ a public build shows something that needs a local only source.
    (`nitrc.org/projects/arterialatlas`). A new source in `atlas_src/recipe.toml`, pinned by checksum,
    resampled to the brain grid, with territories as a new structure group "Arterial territories"
    (left and right of each level 1 territory under its level 2 artery: ACA, MCA, PCA,
-   vertebrobasilar). Its page lists an attribution licence without a version, so it is
-   `local_only` until the owner confirms the terms with the authors; then it becomes shared by
-   changing that flag. A draft email to the authors comes with the work.
+   vertebrobasilar). Its page lists an attribution licence without a version; the label file in
+   the download states CC BY-SA 4.0, so the source is shared (decision 77). NITRC needs a login,
+   so it stays a manual, optional source that a build skips when the file is missing.
 3. **Deficit texts.** Each step of a route already has a cited `Lesion:` line with `{same}` and
    `{opposite}` side words. These are the deficit explanations. A new optional `Sign:` line per step
    gives the same deficit in a patient's terms without naming any structure, side words filled the

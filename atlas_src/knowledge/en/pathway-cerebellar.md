@@ -13,7 +13,6 @@ Sign: Weakness of the {opposite} side of the body [kandel2021].
 ## Step 2
 Role: Carries cortical signals down the {same} cerebral peduncle to the pontine nuclei [purves2018].
 Lesion: Rarely damaged alone; lesions of the cerebral peduncle also cut the corticospinal tract and weaken the {opposite} side [kandel2021].
-Sign: Weakness of the {opposite} side of the body [kandel2021].
 
 ## Step 3
 Role: Relay neurons in the {same} half of the basal pons; their axons cross the midline [purves2018].

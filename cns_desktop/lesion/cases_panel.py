@@ -78,4 +78,5 @@ class CasesPanel(QWidget):
         self.workspace.window.progress_store().record_case(
             self.case.target_id, len(matched), len(missed), len(extra), datetime.now(UTC))
         self.workspace.show_answer(self.case.target)
+        self.workspace.explain_case(self.case)
         self._sync()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QPushButton, QSlider, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
@@ -21,6 +21,8 @@ TREE_STRETCH = 10
 
 
 class PlacePanel(QWidget):
+    tool_changed = Signal(str)
+
     def __init__(self, document, window, parent=None) -> None:
         super().__init__(parent)
         self.document, self.window = document, window
@@ -30,6 +32,7 @@ class PlacePanel(QWidget):
         self.radius = float(START_RADIUS)
         self.stroke: dict[str, np.ndarray] | None = None
         self._erase = False
+        self._quiet = False
         self._sided = {s.id: s for s in territories(atlas)}
         tools = [("artery", "By artery")] if self._sided else []
         tools += [("brush", "Brush"), ("structure", "Structure")]
@@ -125,6 +128,7 @@ class PlacePanel(QWidget):
         self.brush_hint.setVisible(tool == "brush")
         self.structure_hint.setVisible(tool == "structure")
         self._sync_brush()
+        self.tool_changed.emit(tool)
 
     def set_side(self, side: str) -> None:
         self.side = side
@@ -157,11 +161,22 @@ class PlacePanel(QWidget):
         if sided is not None:
             self.document.set_lesion(territory_lesion(atlas, sided.id), sided.name)
 
+    def select_quietly(self, structure_id: int) -> None:
+        self._quiet = True
+        try:
+            self.window.state.select(structure_id)
+        finally:
+            self._quiet = False
+
     def _on_selection(self, structure_id) -> None:
-        if self.active and self.tool == "structure" and structure_id is not None:
-            atlas = self.document.atlas
-            self.document.set_lesion(structure_lesion(atlas, structure_id),
-                                     atlas.get(structure_id).name)
+        if self._quiet or not self.active or self.tool != "structure" or structure_id is None:
+            return
+        atlas = self.document.atlas
+        structure = atlas.get(structure_id)
+        lesion = (territory_lesion(atlas, structure_id) if structure.kind == "territory"
+                  and atlas.territories is not None else structure_lesion(atlas, structure_id))
+        if not lesion.is_empty:
+            self.document.set_lesion(lesion, structure.name)
 
     def on_brush(self, kind: str, voxel, volume_name: str, erase: bool) -> None:
         if kind == "press":

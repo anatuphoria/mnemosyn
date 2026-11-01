@@ -22,7 +22,7 @@ Sign: Loss of pain and temperature on the {same} side of the body [kandel2021].
 ## Step 4
 Role: The {opposite} ventral posterolateral nucleus relays pain and temperature to the somatosensory cortex [purves2018].
 Lesion: Loss of sensation on the {same} side of the body, sometimes followed by severe burning pain there (thalamic pain syndrome) [kandel2021].
-Sign: Numbness of the {same} side of the body, sometimes later with severe burning pain there [kandel2021].
+Sign: Numbness of the {same} side of the body, sometimes later with severe pain there [kandel2021].
 
 ## Step 5
 Role: Places pain and temperature on the body map [penfield1937].

@@ -102,7 +102,7 @@ def hits(atlas, lesion: Lesion) -> dict[int, float]:
 
 def _route_deficits(atlas, pathway, found: dict[int, float]) -> list[Deficit]:
     deficits: list[Deficit] = []
-    seen: set[tuple[int, str]] = set()
+    seen: set[tuple[int, frozenset[int]]] = set()
     for side in SIDES:
         text = atlas.pathway_text(pathway.key, side)
         if text is None:
@@ -110,14 +110,15 @@ def _route_deficits(atlas, pathway, found: dict[int, float]) -> list[Deficit]:
         for index, step in enumerate(pathway.steps):
             if not isinstance(step, Station):
                 continue
-            shares = sorted(((i, found[i]) for i in resolve(atlas, step, side) if i in found),
+            stations = resolve(atlas, step, side)
+            shares = sorted(((i, found[i]) for i in stations if i in found),
                             key=lambda pair: -pair[1])
             if not shares or shares[0][1] < BROKEN:
                 continue
             words = text.steps[index]
-            if (index, words.lesion) in seen:
+            if (index, frozenset(stations)) in seen:
                 continue
-            seen.add((index, words.lesion))
+            seen.add((index, frozenset(stations)))
             deficits.append(Deficit(pathway.key, pathway.name, side, index, words.lesion,
                                     words.sign, shares[0][1] < PARTLY, tuple(shares),
                                     tuple(text.references)))
@@ -206,6 +207,8 @@ def clean_sign(sign: str) -> str:
 def signs_of(found: Report) -> tuple[str, ...]:
     signs: list[str] = []
     for deficit in found.deficits:
+        if deficit.partly:
+            continue
         sign = clean_sign(deficit.sign)
         if sign and sign not in signs:
             signs.append(sign)

@@ -3,9 +3,12 @@ from __future__ import annotations
 import numpy as np
 import pyvista as pv
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QKeySequence
 
 from cns_desktop.design.panels import PanelGroup
 from cns_desktop.design.tokens import SIZE
+
+from cns_atlas.lesions import report
 
 from .document import LesionDocument
 from .cases_panel import CasesPanel
@@ -38,7 +41,7 @@ class LesionWorkspace:
         self.place = PlacePanel(self.document, window)
         self.cases = CasesPanel(self.document, self)
         self.deficits = DeficitsPanel(self.document)
-        self.hit = HitPanel(self.document, window.state)
+        self.hit = HitPanel(self.document, window.state, self.place.select_quietly)
         self.tools_group = self._group("Lesion tools", [("place", "Place", self.place),
                                                         ("cases", "Cases", self.cases)],
                                        Qt.DockWidgetArea.LeftDockWidgetArea)
@@ -50,10 +53,24 @@ class LesionWorkspace:
             window.window_menu.insertAction(window.window_separator, dock.toggleViewAction())
         self._saved = None
         self.active = False
+        self.undo_action = self._key("Undo lesion", "Ctrl+Z", self.document.undo.undo)
+        self.redo_action = self._key("Redo lesion", "Ctrl+Shift+Z", self.document.undo.redo)
         self.document.changed.connect(self._show)
+        self.place.tool_changed.connect(lambda _tool: self._show())
         window.workspaces.register("Lesion", self.docks, self.enter, self.leave, self._arrange,
                                    narrow=[("Lesion tools", "Lesion results")],
                                    shared=[window.slices_group])
+
+    def _key(self, name: str, key: str, slot) -> QAction:
+        action = QAction(name, self.window, shortcut=QKeySequence(key), triggered=slot)
+        action.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+        action.setEnabled(False)
+        self.window.addAction(action)
+        return action
+
+    def explain_case(self, case) -> None:
+        self.deficits.show_case(report(self.document.atlas, case.target), case.label)
+        self.results_group.reveal("deficits")
 
     def _group(self, name: str, pages, area) -> PanelGroup:
         group = PanelGroup(name, pages, self.window)
@@ -74,6 +91,9 @@ class LesionWorkspace:
             return
         self.window.slices.set_lesion(self.document.lesion.masks)
         self.window.view.set_lesion_body(lesion_mesh(self.document.atlas, self.document.lesion))
+        hits = self.document.report.hits
+        fade = hits and self.place.tool != "structure"
+        self.window.state.set_focus(set(hits) if fade else None)
 
     def show_answer(self, lesion) -> None:
         if not self.active:
@@ -85,6 +105,8 @@ class LesionWorkspace:
     def enter(self) -> None:
         self._saved = self.window._snapshot()
         self.active = True
+        self.undo_action.setEnabled(True)
+        self.redo_action.setEnabled(True)
         self.place.activate(True)
         self._show()
         if self.cases.revealed and self.cases.case is not None:
@@ -93,6 +115,9 @@ class LesionWorkspace:
     def leave(self) -> None:
         self.place.activate(False)
         self.active = False
+        self.undo_action.setEnabled(False)
+        self.redo_action.setEnabled(False)
+        self.window.state.set_focus(None)
         self.window.slices.set_lesion({})
         self.window.slices.set_answer({})
         self.window.view.set_lesion_body(None)
