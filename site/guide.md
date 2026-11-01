@@ -99,8 +99,11 @@ panel and the menus fold into one menu button; an arrangement you made yourself 
 ## The Lab
 
 The Lab runs a computed model of a body system, so you can change it and watch what follows over
-minutes to weeks. The first system is the stress axis (hypothalamus, pituitary, adrenal cortex and
-cortisol), after Karin and colleagues (2020), with every number and sentence citing its source.
+minutes to weeks, with every number and sentence citing its source. Choose the system in the picker
+on the top bar: the **stress axis** (hypothalamus, pituitary, adrenal cortex and cortisol), after
+Karin and colleagues (2020), or **water balance** (plasma sodium, vasopressin, urine concentration
+and thirst), after the classic measurements of Robertson and colleagues. Each system runs on its own,
+and a saved experiment opens in the system it was made in.
 
 Drag a change from **Experiments** onto the **Timeline**, or double click it to add it at the
 playhead (the search field above the list finds one by name): remove the pituitary or the adrenal glands, cut the pituitary stalk, give dexamethasone or
@@ -109,6 +112,12 @@ tumour, add a short or long stressor, or run a clinical test (the overnight 1 mg
 dexamethasone tests, the ACTH stimulation test). Drag a change to move it, drag its right edge to
 make it last longer, and select it to edit its dose, time or strength in the **Inspector**. Diseases
 are present from the start of a run unless you set them to begin at a time.
+
+In water balance the changes are drinking water, stopping drinking, a salty infusion, desmopressin,
+central and nephrogenic diabetes insipidus, SIADH and primary polydipsia, and the tests are the
+**water deprivation test** (8 hours without water, then the urine is read) and the **desmopressin
+test**, which adds desmopressin after the deprivation and reads how much the urine rises: by more
+than half in central diabetes insipidus, hardly at all when the kidneys cannot answer.
 
 The centre shows the brain, with the parts of the model coloured by how far they are from normal and
 labelled with their current level, or (`V`) the model as a live circuit whose arrows thicken and

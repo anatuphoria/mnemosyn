@@ -25,8 +25,9 @@ place of the Timeline and Charts tabs (decision 75).
 
 ## Unfinished
 
-Lesion mode (decision 76) is built with the arterial territories, which the next release carries
-in the public download (decision 77). Cord lesions work only in local builds until PAM50 allows
+The main features are built: lesion mode (decision 76) with the arterial territories, which the next
+release carries in the public download (decision 77), and water balance, the second Lab system
+(decision 78). What follows is the stabilization pass and the handbook below. Cord lesions work only in local builds until PAM50 allows
 sharing, and medullary syndromes need cranial nerve nuclei the atlas does not have.
 
 
@@ -48,8 +49,8 @@ build the Lab only when it is first opened; its code and charts take about 0.2 s
 
 These were left out of earlier designs on purpose and are expected to come back.
 
-1. More Lab systems: blood pressure, sleep, thirst, hunger. Each needs a model file, not new engine
-   or screen code.
+1. More Lab systems: blood pressure, sleep, hunger. Each needs a model file, not new engine or
+   screen code. Linking systems (for example cortisol raising blood pressure) is a later design.
 2. Quiz questions on the Lab and on routes.
 3. Opening `.mnemolab` files from the file manager.
 4. Translating the texts, which are already prepared for it.
@@ -60,11 +61,12 @@ These were left out of earlier designs on purpose and are expected to come back.
 ## Handbook (after the main features)
 
 Agreed with the owner on 2026-11-01, to start once the main features are finished, so that all
-later work is enhancements and fixes. First a stabilization pass (the deferred minors, one polish pass per
-workspace, a full Windows check), then a handbook on the website in place of the single guide page:
+later work is enhancements and fixes. First a stabilization pass (one polish pass per workspace and a full
+Windows check; the deferred minors are done), then a handbook on the website in place of the single guide page:
 
 1. Start here: install and a ten minute tour of each workspace.
-2. One page per workspace (Explore, Slices, Pathways, Lab): every panel, button and shortcut.
+2. One page per workspace (Explore, Slices, Pathways, Lab, Lesion): every panel, button and
+   shortcut.
 3. Experiments to try, about eight to start, each with a question, a prediction, a button that
    opens it in Mnemosyn (a ready `.mnemolab` file for the Lab), what you will see and why, with
    sources.

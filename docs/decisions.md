@@ -83,6 +83,8 @@ entry replaces it and the old one says so.
 | 75 | 2026-11-01 | The Lab has one timeline that carries the charts | in force |
 | 76 | 2026-11-01 | Lesion mode computes deficits from the cited route texts | in force |
 | 77 | 2026-11-01 | The arterial territories are a shared but manual source | in force |
+| 78 | 2026-11-01 | Water balance is the second Lab system, independent of the stress axis | in force |
+| 79 | 2026-11-01 | Lab tests may hold a change for a while and read a rise | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -788,3 +790,25 @@ within 0.001 of a whole number, as in this file, are rounded.
 Why: a lesion by artery is how strokes happen; the territories overlap every structure, so they
 cannot share the brain labels; a missing file must never stop a build.
 Design: [lesion mode, section 3](specs/2026-11-01-lesion-mode-design.md).
+
+## 78. Water balance is the second Lab system, independent of the stress axis
+
+2026-11-01, chosen by the owner over sleep and blood pressure. A second Lab model follows plasma
+osmolality (shown as plasma sodium), vasopressin, urine concentration, thirst and body water, from
+the classic measurements of Robertson, Baylis, Baumann and Thompson and their colleagues, with
+desmopressin from Agersø and colleagues; the project's own assumptions are marked in the texts.
+It offers eight changes and the water deprivation and desmopressin tests, has its own behaviour
+circuit "Thirst and water balance", and runs alone: it does not see the stress axis. A saved
+experiment opens in the system it was made in.
+Why: it follows the hormone axis pattern that already works, its anatomy is in the public atlas, and
+its tests are what exams ask about.
+Design: [water balance](specs/2026-11-01-water-balance-design.md).
+
+## 79. Lab tests may hold a change for a while and read a rise
+
+2026-11-01. A Lab test can change a value for its own length, as experiments do, so a test can
+withhold water for 8 hours; and a test can use the rule "rises by", which compares its last reading
+with its first, as the desmopressin test does.
+Why: the water deprivation and desmopressin tests need both, and other clinical tests work the same
+way.
+Design: [water balance, section 4](specs/2026-11-01-water-balance-design.md).
