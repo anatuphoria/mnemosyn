@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import math
 
-from PySide6.QtWidgets import (QDoubleSpinBox, QHBoxLayout, QHeaderView, QLabel, QPushButton,
-                               QTableWidget, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtWidgets import (QAbstractItemView, QDoubleSpinBox, QHBoxLayout, QHeaderView, QLabel,
+                               QPushButton, QSizePolicy, QTableWidget, QToolButton, QVBoxLayout,
+                               QWidget)
 
+from cns_desktop.design.icons import icon
 from cns_desktop.design.theme import set_flag, set_tone
 
 
@@ -26,13 +29,14 @@ class ModelPanel(QWidget):
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
         self.document = document
-        self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["Value", "Setting", ""])
+        self.table = QTableWidget(0, 1)
+        self.table.horizontalHeader().hide()
         self.table.verticalHeader().hide()
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.table.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.reset_all = QPushButton("Reset all")
         self.reset_all.clicked.connect(document.reset_values)
         row = QHBoxLayout()
@@ -62,19 +66,33 @@ class ModelPanel(QWidget):
             self._texts[parameter.key] = (parameter.name, meaning[0] if meaning else "", source)
             label = QLabel(parameter.name)
             label.setToolTip("\n".join(t for t in self._texts[parameter.key][1:] if t))
-            self.table.setCellWidget(row, 0, label)
             spin = QDoubleSpinBox()
+            spin.setMinimumWidth(60)
+            spin.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
             spin.setDecimals(decimals_for(parameter.value, parameter.low, parameter.high))
             spin.setRange(parameter.low, parameter.high)
             spin.setSingleStep((parameter.high - parameter.low) / 100 or 1.0)
             spin.setSuffix(f" {parameter.unit}")
             spin.setValue(parameter.value)
             spin.editingFinished.connect(lambda k=parameter.key: self._edited(k))
-            self.table.setCellWidget(row, 1, spin)
             reset = QToolButton(text="Reset")
+            reset.setIcon(icon("rotate-ccw"))
+            reset.setIconSize(QSize(14, 14))
+            reset.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             reset.setToolTip(f"Back to the normal value, {parameter.value:g} {parameter.unit}")
             reset.clicked.connect(lambda _=False, k=parameter.key: document.reset_value(k))
-            self.table.setCellWidget(row, 2, reset)
+            cell = QWidget()
+            controls = QHBoxLayout()
+            controls.setContentsMargins(0, 0, 0, 0)
+            controls.setSpacing(4)
+            controls.addWidget(spin, 1)
+            controls.addWidget(reset)
+            stack = QVBoxLayout(cell)
+            stack.setContentsMargins(8, 6, 4, 6)
+            stack.setSpacing(4)
+            stack.addWidget(label)
+            stack.addLayout(controls)
+            self.table.setCellWidget(row, 0, cell)
             self._spins[parameter.key] = spin
             self._resets[parameter.key] = reset
             self._labels[parameter.key] = label

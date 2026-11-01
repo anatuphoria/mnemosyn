@@ -85,3 +85,19 @@ def test_rows_show_name_and_source(doc):
     panel = ModelPanel(doc)
     assert panel.row_text("k") == ("Feedback halfway point", "Where Y holds back half of X.",
                                    "Author A (2020)")
+
+
+def test_every_setting_shows_in_a_narrow_panel(doc, qapp):
+    panel = ModelPanel(doc)
+    panel.resize(200, 600)
+    panel.show()
+    qapp.processEvents()
+    viewport = panel.table.viewport()
+    for parameter in doc.model.parameters:
+        for widget in (panel.spin(parameter.key), panel.reset_button(parameter.key)):
+            right = widget.mapTo(viewport, widget.rect().topRight()).x()
+            assert 0 <= right <= viewport.width(), (parameter.key, right, viewport.width())
+        spin = panel.spin(parameter.key)
+        assert spin.width() >= spin.fontMetrics().horizontalAdvance(spin.text()) + 24
+    assert panel.table.horizontalScrollBar().maximum() == 0
+    panel.close()
