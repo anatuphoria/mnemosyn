@@ -6,7 +6,9 @@ from PySide6.QtWidgets import QApplication
 from atlas_fixtures import place_territories, sha256_file, write_extended_source_tree
 from cns_atlas import Atlas
 from cns_atlas.lesions import Lesion, structure_lesion, territory_lesion
+from cns_atlas import DISCLAIMER
 from cns_desktop.lesion.place_panel import CORD_MISSING, TERRITORIES_MISSING
+from cns_desktop.lesion.results_panel import EMPTY_LESION
 from cns_desktop.main_window import MainWindow
 from tools.build_atlas.build import build
 
@@ -236,3 +238,57 @@ def test_brushing_on_the_spine_slice_writes_the_spine_mask(qapp, spine_atlas, tm
         assert not lesion.document.lesion.masks[w.state.atlas.volumes[0].name].any()
     finally:
         w.close()
+
+
+def fraction_lesion(atlas, structure_id, share):
+    volume = atlas.volumes[0]
+    where = np.flatnonzero(volume.data == structure_id)
+    mask = np.zeros(volume.shape, dtype=bool)
+    mask.flat[where[:max(1, round(len(where) * share))]] = True
+    return Lesion.empty(atlas).with_mask(volume.name, mask)
+
+
+def test_deficits_start_with_a_prompt(window, qapp):
+    text = entered(window, qapp).deficits.toPlainText()
+    assert text.startswith(EMPTY_LESION)
+
+
+def test_deficits_follow_the_report(window, qapp):
+    lesion = entered(window, qapp)
+    lesion.document.set_lesion(structure_lesion(window.state.atlas, 101), "Alpha")
+    text = lesion.deficits.toPlainText()
+    assert "Toy loop" in text and "Loss on the right side." in text
+    assert "Alpha gyrus (left)" in text and "100%" in text
+    assert "Spared" in text and "Short path" in text
+    assert "References" in text and DISCLAIMER in text
+    assert "partly" not in text
+
+
+def test_a_partly_broken_step_says_so(window, qapp):
+    lesion = entered(window, qapp)
+    lesion.document.set_lesion(fraction_lesion(window.state.atlas, 101, 0.10), "Part")
+    assert "partly" in lesion.deficits.toPlainText()
+
+
+def test_the_hit_list_ranks_structures_and_selects_one(window, qapp):
+    lesion = entered(window, qapp)
+    atlas = window.state.atlas
+    mask = structure_lesion(atlas, 101).masks[atlas.volumes[0].name] | fraction_lesion(
+        atlas, 112, 0.5).masks[atlas.volumes[0].name]
+    lesion.document.set_lesion(Lesion.empty(atlas).with_mask(atlas.volumes[0].name, mask), "Two")
+    rows = [lesion.hit.item(i).text() for i in range(lesion.hit.count())]
+    assert rows[0] == "Alpha gyrus (left)  100%" and any(r.startswith("Beta nucleus (right)") for r in rows)
+    lesion.place.set_tool("brush")
+    lesion.hit.itemClicked.emit(lesion.hit.item(0))
+    assert window.state.selected == 101
+
+
+def test_shares_read_as_whole_percents_and_slivers_as_under_one():
+    from cns_desktop.lesion.results_panel import percent
+    assert percent(1.0) == "100%" and percent(0.124) == "12%" and percent(0.004) == "under 1%"
+
+
+def test_each_route_group_says_where_it_starts(window, qapp):
+    lesion = entered(window, qapp)
+    lesion.document.set_lesion(structure_lesion(window.state.atlas, 101), "Alpha")
+    assert "From the left alpha gyrus" in lesion.deficits.toPlainText()

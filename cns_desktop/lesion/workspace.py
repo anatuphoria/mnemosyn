@@ -10,6 +10,7 @@ from cns_desktop.design.tokens import SIZE
 
 from .document import LesionDocument
 from .place_panel import PlacePanel
+from .results_panel import DeficitsPanel, HitPanel
 
 
 def lesion_mesh(atlas, lesion):
@@ -35,7 +36,8 @@ class LesionWorkspace:
         self.window = window
         self.document = LesionDocument(window.state.atlas, window)
         self.place, self.cases = PlacePanel(self.document, window), QWidget()
-        self.deficits, self.hit = QWidget(), QWidget()
+        self.deficits = DeficitsPanel(self.document)
+        self.hit = HitPanel(self.document, window.state)
         self.tools_group = self._group("Lesion tools", [("place", "Place", self.place),
                                                         ("cases", "Cases", self.cases)],
                                        Qt.DockWidgetArea.LeftDockWidgetArea)
