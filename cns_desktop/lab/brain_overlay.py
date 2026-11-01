@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu
 from vtkmodules.vtkCommonCore import VTK_FONT_FILE
-from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D, vtkTextRenderer
+from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D, vtkRenderer, vtkTextRenderer
 
 from cns_desktop.design.fonts import FONTS
 from cns_desktop.design.tokens import TYPE, rgb
@@ -26,9 +26,24 @@ GAP = 3
 NUDGE = 10
 
 
+def label_layer(view) -> vtkRenderer:
+    layer = getattr(view, "label_layer", None)
+    if layer is None:
+        layer = vtkRenderer()
+        layer.SetLayer(view.outline.renderer.GetLayer() + 1)
+        layer.InteractiveOff()
+        layer.SetActiveCamera(view.renderer.GetActiveCamera())
+        window = view.ren_win
+        window.SetNumberOfLayers(max(layer.GetLayer() + 1, window.GetNumberOfLayers()))
+        window.AddRenderer(layer)
+        view.label_layer = layer
+    return layer
+
+
 class BrainOverlay:
     def __init__(self, view) -> None:
         self.view = view
+        self.renderer = label_layer(view)
         self.actors: dict[int, vtkBillboardTextActor3D] = {}
         self.labels: dict[int, str] = {}
         self._boxes: dict[int, tuple[float, float, float, float]] = {}
@@ -40,7 +55,7 @@ class BrainOverlay:
              positions: dict | None = None, extents: dict | None = None) -> None:
         self._extents = dict(extents or {})
         for structure_id in set(self.actors) - set(labels):
-            self.view.renderer.RemoveActor(self.actors.pop(structure_id))
+            self.renderer.RemoveActor(self.actors.pop(structure_id))
         for structure_id, (text, color) in labels.items():
             actor = self.actors.get(structure_id)
             if actor is None:
@@ -56,7 +71,7 @@ class BrainOverlay:
                 style.SetBackgroundOpacity(0.9)
                 style.SetFrame(False)
                 actor.SetPickable(False)
-                self.view.renderer.AddActor(actor)
+                self.renderer.AddActor(actor)
                 self.actors[structure_id] = actor
             actor.SetInput(text)
             actor.GetTextProperty().SetColor(*(c / 255 for c in color))

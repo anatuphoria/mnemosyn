@@ -156,3 +156,16 @@ def test_a_label_starts_past_its_structure_on_screen(window, qapp):
         renderer.WorldToDisplay()
         right = max(right, renderer.GetDisplayPoint()[0])
     assert brain.overlay.boxes()[111][0] >= right
+
+
+def test_labels_draw_in_a_layer_above_the_scene(window):
+    doc, brain = lab_of(window)
+    brain.activate()
+    doc.add_block("remove_b", 0.0)
+    actor = brain.overlay.actors[111]
+    layer = brain.overlay.renderer
+    assert layer.HasViewProp(actor) and not window.view.renderer.HasViewProp(actor)
+    assert layer.GetLayer() > window.view.outline.renderer.GetLayer()
+    assert layer.GetActiveCamera() is window.view.renderer.GetActiveCamera()
+    again = lab_of(window)[1]
+    assert again.overlay.renderer is layer
