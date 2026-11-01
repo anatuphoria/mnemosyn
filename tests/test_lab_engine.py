@@ -130,3 +130,17 @@ def test_errors_inside_the_equations_become_solver_errors(tmp_path, monkeypatch)
     armed.append(1)
     with pytest.raises(SolverError):
         sim.run(plain(length=DAY, values=[("w", 0.2)]))
+
+
+def test_a_test_holds_its_edits_for_its_length_only(sim):
+    experiment = plain(blocks=[Block("hold_test", 600.0, None, ())])
+    k = sim.model.parameters.index(next(p for p in sim.model.parameters if p.key == "k"))
+    assert sim.parameters_at(experiment, 599.0)[k] == 1.0
+    assert sim.parameters_at(experiment, 600.0)[k] == 3.0
+    assert sim.parameters_at(experiment, 719.0)[k] == 3.0
+    assert sim.parameters_at(experiment, 720.0)[k] == 1.0
+
+
+def test_the_end_of_a_held_change_is_a_break_in_the_run(sim):
+    run = sim.run(plain(blocks=[Block("hold_test", 600.0, None, ())]))
+    assert 600.0 in run.times and 720.0 in run.times

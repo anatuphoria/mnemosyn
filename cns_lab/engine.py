@@ -101,16 +101,25 @@ class Simulator:
             names.update({o.key: options.get(o.key, o.default) for o in experiment.options})
         return names
 
+    def _edits_at(self, experiment: Experiment, t: float):
+        for block in experiment.blocks:
+            test = self._tests.get(block.experiment)
+            if test is not None:
+                end = block.start + test.length if test.length is not None else math.inf
+                if test.edits and block.start <= t < end:
+                    yield block, test.edits
+                continue
+            found = self._experiments.get(block.experiment)
+            if found is not None and block.active(t, experiment.length):
+                yield block, found.edits
+
     def parameters_at(self, experiment: Experiment, t: float) -> list[float]:
         params = list(self.defaults)
         for key, value in experiment.values:
             if key in self._param_index:
                 params[self._param_index[key]] = value
-        for block in experiment.blocks:
-            found = self._experiments.get(block.experiment)
-            if found is None or not block.active(t, experiment.length):
-                continue
-            for edit in found.edits:
+        for block, edits in self._edits_at(experiment, t):
+            for edit in edits:
                 if edit.op not in ("set", "add", "scale"):
                     continue
                 level = self._evaluate(edit.expr, self._names(block, params))
@@ -125,11 +134,8 @@ class Simulator:
 
     def clamps_at(self, experiment: Experiment, t: float, params: list[float]) -> dict[int, float]:
         clamps = {}
-        for block in experiment.blocks:
-            found = self._experiments.get(block.experiment)
-            if found is None or not block.active(t, experiment.length):
-                continue
-            for edit in found.edits:
+        for block, edits in self._edits_at(experiment, t):
+            for edit in edits:
                 if edit.op == "clamp":
                     clamps[self._value_index[edit.target]] = self._evaluate(
                         edit.expr, self._names(block, params))
@@ -179,6 +185,9 @@ class Simulator:
             if not block.present:
                 points.add(block.start)
                 points.add(block.end(experiment.length))
+            test = self._tests.get(block.experiment)
+            if test is not None and test.length is not None:
+                points.add(block.start + test.length)
         return sorted(p for p in points if t0 <= p <= t1)
 
     def _rates(self, clamped: frozenset[int]):

@@ -36,13 +36,17 @@ def clock_text(minutes: float) -> str:
 def read_test(sim: Simulator, run: Run, block: Block) -> TestResult:
     test = next(t for t in sim.model.tests if t.key == block.experiment)
     readings = tuple(run.display(r.value, block.start + r.after) for r in test.readings)
-    if test.rule == "suppressed by":
+    if test.rule in ("suppressed by", "rises by"):
         others = tuple(b for b in run.experiment.blocks if b != block)
         without = sim.run(run.experiment.replace(blocks=others))
         first = test.readings[0]
         base = without.display(first.value, block.start + first.after)
-        value = 1.0 - readings[0] / base if base else 0.0
-        return TestResult(test.key, readings, value, value >= test.cutoff, test.cutoff, "fraction")
+        if test.rule == "suppressed by":
+            value = 1.0 - readings[0] / base if base else 0.0
+            return TestResult(test.key, readings, value, value >= test.cutoff, test.cutoff,
+                              "fraction")
+        value = readings[0] / base - 1.0 if base else 0.0
+        return TestResult(test.key, readings, value, value < test.cutoff, test.cutoff, "fraction")
     value = max(readings)
     normal = value < test.cutoff if test.rule == "below" else value >= test.cutoff
     unit = sim.values[test.readings[0].value].display_unit

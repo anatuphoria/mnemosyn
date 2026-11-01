@@ -944,6 +944,14 @@ readings = [{ value = "x", after = "1 h" }]
 rule = "below"
 cutoff = 10.8
 
+[[tests]]
+key = "hold_test"
+length = "2 h"
+edits = [{ op = "set", target = "k", expr = "3" }]
+readings = [{ value = "x", after = "2 h" }]
+rule = "rises by"
+cutoff = 0.5
+
 [[checks]]
 key = "rhythm"
 length = "2 d"
@@ -1028,6 +1036,10 @@ TOY_LAB_TEXTS = """\
 "test.pill_test.description" = "Give Y and read X an hour later."
 "test.pill_test.normal" = "X is suppressed, as normal."
 "test.pill_test.abnormal" = "X is not suppressed."
+"test.hold_test" = "K hold test"
+"test.hold_test.description" = "Hold K high for two hours and read X."
+"test.hold_test.normal" = "X barely rises."
+"test.hold_test.abnormal" = "X rises by more than half."
 "check.rhythm" = "X follows a daily rhythm."
 "check.removal" = "Without the gland X rises."
 "check.stressed" = "Stress raises X before Y, then both settle."

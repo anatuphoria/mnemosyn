@@ -150,8 +150,10 @@ class LabTest(_Record):
     rule: str
     cutoff: float
     icon: str = ""
+    edits: tuple[Edit, ...] = ()
+    length: float | None = None
 
-    NESTED: ClassVar[dict] = {"readings": Reading}
+    NESTED: ClassVar[dict] = {"readings": Reading, "edits": Edit}
 
 
 @dataclass(frozen=True)

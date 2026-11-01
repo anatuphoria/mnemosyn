@@ -60,6 +60,11 @@ MISTAKES = [
      "needs a known experiment or test"),
     ("unknown icon", swap('key = "pill"\ngroup = "Drugs"', 'key = "pill"\ngroup = "Drugs"\n'
                           'icon = "no-such-icon"'), "unknown icon 'no-such-icon'"),
+    ("unknown test edit target", swap('edits = [{ op = "set", target = "k", expr = "3" }]',
+                                      'edits = [{ op = "set", target = "q", expr = "3" }]'),
+     "set needs a parameter"),
+    ("bad test length", swap('length = "2 h"', 'length = "two hours"'),
+     "a duration is written"),
 ]
 
 

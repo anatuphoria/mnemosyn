@@ -211,3 +211,18 @@ def test_unchanged_text_is_not_rebuilt(doc):
     panel.refresh()
     panel.refresh()
     assert panel.refresh_count == before
+
+
+def test_a_rise_test_reads_as_a_rise(doc):
+    inspector = Inspector(doc)
+    doc.add_block("hold_test", 120.0)
+    doc.select(("block", 0))
+    text = inspector.text()
+    assert "K hold test" in text and "rises by" in text and "rises by under 50%" in text
+
+
+def test_a_test_read_after_the_run_ends_says_so(doc):
+    inspector = Inspector(doc)
+    doc.add_block("hold_test", doc.experiment.length - 30.0)
+    doc.select(("block", 0))
+    assert "The run ends before the test is read." in inspector.text()

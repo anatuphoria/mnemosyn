@@ -26,7 +26,7 @@ def test_experiments_are_grouped_in_model_order(doc):
     groups = [panel.topLevelItem(i) for i in range(panel.topLevelItemCount())]
     assert [g.text(0) for g in groups] == ["Remove or cut", "Drugs", "Stressors", "Tests"]
     assert children(groups[1]) == ["Y pill", "Daily Y course"]
-    assert children(groups[3]) == ["Y suppression test"]
+    assert children(groups[3]) == ["Y suppression test", "K hold test"]
     assert groups[1].child(0).toolTip(0) == "Y pill\nA dose of Y."
 
 

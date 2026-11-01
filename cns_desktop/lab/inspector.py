@@ -15,7 +15,8 @@ from cns_desktop.design.tokens import GAP, SIZE
 from .model_panel import short_source
 from .why_panel import DRAFT
 
-RULE_WORDS = {"below": "below", "at least": "at least", "suppressed by": "suppressed by at least"}
+RULE_WORDS = {"below": "below", "at least": "at least", "suppressed by": "suppressed by at least",
+              "rises by": "rises by under"}
 MODES = (("Present from the start", PRESENT), ("From a time", FROM_A_TIME))
 
 
@@ -287,7 +288,8 @@ class Inspector(QWidget):
         result = read_test(doc.simulator, doc.run, block)
         word = "Normal" if result.normal else "Abnormal"
         if result.unit == "fraction":
-            text = (f"{word}: suppressed by {result.value:.0%}, "
+            verb = "rises by" if test.rule == "rises by" else "suppressed by"
+            text = (f"{word}: {verb} {result.value:.0%}, "
                     f"{RULE_WORDS[test.rule]} {result.cutoff:.0%}")
         else:
             text = (f"{word}: {result.value:.3g} {result.unit}, {RULE_WORDS[test.rule]} "

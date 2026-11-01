@@ -24,7 +24,7 @@ FIELDS = {
     "terms": {"key", "value", "sign", "expr", "kind", "arrow"},
     "parts": {"key", "structure", "x", "y", "values"},
     "experiments": {"key", "group", "mode", "length", "options", "edits", "weeks", "icon"},
-    "tests": {"key", "doses", "readings", "rule", "cutoff", "icon"},
+    "tests": {"key", "doses", "readings", "rule", "cutoff", "icon", "edits", "length"},
     "checks": {"key", "length", "blocks", "asserts"},
     "normal": {"key", "from", "to"},
 }
@@ -36,7 +36,7 @@ TERM_KINDS = {"drives", "clears", "grows", "shrinks", "absorbs"}
 MODES = {"from a time", "present"}
 PARAMETER_OPS = {"set", "add", "scale"}
 VALUE_OPS = {"clamp", "dose"}
-RULES = {"below", "at least", "suppressed by"}
+RULES = {"below", "at least", "suppressed by", "rises by"}
 ASSERTS = {
     "peak_within": {"value", "window", "expect"},
     "trough_within": {"value", "window", "expect"},
@@ -308,6 +308,29 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
     if len(names_used) != len(values) + len(parameters) + len(effects) + len(terms):
         r.say("keys of values, parameters, effects and terms must all differ")
 
+    def parse_edits(row: dict, where: str, option_keys: set) -> list:
+        edits = []
+        for n, edit in enumerate(row.get("edits", []), 1):
+            ew = f"{where} edit {n}"
+            if not isinstance(edit, dict):
+                r.say(f"{ew}: must be a table")
+                continue
+            op, target = edit.get("op"), edit.get("target")
+            if op in PARAMETER_OPS:
+                if target not in parameter_keys:
+                    r.say(f"{ew}: {op} needs a parameter, not {target!r}")
+            elif op in VALUE_OPS:
+                if target not in value_keys:
+                    r.say(f"{ew}: {op} needs a value, not {target!r}")
+            else:
+                r.say(f"{ew}: op must be one of {sorted(PARAMETER_OPS | VALUE_OPS)}")
+            daily = bool(edit.get("daily", False))
+            if daily and op != "dose":
+                r.say(f"{ew}: only a dose can be daily")
+            edits.append(Edit(str(op), str(target),
+                              r.expr(edit.get("expr"), option_keys | parameter_keys, ew), daily))
+        return edits
+
     experiments = []
     for row in r.rows(data, "experiments"):
         k, where = row["key"], f"experiment {row['key']}"
@@ -332,26 +355,7 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
                                   float(opt["low"]) if ok else 0.0,
                                   float(opt["high"]) if ok else 0.0))
         option_keys = {o.key for o in options}
-        edits = []
-        for n, edit in enumerate(row.get("edits", []), 1):
-            ew = f"{where} edit {n}"
-            if not isinstance(edit, dict):
-                r.say(f"{ew}: must be a table")
-                continue
-            op, target = edit.get("op"), edit.get("target")
-            if op in PARAMETER_OPS:
-                if target not in parameter_keys:
-                    r.say(f"{ew}: {op} needs a parameter, not {target!r}")
-            elif op in VALUE_OPS:
-                if target not in value_keys:
-                    r.say(f"{ew}: {op} needs a value, not {target!r}")
-            else:
-                r.say(f"{ew}: op must be one of {sorted(PARAMETER_OPS | VALUE_OPS)}")
-            daily = bool(edit.get("daily", False))
-            if daily and op != "dose":
-                r.say(f"{ew}: only a dose can be daily")
-            edits.append(Edit(str(op), str(target),
-                              r.expr(edit.get("expr"), option_keys | parameter_keys, ew), daily))
+        edits = parse_edits(row, where, option_keys)
         if not edits:
             r.say(f"{where}: needs at least one edit")
         text(f"experiment.{k}.description")
@@ -385,9 +389,11 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
             r.say(f"{where}: cutoff must be a number")
         for suffix in ("", ".normal", ".abnormal", ".description"):
             text(f"test.{k}{suffix}")
+        length = row.get("length")
+        length = None if length is None else r.time(duration, length, where, 60.0)
         tests.append(LabTest(k, text(f"test.{k}"), tuple(doses), tuple(readings),
                              str(row.get("rule")), float(row.get("cutoff", 0)),
-                             _icon(r, row, where)))
+                             _icon(r, row, where), tuple(parse_edits(row, where, set())), length))
     block_keys = {e.key for e in experiments} | {t.key for t in tests}
     if len(block_keys) != len(experiments) + len(tests):
         r.say("experiments and tests must have different keys")
