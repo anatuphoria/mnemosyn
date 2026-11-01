@@ -48,7 +48,7 @@ def test_every_aal3_label_maps_to_exactly_one_structure():
     assert {ref.source for r in raws for ref in r.labels} == {
         "aal3", "neudorfer2020", "hcp1065", "tang2024", "razavi2021", "edlow2023",
         "diedrichsen2009", "sitek2019", "bianciardi2024", "iglesias2015", "pam50", "pam50-atlas",
-        "pam50-gm"}
+        "pam50-gm", "liu2023"}
 
 
 NEUDORFER_LABELS = set(range(1, 11)) | set(range(13, 39)) | set(range(41, 55))
@@ -458,7 +458,7 @@ def test_brain_tracts_sit_inside_brain():
     assert tracts and all(2 in paths[i] for i in tracts)
 
 
-PROVIDES = {"aal3": "Brain regions", "colin27": "MRI template for brain slices",
+PROVIDES = {"liu2023": "Arterial territories", "aal3": "Brain regions", "colin27": "MRI template for brain slices",
             "neudorfer2020": "Hypothalamic nuclei", "hcp1065": "Brain white matter tracts",
             "tang2024": "Pituitary gland", "razavi2021": "Pineal gland",
             "edlow2023": "Brainstem arousal nuclei", "diedrichsen2009": "Deep cerebellar nuclei",
@@ -473,6 +473,19 @@ def test_every_source_says_what_it_provides():
     recipe = load_recipe(SRC / "recipe.toml")
     specs = (*recipe.sources, *recipe.templates, *recipe.tracts)
     assert {s.source.id: s.source.provides for s in specs} == PROVIDES
+
+
+def test_the_arterial_territories_are_an_optional_shared_manual_source():
+    recipe = load_recipe(SRC / "recipe.toml")
+    spec = next(s for s in recipe.sources if s.source.id == "liu2023")
+    assert spec.manual and spec.optional and not spec.local_only and spec.source.redistribution
+    assert spec.volume == "territories" and spec.drop == (31, 32)
+    assert next(v for v in recipe.volumes if v.name == "territories").role == "territories"
+    raws = load_structures(SRC / "structures.toml")
+    values = sorted(ref.value for r in raws for ref in r.labels if ref.source == "liu2023")
+    assert values == list(range(1, 31))
+    assert {r.kind for r in raws if any(ref.source == "liu2023" for ref in r.labels)} == {
+        "territory"}
 
 
 def test_the_brainstem_bodies_are_local_shells():

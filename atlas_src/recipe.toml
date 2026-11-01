@@ -488,3 +488,31 @@ download = "https://github.com/spinalcordtoolbox/PAM50/releases/download/r202507
 sha256 = "8347c7a240a54e7c44ecd9cc43ef7c3c650784757bf9ed8c8bb2f8587dfc8846"
 member = "spinalcordtoolbox-PAM50-3144364/template/PAM50_t2.nii.gz"
 volume = "spine"
+
+[[volumes]]
+name = "territories"
+space = "MNI152"
+grid_source = "aal3"
+role = "territories"
+
+[[sources]]
+id = "liu2023"
+provides = "Arterial territories"
+title = "Digital 3D Brain MRI Arterial Territories Atlas"
+authors = "Liu CF, Hsu J, Xu X, Kim G, Sheppard SM, Meier EL, Miller MI, Hillis AE, Faria AV"
+year = 2023
+version = "NITRC ArterialAtlas_v2_MNI152 (Atlas_MNI152.zip, level 1 labels)"
+doi = "10.1038/s41597-022-01923-0"
+url = "https://www.nitrc.org/projects/arterialatlas/"
+licence = "Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0), as stated in ArterialAtlasLables.txt"
+licence_file = "LICENSES/CC-BY-SA-4.0.txt"
+redistribution = true
+manual = true
+optional = true
+download = "Atlas_MNI152.zip"
+sha256 = "a84d6cbef3ab95c300a62275e3578f20dc83e45f94fb9a829a8019d5ee8c8e02"
+member = "Atlas_MNI152/ArterialAtlas.nii"
+volume = "territories"
+priority = 1
+drop = [31, 32]
+

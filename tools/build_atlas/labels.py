@@ -21,6 +21,7 @@ def read_label_names(path: Path) -> dict[int, str]:
     return names
 
 
+WHOLE = 1e-3
 CROP_SLAB = 32
 
 
@@ -52,11 +53,16 @@ def load_label_image(path: Path, mask: bool = False, name: str = "", cropped: bo
         affine = np.asarray(affine) @ shift
     else:
         data = np.asarray(image.dataobj)
+    if data.ndim == 4 and data.shape[3] == 1:
+        data = data[..., 0]
     if mask:
         data = np.nan_to_num(data)
         data = data >= threshold if threshold is not None else data != 0
-    elif not np.issubdtype(data.dtype, np.integer) and np.any(data != np.rint(data)):
-        raise BuildError([f"source {name}: label values are not whole numbers; set mask = true"])
+    elif not np.issubdtype(data.dtype, np.integer):
+        if np.any(np.abs(data - np.rint(data)) > WHOLE):
+            raise BuildError([f"source {name}: label values are not whole numbers; "
+                              f"set mask = true"])
+        data = np.rint(data)
     return nib.Nifti1Image(data.astype(np.int32), affine)
 
 

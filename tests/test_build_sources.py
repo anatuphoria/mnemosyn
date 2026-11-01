@@ -177,3 +177,29 @@ def test_member_path_extracts_from_zip(tmp_path):
     assert member_path(spec, cached, "colin.nii").read_bytes() == b"template bytes"
     with pytest.raises(BuildError, match="not found"):
         member_path(spec, cached, "other.nii")
+
+
+def test_labels_stored_with_a_tiny_scale_are_rounded(tmp_path):
+    from tools.build_atlas.labels import load_label_image
+
+    data = np.zeros((4, 4, 4), dtype=np.float32)
+    data[1, 1, 1], data[2, 2, 2] = 1.0000152, 16.000244
+    path = tmp_path / "scaled.nii.gz"
+    nib.save(nib.Nifti1Image(data, np.eye(4)), path)
+    image = load_label_image(path, name="scaled")
+    assert sorted(np.unique(np.asarray(image.dataobj)).tolist()) == [0, 1, 16]
+    data[3, 3, 3] = 2.4
+    nib.save(nib.Nifti1Image(data, np.eye(4)), path)
+    with pytest.raises(BuildError, match="not whole numbers"):
+        load_label_image(path, name="scaled")
+
+
+def test_a_label_image_with_a_single_volume_in_a_fourth_axis_becomes_3d(tmp_path):
+    from tools.build_atlas.labels import load_label_image
+
+    data = np.zeros((4, 4, 4, 1), dtype=np.int16)
+    data[1, 1, 1, 0] = 3
+    path = tmp_path / "four.nii.gz"
+    nib.save(nib.Nifti1Image(data, np.eye(4)), path)
+    image = load_label_image(path, name="four")
+    assert image.shape == (4, 4, 4) and np.asarray(image.dataobj)[1, 1, 1] == 3
