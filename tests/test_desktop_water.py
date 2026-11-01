@@ -105,3 +105,20 @@ def test_large_readings_are_written_as_whole_numbers(window):
     lab.document.select(("block", 1))
     text = lab.inspector.text()
     assert "e+" not in text and "mOsm/kg after 10 h" in text
+
+
+def test_every_water_lane_shows_without_scrolling(window, qapp):
+    lab = switch_to(window, "water")
+    qapp.processEvents()
+    timeline = lab.timeline
+    assert timeline.height() >= timeline.wanted_height()
+    last = timeline.lane_rect(timeline.lane_keys()[-1])
+    assert last.bottom() <= timeline.height()
+
+
+def test_the_first_lab_opens_with_every_lane_shown(window, qapp):
+    window.workspaces.switch("Lab")
+    qapp.processEvents()
+    qapp.processEvents()
+    timeline = window.lab.timeline
+    assert timeline.height() >= timeline.wanted_height()

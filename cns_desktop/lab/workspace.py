@@ -28,6 +28,7 @@ SPEEDS = (0.5, 1.0, 2.0, 4.0)
 LENGTHS = (("6 h", 360.0), ("1 d", DAY), ("3 d", 3 * DAY), ("1 w", 7 * DAY), ("4 w", 28 * DAY),
            ("8 w", 56 * DAY))
 STATUS_HINT = "drag a change to move it"
+TIMELINE_SHARE = 0.45
 GROUPS = (("Lab tools", "Experiments and model", (("experiments", "Experiments"), ("model", "Model"))),
           ("Lab explain", "Why and inspector", (("why", "Why"), ("inspector", "Inspector"))),
           ("Lab time", "Timeline", (("timeline", "Timeline"),)))
@@ -47,6 +48,7 @@ class LabWorkspace:
         doc = self.document
         self.speed = 1.0
         self.playing = False
+        self._fitted = False
         self._last_tick = 0.0
         self.timer = QTimer(window, interval=TICK_MS, timeout=self._tick)
         self.experiments_page = ExperimentsPage(doc)
@@ -102,6 +104,16 @@ class LabWorkspace:
                            [SIZE["panel_left"], SIZE["panel_right"]], Qt.Orientation.Horizontal)
         window.resizeDocks([self.time_group], [max(window.height(), 900) // 3],
                            Qt.Orientation.Vertical)
+        self.fit_timeline()
+
+    def fit_timeline(self) -> None:
+        window = self.window
+        shown = self.timeline.isVisible() and self.timeline.height() > 0
+        chrome = self.time_group.height() - self.timeline.height() if shown else SIZE["header"]
+        wanted = self.timeline.wanted_height() + chrome
+        limit = int(window.height() * TIMELINE_SHARE)
+        if self.time_group.height() < wanted:
+            window.resizeDocks([self.time_group], [min(wanted, limit)], Qt.Orientation.Vertical)
 
     def dock(self, title: str) -> PanelGroup:
         return self._docks[title]
@@ -242,6 +254,7 @@ class LabWorkspace:
         self.system_box.setCurrentIndex(self.system_box.findData(key))
         self.update_title()
         self.window._update_status()
+        self.fit_timeline()
 
     def _set_enabled(self, on: bool) -> None:
         for name, action in self._actions.items():
@@ -260,6 +273,9 @@ class LabWorkspace:
         self._set_enabled(True)
         self.brain.activate()
         self.window._update_status()
+        if not self._fitted:
+            self._fitted = True
+            QTimer.singleShot(0, self.fit_timeline)
 
     def leave(self) -> None:
         self.pause()

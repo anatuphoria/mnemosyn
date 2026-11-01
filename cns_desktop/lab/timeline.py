@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QFontMetricsF, QPainter, QPainterPath, QPen, QPixmap
@@ -214,6 +216,9 @@ class Timeline(QWidget):
 
     def _body_height(self) -> float:
         return self.changes_height() + len(self.lane_keys()) * LANE_HEIGHT
+
+    def wanted_height(self) -> int:
+        return math.ceil(self.body_top() + self._body_height())
 
     def _sync_scroll(self) -> None:
         visible = self.height() - self.body_top()
