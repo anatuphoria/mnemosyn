@@ -4,6 +4,8 @@ import hashlib
 import shutil
 import ssl
 import tarfile
+import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -12,6 +14,8 @@ from urllib.parse import urlparse
 from .recipe import BuildError, SourceSpec
 
 DEFAULT_CACHE = Path.home() / ".cache" / "cns-atlas" / "sources"
+ATTEMPTS = 3
+RETRY_SECONDS = 5
 
 
 def sha256_of(path: Path) -> str:
@@ -31,9 +35,17 @@ def _download(spec: SourceSpec, target: Path) -> None:
     if not spec.verify_tls:
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
-    with (urllib.request.urlopen(spec.download, context=context, timeout=60) as response,
-          target.open("wb") as out):
-        shutil.copyfileobj(response, out)
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            with (urllib.request.urlopen(spec.download, context=context, timeout=60) as response,
+                  target.open("wb") as out):
+                shutil.copyfileobj(response, out)
+            return
+        except OSError as exc:
+            lasting = isinstance(exc, urllib.error.HTTPError) and exc.code < 500
+            if lasting or attempt == ATTEMPTS:
+                raise
+        time.sleep(RETRY_SECONDS * attempt)
 
 
 def manual_target(spec: SourceSpec, cache: Path) -> Path:

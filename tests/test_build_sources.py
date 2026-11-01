@@ -2,12 +2,14 @@ import hashlib
 import io
 import tarfile
 import zipfile
+from urllib.error import HTTPError
 
 import nibabel as nib
 import numpy as np
 import pytest
 
 from cns_atlas.model import Source, Structure
+from tools.build_atlas import fetch as fetch_module
 from tools.build_atlas.fetch import fetch, member_path
 from tools.build_atlas.hierarchy import LabelRef, PlannedStructure
 from tools.build_atlas.labels import mapping_for, merge, read_label_names, source_values
@@ -56,6 +58,45 @@ def test_fetch_rejects_checksum_mismatch_and_leaves_nothing(tmp_path):
 def test_fetch_reports_download_failure(tmp_path):
     with pytest.raises(BuildError, match="download failed"):
         fetch(spec_for(tmp_path / "missing.bin", "0" * 64), tmp_path / "cache")
+
+
+def flaky_urlopen(failures):
+    calls = []
+
+    def urlopen(url, context=None, timeout=None):
+        calls.append(url)
+        if len(calls) <= len(failures):
+            raise failures[len(calls) - 1]
+        return io.BytesIO(b"atlas bytes")
+    return urlopen, calls
+
+
+def test_fetch_retries_a_dropped_download(tmp_path, monkeypatch):
+    urlopen, calls = flaky_urlopen([ConnectionResetError("reset"), TimeoutError("slow")])
+    monkeypatch.setattr(fetch_module.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(fetch_module.time, "sleep", lambda seconds: None)
+    spec = spec_for("https://example.org/data.bin", sha(b"atlas bytes"))
+    assert fetch(spec, tmp_path / "cache").read_bytes() == b"atlas bytes"
+    assert len(calls) == 3
+
+
+def test_fetch_gives_up_after_the_last_attempt(tmp_path, monkeypatch):
+    urlopen, calls = flaky_urlopen([ConnectionResetError("reset")] * fetch_module.ATTEMPTS)
+    monkeypatch.setattr(fetch_module.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(fetch_module.time, "sleep", lambda seconds: None)
+    with pytest.raises(BuildError, match="download failed"):
+        fetch(spec_for("https://example.org/data.bin", "0" * 64), tmp_path / "cache")
+    assert len(calls) == fetch_module.ATTEMPTS
+
+
+def test_fetch_does_not_retry_a_missing_file(tmp_path, monkeypatch):
+    missing = HTTPError("https://example.org/data.bin", 404, "Not Found", None, None)
+    urlopen, calls = flaky_urlopen([missing])
+    monkeypatch.setattr(fetch_module.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(fetch_module.time, "sleep", lambda seconds: None)
+    with pytest.raises(BuildError, match="download failed"):
+        fetch(spec_for("https://example.org/data.bin", "0" * 64), tmp_path / "cache")
+    assert len(calls) == 1
 
 
 def test_member_path_extracts_once(tmp_path):
