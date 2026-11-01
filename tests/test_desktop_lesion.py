@@ -350,3 +350,18 @@ def test_cases_say_so_when_no_route_has_signs(window, qapp):
     cases = entered(window, qapp).cases
     cases.new_case_button.click()
     assert cases.case is None and cases.signs_label.text() == NO_CASES
+
+
+def test_territories_live_only_in_the_lesion_workspace(qapp, territory_atlas, tmp_path):
+    w = open_window(qapp, territory_atlas, tmp_path)
+    try:
+        atlas = w.state.atlas
+        hidden = [s.id for s in atlas.structures if s.kind == "territory"] + [7]
+        assert not any(i in w.tree.items for i in hidden)
+        place = entered(w, qapp).place
+        group = place.territory_tree.topLevelItem(0)
+        assert group.child(0).toolTip(0) == group.child(0).text(0)
+        layout = place.layout()
+        assert layout.stretch(layout.indexOf(place.territory_tree)) > 0
+    finally:
+        w.close()

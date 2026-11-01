@@ -82,7 +82,7 @@ entry replaces it and the old one says so.
 | 74 | 2026-10-29 | The app icon is the blue Greek key on the dark square | in force |
 | 75 | 2026-11-01 | The Lab has one timeline that carries the charts | in force |
 | 76 | 2026-11-01 | Lesion mode computes deficits from the cited route texts | in force |
-| 77 | 2026-11-01 | The arterial territories are an optional local source until their authors confirm | in force |
+| 77 | 2026-11-01 | The arterial territories are a shared but manual source | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -774,14 +774,15 @@ Why: localization is the core skill of neuroanatomy, and deficits that come from
 explained step by step and never contradict the rest of the app.
 Design: [lesion mode](specs/2026-11-01-lesion-mode-design.md).
 
-## 77. The arterial territories are an optional local source until their authors confirm
+## 77. The arterial territories are a shared but manual source
 
 2026-11-01. The arterial territory atlas of Liu and colleagues (2023, doi 10.1038/s41597-022-01923-0)
-lists an attribution licence without a version on NITRC, and its files need a NITRC login. It enters
-the build as an optional, manual, local only source in a volume of its own (role "territories"),
-not meshed; a build without the file skips it with one line saying where to put it. Its recipe and
-structure entries are written once the owner has the label file, and it becomes shared when the
-authors confirm the terms.
-Why: the licence is likely open but not certain, and its label names cannot be checked without the
-file; a wrong guess could swap arteries silently.
+is used at level 1 (15 territories a side under ACA, MCA, PCA and the vertebrobasilar arteries), from
+the MNI152 version on the brain grid; the two ventricle labels are dropped. Its label file states
+CC BY-SA 4.0, so it may be shared, but NITRC only gives the files after a login, so it enters the
+build as a manual, optional source: a build without the file skips it with one line saying where to
+put it. It lives in a volume of its own (role "territories") and is not meshed. Label values stored
+within 0.001 of a whole number, as in this file, are rounded.
+Why: a lesion by artery is how strokes happen; the territories overlap every structure, so they
+cannot share the brain labels; a missing file must never stop a build.
 Design: [lesion mode, section 3](specs/2026-11-01-lesion-mode-design.md).

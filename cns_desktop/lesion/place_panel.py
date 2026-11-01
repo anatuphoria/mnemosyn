@@ -17,6 +17,7 @@ STRUCTURE_HINT = "Click a structure in the slice or the 3D view to make it the l
 BRUSH_HINT = "Click or drag on the slice to paint; hold Ctrl to erase."
 RADIUS = (2, 20)
 START_RADIUS = 6
+TREE_STRETCH = 10
 
 
 class PlacePanel(QWidget):
@@ -78,7 +79,7 @@ class PlacePanel(QWidget):
         layout.setSpacing(GAP["small"])
         for widget in (self.tool_control, self.side_control, self.territory_note,
                        self.territory_tree, self.brush_row, self.brush_hint, self.structure_hint):
-            layout.addWidget(widget)
+            layout.addWidget(widget, TREE_STRETCH if widget is self.territory_tree else 0)
         layout.addStretch(1)
         layout.addWidget(self.cord_note)
         layout.addLayout(buttons)
@@ -106,7 +107,9 @@ class PlacePanel(QWidget):
             if concept.parent not in groups:
                 parent = atlas.get(concept.parent)
                 groups[concept.parent] = QTreeWidgetItem(self.territory_tree, [parent.name])
+                groups[concept.parent].setToolTip(0, parent.name)
             item = QTreeWidgetItem(groups[concept.parent], [concept.name])
+            item.setToolTip(0, concept.name)
             item.setData(0, Qt.ItemDataRole.UserRole, concept.id)
         self.territory_tree.expandAll()
 

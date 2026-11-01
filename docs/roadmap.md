@@ -25,11 +25,11 @@ place of the Timeline and Charts tabs (decision 75).
 
 ## Unfinished
 
-Lesion mode (decision 76) is built. Its arterial territories wait for the owner to download the
-atlas from NITRC (a free login) so the recipe can be written, and for the authors to confirm that
-the files may be shared; a draft email is in `review/emails/`. Cord lesions work only in local
-builds until PAM50 allows sharing, and medullary syndromes need cranial nerve nuclei the atlas does
-not have.
+Lesion mode (decision 76) is built, with the arterial territories in local builds. Their licence
+(CC BY-SA 4.0) allows sharing, but the release build on GitHub cannot log in to NITRC, so the public
+download lacks them until the file is hosted where the build can fetch it. Cord lesions work only in
+local builds until PAM50 allows sharing, and medullary syndromes need cranial nerve nuclei the atlas
+does not have.
 
 
 1. The cells view (neuron scale) is on hold on the `cells` branch. The approach needs a new design

@@ -49,7 +49,14 @@ class StructureTree(QWidget):
         item.setCheckState(0, Qt.CheckState.Checked)
         self.items[structure_id] = item
         for child in self.state.atlas.children(structure_id):
-            self._add(item, child)
+            if not self._territories_only(child):
+                self._add(item, child)
+
+    def _territories_only(self, structure_id: int) -> bool:
+        atlas = self.state.atlas
+        below = atlas.structures[atlas.subtree(structure_id)]
+        leaves = [s for s in below if not atlas.children(s.id)]
+        return bool(leaves) and all(s.kind == "territory" for s in leaves)
 
     def _on_current_item(self, item: QTreeWidgetItem | None, _previous) -> None:
         if item is not None:
