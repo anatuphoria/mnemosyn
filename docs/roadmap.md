@@ -22,7 +22,8 @@ slices, pathways and behaviour circuits, lesion mode with the arterial territori
 Lab with the stress axis and water balance on one Lab timeline (decision 75), and spaced repetition
 quizzes. Version 0.3.1 was checked on Windows by the owner on 2026-10-30; 0.4.0 still waits for
 that check (`docs/windows-check.md`). The first public forum post went out on 2026-10-30; there are
-no outside users or feedback yet.
+no outside users or feedback yet. Since 0.4.0 the Lab pass (decisions 81 and 82) is built but not
+released: floating cards over a larger brain, and a control for each kind of setting.
 
 ## Unfinished
 

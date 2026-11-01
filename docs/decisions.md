@@ -824,3 +824,26 @@ the other ranges stop where the model still settles. Urine follows vasopressin w
 minutes, so a litre of water dilutes the urine within about an hour, as Guyton and Hall show; how
 fast it can be passed is set by the solute in the diet.
 Why: each keeps the model honest about what it leaves out without adding parts no test needs.
+
+## 81. In the Lab, the parts outside the brain float over a brain that fills the view
+
+2026-11-02. The cards for the parts outside the brain (adrenal cortex, kidney, blood and the
+others) float as a see through stack over the top right corner of the 3D view, instead of taking a
+fixed column beside it. On entering the Lab, on changing the system and on Reset view, the camera
+frames the brain itself rather than the whole scene with the cord and the slice plane, and fills the
+room left of the cards. When the window is narrow, or the full cards would cover more than a quarter
+of the view height, each card shows one line, the part and its value, and opens fully on hover. A
+body figure was tried in a mockup and set aside.
+Why: the column was mostly empty space and the brain filled about a third of the view height.
+Design: [Lab pass, section 3](specs/2026-11-02-lab-pass-design.md).
+
+## 82. Each Lab setting has a kind of control and a group, named in its model file
+
+2026-11-02. A setting in a Lab model file names its group and its kind of control: a rate slides in
+multiples of normal, a feedback relation is a small curve dragged by its halfway point or threshold,
+a time of day uses a clock scale, a state such as the pituitary stalk is a switch with named stops,
+and anything else is a slider with a mark at normal. Every setting keeps a field for the exact value.
+Results are recomputed once when the control is let go, not while it moves, since a rerun of the
+stress axis takes about a quarter of a second.
+Why: a student sees how far from normal a value is and what it shapes, not only a number.
+Design: [Lab pass, section 4](specs/2026-11-02-lab-pass-design.md).
