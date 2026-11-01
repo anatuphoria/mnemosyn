@@ -147,6 +147,16 @@ def centre_from_table(table, affine, ids) -> tuple[float, float, float] | None:
     return world_for_voxel(affine, sums[known].sum(axis=0) / total)
 
 
+def shows_any(labels_2d: np.ndarray, ids) -> bool:
+    return bool(mask_table(int(labels_2d.max()) + 1, ids)[labels_2d].any())
+
+
+def nearest_member_mm(table, affine, ids, axis: str, mm: float) -> float | None:
+    centres = [centre_from_table(table, affine, [i]) for i in ids]
+    found = [c[AXIS_INDEX[axis]] for c in centres if c is not None]
+    return min(found, key=lambda m: abs(m - mm)) if found else None
+
+
 def pixels_for_voxels(shape, axis: str, ijk) -> tuple[np.ndarray, np.ndarray]:
     _, ny, nz = shape[:3]
     i, j, k = (np.asarray(c, dtype=np.int64) for c in ijk)

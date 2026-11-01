@@ -410,8 +410,13 @@ class SlicePanel(QWidget):
             if volume is not self.labels:
                 self.state.set_slice_volume(volume.name)
             axis = self.state.slice_axis
-            index = slices.index_for_mm(volume.affine, volume.shape, axis,
-                                        centre[slices.AXIS_INDEX[axis]])
+            mm = centre[slices.AXIS_INDEX[axis]]
+            index = slices.index_for_mm(volume.affine, volume.shape, axis, mm)
+            if not slices.shows_any(slices.extract(volume.data, volume.affine, axis, index), ids):
+                nearest = slices.nearest_member_mm(self._centres_of(volume), volume.affine, ids,
+                                                   axis, mm)
+                if nearest is not None:
+                    index = slices.index_for_mm(volume.affine, volume.shape, axis, nearest)
             self.state.set_slice(axis, slices.mm_for_index(volume.affine, axis, index))
             if self.zoomed():
                 self._bring_into_view(volume, centre)

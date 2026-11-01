@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication, QDialogButtonBox, QLabel
 
 from atlas_package import TOY_SOURCE, tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas, Source
+from cns_desktop import slices
 from cns_desktop.app import (disclaimer_due, main, offer_disclaimer, own_memory_mb,
                              peak_memory_mb)
 from cns_desktop.design import rich
@@ -351,6 +352,22 @@ def test_centre_on_selection(window):
     window.state.select(120)
     window.slices.centre_on_selection()
     assert window.state.slice_mm == -60.0 + 4 * 8
+
+
+@pytest.mark.parametrize("axis", ["axial", "sagittal"])
+def test_centre_on_a_group_lands_on_a_slice_that_shows_it(qapp, tmp_path, axis):
+    volume = np.zeros((10, 10, 10), dtype=np.uint16)
+    volume[1:3, 4:6, 1:3] = 101
+    volume[7:9, 4:6, 7:9] = 102
+    root = write_package(tmp_path / "pkg", tiny_structures(),
+                         meshes={101: tetra(0), 102: tetra(5), 110: tetra(9)}, volume=volume)
+    state = AppState(Atlas.open(root))
+    panel = SlicePanel(state)
+    state.set_slice(axis, 0.0)
+    state.select(100)
+    panel.centre_on_selection()
+    shown = slices.extract(volume, panel.labels.affine, axis, panel.index)
+    assert {101, 102} & set(np.unique(shown).tolist())
 
 
 def test_centre_shortcut_and_hover_status(window):
