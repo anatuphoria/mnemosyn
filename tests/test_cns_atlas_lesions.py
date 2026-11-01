@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from cns_atlas import Atlas
-from cns_atlas.lesions import BROKEN, PARTLY, Lesion, hits, report
+from cns_atlas.lesions import BROKEN, PARTLY, Lesion, hits, report, sphere, structure_lesion
 
 
 @pytest.fixture(scope="module")
@@ -113,3 +113,29 @@ def test_a_lesion_in_two_volumes_counts_both(toy_spine_atlas):
         lesion = lesion.with_mask(volume.name, data == ids[0])
     found = hits(atlas, lesion)
     assert len(found) >= 2
+
+
+def test_a_sphere_holds_the_voxels_within_its_radius(atlas):
+    volume = brain(atlas)
+    centre = volume.affine @ np.array([20, 24, 18, 1.0])
+    mask = sphere(volume, centre[:3], 8.0)
+    assert mask.shape == volume.shape and mask[20, 24, 18]
+    voxel = abs(volume.affine[0, 0])
+    assert mask.sum() == pytest.approx(4 / 3 * np.pi * (8.0 / voxel) ** 3, rel=0.35)
+    assert not mask[20 + 3, 24, 18]
+
+
+def test_a_sphere_at_the_edge_is_clipped_to_the_grid(atlas):
+    volume = brain(atlas)
+    corner = volume.affine @ np.array([0, 0, 0, 1.0])
+    mask = sphere(volume, corner[:3], 8.0)
+    assert mask.shape == volume.shape and mask[0, 0, 0]
+    assert 0 < mask.sum() < sphere(volume, (volume.affine @ np.array([20, 24, 18, 1.0]))[:3],
+                                   8.0).sum()
+
+
+def test_a_structure_lesion_takes_all_of_it(atlas):
+    assert hits(atlas, structure_lesion(atlas, 101))[101] == pytest.approx(1.0)
+    assert hits(atlas, structure_lesion(atlas, 152))[152] == pytest.approx(1.0)
+    both = hits(atlas, structure_lesion(atlas, 100))
+    assert both[101] == pytest.approx(1.0) and both[102] == pytest.approx(1.0)

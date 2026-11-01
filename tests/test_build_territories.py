@@ -41,3 +41,15 @@ def test_a_missing_optional_manual_source_is_skipped_not_fatal(tmp_path):
     atlas, lines = build_with_territories(tmp_path, present=False)
     assert atlas.territories is None and territories(atlas) == []
     assert any("toyart" in line and "toy_arteries.nii.gz" in line for line in lines), lines
+
+
+def test_a_territory_lesion_covers_that_territory_on_the_brain_grid(tmp_path):
+    from cns_atlas.lesions import territory_lesion
+
+    atlas, _lines = build_with_territories(tmp_path)
+    left = next(s for s in territories(atlas) if s.name == "Toy artery A territory (left)")
+    lesion = territory_lesion(atlas, left.id)
+    brain = atlas.volumes[0]
+    mask = lesion.masks[brain.name]
+    assert mask.shape == brain.shape and mask.any()
+    assert (mask == (atlas.territories.data == left.id)).all()

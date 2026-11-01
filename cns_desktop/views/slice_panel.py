@@ -7,7 +7,8 @@ import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import QPointF, QSignalBlocker, Qt, QTimer, Signal
 from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QToolButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QSlider, QToolButton,
+                               QVBoxLayout, QWidget)
 
 from .. import slices
 from ..design.theme import set_role
@@ -26,12 +27,13 @@ EDGES = {"axial": ("A", "P", "L", "R"), "coronal": ("S", "I", "L", "R"),
          "sagittal": ("S", "I", "A", "P")}
 ANCHORS = ((0.5, 0.0), (0.5, 1.0), (0.0, 0.5), (1.0, 0.5))
 CLOSEST_VOXELS = 20
+LESION_ALPHA = 0.6
 
 
 class SliceBox(pg.ViewBox):
-    def __init__(self, on_wheel, on_pan) -> None:
+    def __init__(self, on_wheel, on_pan, on_brush=None) -> None:
         super().__init__(lockAspect=True, invertY=True)
-        self._on_wheel, self._on_pan = on_wheel, on_pan
+        self._on_wheel, self._on_pan, self._on_brush = on_wheel, on_pan, on_brush
 
     def wheelEvent(self, ev, axis=None) -> None:
         if ev.orientation() == Qt.Orientation.Horizontal:
@@ -42,6 +44,12 @@ class SliceBox(pg.ViewBox):
         ev.accept()
 
     def mouseDragEvent(self, ev, axis=None) -> None:
+        if ev.button() == Qt.MouseButton.LeftButton and self._on_brush is not None:
+            kind = "press" if ev.isStart() else "release" if ev.isFinish() else "move"
+            point = self.mapToView(ev.pos())
+            if self._on_brush(kind, math.floor(point.y()), math.floor(point.x())):
+                ev.accept()
+                return
         if ev.button() != Qt.MouseButton.RightButton:
             ev.ignore()
             return
@@ -90,6 +98,8 @@ class SlicePanel(QWidget):
         self._centre_tables: dict[str, object] = {}
         self.volume_buttons: dict[str, QToolButton] = {}
         self._view_key: tuple[str, str] | None = None
+        self.brush = None
+        self.lesion_masks: dict[str, np.ndarray] = {}
 
         bar = QHBoxLayout()
         bar.setContentsMargins(GAP["small"], GAP["small"], GAP["small"], GAP["small"])
@@ -125,7 +135,7 @@ class SlicePanel(QWidget):
         self.note = QLabel(NO_TEMPLATE if self.template is None else "")
 
         self.view = pg.GraphicsLayoutWidget()
-        self.box = SliceBox(self.wheel_zoom, self.pan_by)
+        self.box = SliceBox(self.wheel_zoom, self.pan_by, self._drag_brush)
         self.view.addItem(self.box)
         self.box.setMenuEnabled(False)
         self.box.setDefaultPadding(0)
@@ -275,6 +285,7 @@ class SlicePanel(QWidget):
         selected = slices.mask_table(size, chosen)
         self.layer = slices.overlay(labels_2d, self.colors, hidden, selected, self.opacity)
         self._draw_tracts(axis, set(chosen))
+        self._draw_lesion(axis)
         self._template_2d, self._image = template_2d, None
         if template_2d is None:
             self.template_item.clear()
@@ -291,6 +302,36 @@ class SlicePanel(QWidget):
         for letter, text, place in zip(self.letters, EDGES[axis], places):
             letter.setText(text)
             letter.setPos(*place)
+
+    def set_lesion(self, masks: dict[str, np.ndarray]) -> None:
+        self.lesion_masks = dict(masks)
+        self.redraw()
+
+    def _draw_lesion(self, axis: str) -> None:
+        mask = self.lesion_masks.get(self.labels.name)
+        if mask is None or mask.shape != tuple(self.labels.shape):
+            return
+        flat = slices.extract(mask, self.labels.affine, axis, self.index)
+        if not flat.any():
+            return
+        tint = color("edited")
+        rgb = np.array([tint.red(), tint.green(), tint.blue()], dtype=float)
+        layer = self.layer.astype(float)
+        layer[flat, :3] = (1 - LESION_ALPHA) * layer[flat, :3] + LESION_ALPHA * rgb
+        layer[flat, 3] = 255
+        self.layer = layer.astype(np.uint8)
+
+    def brush_at_pixel(self, kind: str, row: int, col: int, erase: bool) -> bool:
+        if self.brush is None or self.labels is None:
+            return False
+        voxel = slices.voxel_for_pixel(self.labels.shape, self.state.slice_axis, self.index,
+                                       row, col)
+        self.brush(kind, voxel, self.labels.name, erase)
+        return True
+
+    def _drag_brush(self, kind: str, row: int, col: int) -> bool:
+        erase = bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
+        return self.brush_at_pixel(kind, row, col, erase)
 
     def fit_volume(self) -> None:
         if self.layer is None:
@@ -437,5 +478,11 @@ class SlicePanel(QWidget):
         self.hovered.emit(self.name_at_pixel(*self._pixel(scene_pos)))
 
     def _on_mouse_clicked(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.click_pixel(*self._pixel(event.scenePos()))
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        row, col = self._pixel(event.scenePos())
+        erase = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        if self.brush_at_pixel("press", row, col, erase):
+            self.brush_at_pixel("release", row, col, erase)
+            return
+        self.click_pixel(row, col)

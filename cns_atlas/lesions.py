@@ -131,3 +131,52 @@ def report(atlas, lesion: Lesion) -> Report:
         if not mine:
             spared.append(pathway.key)
     return Report(found, tuple(deficits), tuple(spared))
+
+
+def sphere(volume, centre_mm, radius_mm: float) -> np.ndarray:
+    affine = np.asarray(volume.affine, dtype=float)
+    shape = np.array(volume.shape[:3])
+    inverse = np.linalg.inv(affine)
+    centre = inverse @ np.append(np.asarray(centre_mm, dtype=float), 1.0)
+    reach = radius_mm / np.abs(np.diag(affine)[:3])
+    low = np.clip(np.floor(centre[:3] - reach).astype(int), 0, shape)
+    high = np.clip(np.ceil(centre[:3] + reach).astype(int) + 1, 0, shape)
+    mask = np.zeros(volume.shape, dtype=bool)
+    if np.any(high <= low):
+        return mask
+    grid = np.stack(np.meshgrid(*(np.arange(a, b) for a, b in zip(low, high, strict=True)),
+                                indexing="ij"), axis=-1)
+    world = grid @ affine[:3, :3].T + affine[:3, 3]
+    inside = np.linalg.norm(world - np.asarray(centre_mm, dtype=float), axis=-1) <= radius_mm
+    mask[low[0]:high[0], low[1]:high[1], low[2]:high[2]] = inside
+    return mask
+
+
+def structure_lesion(atlas, structure_id: int) -> Lesion:
+    ids = [s.id for s in atlas.structures[atlas.subtree(structure_id)]]
+    lesion = Lesion.empty(atlas)
+    for volume in atlas.volumes:
+        lesion = lesion.with_mask(volume.name, np.isin(np.asarray(volume.data), ids))
+    tract_volume = _tract_volume(atlas)
+    if tract_volume is not None:
+        mask = lesion.masks[tract_volume.name].copy()
+        for structure in ids:
+            mask.flat[atlas.tracts.voxels(structure)] = True
+        lesion = lesion.with_mask(tract_volume.name, mask)
+    return lesion
+
+
+def territory_lesion(atlas, structure_id: int) -> Lesion:
+    source = atlas.territories
+    brain = atlas.volumes[0]
+    inside = np.asarray(source.data) == structure_id
+    if tuple(source.shape) != tuple(brain.shape) or not np.allclose(source.affine, brain.affine):
+        grid = np.indices(brain.shape).reshape(3, -1)
+        world = np.asarray(brain.affine)[:3, :3] @ grid + np.asarray(brain.affine)[:3, 3:4]
+        voxels = np.rint(np.linalg.inv(source.affine)[:3, :3] @ world
+                         + np.linalg.inv(source.affine)[:3, 3:4]).astype(int)
+        ok = np.all((voxels >= 0) & (voxels < np.array(source.shape)[:, None]), axis=0)
+        resampled = np.zeros(grid.shape[1], dtype=bool)
+        resampled[ok] = inside[tuple(voxels[:, ok])]
+        inside = resampled.reshape(brain.shape)
+    return Lesion.empty(atlas).with_mask(brain.name, inside)

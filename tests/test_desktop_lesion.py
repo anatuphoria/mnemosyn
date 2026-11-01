@@ -3,9 +3,12 @@ import pytest
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
+from atlas_fixtures import place_territories, sha256_file, write_extended_source_tree
 from cns_atlas import Atlas
-from cns_atlas.lesions import Lesion
+from cns_atlas.lesions import Lesion, structure_lesion, territory_lesion
+from cns_desktop.lesion.place_panel import CORD_MISSING, TERRITORIES_MISSING
 from cns_desktop.main_window import MainWindow
+from tools.build_atlas.build import build
 
 
 @pytest.fixture(scope="session")
@@ -84,5 +87,152 @@ def test_an_atlas_without_pathways_has_no_lesion_workspace(qapp, toy_atlas, tmp_
         assert w.lesion is None and not w.workspaces.button("Lesion").isVisibleTo(w)
         w.workspaces.switch("Lesion")
         assert w.workspaces.current == "Explore"
+    finally:
+        w.close()
+
+
+def built(root, **options):
+    cache = root / "cache"
+    if options.pop("territories", False):
+        options["territories"] = sha256_file(place_territories(root, cache))
+    src = write_extended_source_tree(root, tracts=True, pathways=True, **options)
+    return build(src, root / "out" / "toy", cache=cache, log=lambda *_: None, local=True)
+
+
+@pytest.fixture(scope="module")
+def territory_atlas(tmp_path_factory):
+    return built(tmp_path_factory.mktemp("lesionterritories"), territories=True)
+
+
+@pytest.fixture(scope="module")
+def spine_atlas(tmp_path_factory):
+    return built(tmp_path_factory.mktemp("lesionspine"), spine=True)
+
+
+def entered(window, qapp):
+    window.workspaces.switch("Lesion")
+    qapp.processEvents()
+    return window.lesion
+
+
+def test_a_territory_click_sets_the_lesion_on_the_chosen_side(qapp, territory_atlas, tmp_path):
+    w = open_window(qapp, territory_atlas, tmp_path)
+    try:
+        lesion = entered(w, qapp)
+        place = lesion.place
+        assert place.territory_tree.topLevelItemCount() == 1
+        group = place.territory_tree.topLevelItem(0)
+        names = [group.child(i).text(0) for i in range(group.childCount())]
+        assert names == ["Toy artery A territory", "Toy artery B territory"]
+        place.set_side("right")
+        place.choose_territory(260)
+        atlas = w.state.atlas
+        right = next(s.id for s in atlas.structures if s.name == "Toy artery A territory (right)")
+        expected = territory_lesion(atlas, right).masks[atlas.volumes[0].name]
+        assert (lesion.document.lesion.masks[atlas.volumes[0].name] == expected).all()
+        assert lesion.document.undo.count() == 1
+    finally:
+        w.close()
+
+
+def test_brushing_adds_spheres_and_ctrl_erases(window, qapp):
+    lesion = entered(window, qapp)
+    place, doc = lesion.place, lesion.document
+    place.set_tool("brush")
+    place.set_radius(8)
+    name = window.state.atlas.volumes[0].name
+    window.slices.brush("press", (20, 24, 18), name, False)
+    window.slices.brush("move", (22, 24, 18), name, False)
+    assert doc.lesion.is_empty and place.stroke is not None
+    window.slices.brush("release", (22, 24, 18), name, False)
+    painted = int(doc.lesion.masks[name].sum())
+    assert painted > 0 and doc.undo.count() == 1 and place.stroke is None
+    window.slices.brush("press", (20, 24, 18), name, True)
+    window.slices.brush("release", (20, 24, 18), name, True)
+    assert 0 <= int(doc.lesion.masks[name].sum()) < painted and doc.undo.count() == 2
+
+
+def test_a_slice_pixel_brushes_the_voxel_under_it(window, qapp):
+    entered(window, qapp).place.set_tool("brush")
+    seen = []
+    brush = window.slices.brush
+    window.slices.brush = lambda *args: seen.append(args)
+    window.slices.brush_at_pixel("press", 10, 12, False)
+    window.slices.brush = brush
+    from cns_desktop import slices
+    labels = window.slices.labels
+    expected = slices.voxel_for_pixel(labels.shape, window.state.slice_axis, window.slices.index,
+                                      10, 12)
+    assert seen == [("press", expected, labels.name, False)]
+
+
+def test_leaving_mid_stroke_drops_the_stroke(window, qapp):
+    lesion = entered(window, qapp)
+    lesion.place.set_tool("brush")
+    name = window.state.atlas.volumes[0].name
+    window.slices.brush("press", (20, 24, 18), name, False)
+    window.workspaces.switch("Explore")
+    assert lesion.place.stroke is None and window.slices.brush is None
+    assert lesion.document.lesion.is_empty
+    entered(window, qapp)
+    assert lesion.place.stroke is None and window.slices.brush is not None
+
+
+def test_undo_redo_and_clear_buttons(window, qapp):
+    lesion = entered(window, qapp)
+    doc = lesion.document
+    doc.set_lesion(structure_lesion(window.state.atlas, 101), "Alpha")
+    lesion.place.clear_button.click()
+    assert doc.lesion.is_empty
+    lesion.place.undo_button.click()
+    assert not doc.lesion.is_empty
+    lesion.place.redo_button.click()
+    assert doc.lesion.is_empty
+
+
+def test_a_public_build_says_what_it_lacks(window, qapp):
+    place = entered(window, qapp).place
+    assert place.territory_tree.isHidden() and place.tool_control.keys() == ["brush", "structure"]
+    assert place.territory_note.text() == TERRITORIES_MISSING and not place.territory_note.isHidden()
+    assert place.cord_note.text() == CORD_MISSING and not place.cord_note.isHidden()
+
+
+def test_the_structure_tool_takes_the_selected_structure(window, qapp):
+    lesion = entered(window, qapp)
+    lesion.place.set_tool("structure")
+    window.state.select(112)
+    hit = lesion.document.report.hits
+    assert hit[112] == pytest.approx(1.0) and lesion.document.undo.count() == 1
+
+
+def test_the_lesion_shows_on_the_slice_and_in_3d(window, qapp):
+    lesion = entered(window, qapp)
+    atlas = window.state.atlas
+    window.state.set_slice("axial", 20.0)
+    qapp.processEvents()
+    before = window.slices.image.copy()
+    lesion.document.set_lesion(structure_lesion(atlas, 101), "Alpha")
+    qapp.processEvents()
+    after = window.slices.image
+    assert after.shape == before.shape and (after != before).any()
+    assert window.view.lesion_actor is not None and window.view.lesion_actor.GetVisibility()
+    lesion.document.clear()
+    qapp.processEvents()
+    assert not window.view.lesion_actor.GetVisibility()
+    assert (window.slices.image == before).all()
+
+
+def test_brushing_on_the_spine_slice_writes_the_spine_mask(qapp, spine_atlas, tmp_path):
+    w = open_window(qapp, spine_atlas, tmp_path)
+    try:
+        lesion = entered(w, qapp)
+        assert lesion.place.cord_note.isHidden()
+        lesion.place.set_tool("brush")
+        spine = next(v for v in w.state.atlas.volumes if v.name == "spine")
+        centre = tuple(int(n) // 2 for n in spine.shape)
+        w.slices.brush("press", centre, "spine", False)
+        w.slices.brush("release", centre, "spine", False)
+        assert lesion.document.lesion.masks["spine"].any()
+        assert not lesion.document.lesion.masks[w.state.atlas.volumes[0].name].any()
     finally:
         w.close()

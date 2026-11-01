@@ -23,6 +23,7 @@ BACKGROUND = COLOURS["s0"]
 CLICK_TOLERANCE_PX = 3
 FAINT = 0.08
 PLANE_OPACITY = 0.18
+LESION_OPACITY = 0.55
 SHELL_OPACITY = 0.25
 
 
@@ -97,6 +98,7 @@ class BrainView(QtInteractor):
         self.highlighted: list[int] = []
         self.overlay_ids: list[int] = []
         self._plane_key = None
+        self.lesion_actor = None
         self.plane = self.add_mesh(pv.Plane(), color="white", opacity=PLANE_OPACITY,
                                    pickable=False, reset_camera=False, lighting=False)
 
@@ -171,6 +173,18 @@ class BrainView(QtInteractor):
     def centre_of(self, structure_id: int) -> np.ndarray:
         low, high = self._extent(structure_id)
         return (low + high) / 2
+
+    def set_lesion_body(self, mesh) -> None:
+        empty = mesh is None or mesh.n_points == 0
+        if self.lesion_actor is None:
+            if empty:
+                return
+            self.lesion_actor = self.add_mesh(mesh, color=COLOURS["edited"], opacity=LESION_OPACITY,
+                                              pickable=False, reset_camera=False)
+        elif not empty:
+            self.lesion_actor.GetMapper().SetInputData(mesh)
+        self.lesion_actor.SetVisibility(not empty)
+        self._render_soon.start()
 
     def set_grey_opacity(self, opacity: float) -> None:
         self.chunks.set_opacity(opacity)
