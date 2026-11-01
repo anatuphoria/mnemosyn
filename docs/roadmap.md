@@ -2,7 +2,7 @@
 
 Where Mnemosyn stands, what is unfinished, and what may come next. Unlike `decisions.md`, nothing
 here is decided: an idea becomes a decision only when the owner approves its design. Last reviewed
-2026-11-01, after version 0.3.1.
+2026-11-02, after version 0.4.0.
 
 ## Vision
 
@@ -17,17 +17,19 @@ would make it a weaker copy of the paid apps; going deep is where it can be the 
 
 ## Where it stands
 
-Version 0.3.1 is a free test release for Windows and Linux. It has the 3D atlas, slices, pathways
-and behaviour circuits, the Simulation Lab with the stress axis, and spaced repetition quizzes.
-It runs on Windows (checked by the owner on 2026-10-30). The first public forum post went out on
-2026-10-30; there are no outside users or feedback yet. The next release brings one Lab timeline in
-place of the Timeline and Charts tabs (decision 75).
+Version 0.4.0 (2026-11-02) is a free test release for Windows and Linux. It has the 3D atlas,
+slices, pathways and behaviour circuits, lesion mode with the arterial territories, the Simulation
+Lab with the stress axis and water balance on one Lab timeline (decision 75), and spaced repetition
+quizzes. Version 0.3.1 was checked on Windows by the owner on 2026-10-30; 0.4.0 still waits for
+that check (`docs/windows-check.md`). The first public forum post went out on 2026-10-30; there are
+no outside users or feedback yet.
 
 ## Unfinished
 
-The main features are built: lesion mode (decision 76) with the arterial territories, which the next
-release carries in the public download (decision 77), and water balance, the second Lab system
-(decision 78). What follows is the stabilization pass and the handbook below. Cord lesions work only in local builds until PAM50 allows
+The main features are built: lesion mode (decision 76) with the arterial territories, which 0.4.0
+carries in the public download (decision 77), and water balance, the second Lab system
+(decision 78). The stabilization pass is merged and released in 0.4.0. What follows is the
+handbook below. Cord lesions work only in local builds until PAM50 allows
 sharing, and medullary syndromes need cranial nerve nuclei the atlas does not have.
 
 
