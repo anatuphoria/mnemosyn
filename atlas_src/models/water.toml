@@ -79,6 +79,8 @@ unit = "mOsm/kg"
 low = 275
 high = 295
 refs = ["robertson1976", "baylis1980"]
+group = "vasopressin"
+control = "curve"
 
 [[parameters]]
 key = "avp_slope"
@@ -87,6 +89,8 @@ unit = "pg/mL per mOsm/kg"
 low = 0.1
 high = 1.0
 refs = ["robertson1976", "baylis1980"]
+group = "vasopressin"
+control = "curve"
 
 [[parameters]]
 key = "k_avp"
@@ -95,6 +99,8 @@ unit = "/min"
 low = 0.01
 high = 0.1
 refs = ["baumann1976"]
+group = "vasopressin"
+control = "rate"
 
 [[parameters]]
 key = "uosm_min"
@@ -103,6 +109,7 @@ unit = "mOsm/kg"
 low = 30
 high = 100
 refs = ["hall2021"]
+group = "kidney"
 
 [[parameters]]
 key = "uosm_max"
@@ -111,6 +118,7 @@ unit = "mOsm/kg"
 low = 800
 high = 1400
 refs = ["hall2021"]
+group = "kidney"
 
 [[parameters]]
 key = "K_u"
@@ -119,6 +127,8 @@ unit = "pg/mL"
 low = 0.5
 high = 5
 refs = ["robertson1973"]
+group = "kidney"
+control = "curve"
 
 [[parameters]]
 key = "n_u"
@@ -126,6 +136,8 @@ value = 4
 unit = "exponent"
 low = 1
 high = 4
+group = "kidney"
+control = "curve"
 
 [[parameters]]
 key = "k_kidney"
@@ -133,6 +145,8 @@ value = 0.1
 unit = "/min"
 low = 0.005
 high = 0.2
+group = "kidney"
+control = "rate"
 
 [[parameters]]
 key = "solute"
@@ -141,6 +155,7 @@ unit = "mOsm/min"
 low = 0.2
 high = 1.2
 refs = ["hall2021"]
+group = "body"
 
 [[parameters]]
 key = "solute_ref"
@@ -149,6 +164,7 @@ unit = "mOsm"
 low = 8000
 high = 16000
 refs = ["hall2021"]
+group = "body"
 
 [[parameters]]
 key = "insensible"
@@ -157,6 +173,7 @@ unit = "L/min"
 low = 0.0002
 high = 0.002
 refs = ["hall2021"]
+group = "body"
 
 [[parameters]]
 key = "habit"
@@ -165,6 +182,7 @@ unit = "L/min"
 low = 0.0005
 high = 0.005
 refs = ["hall2021"]
+group = "thirst"
 
 [[parameters]]
 key = "drink_threshold"
@@ -173,6 +191,8 @@ unit = "mOsm/kg"
 low = 285
 high = 300
 refs = ["thompson1986", "baylis1980"]
+group = "thirst"
+control = "curve"
 
 [[parameters]]
 key = "drink_gain"
@@ -180,6 +200,8 @@ value = 0.005
 unit = "L/min per mOsm/kg"
 low = 0.0005
 high = 0.02
+group = "thirst"
+control = "curve"
 
 [[parameters]]
 key = "thirst_threshold"
@@ -188,6 +210,8 @@ unit = "mOsm/kg"
 low = 270
 high = 295
 refs = ["thompson1986"]
+group = "thirst"
+control = "curve"
 
 [[parameters]]
 key = "thirst_slope"
@@ -196,6 +220,8 @@ unit = "cm per mOsm/kg"
 low = 0.05
 high = 1
 refs = ["thompson1986"]
+group = "thirst"
+control = "curve"
 
 [[parameters]]
 key = "drink_max"
@@ -203,6 +229,7 @@ value = 0.02
 unit = "L/min"
 low = 0.005
 high = 0.05
+group = "thirst"
 
 [[parameters]]
 key = "k_thirst"
@@ -210,6 +237,8 @@ value = 0.1
 unit = "/min"
 low = 0.01
 high = 1
+group = "thirst"
+control = "rate"
 
 [[parameters]]
 key = "k_gut"
@@ -217,6 +246,8 @@ value = 0.046
 unit = "/min"
 low = 0.01
 high = 0.2
+group = "body"
+control = "rate"
 
 [[parameters]]
 key = "ddavp_clear"
@@ -225,6 +256,8 @@ unit = "/min"
 low = 0.001
 high = 0.01
 refs = ["agerso2004"]
+group = "drugs"
+control = "rate"
 
 [[parameters]]
 key = "ddavp_potency"
@@ -232,6 +265,7 @@ value = 10
 unit = "pg/mL per µg"
 low = 1
 high = 50
+group = "drugs"
 
 [[parameters]]
 key = "drinking"
@@ -247,6 +281,7 @@ value = 1
 unit = "times normal"
 low = 0
 high = 5
+group = "thirst"
 
 [[parameters]]
 key = "avp_scale"
@@ -254,6 +289,9 @@ value = 1
 unit = "fraction"
 low = 0
 high = 1
+group = "vasopressin"
+control = "switch"
+stops = [{ key = "normal", value = 1 }, { key = "partial", value = 0.5 }, { key = "none", value = 0.05 }]
 
 [[parameters]]
 key = "avp_auto"
@@ -269,6 +307,9 @@ value = 1
 unit = "fraction"
 low = 0
 high = 1
+group = "kidney"
+control = "switch"
+stops = [{ key = "normal", value = 1 }, { key = "partial", value = 0.5 }, { key = "none", value = 0.05 }]
 
 [[parameters]]
 key = "salt_in"
@@ -285,6 +326,34 @@ unit = "L/min"
 low = 0
 high = 0.02
 panel = false
+
+[[curves]]
+key = "avp"
+parameters = ["avp_threshold", "avp_slope"]
+x_low = 270
+x_high = 310
+expr = "avp_scale * pos(avp_slope * (x - avp_threshold))"
+
+[[curves]]
+key = "kidney"
+parameters = ["K_u", "n_u"]
+x_low = 0
+x_high = 10
+expr = "uosm_min + kidney * (uosm_max - uosm_min) * (1 - hill(x, K_u, n_u))"
+
+[[curves]]
+key = "thirst"
+parameters = ["thirst_threshold", "thirst_slope"]
+x_low = 265
+x_high = 310
+expr = "thirst_slope * pos(x - thirst_threshold)"
+
+[[curves]]
+key = "drinking"
+parameters = ["drink_threshold", "drink_gain"]
+x_low = 280
+x_high = 310
+expr = "min(drink_max, habit * habit_scale + drink_gain * pos(x - drink_threshold))"
 
 [[effects]]
 key = "avp_release"

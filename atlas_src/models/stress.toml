@@ -90,6 +90,8 @@ unit = "/min"
 low = 0.05
 high = 0.5
 refs = ["andersen2013", "karin2020"]
+group = "removal"
+control = "rate"
 
 [[parameters]]
 key = "w2"
@@ -98,6 +100,8 @@ unit = "/min"
 low = 0.01
 high = 0.1
 refs = ["andersen2013", "karin2020"]
+group = "removal"
+control = "rate"
 
 [[parameters]]
 key = "w3"
@@ -106,6 +110,8 @@ unit = "/min"
 low = 0.003
 high = 0.03
 refs = ["andersen2013", "karin2020"]
+group = "removal"
+control = "rate"
 
 [[parameters]]
 key = "wC"
@@ -114,6 +120,8 @@ unit = "/min"
 low = 0.00002
 high = 0.0002
 refs = ["karin2020"]
+group = "removal"
+control = "rate"
 
 [[parameters]]
 key = "wA"
@@ -122,6 +130,8 @@ unit = "/min"
 low = 0.00001
 high = 0.0001
 refs = ["karin2020"]
+group = "removal"
+control = "rate"
 
 [[parameters]]
 key = "K_GR"
@@ -130,6 +140,8 @@ unit = "model cortisol units"
 low = 1
 high = 12
 refs = ["karin2020"]
+group = "feedback"
+control = "curve"
 
 [[parameters]]
 key = "n"
@@ -138,6 +150,8 @@ unit = "Hill power"
 low = 1
 high = 4
 refs = ["andersen2013", "karin2020"]
+group = "feedback"
+control = "curve"
 
 [[parameters]]
 key = "K_MR"
@@ -146,6 +160,8 @@ unit = "model cortisol units"
 low = 0.05
 high = 1
 refs = ["andersen2013"]
+group = "feedback"
+control = "curve"
 
 [[parameters]]
 key = "K_sat"
@@ -153,6 +169,8 @@ value = 4
 unit = "times normal ACTH"
 low = 1
 high = 20
+group = "feedback"
+control = "curve"
 
 [[parameters]]
 key = "C_max"
@@ -160,6 +178,7 @@ value = 3
 unit = "times normal"
 low = 1.5
 high = 10
+group = "feedback"
 
 [[parameters]]
 key = "A_max"
@@ -167,6 +186,7 @@ value = 2
 unit = "times normal"
 low = 1.5
 high = 10
+group = "feedback"
 
 [[parameters]]
 key = "depth"
@@ -175,6 +195,7 @@ unit = "fraction"
 low = 0
 high = 2
 refs = ["debono2009"]
+group = "rhythm"
 
 [[parameters]]
 key = "phase"
@@ -183,6 +204,8 @@ unit = "minutes after midnight"
 low = 0
 high = 1439
 refs = ["debono2009"]
+group = "rhythm"
+control = "clock"
 
 [[parameters]]
 key = "depth2"
@@ -191,6 +214,7 @@ unit = "fraction"
 low = 0
 high = 1
 refs = ["debono2009"]
+group = "rhythm"
 
 [[parameters]]
 key = "phase2"
@@ -199,6 +223,8 @@ unit = "minutes after midnight"
 low = 0
 high = 719
 refs = ["debono2009"]
+group = "rhythm"
+control = "clock"
 
 [[parameters]]
 key = "stress"
@@ -206,6 +232,7 @@ value = 0
 unit = "times basal drive"
 low = 0
 high = 10
+group = "stress"
 
 [[parameters]]
 key = "stalk"
@@ -213,6 +240,9 @@ value = 1
 unit = "fraction"
 low = 0
 high = 1
+group = "surgery"
+control = "switch"
+stops = [{ key = "intact", value = 1 }, { key = "half", value = 0.5 }, { key = "cut", value = 0 }]
 
 [[parameters]]
 key = "dex_ka"
@@ -221,6 +251,8 @@ unit = "/min"
 low = 0.005
 high = 0.1
 refs = ["loew1986"]
+group = "drugs"
+control = "rate"
 
 [[parameters]]
 key = "dex_ke"
@@ -229,6 +261,8 @@ unit = "/min"
 low = 0.001
 high = 0.01
 refs = ["harahap2009"]
+group = "drugs"
+control = "rate"
 
 [[parameters]]
 key = "dex_potency"
@@ -236,6 +270,7 @@ value = 35
 unit = "model cortisol units per mg"
 low = 5
 high = 500
+group = "drugs"
 
 [[parameters]]
 key = "hc_ka"
@@ -244,6 +279,8 @@ unit = "/min"
 low = 0.005
 high = 0.2
 refs = ["mollmann1991"]
+group = "drugs"
+control = "rate"
 
 [[parameters]]
 key = "hc_units"
@@ -252,6 +289,7 @@ unit = "model cortisol units per mg"
 low = 0.05
 high = 1
 refs = ["mollmann1991"]
+group = "drugs"
 
 [[parameters]]
 key = "acth_tumour"
@@ -259,6 +297,7 @@ value = 0
 unit = "times normal ACTH"
 low = 0
 high = 20
+group = "surgery"
 
 [[parameters]]
 key = "K_tumour"
@@ -267,6 +306,8 @@ unit = "model cortisol units"
 low = 2
 high = 100
 refs = ["tyrrell1986"]
+group = "surgery"
+control = "curve"
 
 [[parameters]]
 key = "cortisol_tumour"
@@ -274,6 +315,35 @@ value = 0
 unit = "model cortisol units"
 low = 0
 high = 10
+group = "surgery"
+
+[[curves]]
+key = "gr"
+parameters = ["K_GR", "n"]
+x_low = 0
+x_high = 12
+expr = "hill(x, K_GR, n) / hill(1, K_GR, n)"
+
+[[curves]]
+key = "mr"
+parameters = ["K_MR"]
+x_low = 0
+x_high = 4
+expr = "(1 + K_MR) / (x + K_MR)"
+
+[[curves]]
+key = "sat"
+parameters = ["K_sat"]
+x_low = 0
+x_high = 20
+expr = "x * (1 + K_sat) / (x + K_sat)"
+
+[[curves]]
+key = "tumour"
+parameters = ["K_tumour"]
+x_low = 0
+x_high = 100
+expr = "hill(x, K_tumour, n) / hill(1, K_tumour, n)"
 
 [[parts]]
 key = "pvn"
