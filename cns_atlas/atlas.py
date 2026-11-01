@@ -99,6 +99,9 @@ class Atlas:
                                                          np.array(v["affine_to_world"])))
                  for v in records if v.get("role") == "fill"]
         self.fills = {name: f for name, f in fills if shapes.get(name) == f.shape}
+        self.territories = next((LabelVolume(root / v["file"], v["space"],
+                                             np.array(v["affine_to_world"]))
+                                 for v in records if v.get("role") == "territories"), None)
         self.tracts: TractLayer | None = None
         for record in records:
             if record.get("role") != "tracts":

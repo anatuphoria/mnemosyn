@@ -55,7 +55,7 @@ def manual_target(spec: SourceSpec, cache: Path) -> Path:
 def missing_manual(specs, cache: Path, manual_dir: Path | None = None) -> list[str]:
     problems = []
     for spec in specs:
-        if not spec.manual:
+        if not spec.manual or spec.optional:
             continue
         target = manual_target(spec, cache)
         given = Path(manual_dir) / target.name if manual_dir else None

@@ -572,6 +572,61 @@ threshold = 0.5
 trim_outside = 6
 """
 
+TOY_TERRITORY_SOURCES = """
+[[volumes]]
+name = "territories"
+space = "MNI152"
+grid_source = "toy"
+role = "territories"
+
+[[sources]]
+id = "toyart"
+title = "Toy arterial territories"
+authors = "Test T"
+year = 2024
+version = "1"
+licence = "Attribution licence, version not stated"
+url = "https://example.org/toy-arteries"
+redistribution = false
+local_only = true
+manual = true
+optional = true
+download = "toy_arteries.nii.gz"
+sha256 = "{sha256}"
+volume = "territories"
+priority = 1
+"""
+
+TOY_TERRITORY_GROUP = """\
+  { id = 7, parent = 2, acronym = "ART", name = "Toy arterial territories" },
+"""
+
+TOY_TERRITORY_STRUCTURES = """\
+  { id = 260, parent = 7, acronym = "TA", name = "Toy artery A territory", kind = "territory", source = "toyart", left = 1, right = 2 },
+  { id = 270, parent = 7, acronym = "TB", name = "Toy artery B territory", kind = "territory", source = "toyart", left = 3, right = 4 },
+"""
+
+
+def territory_volume() -> np.ndarray:
+    volume = np.zeros(SHAPE, dtype=np.uint8)
+    half = SHAPE[0] // 2
+    volume[half:, :, :SHAPE[2] // 2] = 1
+    volume[:half, :, :SHAPE[2] // 2] = 2
+    volume[half:, :, SHAPE[2] // 2:] = 3
+    volume[:half, :, SHAPE[2] // 2:] = 4
+    return volume
+
+
+def place_territories(root: Path, cache: Path) -> Path:
+    path = root / "upstream" / "toy_arteries.nii.gz"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    nib.save(nib.Nifti1Image(territory_volume(), AFFINE), path)
+    target = cache / sha256_file(path) / path.name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(path.read_bytes())
+    return path
+
+
 TOY_BODY_GROUP = """\
   { id = 6, parent = 2, acronym = "STEM", name = "Toy stem" },
 """
@@ -617,7 +672,7 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
                                local: bool = False, behaviour: bool = False,
                                members: str = "", spine: bool = False,
                                shells: bool = False, cord: bool = False,
-                               lab: bool = False) -> Path:
+                               lab: bool = False, territories: str = "") -> Path:
     archive, sha256 = make_source_archive(root / "upstream")
     src = write_source_tree(root / "src", archive, sha256)
     hyp = root / "upstream" / "toy_hyp.nii.gz"
@@ -678,6 +733,10 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
         recipe += TOY_BODY_SOURCE.format(download=body, sha256=sha256_file(body))
         concepts += TOY_BODY_STRUCTURES
         groups = TOY_BODY_GROUP
+    if territories:
+        recipe += TOY_TERRITORY_SOURCES.format(sha256=territories)
+        groups += TOY_TERRITORY_GROUP
+        concepts += TOY_TERRITORY_STRUCTURES
     (src / "recipe.toml").write_text(recipe)
     structures = TOY_STRUCTURES.replace("]\n\nconcepts", groups + "]\n\nconcepts", 1)
     structures = structures.rstrip().removesuffix("]") + concepts + "]\n"

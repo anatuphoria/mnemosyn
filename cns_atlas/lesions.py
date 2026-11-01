@@ -51,6 +51,12 @@ class Report:
     spared: tuple[str, ...]
 
 
+def territories(atlas) -> list:
+    if atlas.territories is None:
+        return []
+    return [s for s in atlas.structures if s.kind == "territory" and s.side in SIDES]
+
+
 def _label_totals(volume) -> np.ndarray:
     if volume not in _totals:
         _totals[volume] = np.bincount(np.asarray(volume.data).ravel())

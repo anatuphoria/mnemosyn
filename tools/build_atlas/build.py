@@ -5,6 +5,7 @@ import shutil
 import sys
 import tempfile
 import time
+from dataclasses import replace
 from pathlib import Path
 
 import nibabel as nib
@@ -16,7 +17,7 @@ from cns_atlas.model import Structure
 
 from .colours import recolour
 from .compare import ACCEPT_HINT, compare, report_lines
-from .fetch import DEFAULT_CACHE, fetch, member_path, missing_manual
+from .fetch import DEFAULT_CACHE, fetch, manual_target, member_path, missing_manual
 from .hierarchy import (build_tree, load_structures, resolve_members, with_xrefs,
                         without_sources)
 from .idlock import IdLock, load_lock, write_lock
@@ -156,8 +157,15 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     raws = resolve_members(raws, {s.source.id: s.member_values
                                   for s in recipe.sources if s.members})
     skipped = set() if local else {s.source.id for s in recipe.sources if s.local_only}
+    for spec in recipe.sources:
+        if spec.source.id not in skipped and spec.optional and missing_manual(
+                [replace(spec, optional=False)], cache, manual_dir):
+            skipped.add(spec.source.id)
+            log(f"skipping {spec.source.id}: download {Path(spec.download).name} from "
+                f"{spec.source.url} and put it in {manual_target(spec, cache).parent}")
     sources = [s for s in recipe.sources if s.source.id not in skipped]
-    skipped_volumes = {v.name for v in recipe.volumes if v.grid_source in skipped}
+    skipped_volumes = {v.name for v in recipe.volumes if v.grid_source in skipped
+                       or not any(s.volume == v.name for s in sources)}
     templates_used = [t for t in recipe.templates
                       if t.volume not in skipped_volumes and (local or not t.local_only)]
     problems = missing_manual(sources, cache, manual_dir)
@@ -291,7 +299,8 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
 
     log("meshing")
     jobs = [(data, affine, present(data)) for data, affine in natives]
-    jobs += [(data, affine, present(data) - native_ids) for _, data, affine in volumes]
+    jobs += [(data, affine, present(data) - native_ids) for spec, data, affine in volumes
+             if spec.role == "labels"]
     tracts = None
     if recipe.tracts:
         name = recipe.tracts[0].labels

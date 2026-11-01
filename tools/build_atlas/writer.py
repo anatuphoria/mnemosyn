@@ -46,7 +46,7 @@ def write_package(out: Path, recipe: Recipe, structures: list[Structure], source
     for spec, data, affine in volumes:
         write_volume(out / "volumes" / f"{spec.name}.nii.gz", data, affine)
         volume_records.append({"file": f"volumes/{spec.name}.nii.gz", "space": spec.space,
-                               "role": "labels", "affine_to_world": np.eye(4).tolist()})
+                               "role": spec.role, "affine_to_world": np.eye(4).tolist()})
     for name, data, affine in templates:
         write_volume(out / "volumes" / f"{name}-template.nii.gz", data, affine, dtype=np.uint8)
         volume_records.append({"file": f"volumes/{name}-template.nii.gz", "space": spaces[name],

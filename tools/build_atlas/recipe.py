@@ -32,6 +32,7 @@ class SourceSpec:
     mask: bool = False
     members: tuple[tuple[str, str], ...] = ()
     manual: bool = False
+    optional: bool = False
     crop: bool = False
     threshold: float | None = None
     margin: float = 0.0
@@ -74,6 +75,7 @@ class VolumeSpec:
     name: str
     space: str
     grid_source: str
+    role: str = "labels"
 
 
 @dataclass(frozen=True)
@@ -146,7 +148,8 @@ def _source_spec(s: dict) -> SourceSpec:
                       outline_of=str(s.get("outline_of", "")),
                       inside=str(s.get("inside", "")),
                       members=_member_paths(s),
-                      manual=s.get("manual") is True, crop=s.get("crop") is True)
+                      manual=s.get("manual") is True, optional=s.get("optional") is True,
+                      crop=s.get("crop") is True)
 
 
 def _tract_spec(t: dict) -> TractSpec:
@@ -189,7 +192,8 @@ def load_recipe(path: Path) -> Recipe:
             smoothing_pass_band=float(data["smoothing_pass_band"]),
             smoothing_blur_mm=float(data.get("smoothing_blur_mm", 1.0)),
             sources=tuple(_source_spec(s) for s in data.get("sources", [])),
-            volumes=tuple(VolumeSpec(v["name"], v["space"], v["grid_source"])
+            volumes=tuple(VolumeSpec(v["name"], v["space"], v["grid_source"],
+                                     str(v.get("role", "labels")))
                           for v in data.get("volumes", [])),
             templates=tuple(_source_spec(t) for t in data.get("templates", [])),
             tracts=tuple(_tract_spec(t) for t in data.get("tracts", [])),
