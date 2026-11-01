@@ -1,5 +1,5 @@
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPointF, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -249,3 +249,28 @@ def test_open_in_the_lab_loads_the_model_of_that_route(qapp, toy_lab_atlas, tmp_
     lab.document.undo.setClean()
     qapp.processEvents()
     w.close()
+
+
+def test_switching_the_model_resets_the_timeline_view(qapp, toy_lab_atlas, tmp_path):
+    w = two_model_window(qapp, toy_lab_atlas, tmp_path)
+    try:
+        lab = w.lab
+        w.workspaces.switch("Lab")
+        timeline = lab.timeline
+        lab.time_group.reveal("timeline")
+        timeline.resize(1000, 160)
+        for start in (100.0, 110.0, 120.0):
+            lab.document.add_block("pill", start)
+        timeline.zoom(0.2, 600.0)
+        timeline.scroll.setValue(timeline.scroll.maximum())
+        timeline._set_hover(QPointF(timeline.x_of(700.0), timeline.lane_rect("x").center().y()))
+        lab.document.undo.setClean()
+        lab.choose_system("toy2")
+        qapp.processEvents()
+        assert lab.document.model.key == "toy2"
+        assert timeline.span == (0.0, lab.document.experiment.length)
+        assert timeline.scroll.value() == 0 and timeline.hover_t is None
+        assert set(timeline.lane_keys()) <= {v.key for v in lab.document.model.values}
+        timeline.grab()
+    finally:
+        w.close()

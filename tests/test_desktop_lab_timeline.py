@@ -277,8 +277,10 @@ def test_the_lane_scale_does_not_change_with_zoom(timeline):
 
 
 def test_a_failed_run_shows_no_values(timeline):
-    timeline.document.run = None
-    assert timeline.lane_value("x") == ("", "")
+    doc = timeline.document
+    doc.run, doc.normal, doc.error = None, None, "The model could not settle."
+    assert timeline.lane_value("x") == ("", "") and timeline.lane_marks("x") == ("", "")
+    assert timeline.lane_lines("x") == {}
     timeline.grab()
 
 
@@ -561,3 +563,31 @@ def test_timed_blocks_stay_reachable_under_a_present_one(timeline):
     mouse(timeline, QMouseEvent.Type.MouseButtonPress, middle)
     mouse(timeline, QMouseEvent.Type.MouseButtonRelease, middle)
     assert doc.selection == ("block", 0)
+
+
+def test_turning_the_overview_off_refits_the_body(timeline):
+    crowd(timeline)
+    minimum = timeline.minimumHeight()
+    timeline.show_overview = False
+    assert timeline.minimumHeight() < minimum
+    assert timeline.scroll.geometry().top() == round(timeline.body_top())
+
+
+def test_turning_the_hover_off_clears_it(timeline):
+    hover(timeline, timeline.x_of(500.0), timeline.lane_rect("y").center().y())
+    assert timeline.hover_t is not None
+    timeline.show_hover = False
+    assert timeline.hover_t is None and timeline.hover_values() == {}
+
+
+def test_the_hover_stays_under_the_pointer_when_the_view_moves(timeline):
+    timeline.zoom(0.25, 720.0)
+    x, y = round(timeline.x_of(700.0)), round(timeline.lane_rect("y").center().y())
+    hover(timeline, x, y)
+    event = QWheelEvent(QPointF(x, y), QPointF(timeline.mapToGlobal(QPoint(x, y))),
+                        QPoint(0, 0), QPoint(-120, 0), Qt.MouseButton.NoButton,
+                        Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.NoScrollPhase, False)
+    timeline.wheelEvent(event)
+    assert timeline.hover_t == pytest.approx(timeline.t_of(x), abs=1.0)
+    timeline.zoom(0.5, 600.0)
+    assert timeline.hover_t == pytest.approx(timeline.t_of(x), abs=1.0)

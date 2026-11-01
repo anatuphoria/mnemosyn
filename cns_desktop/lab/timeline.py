@@ -65,10 +65,10 @@ class Timeline(QWidget):
         super().__init__(parent)
         self.document = document
         self.compare_on = True
-        self.show_overview = True
+        self._show_overview = True
         self.show_guides = True
-        self.show_hover = True
-        self.hover_t: float | None = None
+        self._show_hover = True
+        self._hover_pos: QPointF | None = None
         self.highlighted: str | None = None
         self._fade = QTimer(self, singleShot=True, timeout=lambda: self._highlight(None))
         self.hidden: set[str] = set()
@@ -91,6 +91,31 @@ class Timeline(QWidget):
         document.selection_changed.connect(lambda _s: self.update())
 
     @property
+    def show_overview(self) -> bool:
+        return self._show_overview
+
+    @show_overview.setter
+    def show_overview(self, on: bool) -> None:
+        self._show_overview = bool(on)
+        self._fit_height()
+        self._sync_scroll()
+        self.update()
+
+    @property
+    def show_hover(self) -> bool:
+        return self._show_hover
+
+    @show_hover.setter
+    def show_hover(self, on: bool) -> None:
+        self._show_hover = bool(on)
+        if not on:
+            self._set_hover(None)
+
+    @property
+    def hover_t(self) -> float | None:
+        return None if self._hover_pos is None else self._hover_at(self._hover_pos)
+
+    @property
     def compare(self) -> bool:
         return self.compare_on
 
@@ -104,7 +129,7 @@ class Timeline(QWidget):
         self._length = self.document.experiment.length
         self.span = (0.0, self._length)
         self._cache = None
-        self.hover_t = None
+        self._hover_pos = None
         self.scroll.setValue(0)
         self._fit_height()
         self._sync_scroll()
@@ -118,7 +143,7 @@ class Timeline(QWidget):
             self._length = length
             self.span = (0.0, length)
             self.scroll.setValue(0)
-            self.hover_t = None
+            self._hover_pos = None
         self._sync_scroll()
         self.update()
 
@@ -575,9 +600,9 @@ class Timeline(QWidget):
             return None
         return self.t_of(pos.x())
 
-    def _set_hover(self, t: float | None) -> None:
-        if t != self.hover_t:
-            self.hover_t = t
+    def _set_hover(self, pos: QPointF | None) -> None:
+        if pos != self._hover_pos:
+            self._hover_pos = pos
             self.update()
 
     def leaveEvent(self, event) -> None:
@@ -747,7 +772,7 @@ class Timeline(QWidget):
         press = self._press
         if not press or not (event.buttons() & Qt.MouseButton.LeftButton):
             self._show_cursor(event.position())
-            self._set_hover(self._hover_at(event.position()))
+            self._set_hover(QPointF(event.position()))
             return super().mouseMoveEvent(event)
         x = event.position().x()
         if press["kind"].startswith("window"):
