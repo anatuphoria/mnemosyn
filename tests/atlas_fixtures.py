@@ -819,6 +819,8 @@ unit = "model units"
 low = 0.1
 high = 10
 refs = ["ref2020"]
+group = "feedback"
+control = "curve"
 
 [[parameters]]
 key = "w"
@@ -827,6 +829,8 @@ unit = "/min"
 low = 0.01
 high = 1
 refs = ["ref2020"]
+group = "clearing"
+control = "rate"
 
 [[parameters]]
 key = "a"
@@ -834,6 +838,9 @@ value = 0.3
 unit = "fraction"
 low = 0
 high = 0.9
+group = "rhythm"
+control = "switch"
+stops = [{ key = "none", value = 0 }, { key = "normal", value = 0.3 }, { key = "deep", value = 0.9 }]
 
 [[parameters]]
 key = "stress"
@@ -841,6 +848,14 @@ value = 0
 unit = "times basal"
 low = 0
 high = 5
+group = "stress"
+
+[[curves]]
+key = "feedback"
+parameters = ["k"]
+x_low = 0
+x_high = 10
+expr = "hill(x, k, 2)"
 
 [[parts]]
 key = "a"
@@ -1011,6 +1026,18 @@ TOY_LAB_TEXTS = """\
 "parameter.a.meaning" = "How deep the daily rhythm is."
 "parameter.stress.name" = "Stress"
 "parameter.stress.meaning" = "Extra drive from a stressor."
+"parameter.w.up" = "X and Y clear faster."
+"parameter.w.down" = "X and Y clear slower."
+"parameter.a.stop.none" = "None"
+"parameter.a.stop.normal" = "Normal"
+"parameter.a.stop.deep" = "Deep"
+"group.feedback.name" = "Feedback"
+"group.clearing.name" = "Clearing"
+"group.rhythm.name" = "Rhythm"
+"group.stress.name" = "Stress"
+"curve.feedback.name" = "Feedback curve"
+"curve.feedback.x" = "Y"
+"curve.feedback.y" = "brake on X"
 "part.a" = "Alpha"
 "part.b" = "Beta"
 "part.body" = "Body gland"

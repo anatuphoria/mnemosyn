@@ -26,6 +26,30 @@ def test_the_toy_model_builds_into_the_package(toy_lab_atlas):
     assert atlas.lab_text("toy", "effect.fb")[0] == "Y holds back the making of X [1]."
 
 
+def test_parameters_carry_group_control_and_stops(tmp_path):
+    (model,) = load_toy(tmp_path)
+    w, a = model.parameter("w"), model.parameter("a")
+    assert (w.group, w.control) == ("clearing", "rate")
+    assert a.control == "switch" and [s.value for s in a.stops] == [0.0, 0.3, 0.9]
+    assert [s.name for s in a.stops] == ["None", "Normal", "Deep"]
+    assert model.parameter("stress").control == "slider"
+
+
+def test_a_curve_names_its_parameters_and_axis(tmp_path):
+    (model,) = load_toy(tmp_path)
+    curve = model.curve("feedback")
+    assert curve.parameters == ("k",) and (curve.x_low, curve.x_high) == (0.0, 10.0)
+    assert curve.name == "Feedback curve" and model.curve_of("k") is curve
+    assert (curve.x_name, curve.y_name) == ("Y", "brake on X")
+    assert model.parameter("k").control == "curve" and model.curve_of("w") is None
+
+
+def test_groups_stops_and_curves_reach_the_package(toy_lab_atlas):
+    model = Atlas.open(toy_lab_atlas).models["toy"]
+    assert model.parameter("a").stops[2].name == "Deep"
+    assert model.curve("feedback").expr == "hill(x, k, 2)"
+
+
 def swap(old: str, new: str, text: str = TOY_MODEL) -> str:
     assert old in text
     return text.replace(old, new, 1)
@@ -71,6 +95,21 @@ MISTAKES = [
      "set needs a parameter"),
     ("bad test length", swap('length = "2 h"', 'length = "two hours"'),
      "a duration is written"),
+    ("unknown control", swap('control = "rate"', 'control = "dial"'), "control must be one of"),
+    ("rate from zero", swap('low = 0.01\nhigh = 1', 'low = 0\nhigh = 1'), "rate needs low above 0"),
+    ("stop outside range", swap('{ key = "deep", value = 0.9 }', '{ key = "deep", value = 9 }'),
+     "stop deep is outside 0 to 0.9"),
+    ("switch with one stop", swap('stops = [{ key = "none", value = 0 }, { key = "normal", value = 0.3 }, '
+                                  '{ key = "deep", value = 0.9 }]', 'stops = [{ key = "none", value = 0 }]'),
+     "switch needs at least two stops"),
+    ("unknown curve parameter", swap('parameters = ["k"]', 'parameters = ["nope"]'),
+     "unknown parameter 'nope'"),
+    ("unknown curve name", swap('"hill(x, k, 2)"', '"hill(y, k, 2)"'), "unknown names ['y']"),
+    ("curve range", swap('x_low = 0\nx_high = 10', 'x_low = 5\nx_high = 1'), "x_low must be below x_high"),
+    ("curve handle outside range", swap('x_low = 0\nx_high = 10', 'x_low = 0\nx_high = 5'),
+     "k runs outside the curve's x range"),
+    ("curve setting without curve control", swap('group = "feedback"\ncontrol = "curve"', 'group = "feedback"'),
+     "k is in curve feedback, so its control must be curve"),
 ]
 
 
@@ -87,6 +126,10 @@ TEXT_MISTAKES = [
     ("missing note", TOY_LAB_TEXTS.replace('"value.y.note" = "Y has no measured unit."\n', ""),
      "text 'value.y.note' is missing"),
     ("unused text", TOY_LAB_TEXTS + '"term.gone" = "Not used."\n', "'term.gone'"),
+    ("missing group name", TOY_LAB_TEXTS.replace('"group.clearing.name" = "Clearing"\n', ""),
+     "text 'group.clearing.name' is missing"),
+    ("missing stop name", TOY_LAB_TEXTS.replace('"parameter.a.stop.deep" = "Deep"\n', ""),
+     "text 'parameter.a.stop.deep' is missing"),
     ("missing reference", TOY_LAB_TEXTS.replace("[ref2020].\"\n\"normal.night", "[nope].\"\n"
                                                 "\"normal.night"), "missing reference [nope]"),
 ]

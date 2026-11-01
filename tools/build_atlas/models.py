@@ -5,8 +5,8 @@ import tomllib
 from pathlib import Path
 
 from cns_atlas.knowledge import CITATION
-from cns_atlas.models import (Check, Edit, Effect, Experiment, LabModel, LabTest, NormalNote, Option,
-                              Parameter, Part, Reading, Term, Value)
+from cns_atlas.models import (CONTROLS, Check, Curve, Edit, Effect, Experiment, LabModel, LabTest,
+                              NormalNote, Option, Parameter, Part, Reading, Stop, Term, Value)
 from cns_lab.expressions import CONSTANTS, FUNCTIONS, ExpressionError, names
 from cns_lab.engine import Simulator
 from cns_lab.times import TimeError, clock, duration, moment
@@ -15,11 +15,13 @@ from .recipe import BuildError, read_toml
 
 TOP = {"key", "version", "route", "start_clock", "settle_speedup", "settle_days", "max_step",
        "why_threshold", "why_unchanged", "values", "parameters", "effects", "terms", "parts", "experiments",
-       "tests", "checks", "normal"}
+       "tests", "checks", "normal", "curves"}
 FIELDS = {
     "values": {"key", "unit", "start", "display_scale", "display_unit", "other_unit",
                "other_scale", "relative", "normal", "lane", "slow", "refs"},
-    "parameters": {"key", "value", "unit", "low", "high", "refs", "panel"},
+    "parameters": {"key", "value", "unit", "low", "high", "refs", "panel", "group", "control",
+                   "stops"},
+    "curves": {"key", "parameters", "x_low", "x_high", "expr"},
     "effects": {"key", "expr", "kind", "arrow", "via"},
     "terms": {"key", "value", "sign", "expr", "kind", "arrow", "via"},
     "parts": {"key", "structure", "x", "y", "values"},
@@ -163,6 +165,82 @@ def _texts(path: Path, reader: _Reader) -> dict[str, str]:
     return out
 
 
+def _setting_kind(r: _Reader, row: dict, where: str, ok: bool, text) -> tuple[str, str, tuple]:
+    key = row["key"]
+    group = row.get("group", "")
+    if not isinstance(group, str) or (group and not group.isidentifier()):
+        r.say(f"{where}: group must be a key made of letters, digits and _")
+        group = ""
+    if group:
+        text(f"group.{group}.name")
+    control = row.get("control", "slider")
+    if control not in CONTROLS:
+        r.say(f"{where}: control must be one of {', '.join(CONTROLS)}")
+        control = "slider"
+    if control == "rate" and ok and not row["low"] > 0:
+        r.say(f"{where}: a rate needs low above 0")
+    raw = row.get("stops", [])
+    stops = []
+    if not isinstance(raw, list) or not all(isinstance(s, dict) for s in raw):
+        r.say(f"{where}: stops must be a list of {{ key, value }} tables")
+        raw = []
+    for stop in raw:
+        name, value = stop.get("key"), stop.get("value")
+        if set(stop) - {"key", "value"} or not (isinstance(name, str) and name.isidentifier()) \
+                or not _number(value):
+            r.say(f"{where}: each stop needs a key and a number value")
+            continue
+        if ok and not row["low"] <= value <= row["high"]:
+            r.say(f"{where}: stop {name} is outside {row['low']} to {row['high']}")
+        stops.append(Stop(name, text(f"parameter.{key}.stop.{name}"), float(value)))
+    if len({s.key for s in stops}) != len(stops):
+        r.say(f"{where}: stop keys must differ")
+    if control == "switch" and len(stops) < 2:
+        r.say(f"{where}: a switch needs at least two stops")
+    if stops and control != "switch":
+        r.say(f"{where}: only a switch has stops")
+    return group, control, tuple(stops)
+
+
+def _curves(r: _Reader, data: dict, parameters: list[Parameter], text) -> list[Curve]:
+    by_key = {p.key: p for p in parameters}
+    curves = []
+    placed: dict[str, str] = {}
+    for row in r.rows(data, "curves"):
+        k, where = row["key"], f"curve {row['key']}"
+        keys = row.get("parameters")
+        if not (isinstance(keys, list) and 1 <= len(keys) <= 2
+                and all(isinstance(x, str) for x in keys)):
+            r.say(f"{where}: parameters must list one or two settings")
+            keys = []
+        for name in keys:
+            if name not in by_key:
+                r.say(f"{where}: unknown parameter {name!r}")
+            elif name in placed:
+                r.say(f"{where}: {name} is already in curve {placed[name]}")
+            else:
+                placed[name] = k
+                if by_key[name].control != "curve":
+                    r.say(f"{where}: {name} is in curve {k}, so its control must be curve")
+        low, high = row.get("x_low"), row.get("x_high")
+        if not (_number(low) and _number(high)):
+            r.say(f"{where}: x_low and x_high must be numbers")
+            low, high = 0.0, 1.0
+        elif not low < high:
+            r.say(f"{where}: x_low must be below x_high")
+        elif keys and keys[0] in by_key:
+            handle = by_key[keys[0]]
+            if handle.low < low or handle.high > high:
+                r.say(f"{where}: {handle.key} runs outside the curve's x range")
+        expr = r.expr(row.get("expr"), {"x", *by_key}, where)
+        curves.append(Curve(k, text(f"curve.{k}.name"), text(f"curve.{k}.x"), text(f"curve.{k}.y"),
+                            float(low), float(high), expr, tuple(keys)))
+    for p in parameters:
+        if p.control == "curve" and p.key not in placed:
+            r.say(f"parameter {p.key}: its control is curve but no curve names it")
+    return curves
+
+
 def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dict,
            routes: set[str]) -> tuple[LabModel | None, list[str]]:
     data = read_toml(path)
@@ -244,12 +322,19 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
         if not isinstance(row.get("panel", True), bool):
             r.say(f"{where}: panel must be true or false")
         text(f"parameter.{k}.meaning")
+        group, control, stops = _setting_kind(r, row, where, ok, text)
+        if control == "rate":
+            for side in ("up", "down"):
+                if f"parameter.{k}.{side}" in texts:
+                    text(f"parameter.{k}.{side}")
         parameters.append(Parameter(k, text(f"parameter.{k}.name"),
                                     float(row["value"]) if ok else 0.0, str(row.get("unit", "")),
                                     float(row["low"]) if ok else 0.0,
                                     float(row["high"]) if ok else 0.0,
-                                    r.refs(row, references, where), row.get("panel", True) is True))
+                                    r.refs(row, references, where), row.get("panel", True) is True,
+                                    group, control, stops))
     parameter_keys = {p.key for p in parameters}
+    curves = _curves(r, data, parameters, text)
     clash = value_keys & parameter_keys
     if clash:
         r.say(f"names used for both a value and a parameter: {sorted(clash)}")
@@ -489,7 +574,7 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
                      int(numbers["settle_days"]), max_step, float(numbers["why_threshold"]),
                      tuple(values), tuple(parameters), tuple(effects), tuple(terms), tuple(parts),
                      tuple(experiments), tuple(tests), tuple(checks), tuple(notes),
-                     float(numbers["why_unchanged"]))
+                     float(numbers["why_unchanged"]), tuple(curves))
     return model, r.problems
 
 

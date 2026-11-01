@@ -63,6 +63,16 @@ class Value(_Record):
     refs: tuple[str, ...] = ()
 
 
+CONTROLS = ("slider", "rate", "clock", "switch", "curve")
+
+
+@dataclass(frozen=True)
+class Stop(_Record):
+    key: str
+    name: str
+    value: float
+
+
 @dataclass(frozen=True)
 class Parameter(_Record):
     key: str
@@ -73,6 +83,23 @@ class Parameter(_Record):
     high: float
     refs: tuple[str, ...] = ()
     panel: bool = True
+    group: str = ""
+    control: str = "slider"
+    stops: tuple[Stop, ...] = ()
+
+    NESTED: ClassVar[dict] = {"stops": Stop}
+
+
+@dataclass(frozen=True)
+class Curve(_Record):
+    key: str
+    name: str
+    x_name: str
+    y_name: str
+    x_low: float
+    x_high: float
+    expr: str
+    parameters: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -197,10 +224,11 @@ class LabModel(_Record):
     checks: tuple[Check, ...] = ()
     normal_notes: tuple[NormalNote, ...] = ()
     why_unchanged: float = 0.02
+    curves: tuple[Curve, ...] = ()
 
     NESTED: ClassVar[dict] = {"values": Value, "parameters": Parameter, "effects": Effect, "terms": Term,
               "parts": Part, "experiments": Experiment, "tests": LabTest, "checks": Check,
-              "normal_notes": NormalNote}
+              "normal_notes": NormalNote, "curves": Curve}
 
     def value(self, key: str) -> Value:
         return next(v for v in self.values if v.key == key)
@@ -213,3 +241,9 @@ class LabModel(_Record):
 
     def part(self, key: str) -> Part:
         return next(p for p in self.parts if p.key == key)
+
+    def curve(self, key: str) -> Curve:
+        return next(c for c in self.curves if c.key == key)
+
+    def curve_of(self, parameter_key: str) -> Curve | None:
+        return next((c for c in self.curves if parameter_key in c.parameters), None)
