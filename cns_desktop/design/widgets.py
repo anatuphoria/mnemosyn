@@ -55,6 +55,13 @@ class SegmentedControl(QFrame):
         self._current = key
         self.changed.emit(key)
 
+    def clear(self) -> None:
+        self._group.setExclusive(False)
+        for button in self._buttons.values():
+            button.setChecked(False)
+        self._group.setExclusive(True)
+        self._current = ""
+
     def add_option(self, key: str, label: str, icon: str | None = None) -> None:
         button = QToolButton()
         button.setProperty("segment", "true")

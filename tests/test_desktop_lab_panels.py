@@ -92,14 +92,14 @@ def test_every_setting_shows_in_a_narrow_panel(doc, qapp):
     panel.resize(200, 600)
     panel.show()
     qapp.processEvents()
-    viewport = panel.table.viewport()
+    viewport = panel.scroll.viewport()
     for parameter in doc.model.parameters:
         for widget in (panel.spin(parameter.key), panel.reset_button(parameter.key)):
             right = widget.mapTo(viewport, widget.rect().topRight()).x()
             assert 0 <= right <= viewport.width(), (parameter.key, right, viewport.width())
         spin = panel.spin(parameter.key)
         assert spin.width() >= spin.fontMetrics().horizontalAdvance(spin.text()) + 24
-    assert panel.table.horizontalScrollBar().maximum() == 0
+    assert panel.scroll.horizontalScrollBar().maximum() == 0
     panel.close()
 
 
@@ -111,7 +111,7 @@ def test_a_parameter_kept_off_the_panel_is_not_listed(doc):
     doc.model = replace(doc.model, parameters=parameters)
     panel = ModelPanel(doc)
     assert "k" not in panel._spins
-    assert panel.table.rowCount() == len(parameters) - 1
+    assert len(panel._spins) == len(parameters) - 1
     doc.set_value("w", doc.model.parameter("w").value * 2)
     panel.refresh()
 
