@@ -2,7 +2,7 @@
 
 Where Mnemosyn stands, what is unfinished, and what may come next. Unlike `decisions.md`, nothing
 here is decided: an idea becomes a decision only when the owner approves its design. Last reviewed
-2026-10-31, after version 0.3.0.
+2026-11-01, after version 0.3.1.
 
 ## Vision
 
@@ -17,10 +17,11 @@ would make it a weaker copy of the paid apps; going deep is where it can be the 
 
 ## Where it stands
 
-Version 0.3.0 is a free test release for Windows and Linux. It has the 3D atlas, slices, pathways
+Version 0.3.1 is a free test release for Windows and Linux. It has the 3D atlas, slices, pathways
 and behaviour circuits, the Simulation Lab with the stress axis, and spaced repetition quizzes.
 It runs on Windows (checked by the owner on 2026-10-30). The first public forum post went out on
-2026-10-30; there are no outside users or feedback yet.
+2026-10-30; there are no outside users or feedback yet. The next release brings one Lab timeline in
+place of the Timeline and Charts tabs (decision 75).
 
 ## Unfinished
 
@@ -68,6 +69,9 @@ Ranked by how much they would add to the vision. None of them has a design yet.
    shares it with a class.
 5. Reach. A macOS build first; a browser version much later, only once the content is clearly
    ahead.
+6. A Settings window. The owner asked to keep one in mind. The Lab timeline already names its
+   display options (`compare_on`, `show_guides`, `show_hover`, `show_overview`) so a window can
+   offer them; nothing is stored yet.
 
 Set aside: fitting the Lab model to one real person, accounts of any kind, and new features for the
 terminal viewer.
