@@ -7,6 +7,7 @@ BELOW = 0.98
 TINY = 1e-12
 FLAT = 0.05
 NEAR_ZERO = 5e-4
+WHOLE = 1000
 
 
 def tone(mine: float, normal: float | None) -> str:
@@ -26,4 +27,6 @@ def lane_scale(runs, key: str) -> tuple[float, float]:
 
 
 def mark_text(value: float) -> str:
-    return "0" if abs(value) < NEAR_ZERO else f"{value:.3g}"
+    if abs(value) < NEAR_ZERO:
+        return "0"
+    return f"{value:.0f}" if abs(value) >= WHOLE else f"{value:.3g}"

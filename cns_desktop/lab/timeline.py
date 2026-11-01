@@ -275,7 +275,14 @@ class Timeline(QWidget):
         length = self.document.experiment.length
         if block.present:
             return 0.0, length
-        return block.start, block.start + block.length if block.length is not None else length
+        size = self._block_length(block)
+        return block.start, block.start + size if size is not None else length
+
+    def _block_length(self, block) -> float | None:
+        if block.length is not None:
+            return block.length
+        test = next((t for t in self.document.model.tests if t.key == block.experiment), None)
+        return test.length if test is not None else None
 
     def block_rows(self) -> list[int]:
         blocks = self.document.experiment.blocks
@@ -354,6 +361,7 @@ class Timeline(QWidget):
             left, right = 0.0, length
         else:
             left = start
+            size = self._block_length(block) if size is None else size
             right = start + size if size is not None else length
         x0 = self.x_of(left)
         x1 = max(self.x_of(right), x0 + MIN_BLOCK_WIDTH)

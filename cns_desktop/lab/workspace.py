@@ -227,18 +227,21 @@ class LabWorkspace:
                     None)
 
     def choose_system(self, key: str) -> None:
-        doc = self.document
-        if key != doc.model.key and self.confirm_discard():
-            active = self.brain.active
-            if active:
-                self.brain.deactivate()
-            doc.set_model(key)
-            self._fill_add_menu()
-            if active:
-                self.brain.activate()
-            self.update_title()
-            self.window._update_status()
-        self.system_box.setCurrentIndex(self.system_box.findData(doc.model.key))
+        if key != self.document.model.key and self.confirm_discard():
+            self._switch_model(key)
+        self.system_box.setCurrentIndex(self.system_box.findData(self.document.model.key))
+
+    def _switch_model(self, key: str) -> None:
+        active = self.brain.active
+        if active:
+            self.brain.deactivate()
+        self.document.set_model(key)
+        self._fill_add_menu()
+        if active:
+            self.brain.activate()
+        self.system_box.setCurrentIndex(self.system_box.findData(key))
+        self.update_title()
+        self.window._update_status()
 
     def _set_enabled(self, on: bool) -> None:
         for name, action in self._actions.items():
@@ -438,6 +441,8 @@ class LabWorkspace:
         except FileError as exc:
             self.window.inform("Cannot open the experiment", str(exc))
             return
+        if experiment.system != self.document.model.key:
+            self._switch_model(experiment.system)
         self.document.load(experiment, path)
         self._remember(path)
         self.window.workspaces.switch("Lab")

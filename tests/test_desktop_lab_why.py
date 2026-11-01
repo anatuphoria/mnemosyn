@@ -218,7 +218,7 @@ def test_a_rise_test_reads_as_a_rise(doc):
     doc.add_block("hold_test", 120.0)
     doc.select(("block", 0))
     text = inspector.text()
-    assert "K hold test" in text and "rises by" in text and "rises by under 50%" in text
+    assert "K hold test" in text and "rises by" in text and "normal is under 50%" in text
 
 
 def test_a_test_read_after_the_run_ends_says_so(doc):

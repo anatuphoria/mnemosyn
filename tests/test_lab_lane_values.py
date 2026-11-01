@@ -24,3 +24,7 @@ def test_lane_scale_covers_every_run_and_widens_a_flat_line():
 
 def test_scale_marks_read_zero_and_three_figures():
     assert mark_text(0.0001) == "0" and mark_text(5.6213) == "5.62" and mark_text(0.0012) == "0.0012"
+
+
+def test_large_scale_marks_read_as_whole_numbers():
+    assert mark_text(1200.0) == "1200" and mark_text(57.2) == "57.2"

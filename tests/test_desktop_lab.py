@@ -274,3 +274,20 @@ def test_switching_the_model_resets_the_timeline_view(qapp, toy_lab_atlas, tmp_p
         timeline.grab()
     finally:
         w.close()
+
+
+def test_opening_a_file_switches_to_its_system(qapp, toy_lab_atlas, tmp_path):
+    w = two_model_window(qapp, toy_lab_atlas, tmp_path)
+    try:
+        lab = w.lab
+        w.workspaces.switch("Lab")
+        lab.choose_system("toy2")
+        lab.document.add_block("remove_b", 0.0)
+        path = tmp_path / "two.mnemolab"
+        assert lab._write(path)
+        lab.document.undo.setClean()
+        lab.choose_system("toy")
+        lab.open(path)
+        assert lab.document.model.key == "toy2" and lab.system_box.currentData() == "toy2"
+    finally:
+        w.close()

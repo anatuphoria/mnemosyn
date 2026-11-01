@@ -683,3 +683,31 @@ def test_a_lesion_report_meets_its_budget(timing):
     report(atlas, lesion)
     timing.assert_within({"lesion report": (best_of(lambda: report(atlas, lesion), runs=3),
                                             0.050)})
+
+
+@pytest.mark.slow
+def test_water_runs_meet_their_budgets(timing):
+    from cns_lab.engine import Simulator
+    from cns_lab.experiment import Block, Experiment
+    from test_lab_water import load_water
+
+    model = load_water()
+    day = Experiment("water", 1, 1440.0, 480.0, (Block("desmopressin_test", 60.0),))
+    week = Experiment("water", 1, 7 * 1440.0, 480.0, (Block("siadh", 600.0),))
+
+    def settle():
+        Simulator(model).settle((), ())
+
+    warm = Simulator(model)
+    warm.settle((), ())
+
+    def fresh_run(experiment):
+        sim = Simulator(model)
+        sim._settled = warm._settled
+        sim.run(experiment)
+
+    timing.assert_within({
+        "water settle": (best_of(settle, runs=3), 0.400),
+        "water one day test run": (best_of(lambda: fresh_run(day)), 0.030),
+        "water week run": (best_of(lambda: fresh_run(week), runs=3), 0.200),
+    })

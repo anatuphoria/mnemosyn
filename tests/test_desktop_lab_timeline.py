@@ -591,3 +591,10 @@ def test_the_hover_stays_under_the_pointer_when_the_view_moves(timeline):
     assert timeline.hover_t == pytest.approx(timeline.t_of(x), abs=1.0)
     timeline.zoom(0.5, 600.0)
     assert timeline.hover_t == pytest.approx(timeline.t_of(x), abs=1.0)
+
+
+def test_a_test_block_lasts_as_long_as_its_test(timeline):
+    doc = timeline.document
+    doc.add_block("hold_test", 300.0)
+    rect = timeline.block_rect(0)
+    assert rect.right() == pytest.approx(timeline.x_of(300.0 + 120.0), abs=1.0)

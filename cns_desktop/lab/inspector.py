@@ -16,7 +16,7 @@ from .model_panel import short_source
 from .why_panel import DRAFT
 
 RULE_WORDS = {"below": "below", "at least": "at least", "suppressed by": "suppressed by at least",
-              "rises by": "rises by under"}
+              "rises by": "normal is under"}
 MODES = (("Present from the start", PRESENT), ("From a time", FROM_A_TIME))
 
 
