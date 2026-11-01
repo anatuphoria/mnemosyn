@@ -12,6 +12,7 @@ from cns_lab.why import phrase
 
 from cns_desktop.design.tokens import GAP, SIZE
 
+from .labels import plain
 from .model_panel import short_source
 from .why_panel import DRAFT
 
@@ -292,14 +293,14 @@ class Inspector(QWidget):
             text = (f"{word}: {verb} {result.value:.0%}, "
                     f"{RULE_WORDS[test.rule]} {result.cutoff:.0%}")
         else:
-            text = (f"{word}: {result.value:.3g} {result.unit}, {RULE_WORDS[test.rule]} "
+            text = (f"{word}: {plain(result.value, 3)} {result.unit}, {RULE_WORDS[test.rule]} "
                     f"{result.cutoff:g} {result.unit}")
         self._note(text, bold=True)
         if len(result.readings) > 1:
             parts = []
             for reading, shown in zip(test.readings, result.readings, strict=True):
                 unit = doc.simulator.values[reading.value].display_unit
-                parts.append(f"{shown:.3g} {unit} after {reading.after / 60:g} h")
+                parts.append(f"{plain(shown, 3)} {unit} after {reading.after / 60:g} h")
             name = doc.simulator.values[test.readings[0].value].name
             self._note(f"{name}: " + ", then ".join(parts) + ".")
         self._note(self._text(f"test.{block.experiment}.{'normal' if result.normal else 'abnormal'}"))
@@ -310,9 +311,9 @@ class Inspector(QWidget):
         if doc.run is None:
             return
         shown = doc.run.display(key, doc.playhead)
-        line = f"{value.name}: {shown:.3g} {value.display_unit}"
+        line = f"{value.name}: {plain(shown, 3)} {value.display_unit}"
         if value.other_unit:
-            line += f" ({shown * value.other_scale:.3g} {value.other_unit})"
+            line += f" ({plain(shown * value.other_scale, 3)} {value.other_unit})"
         if value.normal:
             line += f", normal {value.normal[0]:g} to {value.normal[1]:g}"
         self._note(line)
@@ -339,7 +340,7 @@ class Inspector(QWidget):
             theirs = doc.normal.factor(key, doc.playhead)
             ratio = mine / theirs if abs(theirs) > 1e-12 else (1.0 if abs(mine) < 1e-12 else
                                                                float("inf"))
-            self._note(f"Right now it is {ratio:.3g} times normal: its strength "
+            self._note(f"Right now it is {plain(ratio, 3)} times normal: its strength "
                        f"{phrase(None, ratio, doc.model.why_unchanged)}.")
 
     def _value(self, key: str) -> None:

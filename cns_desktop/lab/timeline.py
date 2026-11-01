@@ -407,7 +407,7 @@ class Timeline(QWidget):
             return "", ""
         mine = doc.run.display(key, doc.playhead)
         normal = doc.normal.display(key, doc.playhead) if doc.normal is not None else None
-        return plain(mine, 3), tone(mine, normal)
+        return plain(mine, 3, compact=True), tone(mine, normal)
 
     def lane_marks(self, key: str) -> tuple[str, str]:
         runs = [run for _name, run in self._shown_runs()]

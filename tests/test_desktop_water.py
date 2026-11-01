@@ -95,4 +95,13 @@ def test_the_desmopressin_test_shows_both_readings(window):
     lab.document.select(("block", 1))
     text = lab.inspector.text()
     assert "after 8 h" in text and "after 10 h" in text
-    assert "stayed dilute" in text and "nephrogenic" in text
+    assert "stayed dilute" in text and "nephrogenic" in text and "e+" not in text
+
+
+def test_large_readings_are_written_as_whole_numbers(window):
+    lab = switch_to(window, "water")
+    lab.document.add_block("central_di", 0.0)
+    lab.document.add_block("desmopressin_test", 60.0)
+    lab.document.select(("block", 1))
+    text = lab.inspector.text()
+    assert "e+" not in text and "mOsm/kg after 10 h" in text

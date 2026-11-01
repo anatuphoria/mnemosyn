@@ -259,7 +259,7 @@ def test_lane_values_match_the_run_at_the_playhead(timeline):
     doc = timeline.document
     doc.set_playhead(600.0)
     text, _tone = timeline.lane_value("x")
-    assert text == plain(doc.run.display("x", 600.0), 3)
+    assert text == plain(doc.run.display("x", 600.0), 3, compact=True)
 
 
 def test_lane_values_are_toned_against_the_normal_run(timeline):
@@ -598,3 +598,20 @@ def test_a_test_block_lasts_as_long_as_its_test(timeline):
     doc.add_block("hold_test", 300.0)
     rect = timeline.block_rect(0)
     assert rect.right() == pytest.approx(timeline.x_of(300.0 + 120.0), abs=1.0)
+
+
+def test_a_tiny_lane_value_leaves_its_unit_whole(timeline):
+    from PySide6.QtGui import QFontMetricsF
+
+    from cns_desktop.design.fonts import font
+
+    doc = timeline.document
+    doc.add_block("remove_b", 0.0)
+    doc.set_playhead(1400.0)
+    tiny = [key for key in timeline.lane_keys() if 0 < abs(doc.run.display(key, 1400.0)) < 0.01]
+    assert tiny
+    for key in tiny:
+        assert timeline.lane_value(key)[0] == "<0.01"
+        _name, unit, _value = timeline.name_layout(key)
+        words = doc.simulator.values[key].display_unit
+        assert unit.width() >= QFontMetricsF(font("label")).horizontalAdvance(words)

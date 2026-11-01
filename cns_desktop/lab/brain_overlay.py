@@ -13,7 +13,7 @@ from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D, vtkTextRenderer
 from cns_desktop.design.fonts import FONTS
 from cns_desktop.design.tokens import TYPE, rgb
 
-from .labels import plain, removed_parts
+from .labels import plain, ratio_text, removed_parts
 from .viewport import StripCard
 
 RAISED = rgb("raised")
@@ -209,8 +209,7 @@ class LabBrain:
         ratio = self._ratio(key)
         colour = RAISED if ratio > 1.02 else LOWERED if ratio < 0.98 else PLAIN
         if value.relative or self.document.run is None:
-            arrow = "↑" if ratio > 1.02 else "↓" if ratio < 0.98 else "="
-            return f"{part.name} · {value.name} {arrow} {plain(ratio)}×", colour
+            return f"{part.name} · {value.name} {ratio_text(ratio)}", colour
         shown = self.document.run.display(key, self.document.playhead)
         return f"{part.name} · {value.name} {plain(shown, 3)} {value.display_unit}", colour
 
