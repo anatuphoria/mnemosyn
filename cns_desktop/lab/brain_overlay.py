@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import itertools
 import math
 
+import numpy as np
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu
 from vtkmodules.vtkCommonCore import VTK_FONT_FILE
-from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D
+from vtkmodules.vtkRenderingCore import vtkBillboardTextActor3D, vtkTextRenderer
 
 from cns_desktop.design.fonts import FONTS
 from cns_desktop.design.tokens import TYPE, rgb
@@ -20,6 +22,8 @@ PLAIN = rgb("text")
 LABEL_BACK = tuple(c / 255 for c in rgb("s1"))
 LABEL_FONT = str(FONTS / "Inter-Medium.ttf")
 ZERO = 1e-9
+GAP = 3
+NUDGE = 10
 
 
 class BrainOverlay:
@@ -27,9 +31,14 @@ class BrainOverlay:
         self.view = view
         self.actors: dict[int, vtkBillboardTextActor3D] = {}
         self.labels: dict[int, str] = {}
+        self._boxes: dict[int, tuple[float, float, float, float]] = {}
+        self._extents: dict = {}
+        self._measure = vtkTextRenderer()
+        view.renderer.AddObserver("StartEvent", lambda *_: self.arrange())
 
     def show(self, labels: dict[int, tuple[str, tuple[int, int, int]]],
-             positions: dict | None = None) -> None:
+             positions: dict | None = None, extents: dict | None = None) -> None:
+        self._extents = dict(extents or {})
         for structure_id in set(self.actors) - set(labels):
             self.view.renderer.RemoveActor(self.actors.pop(structure_id))
         for structure_id, (text, color) in labels.items():
@@ -56,6 +65,48 @@ class BrainOverlay:
 
     def clear(self) -> None:
         self.show({})
+
+    def boxes(self) -> dict[int, tuple[float, float, float, float]]:
+        return dict(self._boxes)
+
+    def _size(self, actor) -> tuple[int, int]:
+        bounds = [0, 0, 0, 0]
+        dpi = self.view.ren_win.GetDPI()
+        if self._measure.GetBoundingBox(actor.GetTextProperty(), actor.GetInput(), bounds, dpi):
+            return bounds[1] - bounds[0], bounds[3] - bounds[2]
+        size = actor.GetTextProperty().GetFontSize()
+        return int(len(actor.GetInput()) * size * 0.6), int(size * 1.5)
+
+    def arrange(self) -> None:
+        renderer = self.view.renderer
+        anchors = []
+        for structure_id, actor in self.actors.items():
+            renderer.SetWorldPoint(*actor.GetPosition(), 1.0)
+            renderer.WorldToDisplay()
+            x, y, _z = renderer.GetDisplayPoint()
+            edge = x
+            extent = self._extents.get(structure_id)
+            if extent is not None:
+                for corner in itertools.product(*zip(*extent)):
+                    renderer.SetWorldPoint(*corner, 1.0)
+                    renderer.WorldToDisplay()
+                    edge = max(edge, renderer.GetDisplayPoint()[0])
+            anchors.append((y, x, edge, structure_id, actor))
+        placed: dict[int, tuple[float, float, float, float]] = {}
+        for y, x, edge, structure_id, actor in sorted(anchors, key=lambda a: (-a[0], a[1])):
+            width, height = self._size(actor)
+            left, bottom = edge + NUDGE, y - height / 2
+            moved = True
+            while moved:
+                moved = False
+                for other in placed.values():
+                    if (left < other[2] and other[0] < left + width
+                            and bottom < other[3] and other[1] < bottom + height):
+                        bottom = other[1] - GAP - height
+                        moved = True
+            actor.SetDisplayOffset(round(left - x), round(bottom - y))
+            placed[structure_id] = (left, bottom, left + width, bottom + height)
+        self._boxes = placed
 
 
 def _mix(own, target, amount: float) -> tuple[float, float, float]:
@@ -167,7 +218,7 @@ class LabBrain:
         if not self.active:
             return
         shaped = self._shaped()
-        colors, labels, positions = {}, {}, {}
+        colors, labels, positions, extents = {}, {}, {}, {}
         atlas = self.state.atlas
         for part in self.document.model.parts:
             text, colour = self._text(part)
@@ -175,6 +226,9 @@ class LabBrain:
                 ids = shaped[part.key]
                 labels[ids[0]] = (text, colour)
                 positions[ids[0]] = sum(self.view.centre_of(i) for i in ids) / len(ids)
+                bounds = [self.view.extent_of(i) for i in ids]
+                extents[ids[0]] = (np.min([b[0] for b in bounds], axis=0),
+                                   np.max([b[1] for b in bounds], axis=0))
                 ratio = self._ratio(part.values[0]) if part.values else 1.0
                 amount = min(1.0, abs(math.log(ratio)) / math.log(3)) if ratio > 0 else 1.0
                 target = RAISED if ratio >= 1 else LOWERED
@@ -191,7 +245,7 @@ class LabBrain:
                 button.set_tone("raised" if colour == RAISED else
                                 "lowered" if colour == LOWERED else "")
         self.view.set_lab_colors(colors)
-        self.overlay.show(labels, positions)
+        self.overlay.show(labels, positions, extents)
 
     def _from_lab(self, selection) -> None:
         if not self.active or self._syncing or not selection or selection[0] != "part":

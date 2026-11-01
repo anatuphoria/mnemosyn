@@ -97,6 +97,7 @@ class BrainView(QtInteractor):
         self.scene_bounds = self._scene_bounds()
         self.highlighted: list[int] = []
         self.overlay_ids: list[int] = []
+        self._left_over: set[int] = set()
         self._plane_key = None
         self.lesion_actor = None
         self.answer_actor = None
@@ -175,6 +176,9 @@ class BrainView(QtInteractor):
         low, high = self._extent(structure_id)
         return (low + high) / 2
 
+    def extent_of(self, structure_id: int) -> tuple[np.ndarray, np.ndarray]:
+        return self._extent(structure_id)
+
     def set_lesion_body(self, mesh) -> None:
         self._set_body("lesion_actor", mesh, COLOURS["edited"])
 
@@ -252,6 +256,8 @@ class BrainView(QtInteractor):
             self._style_tract(structure_id)
         for structure_id in self.shell_actors:
             self._style_shell(structure_id)
+        self._left_over = {i for i in self.highlighted if not self.state.in_focus(i)}
+        self._refresh_overlay()
         self._request_render()
 
     def warm_outline(self, ids) -> None:
@@ -347,11 +353,13 @@ class BrainView(QtInteractor):
 
     def _refresh_overlay(self) -> None:
         self.overlay_ids = [i for i in self.highlighted
-                            if i in self.blocks and not self.state.is_hidden(i)]
+                            if i in self.blocks and not self.state.is_hidden(i)
+                            and i not in self._left_over]
         self.outline.show(self.overlay_ids)
 
     def _on_selection_changed(self, structure_id: int | None) -> None:
         self.highlighted = self.state.highlighted_ids()
+        self._left_over = set()
         self._update_covers()
         self._refresh_overlay()
         self._request_render()

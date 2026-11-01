@@ -115,3 +115,44 @@ def test_a_removed_part_says_so_in_the_strip_and_labels(window):
     assert brain.strip_button("body").text() == "Body gland\nremoved"
     assert brain.strip_button("body").toolTip() == "Body gland · removed"
     assert "e-" not in brain.overlay.labels[111]
+
+
+def overlaps(a, b):
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def test_labels_at_the_same_place_do_not_cover_each_other(window, qapp):
+    from cns_desktop.lab.brain_overlay import BrainOverlay
+
+    overlay = BrainOverlay(window.view)
+    centre = window.view.centre_of(111)
+    overlay.show({111: ("Alpha nucleus · X 1.2 units", (255, 255, 255)),
+                  101: ("Beta nucleus", (255, 255, 255)),
+                  102: ("Gamma · Y 3 units", (255, 255, 255))},
+                 {111: centre, 101: centre, 102: centre + 0.5})
+    window.view.render()
+    qapp.processEvents()
+    boxes = list(overlay.boxes().values())
+    assert len(boxes) == 3
+    for i, a in enumerate(boxes):
+        for b in boxes[i + 1:]:
+            assert not overlaps(a, b), (a, b)
+    overlay.clear()
+
+
+def test_a_label_starts_past_its_structure_on_screen(window, qapp):
+    import itertools
+
+    doc, brain = lab_of(window)
+    brain.activate()
+    doc.add_block("remove_b", 0.0)
+    window.view.render()
+    qapp.processEvents()
+    renderer = window.view.renderer
+    low, high = window.view.extent_of(111)
+    right = 0.0
+    for corner in itertools.product(*zip(low, high)):
+        renderer.SetWorldPoint(*corner, 1.0)
+        renderer.WorldToDisplay()
+        right = max(right, renderer.GetDisplayPoint()[0])
+    assert brain.overlay.boxes()[111][0] >= right

@@ -102,3 +102,18 @@ def test_centring_uses_the_emphasis(window):
     window.state.set_slice("axial", 20.0)
     window.slices.centre_on_selection()
     assert window.state.slice_mm == -12.0
+
+
+def test_a_selection_outside_the_focus_is_not_outlined(window):
+    window.state.select(102)
+    assert window.view.overlay_ids == [102]
+    window.state.set_focus([101, 112])
+    assert window.view.overlay_ids == []
+    window.state.set_focus(None)
+    assert window.view.overlay_ids == [102]
+
+
+def test_a_new_selection_outside_the_focus_is_outlined(window):
+    window.state.set_focus([101, 112])
+    window.state.select(102)
+    assert window.view.overlay_ids == [102]
