@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from html import escape
 
 from PySide6.QtCore import Qt
@@ -13,6 +14,14 @@ EMPTY_LESION = "Place a lesion to see what it hits and which routes it breaks."
 NOTHING_BROKEN = "This lesion breaks no route the atlas can follow."
 CASE_HEADING = "The case's lesion"
 ONE_SIDE_ONLY = "This needs damage on both sides; only the {side} side is hit here."
+CITED = re.compile(r"\[(\d+(?:,\s*\d+)*)\]")
+
+
+def renumber(text: str, numbers: dict[int, int]) -> str:
+    def swap(found) -> str:
+        cited = [numbers.get(int(n), int(n)) for n in re.findall(r"\d+", found.group(1))]
+        return "[" + ", ".join(str(n) for n in cited) + "]"
+    return CITED.sub(swap, text)
 
 
 def percent(share: float) -> str:
@@ -64,8 +73,14 @@ class DeficitsPanel(QTextBrowser):
             parts.append(f"<p>{escape(NOTHING_BROKEN)}</p>")
         starts = {p.key: p.start for p in atlas.pathways}
         broken = {(d.route, d.step, d.side) for d in report.deficits}
+        cited: list = []
         for (route, side), deficits in groups.items():
             first = deficits[0]
+            numbers = {}
+            for n, ref in enumerate(first.references, 1):
+                if ref not in cited:
+                    cited.append(ref)
+                numbers[n] = cited.index(ref) + 1
             parts.append(f"<h3>{escape(first.route_name)}</h3>")
             parts.append(rich.secondary(f"From the {escape(side)} {escape(starts[route])}"))
             items = []
@@ -73,17 +88,18 @@ class DeficitsPanel(QTextBrowser):
                 partly = f"{rich.chip('partly', 'edited')}&nbsp;&nbsp;" if deficit.partly else ""
                 other = "right" if deficit.side == "left" else "left"
                 alone = deficit.needs_both and (deficit.route, deficit.step, other) not in broken
-                note = f"<br>{rich.secondary(ONE_SIDE_ONLY.format(side=side))}" if alone else ""
+                note = rich.secondary_line(ONE_SIDE_ONLY.format(side=side)) if alone else ""
                 hit = ", ".join(f"{escape(atlas.get(i).name)} {percent(s)}"
                                 for i, s in deficit.structures)
-                items.append(f"<li>{partly}{escape(deficit.lesion)}{note}"
-                             f"<br>{rich.secondary(f'Step {deficit.step + 1}: {hit}')}</li>")
+                text = escape(renumber(deficit.lesion, numbers))
+                items.append(f"<li>{partly}{text}{note}"
+                             f"{rich.secondary_line(f'Step {deficit.step + 1}: {hit}')}</li>")
             parts.append("<ol>" + "".join(items) + "</ol>")
-            parts += references_html(first.references)
         if report.spared:
             names = {p.key: p.name for p in atlas.pathways}
             spared = ", ".join(escape(names[key]) for key in report.spared)
             parts.append(f"{rich.heading('Spared')}<p>{spared}</p>")
+        parts += references_html(cited)
         return "".join(parts)
 
     @staticmethod

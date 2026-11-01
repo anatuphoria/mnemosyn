@@ -30,6 +30,10 @@ def secondary(html: str) -> str:
     return f"<p style='color: {COLOURS['text2']}; {_font('secondary')}'>{html}</p>"
 
 
+def secondary_line(html: str) -> str:
+    return f"<br><span style='color: {COLOURS['text2']}; {_font('secondary')}'>{html}</span>"
+
+
 def chip(text: str, role: str) -> str:
     return f"<span style='color: {COLOURS[role]}; {_font('data')}'>{text}</span>"
 

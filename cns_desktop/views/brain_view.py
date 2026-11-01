@@ -176,6 +176,11 @@ class BrainView(QtInteractor):
         low, high = self._extent(structure_id)
         return (low + high) / 2
 
+    def mute_selection(self, muted: bool) -> None:
+        self._left_over = set(self.highlighted) if muted else set()
+        self._refresh_overlay()
+        self._request_render()
+
     def extent_of(self, structure_id: int) -> tuple[np.ndarray, np.ndarray]:
         return self._extent(structure_id)
 

@@ -320,8 +320,10 @@ def test_a_whole_case_runs_and_is_recorded(qapp, sign_atlas, tmp_path):
         case = cases.case
         assert case is not None and all(s in cases.signs_label.text() for s in case.signs)
         assert not cases.check_button.isEnabled()
+        from cns_desktop.lesion.cases_panel import PLACE_FIRST
+        assert cases.result_label.text() == PLACE_FIRST
         lesion.document.set_lesion(case.target, "Answer")
-        assert cases.check_button.isEnabled()
+        assert cases.check_button.isEnabled() and cases.result_label.text() == ""
         cases.check_button.click()
         result = cases.result_label.text()
         assert "Matched" in result and case.label in result
@@ -501,3 +503,42 @@ def test_a_one_sided_hit_on_a_both_sides_step_says_so(qapp, both_atlas, tmp_path
         assert "only the" not in lesion.deficits.toPlainText()
     finally:
         w.close()
+
+
+def test_deficits_share_one_renumbered_reference_list(window, qapp):
+    from cns_atlas.knowledge import Reference
+    from cns_atlas.lesions import Deficit, Report
+
+    lesion = entered(window, qapp)
+    book = Reference("book", "Purves D", "Neuroscience", 2018)
+    paper = Reference("paper", "Penfield W", "Somatic motor", 1937)
+    other = Reference("other", "Kandel ER", "Principles", 2021)
+    first = Deficit("loop", "Toy loop", "left", 0, "Loss of a [2].", "", False, ((101, 1.0),),
+                    (book, other))
+    second = Deficit("short", "Short path", "left", 0, "Loss of b [1] [2].", "", False,
+                     ((101, 1.0),), (paper, book))
+    html = lesion.deficits._deficits(window.state.atlas, Report({101: 1.0}, (first, second), ()))
+    lesion.deficits.setHtml(html)
+    text = lesion.deficits.toPlainText()
+    assert text.count("References") == 1
+    assert "Loss of a [2]." in text and "Loss of b [3] [1]." in text
+    assert text.index("Purves") < text.index("Kandel") < text.index("Penfield")
+    assert "\n\nStep 1" not in text
+
+
+def test_a_selection_from_another_workspace_is_not_outlined_in_lesion(window, qapp):
+    window.state.select(101)
+    assert window.view.overlay_ids == [101]
+    lesion = entered(window, qapp)
+    assert window.view.overlay_ids == []
+    lesion.place.set_tool("structure")
+    window.state.select(112)
+    assert window.view.overlay_ids == [112]
+
+
+def test_leaving_lesion_outlines_the_selection_again(window, qapp):
+    window.state.select(101)
+    entered(window, qapp)
+    window.workspaces.switch("Explore")
+    qapp.processEvents()
+    assert window.state.selected == 101 and window.view.overlay_ids == [101]

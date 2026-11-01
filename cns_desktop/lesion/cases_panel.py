@@ -11,6 +11,7 @@ from cns_desktop.design.theme import set_role
 from cns_desktop.design.tokens import GAP, SIZE
 
 NO_CASES = "No route in this build has signs to build a case from."
+PLACE_FIRST = "Place a lesion on the Place tab where you think the damage is, then press Check."
 INTRO = "Press New case: you get a patient's signs, place the lesion you think explains them, then check."
 
 
@@ -49,6 +50,8 @@ class CasesPanel(QWidget):
     def _sync(self) -> None:
         self.check_button.setEnabled(self.case is not None and not self.revealed
                                      and not self.document.lesion.is_empty)
+        if self.case is not None and not self.revealed:
+            self.result_label.setText(PLACE_FIRST if self.document.lesion.is_empty else "")
 
     def start(self) -> None:
         self.case = new_case(self.document.atlas, self.rng)

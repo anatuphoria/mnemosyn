@@ -107,11 +107,13 @@ class LesionWorkspace:
         self.undo_action.setEnabled(True)
         self.redo_action.setEnabled(True)
         self.place.activate(True)
+        self.window.view.mute_selection(True)
         self._show()
         if self.cases.revealed and self.cases.case is not None:
             self.show_answer(self.cases.case.target)
 
     def leave(self) -> None:
+        self.window.view.mute_selection(False)
         self.place.activate(False)
         self.active = False
         self.undo_action.setEnabled(False)
