@@ -72,7 +72,7 @@ class LabBrain:
         self.active = False
         self._buttons: dict[str, StripCard] = {}
         self._syncing = False
-        self.on_show_chart = None
+        self.on_show_on_timeline = None
         self.on_show_in_atlas = None
         document.changed.connect(self.refresh)
         document.playhead_moved.connect(lambda _t: self.refresh())
@@ -105,8 +105,9 @@ class LabBrain:
                 and self.on_show_in_atlas is not None):
             menu.addAction(QAction("Show in the atlas", menu,
                                    triggered=lambda: self.on_show_in_atlas(key)))
-        if self.on_show_chart is not None:
-            menu.addAction(QAction("Show its chart", menu, triggered=lambda: self.on_show_chart(key)))
+        if self.on_show_on_timeline is not None:
+            menu.addAction(QAction("Show on the timeline", menu,
+                                   triggered=lambda: self.on_show_on_timeline(key)))
         return menu
 
     def activate(self) -> None:

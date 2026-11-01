@@ -31,7 +31,7 @@ class _Arrow(QGraphicsLineItem):
 
 class CircuitView(QGraphicsView):
     show_in_atlas = Signal(str)
-    show_chart = Signal(str)
+    show_on_timeline = Signal(str)
 
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
@@ -164,7 +164,8 @@ class CircuitView(QGraphicsView):
         menu = QMenu(self)
         menu.addAction(QAction("Show in the atlas", menu,
                                triggered=lambda: self.show_in_atlas.emit(key)))
-        menu.addAction(QAction("Show its chart", menu, triggered=lambda: self.show_chart.emit(key)))
+        menu.addAction(QAction("Show on the timeline", menu,
+                               triggered=lambda: self.show_on_timeline.emit(key)))
         menu.exec(event.globalPos())
 
     def resizeEvent(self, event) -> None:

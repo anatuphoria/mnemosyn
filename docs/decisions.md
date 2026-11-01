@@ -75,11 +75,12 @@ entry replaces it and the old one says so.
 | 67 | 2026-10-29 | One design system, defined in one place, in a Black dark theme | in force |
 | 68 | 2026-10-29 | Inter and the Lucide icons are bundled | in force |
 | 69 | 2026-10-29 | Tabs and switches are segmented controls at the top of panels | in force |
-| 70 | 2026-10-29 | Charts are small multiples with one time axis | in force |
+| 70 | 2026-10-29 | Charts are small multiples with one time axis | changed by 75 |
 | 71 | 2026-10-29 | Each workspace shows only its own panels | in force |
 | 72 | 2026-10-29 | The top bar's mark is one turn of the Greek key | in force |
 | 73 | 2026-10-29 | The Greek key stands beside ΜΝΗΜΟΣΥΝΗ in a family of four logos, and the meander dividers are gone | changed by 74 |
 | 74 | 2026-10-29 | The app icon is the blue Greek key on the dark square | in force |
+| 75 | 2026-11-01 | The Lab has one timeline that carries the charts | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -746,3 +747,14 @@ website favicon and the website header logo are the blue Greek key of decision 7
 square with rounded corners, drawn by `python -m tools.brand` from the same key points the app uses.
 It replaces the Bamum letter MAEM of decision 61, and the Noto Sans Bamum font is no longer kept.
 Why: one sign, the key, now marks the app everywhere, from the top bar to the taskbar.
+
+## 75. The Lab has one timeline that carries the charts
+
+2026-11-01, chosen by the owner from mockups (direction A). The Lab's Timeline and Charts tabs become
+one timeline: a fixed overview strip and ruler over changes and lanes that scroll, each lane with its
+value at the playhead, its low and high marks and the normal run behind it, dashed guides from every
+change, a hover readout and a time badge on the playhead. The Charts tab is gone; the Activity panel
+of the Pathways workspace keeps the small multiples of decision 70.
+Why: the two tabs showed the same values twice, one with no numbers and one with no changes, and their
+time axes did not line up.
+Design: [one Lab timeline](specs/2026-11-01-lab-timeline-design.md).

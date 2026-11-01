@@ -501,6 +501,27 @@ def test_a_failed_run_has_no_hover_values(timeline):
     timeline.grab()
 
 
+def test_a_highlighted_lane_fades_back(timeline, qapp):
+    timeline.highlight_lane("y", 50)
+    assert timeline.highlighted == "y"
+    QTest.qWait(120)
+    assert timeline.highlighted is None
+
+
+def test_highlighting_a_hidden_lane_shows_it(timeline):
+    timeline.hide_lane("y")
+    timeline.highlight_lane("y")
+    assert "y" in timeline.lane_keys()
+
+
+def test_highlighting_a_lane_scrolls_it_into_view(timeline):
+    crowd(timeline)
+    keys = timeline.lane_keys()
+    timeline.highlight_lane(keys[-1])
+    rect = timeline.lane_rect(keys[-1])
+    assert rect.top() >= timeline.body_top() and rect.bottom() <= timeline.height()
+
+
 def test_timed_blocks_stay_reachable_under_a_present_one(timeline):
     doc = timeline.document
     doc.add_block("pill", 300.0)

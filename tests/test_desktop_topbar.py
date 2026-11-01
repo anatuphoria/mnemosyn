@@ -112,11 +112,12 @@ def test_the_lab_uses_three_panel_groups(window):
     assert [g.objectName() for g in lab.docks] == ["Lab tools", "Lab explain", "Lab time"]
     assert lab.tools_group.keys() == ["experiments", "model"]
     assert lab.explain_group.keys() == ["why", "inspector"]
-    assert lab.time_group.keys() == ["timeline", "charts"]
-    assert lab.dock("Charts") is lab.time_group
+    assert lab.time_group.keys() == ["timeline"]
+    assert lab.dock("Timeline") is lab.time_group
     window.workspaces.switch("Lab")
-    lab.show_chart()
-    assert lab.time_group.current() == "charts" and lab.charts.isVisible()
+    lab.show_on_timeline("b")
+    assert lab.time_group.current() == "timeline" and lab.timeline.isVisible()
+    assert lab.timeline.highlighted == "y"
 
 
 def test_slices_shows_the_slice_view_and_info_side_by_side(window, qapp):
@@ -202,7 +203,7 @@ def test_a_narrow_first_start_joins_the_right_panel_into_the_left(qapp, toy_lab_
     assert w.structures_group.keys() == ["structures", "info", "slices"]
     assert visible_groups(w) == {"Structures": LEFT}
     w.workspaces.switch("Lab")
-    assert w.lab.time_group.keys() == ["timeline", "charts", "why", "inspector"]
+    assert w.lab.time_group.keys() == ["timeline", "why", "inspector"]
     w.workspaces.switch("Explore")
     w.close()
     again = open_window(qapp, toy_lab_atlas, tmp_path, size=(1000, 700))

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QFontMetricsF, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QMenu, QScrollBar, QWidget
 
@@ -40,6 +40,7 @@ BADGE_INSET = 3
 GUIDE_ALPHA = 110
 FINE_STEPS = 10
 TAG_PAD = 4
+HIGHLIGHT_MS = 1500
 LANE_COLORS = DATA_PALETTE
 NAME_ROW = 15
 VALUE_GAP = 6
@@ -68,6 +69,8 @@ class Timeline(QWidget):
         self.show_guides = True
         self.show_hover = True
         self.hover_t: float | None = None
+        self.highlighted: str | None = None
+        self._fade = QTimer(self, singleShot=True, timeout=lambda: self._highlight(None))
         self.hidden: set[str] = set()
         self.span = (0.0, document.experiment.length)
         self.setAcceptDrops(True)
@@ -206,6 +209,22 @@ class Timeline(QWidget):
     def show_lanes(self) -> None:
         self.hidden.clear()
         self._sync_scroll()
+        self.update()
+
+    def highlight_lane(self, key: str, milliseconds: int = HIGHLIGHT_MS) -> None:
+        if key in self.hidden:
+            self.hidden.discard(key)
+            self._sync_scroll()
+        self._highlight(key)
+        rect = self.lane_rect(key)
+        visible = self.height() - self.body_top()
+        if rect.top() < self.body_top() or rect.bottom() > self.height():
+            offset = rect.top() - self.body_top() + self.scroll.value()
+            self.scroll.setValue(round(offset - max(visible - rect.height(), 0) / 2))
+        self._fade.start(milliseconds)
+
+    def _highlight(self, key: str | None) -> None:
+        self.highlighted = key
         self.update()
 
     def _plot_width(self) -> float:
@@ -373,7 +392,8 @@ class Timeline(QWidget):
         doc = self.document
         key = (self.size().toTuple(), self.span, self.compare_on, frozenset(self.hidden),
                self.changes_height(), self.scroll.value(), self.scroll.isHidden(),
-               self.show_overview, id(doc.run), id(doc.normal), id(doc.snapshot))
+               self.show_overview, self.highlighted, id(doc.run), id(doc.normal),
+               id(doc.snapshot))
         if self._cache is None or key != self._cache_key:
             ratio = self.devicePixelRatioF()
             pixmap = QPixmap(self.size() * ratio)
@@ -643,6 +663,8 @@ class Timeline(QWidget):
 
     def _paint_lane(self, painter: QPainter, key: str, color: QColor) -> None:
         rect = self.lane_rect(key)
+        if key == self.highlighted:
+            painter.fillRect(QRectF(0, rect.top(), self.width(), rect.height()), BAR)
         painter.setPen(LINE)
         painter.drawLine(QPointF(0, rect.bottom()), QPointF(self.width(), rect.bottom()))
         lines = self.lane_lines(key)

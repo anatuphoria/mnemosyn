@@ -113,9 +113,13 @@ are present from the start of a run unless you set them to begin at a time.
 The centre shows the brain, with the parts of the model coloured by how far they are from normal and
 labelled with their current level, or (`V`) the model as a live circuit whose arrows thicken and
 thin with each signal. Parts outside the brain, such as the adrenal cortex and the blood, sit as cards
-beside the brain. The **Timeline** and **Charts** show each value over time with the untouched
-normal run in grey behind it: the charts give every value a row of its own with its name, unit and
-current level, and one time axis at the bottom; **Take snapshot** keeps a copy of the current run to compare against.
+beside the brain. The **Timeline** shows each value over time with the untouched normal run in grey
+behind it. Each lane names its value and unit, gives its level at the playhead (coloured when above or
+below normal) and marks its low and high, and a dashed guide drops from every change so you can see
+where each curve reacts. Grab the playhead anywhere along its line or use the arrow keys (`Shift` for
+bigger steps); point at a lane to read every value at that moment without moving it. The strip at the
+top shows the whole run: drag its window to move, drag its edges to zoom, and double click it or the
+ruler to see the whole run again. **Take snapshot** keeps a copy of the current run to compare against.
 **Why** explains the difference from normal at the playhead as a numbered chain of causes, each
 marked with what it does (drives, holds back, grows and so on) and with its sources, and with no changes it explains the normal day. **Model** opens every value of the
 model for experts, each with its normal value, range and source; edited values are marked in gold.

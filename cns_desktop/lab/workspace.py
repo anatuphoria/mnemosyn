@@ -15,7 +15,6 @@ from cns_desktop.design.tokens import SIZE
 from cns_lab.files import EXTENSION, FileError, read, write
 
 from .brain_overlay import LabBrain
-from .charts import LabCharts
 from .circuit import CircuitView
 from .document import DAY, LabDocument
 from .experiments_panel import ExperimentsPage
@@ -31,7 +30,7 @@ LENGTHS = (("6 h", 360.0), ("1 d", DAY), ("3 d", 3 * DAY), ("1 w", 7 * DAY), ("4
 STATUS_HINT = "drag a change to move it"
 GROUPS = (("Lab tools", "Experiments and model", (("experiments", "Experiments"), ("model", "Model"))),
           ("Lab explain", "Why and inspector", (("why", "Why"), ("inspector", "Inspector"))),
-          ("Lab time", "Timeline and charts", (("timeline", "Timeline"), ("charts", "Charts"))))
+          ("Lab time", "Timeline", (("timeline", "Timeline"),)))
 RECENT_KEY = "lab/recent"
 RECENT_COUNT = 8
 FILE_ACTIONS = ("New experiment", "Open", "Save", "Save as")
@@ -56,14 +55,13 @@ class LabWorkspace:
         self.why = WhyPanel(doc)
         self.inspector = Inspector(doc)
         self.timeline = Timeline(doc)
-        self.charts = LabCharts(doc)
         self.circuit = CircuitView(doc)
         window.viewport.add_circuit(self.circuit)
         self.brain = LabBrain(doc, window.view, window.viewport, window.state)
         areas = (Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea,
                  Qt.DockWidgetArea.BottomDockWidgetArea)
         pages = {"experiments": self.experiments_page, "model": self.model_panel, "why": self.why,
-                 "inspector": self.inspector, "timeline": self.timeline, "charts": self.charts}
+                 "inspector": self.inspector, "timeline": self.timeline}
         self._docks: dict[str, PanelGroup] = {}
         self.docks: list[PanelGroup] = []
         for (name, title, keys), area in zip(GROUPS, areas, strict=True):
@@ -89,8 +87,8 @@ class LabWorkspace:
         doc.wants_longer.connect(self._offer_longer)
         self.inspector.show_in_atlas.connect(self.show_part_in_atlas)
         self.circuit.show_in_atlas.connect(self.show_part_in_atlas)
-        self.circuit.show_chart.connect(self.show_chart)
-        self.brain.on_show_chart = self.show_chart
+        self.circuit.show_on_timeline.connect(self.show_on_timeline)
+        self.brain.on_show_on_timeline = self.show_on_timeline
         self.brain.on_show_in_atlas = self.show_part_in_atlas
         self.timeline.edit_requested.connect(self._edit_block)
         self._saved = None
@@ -306,7 +304,6 @@ class LabWorkspace:
 
     def _compare(self, on: bool) -> None:
         self.timeline.compare = on
-        self.charts.set_compare(on)
 
     def _delete_selected(self) -> None:
         selection = self.document.selection
@@ -338,8 +335,13 @@ class LabWorkspace:
     def show_scope(self) -> None:
         self.window.inform("What this model includes", self.scope_text())
 
-    def show_chart(self, _key: str = "") -> None:
-        self.time_group.reveal("charts")
+    def show_on_timeline(self, key: str) -> None:
+        self.time_group.reveal("timeline")
+        model = self.document.model
+        lanes = {v.key for v in model.values if v.lane is not None}
+        found = next((v for v in model.part(key).values if v in lanes), None)
+        if found is not None:
+            self.timeline.highlight_lane(found)
 
     def show_part_in_atlas(self, key: str) -> None:
         part = self.document.model.part(key)

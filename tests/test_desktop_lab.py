@@ -147,8 +147,9 @@ def test_showing_a_part_in_the_atlas(window):
     window.viewport.show_circuit(True)
     lab.circuit.show_in_atlas.emit("a")
     assert window.state.selected == 111 and not window.viewport.showing_circuit
-    lab.circuit.show_chart.emit("a")
-    assert lab.dock("Charts").isVisible()
+    lab.circuit.show_on_timeline.emit("a")
+    assert lab.dock("Timeline").isVisible() and lab.time_group.current() == "timeline"
+    assert lab.timeline.highlighted == "x"
 
 
 def test_v_switches_brain_and_circuit(window):
@@ -204,9 +205,9 @@ def test_strip_rows_offer_the_same_menu_as_circuit_boxes(window):
     lab = window.lab
     window.workspaces.switch("Lab")
     menu = lab.brain.strip_menu("body")
-    assert [a.text() for a in menu.actions()] == ["Show its chart"]
+    assert [a.text() for a in menu.actions()] == ["Show on the timeline"]
     menu.actions()[0].trigger()
-    assert lab.dock("Charts").isVisible()
+    assert lab.dock("Timeline").isVisible() and lab.timeline.highlighted == "m"
 
 
 def two_model_window(qapp, toy_lab_atlas, tmp_path):
