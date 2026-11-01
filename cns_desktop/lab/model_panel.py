@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QDoubleSpinBox, QHBoxLayout, Q
 
 from cns_desktop.design.icons import icon
 from cns_desktop.design.theme import set_flag, set_tone
+from cns_desktop.design.tokens import GAP, SIZE
 
 
 def short_source(references) -> str:
@@ -67,7 +68,7 @@ class ModelPanel(QWidget):
             label = QLabel(parameter.name)
             label.setToolTip("\n".join(t for t in self._texts[parameter.key][1:] if t))
             spin = QDoubleSpinBox()
-            spin.setMinimumWidth(60)
+            spin.setMinimumWidth(SIZE["field_min"])
             spin.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
             spin.setDecimals(decimals_for(parameter.value, parameter.low, parameter.high))
             spin.setRange(parameter.low, parameter.high)
@@ -77,19 +78,19 @@ class ModelPanel(QWidget):
             spin.editingFinished.connect(lambda k=parameter.key: self._edited(k))
             reset = QToolButton(text="Reset")
             reset.setIcon(icon("rotate-ccw"))
-            reset.setIconSize(QSize(14, 14))
+            reset.setIconSize(QSize(SIZE["icon_header"], SIZE["icon_header"]))
             reset.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             reset.setToolTip(f"Back to the normal value, {parameter.value:g} {parameter.unit}")
             reset.clicked.connect(lambda _=False, k=parameter.key: document.reset_value(k))
             cell = QWidget()
             controls = QHBoxLayout()
             controls.setContentsMargins(0, 0, 0, 0)
-            controls.setSpacing(4)
+            controls.setSpacing(GAP["tight"])
             controls.addWidget(spin, 1)
             controls.addWidget(reset)
             stack = QVBoxLayout(cell)
-            stack.setContentsMargins(8, 6, 4, 6)
-            stack.setSpacing(4)
+            stack.setContentsMargins(GAP["small"], GAP["tight"], GAP["tight"], GAP["tight"])
+            stack.setSpacing(GAP["tight"])
             stack.addWidget(label)
             stack.addLayout(controls)
             self.table.setCellWidget(row, 0, cell)

@@ -49,6 +49,7 @@ SIZE = {
     "panel_left": 248,
     "panel_right": 320,
     "panel_min": 200,
+    "field_min": 60,
     "panel_pad": 12,
     "indent": 12,
     "central_min": 480,
