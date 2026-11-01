@@ -64,7 +64,7 @@ class InfoPanel(QTextBrowser):
         r, g, b = s.rgb_triplet
         parts = [f"<h2><span style='color:#{r:02x}{g:02x}{b:02x}'>&#9632;&nbsp;</span>"
                  f"{escape(s.name)}</h2>"]
-        if s.side in ("left", "right"):
+        if s.side in ("left", "right") and f"({s.side})" not in s.name:
             parts.append(rich.secondary(s.side))
         parts += entry_html(self.state.atlas.knowledge(structure_id))
         parts += self._sources_html(s)

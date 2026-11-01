@@ -998,9 +998,11 @@ def test_the_status_bar_shows_the_selection_and_the_right_hint_only(window):
 
 
 def test_the_info_panel_names_the_side_but_not_the_drawing_kind(window):
-    kind = window.state.atlas.get(101).kind
-    line = window.info.html_for(101).split("</h2>")[1].split("</p>")[0]
-    assert "left" in line and kind not in line
+    structure = window.state.atlas.get(101)
+    html = window.info.html_for(101)
+    line = html.split("</h2>")[1].split("</p>")[0]
+    assert structure.kind not in line
+    assert (rich.secondary("left") in html) == ("(left)" not in structure.name)
     assert "midline" not in window.info.html_for(120).split("</h2>")[1].split("</p>")[0]
 
 
@@ -1031,5 +1033,4 @@ def test_the_colour_swatch_sits_beside_the_name(window):
     for structure_id in (101, 120):
         heading, rest = window.info.html_for(structure_id).split("</h2>", 1)
         assert "&#9632;" in heading and "&#9632;" not in rest
-    assert window.info.html_for(101).split("</h2>", 1)[1].startswith(rich.secondary("left"))
     assert not window.info.html_for(120).split("</h2>", 1)[1].startswith("<p></p>")

@@ -168,3 +168,23 @@ def test_an_elided_label_keeps_its_full_text(qapp):
     label.setFixedWidth(1200)
     QApplication.processEvents()
     assert label.shown_text() == label.text() and label.toolTip() == ""
+
+
+def test_a_wrapped_list_row_keeps_room_above_and_below(qapp):
+    from PySide6.QtWidgets import QListWidget
+
+    from cns_desktop.design.tokens import GAP, SIZE
+
+    rows = QListWidget()
+    rows.setWordWrap(True)
+    rows.addItems(["Short", "Touch and position (dorsal column, medial lemniscus) and more"])
+    rows.resize(200, 300)
+    rows.show()
+    qapp.processEvents()
+    short, long = (rows.visualItemRect(rows.item(i)).height() for i in range(2))
+    width = rows.visualItemRect(rows.item(1)).width()
+    text = rows.fontMetrics().boundingRect(0, 0, width, 1000, Qt.TextFlag.TextWordWrap,
+                                           rows.item(1).text()).height()
+    assert short == SIZE["row"]
+    assert long >= text + 2 * GAP["tight"]
+    rows.close()

@@ -18,7 +18,7 @@ class StructureTree(QWidget):
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
         self.tree.setIndentation(SIZE["indent"])
-        self.tree.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.tree.setTextElideMode(Qt.TextElideMode.ElideMiddle)
         self.tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, GAP["small"], 0, 0)

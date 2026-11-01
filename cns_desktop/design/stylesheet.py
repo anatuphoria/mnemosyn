@@ -4,7 +4,7 @@ from functools import cache
 from string import Template
 
 from cns_desktop.design import icons
-from cns_desktop.design.tokens import COLOURS, RADIUS, SIZE, TYPE
+from cns_desktop.design.tokens import COLOURS, GAP, RADIUS, SIZE, TYPE
 
 
 def _rgba(name: str, alpha: float) -> str:
@@ -112,7 +112,7 @@ QCheckBox::indicator:focus { border: 1px solid $text; }
 
 QTreeView, QListView, QTableView { background: $s1; border: none; outline: none;
     show-decoration-selected: 0; }
-QTreeView::item, QListView::item { min-height: ${row}px; padding: 0 4px;
+QTreeView::item, QListView::item { min-height: ${row_inner}px; padding: ${tight}px 4px;
     border-left: 2px solid transparent; }
 QTreeView::item:hover, QListView::item:hover { background: $s2; }
 QTreeView::item:selected, QListView::item:selected { background: $sel;
@@ -196,7 +196,8 @@ def build() -> str:
     values.update(
         r_small=RADIUS["small"], r_control=RADIUS["control"], r_panel=RADIUS["panel"],
         inner=SIZE["control"] - 2, spin=SIZE["control"] - 5,
-        inner_focus=SIZE["control"] - 4, spin_focus=SIZE["control"] - 7, row=SIZE["row"], status=SIZE["status"],
+        inner_focus=SIZE["control"] - 4, spin_focus=SIZE["control"] - 7, row=SIZE["row"],
+        row_inner=SIZE["row"] - 2 * GAP["tight"], tight=GAP["tight"], status=SIZE["status"],
         sel=_rgba("accent", 0.15), roles=_roles(),
         down=_image("chevron-down"), up=_image("chevron-up"), check=_image("check", "text"),
         minus=_image("minus", "text"), branch_closed=_image("chevron-right"),
