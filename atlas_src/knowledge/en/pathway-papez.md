@@ -13,10 +13,12 @@ Sign: Mild trouble remembering new things [scoville1957].
 ## Step 2
 Role: The main output bundle of the hippocampus; it arches under the corpus callosum to the mammillary body [purves2018].
 Lesion: Damage to both fornices, for example during surgery for a colloid cyst of the third ventricle, can cause lasting difficulty forming new memories [kandel2021].
+Sides: both
 
 ## Step 3
 Role: A hypothalamic nucleus that receives the fornix and relays to the anterior thalamus through the mammillothalamic tract [purves2018].
 Lesion: Damaged on both sides in thiamine deficiency (Wernicke-Korsakoff syndrome), with severe memory loss and confabulation [kandel2021].
+Sides: both
 
 ## Step 4
 Role: Carries signals from the mammillary body to the anterior nuclei of the thalamus [purves2018].
@@ -46,3 +48,4 @@ Sign: Trouble remembering new things [braak1991].
 ## Step 9
 Role: The circuit returns to the hippocampus through the perforant path from the entorhinal cortex [purves2018].
 Lesion: As at the start: damage on both sides prevents new memories from forming [scoville1957].
+Sides: both

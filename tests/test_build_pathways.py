@@ -181,3 +181,12 @@ def test_a_sign_line_may_not_name_a_structure(tmp_path):
     clean = loop.replace(" and Alpha Gyrus", "")
     knowledge = text_tree(tmp_path / "again", {**TOY_PATHWAY_TEXTS, "pathway-loop": clean})
     assert check_pathway_texts(knowledge, pathways, names=("Alpha gyrus",)) == []
+
+
+def test_a_sides_line_must_say_both(tmp_path):
+    pathways = load_pathways(write(tmp_path, TOY_PATHWAYS))
+    loop = TOY_PATHWAY_TEXTS["pathway-loop"].replace(
+        "Lesion: Loss on the {opposite} side.", "Lesion: Loss on the {opposite} side.\nSides: one", 1)
+    knowledge = text_tree(tmp_path, {**TOY_PATHWAY_TEXTS, "pathway-loop": loop})
+    problems = check_pathway_texts(knowledge, pathways)
+    assert any(p.endswith("pathway-loop.md: Step 1: a Sides line can only say both") for p in problems), problems

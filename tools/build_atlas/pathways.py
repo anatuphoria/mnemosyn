@@ -155,6 +155,9 @@ def check_pathway_texts(knowledge_dir: Path, pathways: list[Pathway],
                 body = entry.sections[f"Step {n}"]
                 problems += [f"{path}: Step {n}: {problem}"
                              for problem in step_problems(body, pathway.texts)]
+                sides = step_text(body).sides
+                if sides and sides != "both":
+                    problems.append(f"{path}: Step {n}: a Sides line can only say both")
                 sign = step_text(body).sign.lower()
                 problems += [f"{path}: Step {n}: Sign line names {name}"
                              for name, pattern in named if sign and pattern.search(sign)]

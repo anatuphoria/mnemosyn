@@ -543,3 +543,12 @@ def test_one_station_gives_one_sign_across_routes():
     assert len(cortex) == 1
     assert sign_at("touch", 4) == sign_at("pain", 4)
     assert sign_at("cerebellar", 2) == "" and sign_at("papez", 9) == ""
+
+
+def test_steps_that_need_both_sides_say_so():
+    from cns_atlas.knowledge import parse_entry
+    from cns_atlas.pathways import step_text
+
+    path = SRC / "knowledge" / "en" / "pathway-papez.md"
+    entry = parse_entry(path.read_text(encoding="utf-8"), str(path))
+    assert [n for n in range(1, 10) if step_text(entry.sections[f"Step {n}"]).sides] == [2, 3, 9]

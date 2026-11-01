@@ -25,3 +25,16 @@ def load_toy(root: Path, model: str = TOY_MODEL, texts: str = TOY_LAB_TEXTS):
 
 def toy_model(root: Path):
     return load_toy(root)[0]
+
+
+def wait_until(condition, milliseconds: int = 2000) -> bool:
+    import time
+
+    from PySide6.QtTest import QTest
+
+    deadline = time.perf_counter() + milliseconds / 1000
+    while not condition():
+        if time.perf_counter() > deadline:
+            return False
+        QTest.qWait(10)
+    return True

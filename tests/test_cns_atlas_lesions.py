@@ -104,10 +104,15 @@ def test_a_lesion_on_both_sides_lists_each_side_once(atlas):
 
 
 def test_a_lesion_outside_every_route_spares_them_all(atlas):
-    data = brain(atlas).data
-    mask = np.zeros(data.shape, dtype=bool)
-    mask[0, 0, 0] = True
-    result = report(atlas, lesion_of(atlas, mask))
+    from cns_atlas.pathways import resolve
+
+    stations = {i for p in atlas.pathways for side in ("left", "right") for step in p.steps
+                for i in resolve(atlas, step, side)}
+    outside = next(s.id for s in atlas.structures if atlas.has_mesh(s.id)
+                   and s.id not in stations and not set(s.structure_id_path) & stations
+                   and (brain(atlas).data == s.id).any())
+    result = report(atlas, lesion_of(atlas, label_mask(atlas, outside)))
+    assert result.hits[outside] == pytest.approx(1.0)
     assert result.deficits == () and result.spared == ("loop", "short")
 
 
@@ -208,3 +213,37 @@ def test_case_signs_leave_out_slivers(sign_atlas):
     assert signs_of(sliver) == ()
     whole = report(sign_atlas, lesion_of(sign_atlas, label_mask(sign_atlas, 101)))
     assert signs_of(whole) == ("Numb right hand.",)
+
+
+def test_territories_on_a_coarser_grid_land_on_the_brain_grid():
+    from types import SimpleNamespace
+
+    from cns_atlas.lesions import territory_lesion
+
+    brain = SimpleNamespace(name="brain", shape=(10, 10, 10), affine=np.diag([2.0, 2.0, 2.0, 1.0]))
+    coarse = np.zeros((5, 5, 5), dtype=np.uint16)
+    coarse[:2] = 7
+    source = SimpleNamespace(shape=coarse.shape, affine=np.diag([4.0, 4.0, 4.0, 1.0]), data=coarse)
+    mask = territory_lesion(SimpleNamespace(volumes=[brain], territories=source), 7).masks["brain"]
+    assert mask.shape == (10, 10, 10)
+    assert mask[0].all() and mask[2].all() and not mask[4:].any()
+
+
+@pytest.fixture(scope="module")
+def both_atlas(tmp_path_factory):
+    from atlas_fixtures import TOY_PATHWAY_TEXTS, write_extended_source_tree
+    from tools.build_atlas.build import build
+
+    root = tmp_path_factory.mktemp("bothsides")
+    src = write_extended_source_tree(root, tracts=True, pathways=True)
+    loop = TOY_PATHWAY_TEXTS["pathway-loop"].replace(
+        "Lesion: Loss on the {opposite} side.", "Lesion: Loss on the {opposite} side.\nSides: both", 1)
+    (src / "knowledge" / "en" / "pathway-loop.md").write_text(loop)
+    return Atlas.open(build(src, root / "out" / "toy", cache=root / "cache",
+                            log=lambda *_: None))
+
+
+def test_a_deficit_knows_when_its_step_needs_both_sides(both_atlas):
+    result = report(both_atlas, lesion_of(both_atlas, label_mask(both_atlas, 101)))
+    (first,) = [d for d in result.deficits if d.route == "loop"]
+    assert first.needs_both

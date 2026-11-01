@@ -5,6 +5,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
+from lab_helpers import wait_until
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import MIME
 from cns_desktop.lab.labels import plain
@@ -506,8 +507,7 @@ def test_a_failed_run_has_no_hover_values(timeline):
 def test_a_highlighted_lane_fades_back(timeline, qapp):
     timeline.highlight_lane("y", 50)
     assert timeline.highlighted == "y"
-    QTest.qWait(120)
-    assert timeline.highlighted is None
+    assert wait_until(lambda: timeline.highlighted is None, 2000)
 
 
 def test_highlighting_a_hidden_lane_shows_it(timeline):

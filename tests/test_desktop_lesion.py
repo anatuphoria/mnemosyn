@@ -460,3 +460,44 @@ def test_the_structure_tool_keeps_every_structure_pickable(window, qapp):
     assert window.state.focus is None
     lesion.place.set_tool("brush")
     assert window.state.focus is not None and 101 in window.state.focus
+
+
+def test_the_lesion_body_lands_where_its_voxels_are_in_any_orientation():
+    from types import SimpleNamespace
+
+    from cns_desktop.lesion.workspace import lesion_mesh
+
+    affine = np.array([[-2.0, 0, 0, 40.0], [0, 2.0, 0, -10.0], [0, 0, 2.0, 5.0], [0, 0, 0, 1]])
+    volume = SimpleNamespace(name="flipped", shape=(10, 10, 10), affine=affine)
+    mask = np.zeros(volume.shape, dtype=bool)
+    mask[3:6, 3:6, 3:6] = True
+    mesh = lesion_mesh(SimpleNamespace(volumes=[volume]), Lesion({"flipped": mask}))
+    centre = (affine @ np.array([4.0, 4.0, 4.0, 1.0]))[:3]
+    assert mesh is not None and np.allclose(mesh.center, centre, atol=1.0)
+
+
+@pytest.fixture(scope="module")
+def both_atlas(tmp_path_factory):
+    from atlas_fixtures import TOY_PATHWAY_TEXTS
+
+    root = tmp_path_factory.mktemp("lesionboth")
+    src = write_extended_source_tree(root, tracts=True, pathways=True)
+    loop = TOY_PATHWAY_TEXTS["pathway-loop"].replace(
+        "Lesion: Loss on the {opposite} side.", "Lesion: Loss on the {opposite} side.\nSides: both", 1)
+    (src / "knowledge" / "en" / "pathway-loop.md").write_text(loop)
+    return build(src, root / "out" / "toy", cache=root / "cache", log=lambda *_: None)
+
+
+def test_a_one_sided_hit_on_a_both_sides_step_says_so(qapp, both_atlas, tmp_path):
+    from cns_desktop.lesion.results_panel import ONE_SIDE_ONLY
+
+    w = open_window(qapp, both_atlas, tmp_path)
+    try:
+        lesion = entered(w, qapp)
+        atlas = w.state.atlas
+        lesion.document.set_lesion(structure_lesion(atlas, 101), "Left")
+        assert ONE_SIDE_ONLY.format(side="left") in lesion.deficits.toPlainText()
+        lesion.document.set_lesion(structure_lesion(atlas, 100), "Both")
+        assert "only the" not in lesion.deficits.toPlainText()
+    finally:
+        w.close()

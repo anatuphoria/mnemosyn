@@ -20,15 +20,14 @@ def lesion_mesh(atlas, lesion):
     pieces = []
     for volume in atlas.volumes:
         mask = lesion.masks.get(volume.name)
-        affine = np.asarray(volume.affine, dtype=float)
-        if mask is None or not mask.any() or np.any(np.diag(affine)[:3] <= 0):
+        if mask is None or not mask.any():
             continue
-        grid = pv.ImageData(dimensions=mask.shape, spacing=tuple(np.diag(affine)[:3]),
-                            origin=tuple(affine[:3, 3]))
+        grid = pv.ImageData(dimensions=mask.shape)
         grid.point_data["lesion"] = mask.ravel(order="F").astype(np.uint8)
         surface = grid.contour([0.5], scalars="lesion")
         if surface.n_points:
-            pieces.append(surface)
+            pieces.append(surface.transform(np.asarray(volume.affine, dtype=float),
+                                            inplace=False))
     if not pieces:
         return None
     return pieces[0] if len(pieces) == 1 else pieces[0].merge(pieces[1:])

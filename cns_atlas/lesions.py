@@ -43,6 +43,7 @@ class Deficit:
     partly: bool
     structures: tuple[tuple[int, float], ...]
     references: tuple = ()
+    needs_both: bool = False
 
 
 @dataclass(frozen=True)
@@ -121,7 +122,7 @@ def _route_deficits(atlas, pathway, found: dict[int, float]) -> list[Deficit]:
             seen.add((index, frozenset(stations)))
             deficits.append(Deficit(pathway.key, pathway.name, side, index, words.lesion,
                                     words.sign, shares[0][1] < PARTLY, tuple(shares),
-                                    tuple(text.references)))
+                                    tuple(text.references), words.sides == "both"))
     return deficits
 
 

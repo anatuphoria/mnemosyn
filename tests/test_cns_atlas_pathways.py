@@ -224,3 +224,9 @@ def test_a_sign_line_is_optional_and_parsed():
         "needs at most one 'Sign:' line, found 2"]
     assert step_text("Role: A.\nLesion: B.\nSign: Weak {opposite} arm.").sign == "Weak {opposite} arm."
     assert step_text("Role: A.\nLesion: B.").sign == ""
+
+
+def test_a_sides_line_marks_a_step_that_needs_both_sides():
+    assert step_problems("Role: A.\nLesion: B.\nSides: both") == []
+    assert step_text("Role: A.\nLesion: B.\nSides: both").sides == "both"
+    assert step_text("Role: A.\nLesion: B.").sides == ""

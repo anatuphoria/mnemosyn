@@ -12,6 +12,7 @@ from cns_desktop.views.info_panel import references_html
 EMPTY_LESION = "Place a lesion to see what it hits and which routes it breaks."
 NOTHING_BROKEN = "This lesion breaks no route the atlas can follow."
 CASE_HEADING = "The case's lesion"
+ONE_SIDE_ONLY = "This needs damage on both sides; only the {side} side is hit here."
 
 
 def percent(share: float) -> str:
@@ -62,6 +63,7 @@ class DeficitsPanel(QTextBrowser):
         if not groups:
             parts.append(f"<p>{escape(NOTHING_BROKEN)}</p>")
         starts = {p.key: p.start for p in atlas.pathways}
+        broken = {(d.route, d.step, d.side) for d in report.deficits}
         for (route, side), deficits in groups.items():
             first = deficits[0]
             parts.append(f"<h3>{escape(first.route_name)}</h3>")
@@ -69,9 +71,12 @@ class DeficitsPanel(QTextBrowser):
             items = []
             for deficit in deficits:
                 partly = f"{rich.chip('partly', 'edited')}&nbsp;&nbsp;" if deficit.partly else ""
+                other = "right" if deficit.side == "left" else "left"
+                alone = deficit.needs_both and (deficit.route, deficit.step, other) not in broken
+                note = f"<br>{rich.secondary(ONE_SIDE_ONLY.format(side=side))}" if alone else ""
                 hit = ", ".join(f"{escape(atlas.get(i).name)} {percent(s)}"
                                 for i, s in deficit.structures)
-                items.append(f"<li>{partly}{escape(deficit.lesion)}"
+                items.append(f"<li>{partly}{escape(deficit.lesion)}{note}"
                              f"<br>{rich.secondary(f'Step {deficit.step + 1}: {hit}')}</li>")
             parts.append("<ol>" + "".join(items) + "</ol>")
             parts += references_html(first.references)
