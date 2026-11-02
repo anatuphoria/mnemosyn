@@ -3,7 +3,7 @@ from __future__ import annotations
 from html import escape
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from cns_atlas import Timeline
 from cns_atlas.timelines import note_parts
@@ -40,18 +40,6 @@ class ActivityChart(QWidget):
         self.time_label = QLabel()
         set_role(self.time_label, "data")
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.note = QLabel()
-        self.note.setWordWrap(True)
-        self.note.setTextFormat(Qt.TextFormat.RichText)
-        self.note.setOpenExternalLinks(True)
-        self.note.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        set_role(self.note, "secondary")
-        self.note.setContentsMargins(SIZE["panel_pad"], GAP["small"], SIZE["panel_pad"], GAP["small"])
-        self.note_area = QScrollArea()
-        self.note_area.setWidgetResizable(True)
-        self.note_area.setWidget(self.note)
-        self.note.hide()
-        self.note_area.hide()
         self._note_html = ""
         heading = QHBoxLayout()
         heading.setContentsMargins(SIZE["panel_pad"], GAP["tight"], SIZE["panel_pad"], GAP["tight"])
@@ -74,7 +62,6 @@ class ActivityChart(QWidget):
             self.multiples.set_series([])
             self.time_label.setText("")
             self.title.setText("")
-            self.note.hide()
             self._note_html = ""
             return
         self.multiples.set_series([Series(f"c{n}", c.name, "relative level",
@@ -91,8 +78,6 @@ class ActivityChart(QWidget):
         items = "".join(f"<br>[{n}] {escape(r.citation())}" for n, r in enumerate(refs, 1))
         self._note_html = rich.secondary(f"{escape(text)} Schematic shapes, not measured data."
                                          f"{items}")
-        self.note.setText(self._note_html)
-        self.note.show()
         self.set_time(0.0)
 
     def row_height(self) -> int:

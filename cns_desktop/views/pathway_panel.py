@@ -93,7 +93,7 @@ class PathwayPanel(QWidget):
         self.steps = self.steps_page.steps
         self.step_panel = StepPanel()
         self.details = self.step_panel.details
-        self.step_panel.rendered.connect(self.steps_page.narrow_details.setHtml)
+        self.step_panel.rendered.connect(self._mirror)
         self.lab_button = QPushButton("Open in the Lab")
         self.lab_button.hide()
         self.lab_routes = frozenset(m.route for m in state.atlas.models.values() if m.route)
@@ -150,6 +150,12 @@ class PathwayPanel(QWidget):
 
     def set_narrow(self, narrow: bool) -> None:
         self.steps_page.narrow_details.setVisible(narrow)
+        if narrow:
+            self._mirror(self.step_panel.html())
+
+    def _mirror(self, html: str) -> None:
+        if self.steps_page.narrow_details.isVisibleTo(self.steps_page):
+            self.steps_page.narrow_details.setHtml(html)
 
     def item_for(self, key: str) -> QTreeWidgetItem:
         return self.routes_page.item_for(key)
@@ -246,7 +252,9 @@ class PathwayPanel(QWidget):
             self.steps.setCurrentRow(self.index)
             for row in range(self.steps.count()):
                 state = "passed" if row < self.index else "current" if row == self.index else "later"
-                self.steps.item(row).setData(STATE_ROLE, state)
+                item = self.steps.item(row)
+                if item.data(STATE_ROLE) != state:
+                    item.setData(STATE_ROLE, state)
         self.edges_changed.emit(self.index > 0, self.index < len(self.pathway.steps) - 1)
         step = self.pathway.steps[self.index]
         name = self.label(self.index + 1, step).split(" ", 1)[1]

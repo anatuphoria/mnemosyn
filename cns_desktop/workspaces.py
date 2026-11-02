@@ -14,7 +14,7 @@ NAMES = ("Explore", "Slices", "Pathways", "Lab", "Lesion")
 ICONS = {"Explore": "brain", "Slices": "layers-2", "Pathways": "route", "Lab": "flask-conical",
          "Lesion": "target"}
 OPTIONAL = ("Lab", "Lesion")
-VERSION = 2
+VERSION = 3
 
 Join = tuple[str, str]
 

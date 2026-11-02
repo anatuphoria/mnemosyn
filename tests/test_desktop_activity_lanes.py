@@ -26,7 +26,6 @@ def test_behaviour_lanes_look_like_the_lab(window):
     assert rows and chart.row_height() == SIZE["lane"]
     assert all(row.height() == SIZE["lane"] for row in rows)
     assert [row.series.colour for row in rows] == list(DATA_PALETTE[:len(rows)])
-    assert chart.note_area.isHidden()
 
 
 def test_the_timeline_note_moves_to_the_step_tab(window):

@@ -64,7 +64,7 @@ def test_a_saved_water_experiment_reopens_as_water(window, tmp_path):
 
 def test_open_in_the_lab_from_the_thirst_route(window, qapp):
     window.pathways.open("thirst")
-    assert window.pathways.lab_button.isVisibleTo(window.pathways)
+    assert not window.pathways.lab_button.isHidden()
     window.pathways.lab_button.click()
     qapp.processEvents()
     assert window.workspaces.current == "Lab" and window.lab.document.model.key == "water"

@@ -159,9 +159,9 @@ def test_a_route_with_a_timeline_shows_its_curves(window):
     window.pathways.open("mood")
     assert chart.timeline is window.state.atlas.timelines["mood"]
     assert len(chart.timeline_items) == 1 and chart.cursor.value() == 0.0
-    note = chart.note.text()
+    note = chart.note_html()
     assert "Schematic shapes, not measured data" in note and "Toy curves [1]." in note
-    assert "Author A (2020)" in note and not chart.note.isHidden()
+    assert "Author A (2020)" in note
 
 
 def test_play_moves_the_cursor_and_chart_clicks_seek(window):
@@ -187,10 +187,10 @@ def test_leaving_or_a_route_without_a_timeline_clears_the_chart(window):
     chart, panel = window.chart, window.pathways
     panel.open("mood")
     panel.open("loop")
-    assert chart.timeline is None and chart.timeline_items == [] and chart.note.isHidden()
+    assert chart.timeline is None and chart.timeline_items == [] and chart.note_html() == ""
     panel.open("mood")
     panel.leave()
-    assert chart.timeline is None and chart.timeline_items == [] and chart.note.isHidden()
+    assert chart.timeline is None and chart.timeline_items == [] and chart.note_html() == ""
 
 
 def test_the_activity_panel_is_hidden_outside_timeline_routes(window):
@@ -220,7 +220,7 @@ def test_the_timeline_note_moves_to_the_step_tab_and_the_chart_takes_the_width(w
     window.pathways.open("mood")
     qapp.processEvents()
     chart = window.chart
-    assert chart.note_area.isHidden() and chart.plot.width() >= chart.width() - 1
+    assert chart.plot.width() >= chart.width() - 1
     assert "Author A (2020)" in window.step_panel.details.toPlainText()
 
 

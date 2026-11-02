@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF, QSize, Qt
-from PySide6.QtGui import QFont, QPainter
+from PySide6.QtCore import QRect, QRectF, QSize, Qt
+from PySide6.QtGui import QFont, QFontMetrics, QPainter
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QPushButton, QStyle,
                                QStyledItemDelegate, QTextBrowser, QTreeWidget, QTreeWidgetItem,
                                QVBoxLayout, QWidget)
@@ -19,6 +19,7 @@ ROUTE_ICONS = {"visual": "eye", "motor": "activity", "pain": "zap", "touch": "ta
                "papez": "brain", "memory": "brain", "decision": "brain", "basal-ganglia": "network",
                "cerebellar": "network", "stress": "zap", "body-clock": "clock-3",
                "thirst": "droplet", "fear": "heart-pulse", "dopamine": "heart-pulse"}
+MEASURE_LIMIT = 100000
 BADGE = {"passed": ("accent", "text"), "current": ("text", "s0"), "later": ("s3", "text2")}
 
 
@@ -88,9 +89,28 @@ class RoutesPage(QWidget):
 
 
 class BadgeDelegate(QStyledItemDelegate):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self._small = font("data")
+        self._body = font("body")
+
+    def _badge(self) -> int:
+        return SIZE["icon"] + GAP["tight"]
+
+    def body_width(self, row_width: int) -> int:
+        return max(row_width - 2 * GAP["small"] - self._badge() - GAP["small"], 1)
+
+    def needed_height(self, text: str, row_width: int) -> int:
+        label = text.partition(" ")[2]
+        box = QRect(0, 0, self.body_width(row_width), MEASURE_LIMIT)
+        lines = QFontMetrics(self._body).boundingRect(box, Qt.TextFlag.TextWordWrap, label)
+        return max(lines.height() + GAP["small"], SIZE["row"])
+
     def sizeHint(self, option, index) -> QSize:
-        hint = super().sizeHint(option, index)
-        return QSize(hint.width() + SIZE["control"], max(hint.height(), SIZE["row"]))
+        view = self.parent()
+        width = view.viewport().width() if view is not None else option.rect.width()
+        text = index.data(Qt.ItemDataRole.DisplayRole) or ""
+        return QSize(width, self.needed_height(text, width))
 
     def paint(self, painter: QPainter, option, index) -> None:
         state = index.data(STATE_ROLE) or "later"
@@ -100,7 +120,7 @@ class BadgeDelegate(QStyledItemDelegate):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         if state == "current" or option.state & QStyle.StateFlag.State_Selected:
             painter.fillRect(option.rect, color("s3"))
-        size = SIZE["icon"] + GAP["tight"]
+        size = self._badge()
         left = option.rect.left() + GAP["small"]
         top = option.rect.top() + GAP["small"] // 2 + 1
         fill, ink = BADGE[state]
@@ -108,15 +128,15 @@ class BadgeDelegate(QStyledItemDelegate):
         painter.setBrush(color(fill))
         circle = QRectF(left, top, size, size)
         painter.drawEllipse(circle)
-        painter.setFont(font("data"))
+        painter.setFont(self._small)
         painter.setPen(color(ink))
         painter.drawText(circle, Qt.AlignmentFlag.AlignCenter, number)
         foreground = index.data(Qt.ItemDataRole.ForegroundRole)
         painter.setPen(foreground.color() if foreground is not None and state != "later"
                        else color("text3" if state == "later" else "text"))
-        painter.setFont(font("body"))
-        body = option.rect.adjusted(int(left + size + GAP["small"]) - option.rect.left(), 0,
-                                    -GAP["small"], 0)
+        painter.setFont(self._body)
+        body = QRect(int(left + size + GAP["small"]), option.rect.top(),
+                     self.body_width(option.rect.width()), option.rect.height())
         painter.drawText(body, Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap, label)
         painter.restore()
 

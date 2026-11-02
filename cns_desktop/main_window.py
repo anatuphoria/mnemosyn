@@ -126,7 +126,7 @@ class MainWindow(QMainWindow):
         self.pathway_active = False
         self._pathway_saved: tuple | None = None
         self._route_camera: tuple | None = None
-        self._route_painted: set[int] = set()
+        self._route_painted: dict[int, tuple] = {}
         self.shortcuts: dict[str, QAction] = {}
 
         self.settings = settings
@@ -335,8 +335,8 @@ class MainWindow(QMainWindow):
 
     def _add_window_menu(self) -> None:
         self.window_menu = self.topbar.menu("Window")
-        for dock in (self.structures_group, self.routes_group, self.slices_group,
-                     self.info_group, self.activity_group):
+        for dock in (self.structures_group, self.routes_group, self.step_group,
+                     self.slices_group, self.info_group, self.activity_group):
             self.window_menu.addAction(dock.toggleViewAction())
         self.window_separator = self.window_menu.addSeparator()
         self.window_menu.addAction(QAction("Reset layout", self,
@@ -491,7 +491,8 @@ class MainWindow(QMainWindow):
         self.quiz.start(session, choice.mode, self.answer_index(), pool, rng)
 
     def _quiz_locked(self) -> list[QAction]:
-        docks = (self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock)
+        docks = (self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock,
+                 self.step_group)
         return [*(self.shortcuts[name] for name in QUIZ_LOCKED),
                 *(dock.toggleViewAction() for dock in docks)]
 
@@ -516,6 +517,7 @@ class MainWindow(QMainWindow):
         self.pathway_dock.hide()
         self.info_dock.hide()
         self.chart_dock.hide()
+        self.step_group.hide()
         self.quiz_dock.show()
         self.statusBar().clearMessage()
         self._update_status()
@@ -578,21 +580,23 @@ class MainWindow(QMainWindow):
             return
         accent = tuple(c / 255 for c in rgb("accent"))
         back = rgb("s0")
-        colours = {}
+        wanted: dict[int, tuple] = {}
         for n, ids in enumerate(panel.lights):
+            if n == panel.index:
+                continue
             for i in ids:
                 if n < panel.index:
-                    colours[i] = accent
-                elif n > panel.index:
+                    wanted[i] = accent
+                else:
                     own = self.state.atlas.get(i).rgb_triplet
-                    colours[i] = tuple((o + (b - o) * ROUTE_DIM) / 255 for o, b in zip(own, back))
-        current = set(panel.lights[panel.index]) if panel.lights else set()
-        for i in current:
-            colours[i] = None
-        for i in self._route_painted - set(colours):
-            colours[i] = None
-        self._route_painted = {i for i, c in colours.items() if c is not None}
-        self.view.set_lab_colors(colours)
+                    wanted[i] = tuple((o + (b - o) * ROUTE_DIM) / 255 for o, b in zip(own, back))
+        for i in panel.lights[panel.index] if panel.lights else ():
+            wanted.pop(i, None)
+        changes = {i: c for i, c in wanted.items() if self._route_painted.get(i) != c}
+        changes.update({i: None for i in self._route_painted if i not in wanted})
+        self._route_painted = wanted
+        if changes:
+            self.view.set_lab_colors(changes)
 
     def _show_step_tab(self) -> None:
         if self.step_group.isVisible():
@@ -626,7 +630,7 @@ class MainWindow(QMainWindow):
         self.shortcuts["Close route"].setEnabled(False)
         with self._held():
             self.view.set_lab_colors({i: None for i in self._route_painted})
-            self._route_painted = set()
+            self._route_painted = {}
             self.view.set_home(None)
             if self._route_camera is not None:
                 position, angle, plane = self._route_camera
