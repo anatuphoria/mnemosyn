@@ -213,7 +213,7 @@ class BrainView(QtInteractor):
     def set_lab_colors(self, colors: dict) -> None:
         self.chunks.set_colors(colors)
         for structure_id, color in colors.items():
-            actor = self.shell_actors.get(structure_id)
+            actor = self.shell_actors.get(structure_id) or self.tract_actors.get(structure_id)
             if actor is not None:
                 own = _rgb(self.state.atlas.get(structure_id).rgb_triplet)
                 actor.GetProperty().SetColor(*(own if color is None else color))

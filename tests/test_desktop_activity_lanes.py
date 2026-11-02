@@ -37,3 +37,15 @@ def test_the_timeline_note_moves_to_the_step_tab(window):
     assert "Schematic shapes, not measured data." in window.step_panel.details.toPlainText()
     window.pathways.leave()
     assert "Schematic shapes" not in window.step_panel.details.toPlainText()
+
+
+def test_lanes_stay_at_the_top_when_a_timeline_loads_again(window, qapp):
+    window.pathways.open("loop")
+    window.pathways.open("mood")
+    window.pathways.open("mood")
+    qapp.processEvents()
+    rows = window.chart.multiples.rows
+    assert rows[0].y() == 0
+    column = window.chart.multiples._column
+    spacers = [column.itemAt(i) for i in range(column.count()) if column.itemAt(i).spacerItem()]
+    assert len(spacers) == 1

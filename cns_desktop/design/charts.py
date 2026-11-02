@@ -176,6 +176,9 @@ class SmallMultiples(QWidget):
         for row in self.rows:
             self._column.removeWidget(row)
             row.setParent(None)
+        for index in reversed(range(self._column.count())):
+            if self._column.itemAt(index).spacerItem() is not None:
+                self._column.takeAt(index)
         self.rows, self._rows, self.y_range = [], {}, y_range
         for one in series:
             row = Row(one, self.row_height)

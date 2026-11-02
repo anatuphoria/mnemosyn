@@ -66,3 +66,18 @@ def test_closing_a_route_gives_back_camera_plane_and_colours(window, qapp):
     assert window.view.renderer.GetActiveCamera().GetViewAngle() == pytest.approx(angle)
     assert window.view.plane.GetVisibility() == shown
     assert window.view.chunks.colors() == {}
+
+
+def test_passed_tract_steps_take_the_accent_too(window):
+    panel = window.pathways
+    panel.open("loop")
+    tracts = [i for ids in panel.lights[:3] for i in ids if i in window.view.tract_actors]
+    assert tracts
+    panel.go(3)
+    for i in tracts:
+        colour = window.view.tract_actors[i].GetProperty().GetColor()
+        assert colour == pytest.approx(ACCENT, abs=1e-3)
+    panel.leave()
+    for i in tracts:
+        colour = window.view.tract_actors[i].GetProperty().GetColor()
+        assert colour == pytest.approx(own_colour(window, i), abs=1e-3)
