@@ -82,6 +82,8 @@ class TopBar(QFrame):
             for child in group.findChildren(QWidget):
                 if child.property("spare"):
                     child.setVisible(level < 3)
+            group.layout().invalidate()
+            group.updateGeometry()
 
     def _signature(self, width: int) -> tuple:
         return width, self._shown, self.level, self._row.sizeHint().width()

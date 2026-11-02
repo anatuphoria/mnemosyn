@@ -4,7 +4,7 @@ from contextlib import nullcontext
 from html import escape
 
 from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Signal
-from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QListWidgetItem, QPushButton,
+from PySide6.QtWidgets import (QComboBox, QLabel, QListWidgetItem, QPushButton,
                                QToolButton, QTreeWidgetItem, QWidget)
 
 from cns_atlas import Crossing, Pathway, Relay, Station, Timeline
@@ -65,12 +65,10 @@ class PathwayPanel(QWidget):
 
         self.title = self.steps_page.title
         self.start = self.steps_page.start
-        sides = QHBoxLayout()
         self.side_control = SegmentedControl([("left", "Left"), ("right", "Right")])
         self.side_control.changed.connect(self.set_side)
         self.side_buttons = {side: self.side_control.button(side) for side in ("left", "right")}
-        sides.addWidget(self.side_control)
-        sides.addStretch(1)
+        self.side_control.hide()
         self.draft = self.steps_page.draft
         self._play_icon = button_icon("play")
         self._pause_icon = button_icon("pause")
@@ -85,11 +83,8 @@ class PathwayPanel(QWidget):
         self.speed_picker.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.speed_picker.currentIndexChanged.connect(
             lambda i: self.set_speed(float(self.speed_picker.itemData(i))))
-        controls = QHBoxLayout()
-        for widget in (self.back_button, self.play_button, self.next_button, self.speed_picker):
-            controls.addWidget(widget)
-        controls.addStretch(1)
-        self.step_label = QLabel()
+        self.speed_picker.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.step_label = QLabel(self)
         self.step_label.setWordWrap(True)
         set_role(self.step_label, "label")
         self.playing_changed.connect(self._show_playing)
@@ -107,9 +102,6 @@ class PathwayPanel(QWidget):
             widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         page = self.steps_page
-        page.extra.addLayout(sides)
-        page.extra.addLayout(controls)
-        page.extra.addWidget(self.step_label)
         page.layout().addWidget(self.lab_button)
 
         self.choices.itemClicked.connect(self._on_choice)
@@ -117,6 +109,7 @@ class PathwayPanel(QWidget):
         self.steps.currentRowChanged.connect(self._on_row)
         self.steps.itemClicked.connect(self._on_step_clicked)
         page.close_button.clicked.connect(self.leave)
+        self.set_controls_enabled(False)
         self.lab_button.clicked.connect(
             lambda: self.lab_requested.emit(self.pathway.key) if self.pathway else None)
         state.selection_changed.connect(self._on_selection)
@@ -143,6 +136,18 @@ class PathwayPanel(QWidget):
         if key:
             self.open(key)
 
+    def controls(self) -> list[QWidget]:
+        return [self.back_button, self.play_button, self.next_button, self.speed_picker,
+                self.side_control, self.lab_button]
+
+    def set_controls_enabled(self, on: bool) -> None:
+        for widget in (self.back_button, self.play_button, self.next_button, self.speed_picker,
+                       self.side_control):
+            widget.setEnabled(on)
+        if not on:
+            self.side_control.hide()
+            self.lab_button.hide()
+
     def set_narrow(self, narrow: bool) -> None:
         self.steps_page.narrow_details.setVisible(narrow)
 
@@ -157,6 +162,7 @@ class PathwayPanel(QWidget):
         pathway = {p.key: p for p in self.state.atlas.pathways}[key]
         if self.pathway is None:
             self.entered.emit()
+        self.set_controls_enabled(True)
         self.pathway, self.index = pathway, 0
         both = pathway.sides == "both"
         self.side_control.setVisible(not both)
@@ -261,6 +267,7 @@ class PathwayPanel(QWidget):
         self.timeline = None
         self.timeline_changed.emit(None)
         self.step_panel.set_idle()
+        self.set_controls_enabled(False)
         self.show_tab.emit("routes")
         self.left.emit()
 

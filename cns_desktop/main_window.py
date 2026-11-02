@@ -313,7 +313,8 @@ class MainWindow(QMainWindow):
         full = ("Hide", "Isolate", "Show all", None, "Tracts", None, "Start quiz")
         self.topbar.add_group("Explore", buttons(full))
         self.topbar.add_group("Slices", buttons(full))
-        self.topbar.add_group("Pathways", buttons(("Tracts", None, "Start quiz")))
+        self.topbar.add_group("Pathways", [*self.pathways.controls(), None,
+                                           *buttons(("Tracts", None, "Start quiz"))])
         for name, icon in (("Frame selection", "maximize"), ("Reset view", "rotate-ccw")):
             self.viewport.add_tool(widgets.icon_button(self.shortcuts[name], icon))
         self.viewport.add_tool(buttons(("Tracts",))[0])
