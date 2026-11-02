@@ -5,9 +5,9 @@ from html import escape
 
 from PySide6.QtCore import QSignalBlocker, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QListWidgetItem, QPushButton,
-                               QTextBrowser, QToolButton, QTreeWidgetItem, QWidget)
+                               QToolButton, QTreeWidgetItem, QWidget)
 
-from cns_atlas import DISCLAIMER, Crossing, Pathway, Relay, Station, Timeline
+from cns_atlas import Crossing, Pathway, Relay, Station, Timeline
 from cns_atlas.pathways import PathwayText, lights, side_of
 
 from ..design import rich
@@ -17,6 +17,7 @@ from ..design.widgets import SegmentedControl, button_icon
 from ..state import AppState
 from .info_panel import references_html
 from .pathway_pages import KEY_ROLE, STATE_ROLE, RoutesPage, StepsPage
+from .step_panel import StepPanel
 
 RELAY_COLOR = color("normal")
 TICK_MS = 50
@@ -95,9 +96,9 @@ class PathwayPanel(QWidget):
         self.edges_changed.connect(self._show_edges)
         self.step_changed.connect(self.step_label.setText)
         self.steps = self.steps_page.steps
-        self.details = QTextBrowser()
-        self.details.setOpenExternalLinks(True)
-        self.details.document().setDefaultStyleSheet(rich.document_css())
+        self.step_panel = StepPanel()
+        self.details = self.step_panel.details
+        self.step_panel.rendered.connect(self.steps_page.narrow_details.setHtml)
         self.lab_button = QPushButton("Open in the Lab")
         self.lab_button.hide()
         self.lab_routes = frozenset(m.route for m in state.atlas.models.values() if m.route)
@@ -109,7 +110,6 @@ class PathwayPanel(QWidget):
         page.extra.addLayout(sides)
         page.extra.addLayout(controls)
         page.extra.addWidget(self.step_label)
-        page.layout().addWidget(self.details, 1)
         page.layout().addWidget(self.lab_button)
 
         self.choices.itemClicked.connect(self._on_choice)
@@ -142,6 +142,9 @@ class PathwayPanel(QWidget):
         key = item.data(0, KEY_ROLE)
         if key:
             self.open(key)
+
+    def set_narrow(self, narrow: bool) -> None:
+        self.steps_page.narrow_details.setVisible(narrow)
 
     def item_for(self, key: str) -> QTreeWidgetItem:
         return self.routes_page.item_for(key)
@@ -239,9 +242,9 @@ class PathwayPanel(QWidget):
                 state = "passed" if row < self.index else "current" if row == self.index else "later"
                 self.steps.item(row).setData(STATE_ROLE, state)
         self.edges_changed.emit(self.index > 0, self.index < len(self.pathway.steps) - 1)
-        self.details.setHtml(self._details_html())
         step = self.pathway.steps[self.index]
         name = self.label(self.index + 1, step).split(" ", 1)[1]
+        self.step_panel.show_step(self.index, len(self.pathway.steps), name, self._details_html())
         self.step_changed.emit(f"Step {self.index + 1} of {len(self.pathway.steps)}: {name}")
 
     def next(self) -> None:
@@ -257,6 +260,7 @@ class PathwayPanel(QWidget):
         self.pathway, self.lights, self.route, self.text = None, [], frozenset(), None
         self.timeline = None
         self.timeline_changed.emit(None)
+        self.step_panel.set_idle()
         self.show_tab.emit("routes")
         self.left.emit()
 
@@ -279,21 +283,18 @@ class PathwayPanel(QWidget):
             self.pause()
 
     def _details_html(self) -> str:
-        parts = [f"<h3>{escape(self.steps.item(self.index).text())}</h3>"]
         if self.text is None:
-            parts.append("<p><i>No description yet.</i></p>")
+            return rich.secondary("No description yet.")
+        step = self.text.steps[self.index]
+        parts = [f"<p><b>Role</b>: {escape(step.role)}</p>"]
+        if self.pathway.texts == "lesion":
+            parts.append(f"<p><b>Lesion</b>: {escape(step.lesion)}</p>")
         else:
-            step = self.text.steps[self.index]
-            parts.append(f"<p><b>Role</b>: {escape(step.role)}</p>")
-            if self.pathway.texts == "lesion":
-                parts.append(f"<p><b>Lesion</b>: {escape(step.lesion)}</p>")
-            else:
-                parts.append(f"<p><b>Disorders</b>: {escape(step.disorders)}</p>")
-                if step.drugs:
-                    parts.append(f"<p><b>Drugs</b>: {escape(step.drugs)}</p>")
-            parts.append(f"<h4>Overview</h4><p>{escape(self.text.overview)}</p>")
-            parts += references_html(self.text.references)
-        parts.append(f"<p style='color:#c55'><small>{escape(DISCLAIMER)}</small></p>")
+            parts.append(f"<p><b>Disorders</b>: {escape(step.disorders)}</p>")
+            if step.drugs:
+                parts.append(f"<p><b>Drugs</b>: {escape(step.drugs)}</p>")
+        parts.append(f"{rich.heading('Overview')}<p>{escape(self.text.overview)}</p>")
+        parts += references_html(self.text.references)
         return "".join(parts)
 
     @property

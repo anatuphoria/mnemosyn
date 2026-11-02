@@ -151,7 +151,7 @@ class Workspaces(QObject):
         self.window.before_layout(name)
         state, joins = self.defaults[name]
         if self.window.width() < SIZE["narrow"]:
-            joins = [*joins, *self.narrow.get(name, [])]
+            joins = [*self.narrow.get(name, []), *joins]
         size = self.window.size()
         self._applying += 1
         try:

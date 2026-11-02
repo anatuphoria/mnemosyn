@@ -101,8 +101,8 @@ def test_each_workspace_opens_with_its_groups(window):
     window.workspaces.switch("Slices")
     assert visible_groups(window) == {"Structures": LEFT, "Slices": RIGHT, "Info": RIGHT}
     window.workspaces.switch("Pathways")
-    assert visible_groups(window) == {"Pathways": LEFT, "Info": RIGHT}
-    assert window.info_group.keys() == ["info", "slices"]
+    assert visible_groups(window) == {"Pathways": LEFT, "Step": RIGHT}
+    assert window.step_group.keys() == ["step", "info", "slices"]
     window.workspaces.switch("Lab")
     assert visible_groups(window) == {"Lab tools": LEFT, "Lab explain": RIGHT, "Lab time": BOTTOM}
 
@@ -194,7 +194,7 @@ def test_a_quiz_opens_its_panel_in_any_workspace(window, qapp):
         qapp.processEvents()
         assert not window.quiz_group.isVisible()
         if name == "Pathways":
-            assert window.info_group.keys() == ["info", "slices"]
+            assert window.step_group.keys() == ["step", "info", "slices"]
 
 
 def test_a_narrow_first_start_joins_the_right_panel_into_the_left(qapp, toy_lab_atlas,

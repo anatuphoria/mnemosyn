@@ -4,6 +4,7 @@ import random
 from contextlib import contextmanager
 from collections.abc import Callable
 from datetime import datetime
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -150,6 +151,11 @@ class MainWindow(QMainWindow):
         self.pathways.hide()
         self.slices_group = self._group("Slices", self.slices, right)
         self.info_group = self._group("Info", self.info, right)
+        self.step_panel = self.pathways.step_panel
+        self.step_group = self._group("Step", self.step_panel, right)
+        self.step_group.hide()
+        self.step_group.visibilityChanged.connect(
+            lambda shown: self.pathways.set_narrow(not shown))
         self.activity_group = self._group("Activity", self.chart,
                                           Qt.DockWidgetArea.BottomDockWidgetArea)
         self.quiz_group = self._group("Quiz", self.quiz, left)
@@ -206,6 +212,7 @@ class MainWindow(QMainWindow):
         self.pathways.timeline_changed.connect(self._on_timeline)
         self.pathways.step_drawn.connect(self._paint_route)
         self.pathways.show_tab.connect(self.routes_group.show_page)
+        self.pathways.route_opened.connect(self._show_step_tab)
         self.pathways.route_opened.connect(self._frame_route)
         self.pathways.time_changed.connect(self.chart.set_time)
         self.chart.seek_requested.connect(self.pathways.seek)
@@ -361,12 +368,14 @@ class MainWindow(QMainWindow):
     def _arrange_explore(self) -> list[tuple[str, str]]:
         self.structures_group.show()
         self.routes_group.hide()
+        self.step_group.hide()
         self._sides(self.structures_group, [self.info_group])
         return [("Info", "Slices")]
 
     def _arrange_slices(self) -> list[tuple[str, str]]:
         self.structures_group.show()
         self.routes_group.hide()
+        self.step_group.hide()
         self.slices_group.show()
         self.info_group.show()
         width, side = self.width(), SIZE["panel_left"]
@@ -381,11 +390,17 @@ class MainWindow(QMainWindow):
     def _arrange_pathways(self) -> list[tuple[str, str]]:
         self.structures_group.hide()
         self.routes_group.show()
-        self._sides(self.routes_group, [self.info_group])
-        return [("Info", "Slices")]
+        if self.width() < SIZE["narrow"]:
+            self.step_group.hide()
+            self._sides(self.routes_group, [])
+            return []
+        self.step_group.show()
+        self._sides(self.routes_group, [self.step_group])
+        return [("Step", "Info"), ("Step", "Slices")]
 
     def workspace_docks(self) -> list[PanelGroup]:
-        return [self.structures_group, self.routes_group, self.slices_group, self.info_group]
+        return [self.structures_group, self.routes_group, self.slices_group, self.info_group,
+                self.step_group]
 
     def _out_of_lab(self) -> None:
         if self.workspaces.current in self.workspaces.extra:
@@ -394,7 +409,16 @@ class MainWindow(QMainWindow):
     def before_layout(self, name: str) -> None:
         self.viewport.fit(name, self.width())
 
+    def _order_tabs(self) -> None:
+        bar = [w for w in self.topbar.findChildren(QWidget)
+               if w.isVisible() and w.isEnabled() and w.focusPolicy() & Qt.FocusPolicy.TabFocus]
+        for first, second in pairwise(bar):
+            QWidget.setTabOrder(first, second)
+        if bar:
+            QWidget.setTabOrder(bar[-1], self.view)
+
     def sync_after_layout(self, name: str) -> None:
+        self._order_tabs()
         self.viewport.fit(name, self.width())
         if self.viewport.isHidden():
             if self.slices.view.isVisible():
@@ -568,6 +592,10 @@ class MainWindow(QMainWindow):
             colours[i] = None
         self._route_painted = {i for i, c in colours.items() if c is not None}
         self.view.set_lab_colors(colours)
+
+    def _show_step_tab(self) -> None:
+        if self.step_group.isVisible():
+            self.step_group.show_page("step")
 
     def _frame_route(self) -> None:
         self.view.set_plane_shown(False)
