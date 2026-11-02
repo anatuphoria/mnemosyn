@@ -36,17 +36,19 @@ Two systems are in the Lab today, each with its own page:
 experiment opens in the system it was made in.
 
 **Add changes.** The **Experiments** list holds what you can do to the body: remove or cut a gland,
-give a drug, switch on a disease, add a stressor, or run a clinical test. Drag one onto the
-**Timeline**, or double click it to add it at the playhead. Drag a change to move it and drag its
-right edge to make it last longer. Select it to set its dose, time or strength in the
-**Inspector**. Diseases are present from the start of a run unless you give them a start time.
+give a drug, switch on a disease, add a stressor, or run a clinical test. The search field above
+it, **Find an experiment**, finds one by name. Drag one onto the **Timeline**, or double click it
+to add it at the playhead. Drag a change to move it and drag its right edge to make it last
+longer. Select it to set its dose, time or strength in the **Inspector**. Long standing conditions,
+such as diabetes insipidus or Addison's disease, are present from the start of a run unless you
+give them a start time; SIADH starts where you place it.
 
 **Read the timeline.** Each lane is one value, with the untouched normal run in grey behind it. The
 lane names its value and unit and gives its level at the playhead, coloured when it is above or
 below normal. A dashed line drops from every change so you can see where each curve reacts. Move
 the playhead with the mouse or the arrow keys (`Shift` for bigger steps), and point at a lane to
 read every value at that moment. The strip at the top shows the whole run: drag its window to move
-and its edges to zoom.
+and its edges to zoom, and double click the strip or the ruler to see the whole run again.
 
 **Look at the body.** The centre shows the brain with the parts of the model coloured by how far
 they are from normal and labelled with their level. Parts outside the brain, such as the adrenal

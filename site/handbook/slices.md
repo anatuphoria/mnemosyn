@@ -37,6 +37,13 @@ every other workspace too. `C` moves the plane through the selected structure.
 **Zoom.** The wheel zooms around the pointer, a right drag pans, and `F` with the pointer over the
 slice fits the whole section again.
 
+**Tracts in slices.** Tracts you have shown in 3D are outlined in their colour on the slice. Where
+tracts overlap, hovering or clicking picks the smallest one.
+
+**Brain and spinal cord.** In local builds that include the spinal cord, a **Brain** and
+**Spinal cord** switch above the slice chooses between the brain's MRI template and the spinal
+cord's. The public download has the brain only.
+
 The Slices panel also sits beside the 3D view in Explore, Pathways and Lesion, so you can keep a
 section open while you work in 3D.
 

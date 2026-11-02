@@ -6,7 +6,7 @@ length = "1 d"
 title = "Central diabetes insipidus: the desmopressin test"
 note = "From the Mnemosyn handbook: Central or nephrogenic?"
 blocks = [{ experiment = "central_di", mode = "present" }, { experiment = "desmopressin_test", start = "day 1 08:00" }]
-asserts = [{ kind = "within", value = "uosm", at = "day 1 16:00", low = 0, high = 300 }, { kind = "test_result", block = 1, expect = "abnormal" }]
+asserts = [{ kind = "within", value = "uosm", at = "day 1 16:00", low = 0, high = 300 }, { kind = "test_result", block = 1, expect = "abnormal" }, { kind = "vs_normal", value = "avp", at = "day 1 14:00", falls = 0.9 }]
 
 [[lab]]
 slug = "central-or-nephrogenic"
@@ -36,7 +36,7 @@ length = "1 d"
 title = "Central diabetes insipidus: the water deprivation test"
 note = "From the Mnemosyn handbook: A night without water"
 blocks = [{ experiment = "central_di", mode = "present" }, { experiment = "water_deprivation_test", start = "day 1 08:00" }]
-asserts = [{ kind = "test_result", block = 1, expect = "abnormal" }, { kind = "vs_normal", value = "sodium", at = "day 1 16:00", rises = 1.05 }, { kind = "vs_normal", value = "thirst", at = "day 1 16:00", rises = 3 }]
+asserts = [{ kind = "test_result", block = 1, expect = "abnormal" }, { kind = "vs_normal", value = "sodium", at = "day 1 16:00", rises = 1.05 }, { kind = "vs_normal", value = "avp", at = "day 1 16:00", falls = 0.9 }, { kind = "vs_normal", value = "thirst", at = "day 1 16:00", rises = 3 }]
 
 [[lab]]
 slug = "too-much-water"

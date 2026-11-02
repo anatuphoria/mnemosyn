@@ -37,7 +37,8 @@ patient's signs and find the lesion. Both use the same cited texts as the pathwa
 and are scheduled with the same spaced repetition method many flashcard apps use. You write no
 cards.
 
-**Every claim has a source.** Shapes, numbers and sentences cite where they come from, and every
+**Sources you can check.** Shapes, numbers and sentences cite where they come from. Where a model
+needs an assumption no source covers, the app marks it as an assumption of this project. Every
 decision about the project is written down in public.
 
 **Free and offline.** No account, no subscription, no internet connection once it is installed.
@@ -62,9 +63,9 @@ The kinds of tool above come from reviews of neuroanatomy teaching and from surv
 students, read on 3 November 2026:
 
 1. [Tools and resources for neuroanatomy education: a systematic review](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5934868/)
-2. [An analysis of Anki usage and strategy of first year medical students in a structure and
-   function course](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9045547/)
-3. [A cohort study assessing the impact of Anki as a spaced repetition tool on academic performance
-   in medical school](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10403443/)
+2. [A study of how first year medical students use a spaced repetition flashcard
+   app](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9045547/)
+3. [A cohort study of a spaced repetition flashcard app and exam performance in medical
+   school](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10403443/)
 4. [The evaluation of virtual reality neuroanatomical training utilizing photorealistic 3D
    models](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10983822/)

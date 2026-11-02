@@ -38,8 +38,15 @@ A highlighted structure to name, or a name to find, and a Progress window that s
 During a quiz the structure list, the Info panel and hover names are hidden, so you cannot peek.
 `Esc` ends the quiz and gives the window back.
 
+**Answering.** After a typed or chosen answer, `Enter` goes on to the next question. If you were
+right, `H` marks it as hard and `E` as easy, which moves its next review closer or further away.
+In *Flashcards*, `Space` shows the description and `1` to `4` rate how well you knew it, from
+again to easy.
+
 **Scheduling** uses FSRS, the spaced repetition method many flashcard apps use, with at most 20 new
-items a day in each mode. Your answers are saved after every question, on your own computer.
+items a day in each mode. Your answers are saved after every question, on your own computer, in a
+file called `progress.sqlite` in your user data folder (on Linux,
+`~/.local/share/mnemosyn/progress.sqlite`).
 
 **Progress** (**Study, Progress**) shows what is due today and this week and how many items you
 know, then each mode by level: a bar of known, learning and new items, and your weakest items with
@@ -70,5 +77,8 @@ view, not just reciting a name.
 | Key | Action |
 |---|---|
 | `Q` | Start a quiz |
-| `1` to `4` | Choose an answer in Name it with choices |
+| `1` to `4` | Choose an answer in Name it with choices, or rate a flashcard |
+| `Enter` | Submit a typed answer, or go on to the next question |
+| `H` / `E` | After a right answer: mark it hard or easy |
+| `Space` | Show a flashcard's description |
 | `Esc` | End the quiz |

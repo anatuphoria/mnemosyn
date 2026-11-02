@@ -90,7 +90,7 @@ def test_the_readme_badges_and_links_lead_where_they_should():
     for name in ("release", "licence", "platforms", "website", "review"):
         assert f'src="brand/badge-{name}.svg"' in text, name
     site = "https://mnemo.saeed.cool/"
-    for page in ("download/", "guide/", "atlas/structures/", "review/", "decisions/"):
+    for page in ("download/", "handbook/", "atlas/structures/", "review/", "decisions/"):
         assert f"{site}{page}" in text, page
     assert "releases/tag/v" in text or "/releases" in text
 

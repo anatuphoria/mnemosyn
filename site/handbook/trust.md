@@ -21,7 +21,8 @@ Info panel. The Lab's models follow published work: the stress axis after Karin 
 includes** says what each model leaves out.
 
 The experiments in this handbook are checked by tests. Each result a page states is run through
-the model before the page is published, so a page cannot quietly go wrong when a model changes.
+the model by the project's test suite, so a change to a model that would make a page wrong fails
+the tests.
 
 ## How decisions are made
 

@@ -36,9 +36,9 @@ side of weakness after a lesion above the crossing, and after one below it?
 
     So a lesion anywhere above the crossing, in the cortex, the internal capsule or the brainstem,
     weakens the opposite side of the body. A lesion below it, in the spinal cord, weakens the same
-    side. The pain and temperature route crosses somewhere else entirely, low in the spinal cord
-    right where its fibres enter, which is why a lesion of one half of the cord can weaken one leg
-    and take away pain on the other.
+    side. The pain and temperature route crosses somewhere else entirely: in the spinal cord,
+    within a segment or two of where its fibres enter, at every level. That is why a lesion of one
+    half of the cord can weaken one leg and take away pain on the other.
 
     The public download has no spinal cord shapes yet, so the last station is named in words, not
     drawn.

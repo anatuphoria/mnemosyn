@@ -2,7 +2,8 @@
 
 Each experiment is a question you can answer in a few minutes with Mnemosyn. Read the question,
 make a prediction, open the experiment, and only then unfold the answer. Every result stated here
-is checked against the model or the atlas by a test before the page is published.
+is checked against the model or the atlas by a test in the project's test suite, so a change that
+would make a page wrong fails the tests.
 { .lede }
 
 ## In the Lab

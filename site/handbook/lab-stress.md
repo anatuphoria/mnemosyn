@@ -57,7 +57,7 @@ Karin and colleagues (2020), has both, and every number in it cites its source.
 
 ## What the model leaves out
 
-It leaves out the hourly pulses of cortisol, CRH and ACTH from outside the axis, vasopressin,
-binding proteins, the kidneys and the liver, and drugs whose behaviour could not yet be tied to
-checked sources. **What this model includes** in the app gives the full list. It is a study model,
+It leaves out the ultradian pulses (bursts of cortisol about every hour or two), ACTH and CRH
+from outside the axis, vasopressin, binding proteins, the kidneys and the liver, and drugs whose
+behaviour could not yet be tied to checked sources. **What this model includes** in the app gives the full list. It is a study model,
 not a tool for diagnosis or treatment.

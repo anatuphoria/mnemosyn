@@ -7,7 +7,7 @@ of the loop does about it.
 <div class="try" markdown>
 ### The question
 
-In Addison's disease the immune system destroys most of the adrenal cortex. The hypothalamus and
+In Addison's disease most of the adrenal cortex is destroyed, most often by the immune system. The hypothalamus and
 pituitary are untouched.
 
 **Predict before you open it.** What happens to cortisol, and to ACTH, by the next morning?
@@ -33,9 +33,10 @@ pituitary are untouched.
 
     The loop explains both. Cortisol normally holds the hypothalamus and pituitary back. With
     little cortisol left, nothing holds them back, so CRH and ACTH climb. The remaining adrenal
-    cortex cannot answer however much ACTH arrives. High ACTH is why Addison's disease is called
-    primary adrenal insufficiency: the fault is in the gland, and the brain is shouting at it. It
-    is also behind the darker skin many patients have, because the molecule ACTH is cut from also
+    cortex cannot make up the loss, however much ACTH arrives. That is what primary adrenal
+    insufficiency means: the fault is in the gland itself, and the high ACTH is its marker, the
+    brain calling on a gland that cannot answer enough. The high ACTH is also behind the darker
+    skin many patients have, because the molecule ACTH is cut from also
     makes melanocyte stimulating hormone.
 
     Source: Bornstein SR and colleagues (2016), Diagnosis and treatment of primary adrenal

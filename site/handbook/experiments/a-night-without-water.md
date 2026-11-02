@@ -1,7 +1,8 @@
 # A night without water
 
-Eight hours without water is one of the oldest tests in endocrinology. What it shows depends on two
-things working: the brain releasing vasopressin, and the kidneys answering it.
+Eight hours without water is one of the oldest tests in endocrinology. Clinics often start it the
+evening before; here it runs from 08:00 to 16:00. What it shows depends on two things working: the
+brain releasing vasopressin, and the kidneys answering it.
 { .lede }
 
 <div class="try" markdown>
@@ -31,11 +32,12 @@ At the end their urine is measured.
 ??? note "What you will see, and why"
     In the **healthy** body, sodium creeps up as water is lost, the osmoreceptors notice, and the
     supraoptic and paraventricular nuclei release more vasopressin. The kidneys answer by keeping
-    water, and the urine ends the night above 800 mOsm/kg: the test is normal.
+    water, and after eight hours the urine is above 800 mOsm/kg: the test is normal.
 
-    With **central diabetes insipidus** the brain cannot release vasopressin, so the kidneys are
-    never told to keep water. The urine stays dilute all night, and the test points to diabetes
-    insipidus. Thirst and sodium rise instead, which is why people with this condition drink so
+    With **central diabetes insipidus** the brain releases far too little vasopressin: it stays
+    below its normal level instead of rising, so the kidneys are never told to keep water. The
+    urine stays dilute throughout, and the test points to diabetes insipidus. Thirst and sodium
+    rise instead, which is why people with this condition drink so
     much. Whether the cause is in the brain or the kidneys is the next question:
     [Central or nephrogenic?](central-or-nephrogenic.md)
 

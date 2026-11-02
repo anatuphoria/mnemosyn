@@ -21,8 +21,8 @@ times the usual amount every day, with normal hormones and kidneys.
 
 ## What to look at
 
-![SIADH on its fourth day](../shots/exp-too-much-water.png){ .shot }
-<p class="caption">SIADH on day four: vasopressin stays high, the urine stays concentrated, and plasma sodium keeps falling.</p>
+![SIADH on its fifth day](../shots/exp-too-much-water.png){ .shot }
+<p class="caption">SIADH on day five: vasopressin stays high, the urine stays concentrated, and plasma sodium keeps falling.</p>
 
 1. In the SIADH file, follow **Plasma sodium** over five days and look at **Urine osmolality**.
 2. In the polydipsia file, look at the same two lanes, and at **Vasopressin**.

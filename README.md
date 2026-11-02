@@ -20,7 +20,7 @@ for the body's control systems. Made for students; every shape and sentence cite
 
 <p align="center">
   <a href="https://mnemo.saeed.cool/download/">Download</a> ·
-  <a href="https://mnemo.saeed.cool/guide/">Using the app</a> ·
+  <a href="https://mnemo.saeed.cool/handbook/">Handbook</a> ·
   <a href="https://mnemo.saeed.cool/atlas/structures/">The atlas</a> ·
   <a href="https://mnemo.saeed.cool/review/">Review</a> ·
   <a href="https://mnemo.saeed.cool/decisions/">Decisions</a>
@@ -115,11 +115,11 @@ progress stays on your computer.
 
 ### One interface for all of it
 
-Four workspaces (Explore, Slices, Pathways and the Lab) arrange the window for each task, and every
-panel can be moved, floated or closed. The interface follows one design system: a black dark theme
+Five workspaces (Explore, Slices, Pathways, the Lab and Lesion) arrange the window for each task,
+and every panel can be moved, floated or closed. The interface follows one design system: a black dark theme
 with checked contrast, the Inter typeface and Lucide icons bundled so it looks the same on every
 computer, and layouts that fit windows from 850 px wide to large screens. Every action has a key;
-the [guide](https://mnemo.saeed.cool/guide/) lists them all.
+the [handbook](https://mnemo.saeed.cool/handbook/) lists them all.
 
 ## Get it
 

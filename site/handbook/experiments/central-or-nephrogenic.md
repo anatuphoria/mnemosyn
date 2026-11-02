@@ -1,7 +1,7 @@
 # Central or nephrogenic?
 
-Two people make large amounts of dilute urine. One brain makes no vasopressin; in the other, the
-kidneys cannot answer it. One test tells them apart.
+Two people make large amounts of dilute urine. One brain releases far too little vasopressin; in
+the other, the kidneys cannot answer it. One test tells them apart.
 { .lede }
 
 <div class="try" markdown>
@@ -24,7 +24,7 @@ How will the two results differ?
 ## What to look at
 
 ![Central diabetes insipidus during the desmopressin test](../shots/exp-central-or-nephrogenic.png){ .shot }
-<p class="caption">Central diabetes insipidus: the urine stays dilute through the night without water, then jumps when desmopressin is given.</p>
+<p class="caption">Central diabetes insipidus: the urine stays dilute through the eight hours without water, then jumps when desmopressin is given.</p>
 
 1. Watch the **Urine osmolality** lane during the eight hours without water, then after the
    desmopressin.
@@ -37,10 +37,15 @@ How will the two results differ?
 
     After desmopressin the two part ways. In **central** diabetes insipidus the urine rises by more
     than half, and the Inspector reads the test as pointing to a central cause: the brain was
-    not making vasopressin, but the kidneys answer it as soon as it is given. In **nephrogenic**
-    diabetes insipidus the urine hardly moves: the kidneys cannot answer vasopressin, so giving
-    more changes nothing. The Vasopressin lane shows the other half of the story: in the
-    nephrogenic file the brain already makes plenty.
+    releasing far too little vasopressin, but the kidneys answer it as soon as it is given. In
+    **nephrogenic** diabetes insipidus the urine hardly moves: the kidneys cannot answer
+    vasopressin, so giving more changes nothing. Here the Inspector reads the test as **Normal**,
+    which means only that the urine did not rise further; it is the dilute first reading that
+    points to the kidneys.
+
+    The Vasopressin lane shows the other half of the story. In the central file it stays below its
+    normal day even as the blood grows more concentrated. In the nephrogenic file the brain already
+    makes several times more than normal, and the kidneys ignore it.
 
     Source: Christ-Crain M and colleagues (2019), Diabetes insipidus, Nature Reviews Disease
     Primers, [doi:10.1038/s41572-019-0103-2](https://doi.org/10.1038/s41572-019-0103-2).

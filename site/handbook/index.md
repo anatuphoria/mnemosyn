@@ -71,6 +71,16 @@ Press `Q` to start a quiz built from the atlas itself. Mnemosyn schedules each s
 just before you would forget it.
 [More about quizzes](quizzes.md)
 
+## Arranging the window
+
+Each workspace arranges its panels for its task, and you can change that. Drag a panel by its
+header to move it or to float it as a window of its own; the buttons beside the header float or
+close it. Panels that share a place, such as Info and Slices, switch with the control in their
+header. Each workspace remembers its own arrangement. If you close a panel, the **Window** menu
+brings it back, and **Window, Reset layout** restores the arrangement the workspace started with.
+In a narrow window the default arrangements fold the right hand panels into the left one and the
+menus into one menu button; an arrangement you made yourself is never changed.
+
 ## Where next
 
 1. Try an experiment: [Central or nephrogenic?](experiments/central-or-nephrogenic.md) takes five

@@ -52,7 +52,7 @@ OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
 GREY_DIMMED = 0.15
 MOUSE_HINT = "drag rotates · right drag pans · wheel zooms · click selects"
-GUIDE_URL = "https://mnemo.saeed.cool/guide/"
+HANDBOOK_URL = "https://mnemo.saeed.cool/handbook/"
 KEYS = {
     "explore": (("F", "frame"), ("H", "hide"), ("I", "isolate"), ("Q", "quiz")),
     "pathway": (("Space", "play"), ("←", "back"), ("→", "next"), ("Esc", "close")),
@@ -350,8 +350,8 @@ class MainWindow(QMainWindow):
         self.addAction(about)
         help_menu.addAction(about)
         self.shortcuts["About"] = about
-        help_menu.addAction(QAction("Guide on the website", self, triggered=lambda:
-                                    QDesktopServices.openUrl(QUrl(GUIDE_URL))))
+        help_menu.addAction(QAction("Handbook on the website", self, triggered=lambda:
+                                    QDesktopServices.openUrl(QUrl(HANDBOOK_URL))))
 
     def open_lab(self, route: str) -> None:
         if self.lab is None:

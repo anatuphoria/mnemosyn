@@ -185,3 +185,55 @@ def test_every_app_shortcut_is_in_the_handbook(real_window):
         key = action.shortcut().toString()
         if key:
             assert f"`{key}`" in text, (action.text(), key)
+
+
+PRODUCTS = ("Anki", "Complete Anatomy", "Visible Body", "Kenhub", "PhysioEx", "Sylvius",
+            "BioDigital", "Brain Tutor", "Neuro Localizer", "SimulAdren")
+
+
+def test_the_handbook_names_no_product():
+    for page in PAGES:
+        text = page.read_text()
+        for name in PRODUCTS:
+            assert name not in text, (page, name)
+
+
+GUIDE_FACTS = {
+    "index.md": ("**Window**", "Reset layout", "narrow window", "float"),
+    "lab.md": ("Find an experiment", "double click the strip"),
+    "slices.md": ("**Spinal cord**", "smallest"),
+    "quizzes.md": ("progress.sqlite", "`Space`", "`H`", "`E`", "`Enter`"),
+}
+
+
+def test_what_the_old_guide_said_is_still_in_the_handbook():
+    for name, facts in GUIDE_FACTS.items():
+        text = (HANDBOOK / name).read_text()
+        for fact in facts:
+            assert fact in text, (name, fact)
+
+
+def test_help_opens_the_handbook(qapp_toy):
+    from PySide6.QtGui import QAction
+
+    from cns_desktop.main_window import HANDBOOK_URL
+
+    assert HANDBOOK_URL == "https://mnemo.saeed.cool/handbook/"
+    texts = [a.text() for a in qapp_toy.findChildren(QAction)]
+    assert "Handbook on the website" in texts and "Guide on the website" not in texts
+
+
+@pytest.fixture
+def qapp_toy(toy_atlas, tmp_path):
+    from PySide6.QtCore import QSettings
+    from PySide6.QtWidgets import QApplication
+
+    from cns_atlas import Atlas
+    from cns_desktop.main_window import MainWindow
+
+    QApplication.instance() or QApplication([])
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+    window = MainWindow(Atlas.open(toy_atlas), progress_path=tmp_path / "p.sqlite",
+                        settings=settings)
+    yield window
+    window.close()
