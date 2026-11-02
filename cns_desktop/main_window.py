@@ -6,6 +6,7 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 from PySide6.QtCore import QEvent, QStandardPaths, Qt, QTimer, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QAbstractSlider, QAbstractSpinBox, QCheckBox,
@@ -25,7 +26,7 @@ from cns_study.session import QuizChoice, Session, utc_now
 from .design import widgets
 from .design.panels import PanelGroup
 from .design.theme import set_role
-from .design.tokens import GAP, SIZE
+from .design.tokens import GAP, SIZE, rgb
 from .design.topbar import TopBar
 from .lab.viewport import Viewport
 from .lab.workspace import LabWorkspace
@@ -59,6 +60,7 @@ KEYS = {
 }
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
 ARROW_WIDGETS = (QAbstractSlider, QAbstractItemView, QAbstractSpinBox)
+ROUTE_DIM = 0.55
 ROUTE_KEYS = ("Play or pause", "Back", "Next")
 PATHWAY_LOCKED = ("Hide", "Isolate", "Show all", "Tracts")
 RECOVERED = {
@@ -122,6 +124,8 @@ class MainWindow(QMainWindow):
         self.quiz_active = False
         self.pathway_active = False
         self._pathway_saved: tuple | None = None
+        self._route_camera: tuple | None = None
+        self._route_painted: set[int] = set()
         self.shortcuts: dict[str, QAction] = {}
 
         self.settings = settings
@@ -195,6 +199,8 @@ class MainWindow(QMainWindow):
         self.pathways.left.connect(self.leave_pathway)
         self.pathways.centre_requested.connect(self.slices.centre_on_selection)
         self.pathways.timeline_changed.connect(self._on_timeline)
+        self.pathways.step_drawn.connect(self._paint_route)
+        self.pathways.route_opened.connect(self._frame_route)
         self.pathways.time_changed.connect(self.chart.set_time)
         self.chart.seek_requested.connect(self.pathways.seek)
         self.pathway_dock.visibilityChanged.connect(self._prepare_pathways)
@@ -526,8 +532,47 @@ class MainWindow(QMainWindow):
         with self.view.held(), self.slices.held():
             yield
 
+    def route_bounds(self) -> tuple[float, ...]:
+        ids = [i for ids in self.pathways.lights for i in ids if i in self.view.blocks]
+        if not ids:
+            return tuple(self.view.scene_bounds)
+        extents = [self.view.extent_of(i) for i in ids]
+        low = np.min([e[0] for e in extents], axis=0)
+        high = np.max([e[1] for e in extents], axis=0)
+        return (low[0], high[0], low[1], high[1], low[2], high[2])
+
+    def _paint_route(self, *_args) -> None:
+        panel = self.pathways
+        if panel.pathway is None:
+            return
+        accent = tuple(c / 255 for c in rgb("accent"))
+        back = rgb("s0")
+        colours = {}
+        for n, ids in enumerate(panel.lights):
+            for i in ids:
+                if n < panel.index:
+                    colours[i] = accent
+                elif n > panel.index:
+                    own = self.state.atlas.get(i).rgb_triplet
+                    colours[i] = tuple((o + (b - o) * ROUTE_DIM) / 255 for o, b in zip(own, back))
+        current = set(panel.lights[panel.index]) if panel.lights else set()
+        for i in current:
+            colours[i] = None
+        for i in self._route_painted - set(colours):
+            colours[i] = None
+        self._route_painted = {i for i, c in colours.items() if c is not None}
+        self.view.set_lab_colors(colours)
+
+    def _frame_route(self) -> None:
+        self.view.set_plane_shown(False)
+        self.view.set_home(self.route_bounds(), 0)
+        self.view.reset_view(render=False)
+
     def enter_pathway(self) -> None:
         self._pathway_saved = self._snapshot()
+        camera = self.view.renderer.GetActiveCamera()
+        self._route_camera = (self.view.camera_position.to_list(), camera.GetViewAngle(),
+                              self.view.plane_shown())
         self.pathway_active = True
         for name in PATHWAY_LOCKED:
             self.shortcuts[name].setEnabled(False)
@@ -545,6 +590,15 @@ class MainWindow(QMainWindow):
             self.shortcuts[name].setEnabled(True)
         self.shortcuts["Leave pathway"].setEnabled(False)
         with self._held():
+            self.view.set_lab_colors({i: None for i in self._route_painted})
+            self._route_painted = set()
+            self.view.set_home(None)
+            if self._route_camera is not None:
+                position, angle, plane = self._route_camera
+                self.view.camera_position = position
+                self.view.renderer.GetActiveCamera().SetViewAngle(angle)
+                self.view.set_plane_shown(plane)
+                self._route_camera = None
             self.state.set_focus(None)
             self._restore(*self._pathway_saved)
         for name in ROUTE_KEYS:

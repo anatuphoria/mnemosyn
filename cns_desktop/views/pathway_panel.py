@@ -54,6 +54,8 @@ class PathwayPanel(QWidget):
     playing_changed = Signal(bool)
     step_changed = Signal(str)
     edges_changed = Signal(bool, bool)
+    route_opened = Signal()
+    step_drawn = Signal()
 
     def __init__(self, state: AppState, hold=nullcontext, parent=None) -> None:
         super().__init__(parent)
@@ -200,6 +202,7 @@ class PathwayPanel(QWidget):
         self.pages.setCurrentIndex(1)
         with self.hold():
             self.set_side(side)
+            self.route_opened.emit()
         self.time_changed.emit(self.time)
         self.setFocus()
 
@@ -260,6 +263,7 @@ class PathwayPanel(QWidget):
             with self.hold():
                 self.state.set_hidden(ids, False)
                 self.state.select(selected, emphasis=ids)
+                self.step_drawn.emit()
                 if ids:
                     self.centre_requested.emit()
         finally:

@@ -66,6 +66,7 @@ class BrainView(QtInteractor):
         self.preferred: frozenset[int] = frozenset()
         self._looking = False
         self._home: tuple[tuple[float, ...], int] | None = None
+        self._plane_shown = True
         shells = frozenset(self.shell_ids)
         self.ids = [i for i in state.geometry_ids if not state.is_tract(i) and i not in shells]
         self.tract_ids = list(state.tract_ids)
@@ -157,7 +158,7 @@ class BrainView(QtInteractor):
         bounds, reserve = self._home
         camera = self.renderer.GetActiveCamera()
         camera.SetWindowCenter(0.0, 0.0)
-        self.reset_camera(render=False, bounds=bounds)
+        self.renderer.ResetCamera(*bounds)
         width, height = self.renderer.GetSize()
         if width <= 0 or height <= 0:
             return
@@ -169,8 +170,9 @@ class BrainView(QtInteractor):
         left, right, low, high = self.projected_box(bounds)
         centre_x, centre_y = (left + right) / 2, (low + high) / 2
         camera.SetWindowCenter(2 * (centre_x - room / 2) / width, 2 * (centre_y - height / 2) / height)
+        self.renderer.ResetCameraClippingRange()
 
-    def reset_view(self) -> None:
+    def reset_view(self, render: bool = True) -> None:
         """World frame is MNI millimetres: x right, y anterior, z superior."""
         self.camera_position = [(-400.0, 250.0, 150.0), (0.0, -18.0, 10.0), (0.0, 0.0, 1.0)]
         if self._home is not None:
@@ -179,7 +181,10 @@ class BrainView(QtInteractor):
             self.reset_camera(render=False, bounds=self.scene_bounds)
         else:
             self.reset_camera()
-        self.render()
+        if render:
+            self.render()
+        else:
+            self._request_render()
 
     @contextmanager
     def held(self):
@@ -470,9 +475,16 @@ class BrainView(QtInteractor):
                       None)
         return self.scene_bounds if volume is None else self._volume_bounds(volume)
 
+    def set_plane_shown(self, shown: bool) -> None:
+        self._plane_shown = shown
+        self._on_slice_changed(self.state.slice_axis, self.state.slice_mm)
+
+    def plane_shown(self) -> bool:
+        return self._plane_shown
+
     def _on_slice_changed(self, axis: str, mm: float) -> None:
         bounds = self._slice_bounds()
-        if not self.state.atlas.volumes or bounds[0] > bounds[1]:
+        if not self._plane_shown or not self.state.atlas.volumes or bounds[0] > bounds[1]:
             self.plane.SetVisibility(False)
             return
         a = AXIS_INDEX[axis]

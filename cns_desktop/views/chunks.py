@@ -44,6 +44,7 @@ class Chunks:
         self._where: dict[int, tuple[int, int]] = {}
         self._blocks = blocks
         self._colors = dict(colors)
+        self._overrides: dict[int, tuple] = {}
         self._hidden: list[set[int]] = []
         self._marked: list[set[int]] = []
         for chunk, members in enumerate(groups):
@@ -82,9 +83,19 @@ class Chunks:
                                               structure_id not in self._hidden[chunk])
             self._marked[chunk] = set(self._hidden[chunk])
 
+    def colors(self) -> dict[int, tuple]:
+        return dict(self._overrides)
+
+    def has(self, structure_id: int) -> bool:
+        return structure_id in self._where
+
     def set_colors(self, colors: dict) -> None:
         for structure_id, color in colors.items():
             if structure_id in self._where:
+                if color is None:
+                    self._overrides.pop(structure_id, None)
+                else:
+                    self._overrides[structure_id] = tuple(color)
                 self.attributes_for(structure_id).SetBlockColor(
                     self._blocks[structure_id],
                     self._colors[structure_id] if color is None else color)
