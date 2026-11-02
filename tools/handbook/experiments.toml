@@ -39,24 +39,24 @@ blocks = [{ experiment = "central_di", mode = "present" }, { experiment = "water
 asserts = [{ kind = "test_result", block = 1, expect = "abnormal" }]
 
 [[lab]]
-slug = "two-kinds-of-low-sodium"
+slug = "too-much-water"
 file = "siadh.mnemolab"
 system = "water"
 length = "5 d"
 title = "SIADH"
-note = "From the Mnemosyn handbook: Two kinds of low sodium"
+note = "From the Mnemosyn handbook: Too much water"
 blocks = [{ experiment = "siadh", start = "day 1 08:00" }]
 asserts = [{ kind = "within", value = "sodium", at = "day 5 08:00", low = 110, high = 135 }, { kind = "within", value = "uosm", at = "day 5 08:00", low = 300, high = 2000 }]
 
 [[lab]]
-slug = "two-kinds-of-low-sodium"
+slug = "too-much-water"
 file = "polydipsia.mnemolab"
 system = "water"
 length = "2 d"
 title = "Primary polydipsia"
-note = "From the Mnemosyn handbook: Two kinds of low sodium"
+note = "From the Mnemosyn handbook: Too much water"
 blocks = [{ experiment = "primary_polydipsia", mode = "present" }]
-asserts = [{ kind = "within", value = "uosm", at = "day 2 12:00", low = 50, high = 300 }]
+asserts = [{ kind = "within", value = "uosm", at = "day 2 12:00", low = 50, high = 300 }, { kind = "within", value = "sodium", at = "day 2 12:00", low = 135, high = 145 }]
 
 [[lab]]
 slug = "dexamethasone-tests"

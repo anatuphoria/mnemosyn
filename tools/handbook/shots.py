@@ -139,8 +139,8 @@ SHOTS: dict[str, Callable] = {
         w, "central-or-nephrogenic", "central.mnemolab", 18 * HOUR),
     "exp-a-night-without-water": lambda w: _lab_file(
         w, "a-night-without-water", "healthy.mnemolab", 8 * HOUR),
-    "exp-two-kinds-of-low-sodium": lambda w: _lab_file(
-        w, "two-kinds-of-low-sodium", "siadh.mnemolab", 4 * 24 * HOUR),
+    "exp-too-much-water": lambda w: _lab_file(
+        w, "too-much-water", "siadh.mnemolab", 4 * 24 * HOUR),
     "exp-dexamethasone-tests": lambda w: _lab_file(
         w, "dexamethasone-tests", "cushing-disease.mnemolab", 48 * HOUR),
     "exp-addisons-disease": lambda w: _lab_file(
