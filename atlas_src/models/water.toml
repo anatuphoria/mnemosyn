@@ -333,6 +333,8 @@ parameters = ["avp_threshold", "avp_slope"]
 x_low = 270
 x_high = 310
 expr = "avp_scale * pos(avp_slope * (x - avp_threshold))"
+matches = "avp_release"
+input = "sodium"
 
 [[curves]]
 key = "kidney"
@@ -340,6 +342,8 @@ parameters = ["K_u", "n_u"]
 x_low = 0
 x_high = 10
 expr = "uosm_min + kidney * (uosm_max - uosm_min) * (1 - hill(x, K_u, n_u))"
+matches = "concentrating"
+input = "kidney_signal"
 
 [[curves]]
 key = "thirst"
@@ -347,6 +351,8 @@ parameters = ["thirst_threshold", "thirst_slope"]
 x_low = 265
 x_high = 310
 expr = "thirst_slope * pos(x - thirst_threshold)"
+matches = "thirst_drive"
+input = "sodium"
 
 [[curves]]
 key = "drinking"
@@ -354,6 +360,8 @@ parameters = ["drink_threshold", "drink_gain"]
 x_low = 280
 x_high = 310
 expr = "min(drink_max, habit * habit_scale + drink_gain * pos(x - drink_threshold))"
+matches = "drink"
+input = "sodium"
 
 [[effects]]
 key = "avp_release"

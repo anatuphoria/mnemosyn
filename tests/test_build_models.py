@@ -47,7 +47,7 @@ def test_a_curve_names_its_parameters_and_axis(tmp_path):
 def test_groups_stops_and_curves_reach_the_package(toy_lab_atlas):
     model = Atlas.open(toy_lab_atlas).models["toy"]
     assert model.parameter("a").stops[2].name == "Deep"
-    assert model.curve("feedback").expr == "hill(x, k, 2)"
+    assert model.curve("feedback").expr == "hill(x, k, 2) / hill(1, k, 2)"
 
 
 def swap(old: str, new: str, text: str = TOY_MODEL) -> str:
@@ -104,12 +104,23 @@ MISTAKES = [
      "switch needs at least two stops"),
     ("unknown curve parameter", swap('parameters = ["k"]', 'parameters = ["nope"]'),
      "unknown parameter 'nope'"),
-    ("unknown curve name", swap('"hill(x, k, 2)"', '"hill(y, k, 2)"'), "unknown names ['y']"),
+    ("unknown curve name", swap('"hill(x, k, 2) / hill(1, k, 2)"', '"hill(y, k, 2) / hill(1, k, 2)"'), "unknown names ['y']"),
     ("curve range", swap('x_low = 0\nx_high = 10', 'x_low = 5\nx_high = 1'), "x_low must be below x_high"),
     ("curve handle outside range", swap('x_low = 0\nx_high = 10', 'x_low = 0\nx_high = 5'),
      "k runs outside the curve's x range"),
     ("curve setting without curve control", swap('group = "feedback"\ncontrol = "curve"', 'group = "feedback"'),
      "k is in curve feedback, so its control must be curve"),
+    ("curve setting off the panel", swap('group = "feedback"\ncontrol = "curve"',
+                                         'group = "feedback"\ncontrol = "curve"\npanel = false'),
+     "k is in curve feedback but is kept off the panel"),
+    ("curve across groups", swap('parameters = ["k"]', 'parameters = ["k", "stress"]',
+                                 swap('group = "stress"\n', 'group = "stress"\ncontrol = "curve"\n')),
+     "curve feedback mixes the groups feedback and stress"),
+    ("curve differs from its effect", swap('"hill(x, k, 2) / hill(1, k, 2)"', '"hill(x, k, 3) / hill(1, k, 3)"'),
+     "curve feedback does not match fb"),
+    ("curve matches nothing", swap('matches = "fb"', 'matches = "nope"'),
+     "curve feedback matches unknown effect or term 'nope'"),
+    ("curve input unknown", swap('input = "y"', 'input = "q"'), "curve feedback: unknown input 'q'"),
 ]
 
 

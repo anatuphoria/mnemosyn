@@ -60,3 +60,11 @@ def test_every_rate_has_both_notes(shipped):
         for p in model.parameters:
             if p.panel and p.control == "rate":
                 assert f"parameter.{p.key}.up" in texts and f"parameter.{p.key}.down" in texts, p.key
+
+
+def test_every_curve_is_checked_against_its_model_effect():
+    linked = {}
+    for key in ("stress", "water"):
+        rows = tomllib.loads((SRC / "models" / f"{key}.toml").read_text())["curves"]
+        linked |= {(key, row["key"]): row.get("matches") for row in rows}
+    assert {k for k, v in linked.items() if v is None} == {("stress", "tumour")}

@@ -7,7 +7,7 @@ from pathlib import Path
 from cns_atlas.knowledge import CITATION
 from cns_atlas.models import (CONTROLS, Check, Curve, Edit, Effect, Experiment, LabModel, LabTest,
                               NormalNote, Option, Parameter, Part, Reading, Stop, Term, Value)
-from cns_lab.expressions import CONSTANTS, FUNCTIONS, ExpressionError, names
+from cns_lab.expressions import CONSTANTS, FUNCTIONS, ExpressionError, compile_function, names
 from cns_lab.engine import Simulator
 from cns_lab.times import TimeError, clock, duration, moment
 
@@ -21,7 +21,7 @@ FIELDS = {
                "other_scale", "relative", "normal", "lane", "slow", "refs"},
     "parameters": {"key", "value", "unit", "low", "high", "refs", "panel", "group", "control",
                    "stops"},
-    "curves": {"key", "parameters", "x_low", "x_high", "expr"},
+    "curves": {"key", "parameters", "x_low", "x_high", "expr", "matches", "input"},
     "effects": {"key", "expr", "kind", "arrow", "via"},
     "terms": {"key", "value", "sign", "expr", "kind", "arrow", "via"},
     "parts": {"key", "structure", "x", "y", "values"},
@@ -238,7 +238,58 @@ def _curves(r: _Reader, data: dict, parameters: list[Parameter], text) -> list[C
     for p in parameters:
         if p.control == "curve" and p.key not in placed:
             r.say(f"parameter {p.key}: its control is curve but no curve names it")
+    for curve in curves:
+        shown = [by_key[k] for k in curve.parameters if k in by_key]
+        for p in shown:
+            if not p.panel:
+                r.say(f"curve {curve.key}: {p.key} is in curve {curve.key} but is kept off the panel")
+        groups = sorted({p.group for p in shown})
+        if len(groups) > 1:
+            r.say(f"curve {curve.key}: curve {curve.key} mixes the groups {' and '.join(groups)}")
     return curves
+
+
+CURVE_SAMPLES = 7
+CURVE_TOLERANCE = 1e-9
+
+
+def _check_curve_links(r: _Reader, data: dict, curves: list[Curve], values: list, parameters: list,
+                       effects: list, terms: list) -> None:
+    targets = {e.key: e.expr for e in effects} | {t.key: t.expr for t in terms}
+    inputs = {v.key for v in values} | {e.key for e in effects}
+    rows = {row["key"]: row for row in data.get("curves", []) if isinstance(row, dict) and "key" in row}
+    for curve in curves:
+        row = rows.get(curve.key, {})
+        matches, given = row.get("matches"), row.get("input")
+        if matches is None and given is None:
+            continue
+        where = f"curve {curve.key}"
+        if matches not in targets:
+            r.say(f"{where}: curve {curve.key} matches unknown effect or term {matches!r}")
+            continue
+        if given not in inputs:
+            r.say(f"{where}: unknown input {given!r}")
+            continue
+        known = {p.key: p.value for p in parameters} | {v.key: v.start for v in values}
+        known |= {"t": 0.0, "clock": 0.0}
+        known.pop(given, None)
+        try:
+            needed = names(targets[matches]) - {given}
+            if needed - set(known):
+                r.say(f"{where}: {matches} needs {sorted(needed - set(known))}, so it cannot be drawn")
+                continue
+            settings = {p.key: p.value for p in parameters}
+            target = compile_function({"_y": targets[matches]}, (given, *known))
+            drawn = compile_function({"_y": curve.expr}, ("x", *settings))
+            for i in range(CURVE_SAMPLES):
+                x = curve.x_low + (curve.x_high - curve.x_low) * i / (CURVE_SAMPLES - 1)
+                want = target(x, *known.values())[0]
+                got = drawn(x, *settings.values())[0]
+                if abs(got - want) > CURVE_TOLERANCE * max(1.0, abs(want)):
+                    r.say(f"{where}: curve {curve.key} does not match {matches} at x = {x:g}")
+                    break
+        except (ExpressionError, ZeroDivisionError, OverflowError, ValueError) as exc:
+            r.say(f"{where}: cannot compare with {matches} ({exc})")
 
 
 def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dict,
@@ -406,6 +457,7 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
                           r.expr(row.get("expr"), allowed, where), str(row.get("kind")),
                           arrow(row, where), via(row, where)))
         text(f"term.{k}")
+    _check_curve_links(r, data, curves, values, parameters, effects, terms)
     names_used = value_keys | parameter_keys | {e.key for e in effects} | {t.key for t in terms}
     if len(names_used) != len(values) + len(parameters) + len(effects) + len(terms):
         r.say("keys of values, parameters, effects and terms must all differ")

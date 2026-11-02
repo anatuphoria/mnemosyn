@@ -41,5 +41,5 @@ def test_curve_points_follow_the_edited_value(tmp_path):
     curve = model.curve("feedback")
     normal = dict(curve_points(model, curve, {}, 11))
     edited = dict(curve_points(model, curve, {"k": 4.0}, 11))
-    assert normal[1.0] == pytest.approx(0.5) and edited[4.0] == pytest.approx(0.5)
+    assert normal[1.0] == pytest.approx(1.0) and edited[4.0] == pytest.approx(0.5 * 17 / 16)
     assert len(normal) == 11 and min(normal) == 0.0 and max(normal) == 10.0

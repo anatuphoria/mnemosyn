@@ -855,7 +855,9 @@ key = "feedback"
 parameters = ["k"]
 x_low = 0
 x_high = 10
-expr = "hill(x, k, 2)"
+expr = "hill(x, k, 2) / hill(1, k, 2)"
+matches = "fb"
+input = "y"
 
 [[parts]]
 key = "a"
