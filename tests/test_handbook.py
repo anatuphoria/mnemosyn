@@ -1,4 +1,8 @@
+import json
+import re
 from pathlib import Path
+
+import pytest
 
 from cns_atlas.knowledge import load_references
 from cns_lab.checks import check_experiment, run_check
@@ -10,9 +14,12 @@ from tools.build_atlas.hierarchy import load_structures
 from tools.build_atlas.models import load_models
 from tools.build_atlas.pathways import load_pathways
 from tools.handbook.experiments import FILES, experiment, load, write_files
+from tools.handbook.shots import SHOTS, take
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "atlas_src"
+HANDBOOK = ROOT / "site" / "handbook"
+PAGES = sorted(HANDBOOK.rglob("*.md"))
 _MODELS: dict = {}
 
 
@@ -75,3 +82,40 @@ def test_every_lab_experiment_has_a_page_and_every_page_its_files():
     lab, atlas = load()
     slugs = {e.slug for e in lab} | {c.slug for c in atlas}
     assert len(slugs) == 8
+
+
+@pytest.fixture
+def local_toy_atlas(tmp_path):
+    from atlas_package import tetra, tiny_structures, write_package
+
+    root = write_package(tmp_path / "pkg", tiny_structures(), meshes={101: tetra()})
+    metadata = json.loads((root / "metadata.json").read_text())
+    metadata["local_only"] = ["toylocal"]
+    (root / "metadata.json").write_text(json.dumps(metadata))
+    return root
+
+
+def test_shots_refuse_a_local_atlas(tmp_path, local_toy_atlas):
+    with pytest.raises(ValueError, match="shareable atlas"):
+        take(local_toy_atlas, tmp_path)
+
+
+def test_every_page_reference_exists():
+    for page in PAGES:
+        for target in re.findall(r"\]\(([^)#\s]+)", page.read_text()):
+            if "://" not in target:
+                assert (page.parent / target).resolve().exists(), (page, target)
+
+
+def test_every_shot_is_used_and_every_used_shot_is_defined():
+    used = {m for p in PAGES for m in re.findall(r"shots/([\w-]+)\.png", p.read_text())}
+    assert used <= set(SHOTS)
+    for name in used:
+        assert (HANDBOOK / "shots" / f"{name}.png").exists(), name
+
+
+def test_handbook_pages_follow_the_writing_rules():
+    for page in PAGES:
+        for number, line in enumerate(page.read_text().splitlines(), 1):
+            assert "\u2014" not in line and "\u2013" not in line, (page, number)
+            assert " - " not in line and not line.lstrip().startswith("- "), (page, number)
