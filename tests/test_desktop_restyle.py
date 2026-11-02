@@ -107,26 +107,23 @@ def test_progress_lists_use_no_dashes(window, qapp):
     from cns_desktop.views.progress_dialog import ProgressDialog
 
     dialog = ProgressDialog(window.state.atlas, window.progress_store(), window)
-    rows = [dialog.weakest.item(i).text() for i in range(dialog.weakest.count())]
+    rows = [row.name.text() for row in dialog.weak_rows]
     assert not any(" - " in row for row in rows)
-    assert dialog.heading.property("role") == "heading"
+    assert dialog.weak_heading.property("role") == "heading"
     dialog.reject()
 
 
-def test_the_progress_table_shows_every_column_whole(window, qapp):
-    from cns_desktop.views.progress_dialog import COLUMNS, MODE_LABELS, ProgressDialog
+def test_progress_shows_every_level_name_and_count_whole(window, qapp):
+    from cns_desktop.views.progress_dialog import ProgressDialog
 
     dialog = ProgressDialog(window.state.atlas, window.progress_store(), window)
     dialog.show()
     qapp.processEvents()
-    table = dialog.table
-    assert table.horizontalScrollBar().maximum() == 0
-    metrics = table.fontMetrics()
-    widest = max(metrics.horizontalAdvance(label) for label in MODE_LABELS.values())
-    assert table.columnWidth(0) >= widest
-    header = table.horizontalHeader().fontMetrics()
-    for n, name in enumerate(COLUMNS):
-        assert table.columnWidth(n) >= header.horizontalAdvance(name), name
+    for row in dialog.levels.values():
+        for label in (row.name, row.learning, row.due):
+            assert label.width() >= label.sizeHint().width(), label.text()
+    for label in dialog.tiles.values():
+        assert label.width() >= label.sizeHint().width()
     dialog.reject()
 
 

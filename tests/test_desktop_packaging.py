@@ -39,7 +39,9 @@ def test_the_about_box_names_a_test_version(monkeypatch, tmp_path):
 
     root = write_package(tmp_path / "pkg", tiny_structures(), meshes={101: tetra()})
     monkeypatch.setattr(about, "app_version", lambda: "0.1.0")
-    assert "Version 0.1.0, test version" in about.about_text(Atlas.open(root))
+    dialog = about.AboutDialog(Atlas.open(root))
+    assert dialog.version.text() == "Version 0.1.0"
+    assert dialog.test_tag is not None and dialog.test_tag.text() == "Test version"
 
 
 def test_the_app_wears_the_mark():
@@ -51,9 +53,10 @@ def test_the_app_wears_the_mark():
     assert (app.RESOURCES / "mark.png").exists() and (app.RESOURCES / "logo.svg").exists()
 
 
-def test_the_about_box_opens_with_the_logo(tmp_path):
-    from PySide6.QtSvgWidgets import QSvgWidget
+def test_the_about_box_opens_with_the_mark(tmp_path):
     from PySide6.QtWidgets import QApplication
+
+    from cns_desktop.design.brand import KeyMark
 
     from atlas_package import tetra, tiny_structures, write_package
     from cns_atlas import Atlas
@@ -61,5 +64,4 @@ def test_the_about_box_opens_with_the_logo(tmp_path):
     QApplication.instance() or QApplication([])
     root = write_package(tmp_path / "pkg", tiny_structures(), meshes={101: tetra()})
     dialog = about.AboutDialog(Atlas.open(root))
-    marks = dialog.findChildren(QSvgWidget)
-    assert len(marks) == 1 and marks[0].renderer().isValid()
+    assert len(dialog.findChildren(KeyMark)) == 1

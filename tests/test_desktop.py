@@ -22,10 +22,10 @@ from cns_desktop.design import rich
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.main_window import MainWindow, default_progress_path, migrate_progress
 from cns_desktop.state import AppState
-from cns_desktop.views.about_dialog import AboutDialog, about_text
+from cns_desktop.views.about_dialog import AboutDialog
 from cns_desktop.views.quiz_setup import NO_ITEMS, NO_REVIEWED, NOTHING_DUE
 from cns_desktop.views.slice_panel import NO_TEMPLATE, NOT_RAS, SlicePanel
-from cns_study.progress import day_start
+from cns_study.progress import ModeStats, day_start
 from cns_study.session import QuizChoice
 
 
@@ -144,11 +144,15 @@ def test_info_panel_without_entry(window):
 
 def about_rows(atlas):
     dialog = AboutDialog(atlas)
-    return [dialog.sources.item(i).text() for i in range(dialog.sources.count())]
+    return [f"{r.provides.text()} · {r.authors.text()} · {r.tag.text()}" for r in dialog.rows]
+
+
+def about_notes(atlas):
+    return [note.text() for note in AboutDialog(atlas).notes]
 
 
 def test_about_text_has_disclaimer_and_sources(atlas):
-    assert DISCLAIMER in about_text(atlas)
+    assert DISCLAIMER in about_notes(atlas)[0]
     assert any(row.startswith("Toy labelled atlas · Test 2024") for row in about_rows(atlas))
 
 
@@ -157,10 +161,10 @@ def test_about_dialog_fits_and_lists_every_source(window, atlas):
     assert dialog.width() <= 1366 and dialog.height() <= 768
     assert [dialog.tabs.tabText(i) for i in range(dialog.tabs.count())] == ["About",
                                                                           "Data sources"]
-    assert dialog.sources.count() == len(atlas.sources)
-    dialog.sources.setCurrentRow(0)
+    assert len(dialog.rows) == len(atlas.sources)
+    dialog.rows[0].toggle()
     first = next(iter(atlas.sources.values()))
-    assert first.citation() in dialog.detail.text()
+    assert first.citation() in dialog.rows[0].detail.text()
 
 
 def test_disclaimer_shows_at_every_start_until_its_box_is_ticked(window, tmp_path):
@@ -681,12 +685,12 @@ def test_progress_window_counts_reviews(window):
     quiz.go_on(Rating.Easy)
     quiz.stop()
     dialog = window.show_progress()
-    cells = [dialog.table.item(0, column).text() for column in range(7)]
     due = window.progress_store().card(100, "name-typed").due
     week_end = day_start(datetime.now(UTC), 7)
-    in_week = "1" if due < week_end else "0"
-    assert cells == ["Name it (typed)", "Structures", "2", "0", "1", "0", in_week]
-    assert dialog.weakest.count() == 1 and "Alpha gyrus" in dialog.weakest.item(0).text()
+    in_week = 1 if due < week_end else 0
+    assert dialog.stats["name-typed", "structures"] == ModeStats(2, 0, 1, 0, in_week)
+    assert dialog.modes.current() == "name-typed"
+    assert [row.name.text() for row in dialog.weak_rows] == ["Alpha gyrus"]
     dialog.reject()
 
 
@@ -831,7 +835,7 @@ def test_a_failed_save_keeps_the_answer_on_screen(window, monkeypatch):
 
 def test_the_app_is_called_mnemosyn(window, atlas):
     assert window.windowTitle().startswith("Mnemosyn: ")
-    assert "<h3>Mnemosyn</h3>" in about_text(atlas)
+    assert AboutDialog(atlas).name.text() == "Mnemosyn"
 
 
 def test_progress_moves_from_the_old_folder(tmp_path):
@@ -927,8 +931,8 @@ def local_atlas(tmp_path):
 
 def test_a_local_build_says_it_is_not_for_sharing(qapp, tmp_path):
     atlas = local_atlas(tmp_path)
-    assert "may not be shared yet" in about_text(atlas)
-    assert any(" · local only · " in row for row in about_rows(atlas))
+    assert "may not be shared yet" in about_notes(atlas)[1]
+    assert any(row.endswith(" · Local only") for row in about_rows(atlas))
     w = MainWindow(atlas, progress_path=tmp_path / "progress.sqlite")
     assert w.windowTitle().endswith("(local build, not for sharing)")
     w.close()
@@ -936,7 +940,7 @@ def test_a_local_build_says_it_is_not_for_sharing(qapp, tmp_path):
 
 def test_a_shareable_build_has_no_local_notice(window, atlas):
     assert "not for sharing" not in window.windowTitle()
-    assert "may not be shared" not in about_text(atlas)
+    assert len(about_notes(atlas)) == 1
 
 
 def test_the_about_box_lists_local_sources_without_a_citation(tmp_path):
@@ -944,7 +948,7 @@ def test_the_about_box_lists_local_sources_without_a_citation(tmp_path):
     metadata = json.loads((root / "metadata.json").read_text())
     metadata["local_only"] = ["ghost-source"]
     (root / "metadata.json").write_text(json.dumps(metadata))
-    assert "ghost-source" in about_text(Atlas.open(root))
+    assert "ghost-source" in about_notes(Atlas.open(root))[1]
 
 
 def test_the_activity_chart_keeps_its_axes_between_selections(window):
@@ -968,21 +972,22 @@ def test_hiding_one_structure_updates_only_its_branch_of_the_tree(window, monkey
     assert window.tree.items[100].checkState(0) == Qt.CheckState.PartiallyChecked
 
 
-def test_about_rows_keep_full_surnames_and_show_local_tags_early():
+def test_about_rows_keep_full_surnames_and_tag_local_sources():
     from cns_atlas.model import Source
-    from cns_desktop.views.about_dialog import source_row
+    from cns_desktop.views.about_dialog import SourceRow
 
     source = Source("pam50", "PAM50", "De Leener B, Fonov VS", 2018, "1",
                     "No licence stated; local use only until the authors allow sharing",
                     False, provides="Spinal cord segments")
-    assert source_row(source, True).startswith("Spinal cord segments · De Leener et al. 2018"
-                                               " · local only · ")
+    row = SourceRow(source, True)
+    assert (row.provides.text(), row.authors.text(), row.tag.text()) == (
+        "Spinal cord segments", "De Leener et al. 2018", "Local only")
 
 
 def test_the_about_tab_shows_the_app_version(atlas):
     from cns_desktop.views.about_dialog import app_version
 
-    assert f"Version {app_version()}" in about_text(atlas)
+    assert AboutDialog(atlas).version.text() == f"Version {app_version()}"
 
 
 def test_the_status_bar_shows_the_selection_and_the_right_hint_only(window):

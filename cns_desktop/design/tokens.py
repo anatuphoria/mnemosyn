@@ -61,6 +61,17 @@ SIZE = {
     "note_max": 90,
     "window": (1500, 900),
     "dialog": (720, 480),
+    "dialog_about": (720, 520),
+    "dialog_progress": (720, 560),
+    "mark": 44,
+    "tag_column": 130,
+    "label_column": 110,
+    "count_column": 64,
+    "percent_column": 40,
+    "recall_bar": 120,
+    "bar": 6,
+    "stat_row": 44,
+    "border": 1,
 }
 
 RADIUS = {"small": 4, "control": 6, "panel": 8}

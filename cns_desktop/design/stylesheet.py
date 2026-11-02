@@ -179,6 +179,20 @@ QScrollArea[strip="true"], QScrollArea[strip="true"] > QWidget > QWidget { backg
 QScrollArea[strip="true"] QFrame[card="true"] { background: $card_float; }
 QLabel[chip="true"] { background: $s2; border: 1px solid $line; border-radius: ${r_small}px;
     padding: 0 6px; font-size: 11px; font-weight: 500; }
+QLabel[chip="true"][tone="edited"] { background: $edited_soft; border-color: transparent; }
+QLabel[chip="true"][tone="accent_text"] { background: $accent_soft; border-color: transparent; }
+QFrame[sourcerow="true"] { background: transparent; border: 1px solid transparent;
+    border-radius: ${r_small}px; }
+QFrame[sourcerow="true"]:hover, QFrame[sourcerow="true"][open="true"] { background: $s2; }
+QFrame[sourcerow="true"]:focus { border-color: $accent; }
+QFrame[sourcerow="true"] QLabel, QFrame[sourcerow="true"] QWidget { background: transparent; }
+QFrame[tablehead="true"] { background: transparent; border: none;
+    border-bottom: 1px solid $line; }
+QFrame[tablehead="true"] QLabel { background: transparent; }
+QFrame[panel="true"] { background: $s1; border: none; border-radius: ${r_panel}px; }
+QFrame[panel="true"] QLabel, QFrame[panel="true"] QWidget { background: transparent; }
+QFrame[panelrow="true"] { background: transparent; border: none; border-top: 1px solid $line; }
+QFrame[panelrow="true"][first="true"] { border-top: none; }
 QLabel[keycap="true"] { background: $s3; border: 1px solid $line; border-radius: ${r_small}px;
     padding: 0 4px; }
 
@@ -201,7 +215,8 @@ def build() -> str:
         inner=SIZE["control"] - 2, spin=SIZE["control"] - 5,
         inner_focus=SIZE["control"] - 4, spin_focus=SIZE["control"] - 7, row=SIZE["row"],
         row_inner=SIZE["row"] - 2 * GAP["tight"], tight=GAP["tight"], status=SIZE["status"],
-        sel=_rgba("accent", 0.15), card_float=_rgba("s2", 0.86), roles=_roles(),
+        sel=_rgba("accent", 0.15), edited_soft=_rgba("edited", 0.14),
+        accent_soft=_rgba("accent", 0.18), card_float=_rgba("s2", 0.86), roles=_roles(),
         down=_image("chevron-down"), up=_image("chevron-up"), check=_image("check", "text"),
         minus=_image("minus", "text"), branch_closed=_image("chevron-right"),
         branch_open=_image("chevron-down"),
