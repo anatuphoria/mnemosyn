@@ -16,7 +16,7 @@ length = "1 d"
 title = "Nephrogenic diabetes insipidus: the desmopressin test"
 note = "From the Mnemosyn handbook: Central or nephrogenic?"
 blocks = [{ experiment = "nephrogenic_di", mode = "present" }, { experiment = "desmopressin_test", start = "day 1 08:00" }]
-asserts = [{ kind = "within", value = "uosm", at = "day 1 16:00", low = 0, high = 300 }, { kind = "test_result", block = 1, expect = "normal" }]
+asserts = [{ kind = "within", value = "uosm", at = "day 1 16:00", low = 0, high = 300 }, { kind = "test_result", block = 1, expect = "normal" }, { kind = "vs_normal", value = "avp", at = "day 1 14:00", rises = 2 }]
 
 [[lab]]
 slug = "a-night-without-water"
@@ -26,7 +26,7 @@ length = "1 d"
 title = "A healthy body: the water deprivation test"
 note = "From the Mnemosyn handbook: A night without water"
 blocks = [{ experiment = "water_deprivation_test", start = "day 1 08:00" }]
-asserts = [{ kind = "test_result", block = 0, expect = "normal" }]
+asserts = [{ kind = "test_result", block = 0, expect = "normal" }, { kind = "vs_normal", value = "sodium", at = "day 1 16:00", rises = 1.005 }, { kind = "vs_normal", value = "avp", at = "day 1 16:00", rises = 1.5 }]
 
 [[lab]]
 slug = "a-night-without-water"
@@ -36,7 +36,7 @@ length = "1 d"
 title = "Central diabetes insipidus: the water deprivation test"
 note = "From the Mnemosyn handbook: A night without water"
 blocks = [{ experiment = "central_di", mode = "present" }, { experiment = "water_deprivation_test", start = "day 1 08:00" }]
-asserts = [{ kind = "test_result", block = 1, expect = "abnormal" }]
+asserts = [{ kind = "test_result", block = 1, expect = "abnormal" }, { kind = "vs_normal", value = "sodium", at = "day 1 16:00", rises = 1.05 }, { kind = "vs_normal", value = "thirst", at = "day 1 16:00", rises = 3 }]
 
 [[lab]]
 slug = "too-much-water"
@@ -46,7 +46,7 @@ length = "5 d"
 title = "SIADH"
 note = "From the Mnemosyn handbook: Too much water"
 blocks = [{ experiment = "siadh", start = "day 1 08:00" }]
-asserts = [{ kind = "within", value = "sodium", at = "day 5 08:00", low = 110, high = 135 }, { kind = "within", value = "uosm", at = "day 5 08:00", low = 300, high = 2000 }]
+asserts = [{ kind = "within", value = "sodium", at = "day 5 08:00", low = 110, high = 135 }, { kind = "within", value = "uosm", at = "day 5 08:00", low = 300, high = 2000 }, { kind = "vs_normal", value = "avp", at = "day 4 08:00", rises = 3 }]
 
 [[lab]]
 slug = "too-much-water"
@@ -56,7 +56,7 @@ length = "2 d"
 title = "Primary polydipsia"
 note = "From the Mnemosyn handbook: Too much water"
 blocks = [{ experiment = "primary_polydipsia", mode = "present" }]
-asserts = [{ kind = "within", value = "uosm", at = "day 2 12:00", low = 50, high = 300 }, { kind = "within", value = "sodium", at = "day 2 12:00", low = 135, high = 145 }]
+asserts = [{ kind = "within", value = "uosm", at = "day 2 12:00", low = 50, high = 300 }, { kind = "within", value = "sodium", at = "day 2 12:00", low = 135, high = 145 }, { kind = "vs_normal", value = "avp", at = "day 2 12:00", falls = 0.7 }]
 
 [[lab]]
 slug = "dexamethasone-tests"
@@ -86,7 +86,7 @@ length = "3 d"
 title = "An adrenal tumour: the dexamethasone tests"
 note = "From the Mnemosyn handbook: The dexamethasone tests"
 blocks = [{ experiment = "adrenal_tumour", mode = "present" }, { experiment = "low_dose_test", start = "day 1 23:00" }, { experiment = "high_dose_test", start = "day 2 23:00" }]
-asserts = [{ kind = "test_result", block = 1, expect = "abnormal" }, { kind = "test_result", block = 2, expect = "abnormal" }]
+asserts = [{ kind = "test_result", block = 1, expect = "abnormal" }, { kind = "test_result", block = 2, expect = "abnormal" }, { kind = "vs_normal", value = "acth", at = "day 1 20:00", falls = 0.5 }]
 
 [[lab]]
 slug = "addisons-disease"
@@ -96,7 +96,7 @@ length = "2 d"
 title = "Addison's disease"
 note = "From the Mnemosyn handbook: Addison's disease"
 blocks = [{ experiment = "addison", mode = "present" }]
-asserts = [{ kind = "vs_normal", value = "cortisol", at = "day 2 08:00", falls = 0.5 }, { kind = "vs_normal", value = "acth", at = "day 2 08:00", rises = 2 }]
+asserts = [{ kind = "vs_normal", value = "cortisol", at = "day 2 08:00", falls = 0.5 }, { kind = "vs_normal", value = "acth", at = "day 2 08:00", rises = 5 }, { kind = "vs_normal", value = "crh", at = "day 2 08:00", rises = 1.3 }]
 
 [[lab]]
 slug = "stopping-a-steroid-course"
@@ -106,7 +106,7 @@ length = "8 w"
 title = "Four weeks of hydrocortisone, then stopping"
 note = "From the Mnemosyn handbook: Stopping a steroid course"
 blocks = [{ experiment = "hydrocortisone_course", start = "day 1 08:00" }]
-asserts = [{ kind = "vs_normal", value = "adrenal", at = "day 29 07:59", falls = 0.75 }, { kind = "vs_normal", value = "cortisol", at = "day 31 08:00", falls = 0.8 }, { kind = "back_to_normal", value = "cortisol", by = "day 56 08:00", tolerance = 0.15 }]
+asserts = [{ kind = "vs_normal", value = "adrenal", at = "day 29 07:59", falls = 0.75 }, { kind = "vs_normal", value = "cortisol", at = "day 31 08:00", falls = 0.8 }, { kind = "back_to_normal", value = "cortisol", by = "day 56 08:00", tolerance = 0.15 }, { kind = "vs_normal", value = "acth", at = "day 14 10:00", falls = 0.2 }, { kind = "vs_normal", value = "acth", at = "day 31 08:00", rises = 1.05 }]
 
 [[atlas]]
 slug = "one-artery-many-structures"

@@ -81,7 +81,14 @@ def test_the_committed_files_match_the_definitions(tmp_path):
 def test_every_lab_experiment_has_a_page_and_every_page_its_files():
     lab, atlas = load()
     slugs = {e.slug for e in lab} | {c.slug for c in atlas}
-    assert len(slugs) == 8
+    pages = {p.stem for p in (HANDBOOK / "experiments").glob("*.md")} - {"index"}
+    assert len(slugs) == 8 and pages == slugs
+    for entry in lab:
+        text = (HANDBOOK / "experiments" / f"{entry.slug}.md").read_text()
+        assert f"files/{entry.slug}/{entry.file}" in text, (entry.slug, entry.file)
+    for slug in slugs:
+        text = (HANDBOOK / "experiments" / f"{slug}.md").read_text()
+        assert "This page is being written" not in text, slug
 
 
 @pytest.fixture
