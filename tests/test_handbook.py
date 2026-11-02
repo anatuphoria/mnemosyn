@@ -100,8 +100,12 @@ def test_shots_refuse_a_local_atlas(tmp_path, local_toy_atlas):
         take(local_toy_atlas, tmp_path)
 
 
-def test_every_page_reference_exists():
-    for page in PAGES:
+def test_every_page_reference_exists(tmp_path):
+    from tools.build_site import build_site
+
+    out = tmp_path / "site"
+    build_site(ROOT, out)
+    for page in sorted((out / "handbook").rglob("*.md")):
         for target in re.findall(r"\]\(([^)#\s]+)", page.read_text()):
             if "://" not in target:
                 assert (page.parent / target).resolve().exists(), (page, target)
