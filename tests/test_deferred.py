@@ -155,7 +155,7 @@ def test_a_short_window_scrolls_its_panels(qapp, toy_lab_atlas, tmp_path, name):
             w.resize(1400, 380)
             qapp.processEvents()
         assert w.height() == 380, name
-        holder = w.pathways.parentWidget().parentWidget()
+        holder = w.pathways.steps_page.parentWidget().parentWidget()
         assert isinstance(holder, QScrollArea)
     finally:
         w.lab.document.undo.setClean()

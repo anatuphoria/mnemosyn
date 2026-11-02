@@ -32,11 +32,15 @@ def labels(panel):
 
 def test_the_list_has_group_headings(window):
     choices = window.pathways.choices
-    texts = [choices.item(i).text() for i in range(choices.count())]
+    texts = []
+    for n in range(choices.topLevelItemCount()):
+        group = choices.topLevelItem(n)
+        texts += [group.text(0)] + [group.child(m).text(0) for m in range(group.childCount())]
     assert texts == ["Sensory and motor", "Toy loop", "Short path", "Behaviour",
                      "Toy mood circuit"]
-    assert choices.item(3).flags() == Qt.ItemFlag.NoItemFlags
-    choices.itemClicked.emit(choices.item(3))
+    behaviour = choices.topLevelItem(1)
+    assert not behaviour.flags() & Qt.ItemFlag.ItemIsSelectable
+    choices.itemClicked.emit(behaviour, 0)
     assert not window.pathway_active
 
 

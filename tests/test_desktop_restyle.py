@@ -77,11 +77,11 @@ def test_pathway_sides_and_controls_use_the_shared_widgets(window, qapp):
     assert panel.back_button.toolTip() == "Back  Left"
     assert panel.next_button.toolTip() == "Next  Right"
     assert RELAY_COLOR.name() == COLOURS["normal"]
-    header = panel.choices.item(0)
-    assert header.font().capitalization() == header.font().Capitalization.AllUppercase
-    assert header.font().pixelSize() == TYPE["data"][0]
-    assert panel.leave_button.text() == "Leave pathway"
-    assert panel.leave_button.toolTip() == "Leave pathway  Esc"
+    header = panel.choices.topLevelItem(0)
+    assert header.font(0).capitalization() == header.font(0).Capitalization.AllUppercase
+    assert header.font(0).pixelSize() == TYPE["data"][0]
+    assert panel.steps_page.close_button.text() == "Close route"
+    assert panel.steps_page.close_button.toolTip() == "Close route  Esc"
     assert panel.title.property("role") == "heading"
     assert panel.start.property("role") == "secondary"
 

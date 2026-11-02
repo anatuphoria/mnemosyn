@@ -54,7 +54,7 @@ MOUSE_HINT = "drag rotates · right drag pans · wheel zooms · click selects"
 GUIDE_URL = "https://mnemo.saeed.cool/guide/"
 KEYS = {
     "explore": (("F", "frame"), ("H", "hide"), ("I", "isolate"), ("Q", "quiz")),
-    "pathway": (("Space", "play"), ("←", "back"), ("→", "next"), ("Esc", "leave")),
+    "pathway": (("Space", "play"), ("←", "back"), ("→", "next"), ("Esc", "close")),
     "quiz": (("Esc", "end the quiz"),),
     "lab": (("Space", "play"), ("V", "brain or circuit"), ("Del", "remove change")),
 }
@@ -142,7 +142,12 @@ class MainWindow(QMainWindow):
         self.pathways = PathwayPanel(self.state, hold=self._held)
         left, right = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea
         self.structures_group = self._group("Structures", self.tree, left)
-        self.routes_group = self._group("Pathways", self.pathways, left)
+        self.routes_group = PanelGroup("Pathways", [
+            ("routes", "Routes", self.pathways.routes_page),
+            ("steps", "Steps", self.pathways.steps_page)], self)
+        self.addDockWidget(left, self.routes_group)
+        self.pathways.setParent(self)
+        self.pathways.hide()
         self.slices_group = self._group("Slices", self.slices, right)
         self.info_group = self._group("Info", self.info, right)
         self.activity_group = self._group("Activity", self.chart,
@@ -200,6 +205,7 @@ class MainWindow(QMainWindow):
         self.pathways.centre_requested.connect(self.slices.centre_on_selection)
         self.pathways.timeline_changed.connect(self._on_timeline)
         self.pathways.step_drawn.connect(self._paint_route)
+        self.pathways.show_tab.connect(self.routes_group.show_page)
         self.pathways.route_opened.connect(self._frame_route)
         self.pathways.time_changed.connect(self.chart.set_time)
         self.chart.seek_requested.connect(self.pathways.seek)
@@ -304,12 +310,12 @@ class MainWindow(QMainWindow):
         for name, icon in (("Frame selection", "maximize"), ("Reset view", "rotate-ccw")):
             self.viewport.add_tool(widgets.icon_button(self.shortcuts[name], icon))
         self.viewport.add_tool(buttons(("Tracts",))[0])
-        leave = QAction("Leave pathway", self, shortcut=QKeySequence("Esc"),
+        leave = QAction("Close route", self, shortcut=QKeySequence("Esc"),
                         triggered=self.pathways.leave)
         leave.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
         leave.setEnabled(False)
         self.addAction(leave)
-        self.shortcuts["Leave pathway"] = leave
+        self.shortcuts["Close route"] = leave
         for name, key, slot in (("Play or pause", "Space", self.pathways.toggle_play),
                                 ("Back", "Left", self.pathways.back),
                                 ("Next", "Right", self.pathways.next)):
@@ -576,7 +582,7 @@ class MainWindow(QMainWindow):
         self.pathway_active = True
         for name in PATHWAY_LOCKED:
             self.shortcuts[name].setEnabled(False)
-        self.shortcuts["Leave pathway"].setEnabled(True)
+        self.shortcuts["Close route"].setEnabled(True)
         self._sync_chart()
         for name in ROUTE_KEYS:
             self.shortcuts[name].setEnabled(True)
@@ -588,7 +594,7 @@ class MainWindow(QMainWindow):
         self.pathway_active = False
         for name in PATHWAY_LOCKED:
             self.shortcuts[name].setEnabled(True)
-        self.shortcuts["Leave pathway"].setEnabled(False)
+        self.shortcuts["Close route"].setEnabled(False)
         with self._held():
             self.view.set_lab_colors({i: None for i in self._route_painted})
             self._route_painted = set()

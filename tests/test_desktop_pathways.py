@@ -49,21 +49,22 @@ def hidden_ids(state) -> set[int]:
 
 def test_the_dock_lists_the_pathways(window):
     choices = window.pathways.choices
-    assert [choices.item(i).text() for i in range(choices.count())] == [
-        "Sensory and motor", "Toy loop", "Short path"]
+    group = choices.topLevelItem(0)
+    assert choices.topLevelItemCount() == 1 and group.text(0) == "Sensory and motor"
+    assert [group.child(i).text(0) for i in range(group.childCount())] == ["Toy loop", "Short path"]
     assert window.pathways.empty.isHidden()
 
 
 def test_an_atlas_without_pathways_says_so(qapp, toy_tract_atlas, tmp_path):
     w = open_window(qapp, toy_tract_atlas, tmp_path)
-    assert w.pathways.choices.count() == 0 and not w.pathways.empty.isHidden()
+    assert w.pathways.choices.topLevelItemCount() == 0 and not w.pathways.empty.isHidden()
     w.close()
 
 
 def test_clicking_a_pathway_in_the_list_enters_it(window):
-    window.pathways.choices.itemClicked.emit(window.pathways.choices.item(1))
+    window.pathways.choices.itemClicked.emit(window.pathways.item_for("loop"), 0)
     assert window.pathway_active and window.pathways.pathway.key == "loop"
-    assert window.pathways.pages.currentIndex() == 1
+    assert window.routes_group.current() == "steps"
 
 
 def test_entering_fades_everything_off_the_route_on_the_chosen_side(window):
@@ -76,7 +77,7 @@ def test_entering_fades_everything_off_the_route_on_the_chosen_side(window):
     assert state.selected == 101 and state.emphasis == (101,) and view.overlay_ids == [101]
     for name in ("Hide", "Isolate", "Show all", "Tracts"):
         assert not window.shortcuts[name].isEnabled()
-    assert window.shortcuts["Leave pathway"].isEnabled()
+    assert window.shortcuts["Close route"].isEnabled()
 
 
 def test_steps_are_labelled_with_their_resolved_sides(window):
@@ -168,13 +169,13 @@ def test_leaving_restores_visibility_selection_slice_and_opacity(window):
     panel.go(3)
     panel.set_side("right")
     QTest.keyClick(panel, Qt.Key.Key_Escape)
-    assert not window.pathway_active and panel.pages.currentIndex() == 0
+    assert not window.pathway_active and window.routes_group.current() == "routes"
     assert state.focus is None and state.emphasis == ()
     assert hidden_ids(state) == hidden
     assert state.selected == 132 and (state.slice_axis, state.slice_mm) == ("coronal", 8.0)
     assert not view.chunks.has_opacities()
     assert window.shortcuts["Hide"].isEnabled()
-    assert not window.shortcuts["Leave pathway"].isEnabled()
+    assert not window.shortcuts["Close route"].isEnabled()
 
 
 def test_switching_pathways_keeps_the_first_saved_state(window):
@@ -260,7 +261,7 @@ def test_showing_the_dock_builds_the_tracts_before_the_first_entry(window, qapp)
 
 def test_enter_on_the_list_opens_a_pathway(window):
     choices = window.pathways.choices
-    choices.setCurrentRow(1)
+    choices.setCurrentItem(window.pathways.item_for("loop"))
     choices.setFocus()
     QTest.keyClick(choices, Qt.Key.Key_Return)
     assert window.pathway_active and window.pathways.pathway.key == "loop"
@@ -274,16 +275,19 @@ def test_leaving_draws_the_3d_view_once(window):
 
 
 
-def test_the_pathway_page_holds_the_controls_and_the_leave_button(window):
+def test_the_pathway_page_holds_the_controls_and_the_close_button(window):
     panel = enter(window)
     assert not hasattr(window.chart, "back_button") and not hasattr(window.chart, "next_button")
-    assert panel.leave_button.text() == "Leave pathway"
+    assert panel.steps_page.close_button.text() == "Close route"
     assert panel.back_button.isEnabled() is False
     panel.go(2)
     assert panel.back_button.isEnabled() and panel.next_button.isEnabled()
 
 
 def test_long_step_and_route_names_wrap_without_a_sideways_scroll_bar(window):
-    for names in (window.pathways.steps, window.pathways.choices):
-        assert names.wordWrap()
+    steps, choices = window.pathways.steps, window.pathways.choices
+    assert steps.wordWrap()
+    for names in (steps, choices):
         assert names.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    item = window.pathways.item_for("loop")
+    assert choices.textElideMode() == Qt.TextElideMode.ElideRight and item.toolTip(0) == item.text(0)
