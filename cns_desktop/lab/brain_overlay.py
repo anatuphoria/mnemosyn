@@ -24,6 +24,7 @@ LABEL_FONT = str(FONTS / "Inter-Medium.ttf")
 ZERO = 1e-9
 GAP = 3
 NUDGE = 10
+BRAIN_ACRONYM = "Br"
 
 
 def label_layer(view) -> vtkRenderer:
@@ -128,6 +129,11 @@ def _mix(own, target, amount: float) -> tuple[float, float, float]:
     return tuple((o + (t / 255 - o) * amount) for o, t in zip(own, target))
 
 
+def find_brain(structures) -> object | None:
+    roots = {s.id for s in structures if s.parent is None}
+    return next((s for s in structures if s.acronym == BRAIN_ACRONYM and s.parent in roots), None)
+
+
 class LabBrain:
     def __init__(self, document, view, viewport, state) -> None:
         self.document = document
@@ -180,8 +186,7 @@ class LabBrain:
 
     def brain_bounds(self) -> tuple[float, ...]:
         atlas = self.state.atlas
-        brain = next((s for s in atlas.structures if s.name == "Brain" and s.parent is not None
-                      and atlas.get(s.parent).parent is None), None)
+        brain = find_brain(atlas.structures)
         ids = [] if brain is None else [i for i in self.state.geometry_in(brain.id)
                                         if atlas.has_mesh(i) and i in self.view.blocks]
         if not ids:

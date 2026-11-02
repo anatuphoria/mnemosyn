@@ -157,3 +157,44 @@ def test_leaving_the_lab_gives_back_the_camera(qapp, toy_lab_atlas, tmp_path):
     assert [list(p) for p in after] == [pytest.approx(list(p)) for p in before]
     assert window.view.renderer.GetActiveCamera().GetViewAngle() == pytest.approx(angle)
     window.close()
+
+
+def test_checking_for_compact_cards_changes_no_card(qapp, tmp_path):
+    from cns_desktop.app import DEFAULT_ATLAS
+
+    window = open_lab(qapp, DEFAULT_ATLAS, tmp_path, (1440, 900))
+    cards = window.viewport.strip.cards_list()
+    titles = [card.title.text() for card in cards]
+    seen = []
+    for card in cards:
+        card.set_compact = lambda compact, c=card, f=card.set_compact: (seen.append(c), f(compact))
+    window.viewport.cards_compact()
+    assert seen == [] and [card.title.text() for card in cards] == titles
+    window.close()
+
+
+def test_the_brain_is_found_by_its_key_not_its_name(window):
+    from dataclasses import replace
+
+    from cns_desktop.lab.brain_overlay import find_brain
+
+    atlas = window.state.atlas
+    renamed = [replace(s, name="Gehirn") if s.name == "Brain" else s for s in atlas.structures]
+    assert find_brain(renamed).acronym == "Br"
+
+
+@pytest.mark.parametrize("size", [(1440, 900), (1000, 760)])
+@pytest.mark.parametrize("system", ["stress", "water"])
+def test_real_cards_never_cover_the_brain(qapp, tmp_path, size, system):
+    from cns_desktop.app import DEFAULT_ATLAS
+
+    window = open_lab(qapp, DEFAULT_ATLAS, tmp_path, size)
+    window.lab.choose_system(system)
+    qapp.processEvents()
+    view = window.view
+    top, bottom, left, right = projected_box(view, window.lab.brain.brain_bounds())
+    offset = view.mapTo(window.viewport, view.rect().topLeft())
+    strip = window.viewport.strip.geometry().translated(-offset.x(), -offset.y())
+    centre_x, centre_y = (left + right) / 2, (top + bottom) / 2
+    assert right <= strip.left() and not strip.contains(int(centre_x), int(centre_y))
+    window.close()

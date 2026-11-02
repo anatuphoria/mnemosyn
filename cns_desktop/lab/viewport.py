@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QScrollArea, QSizePolicy,
                                QStackedWidget, QVBoxLayout, QWidget)
 
 from cns_desktop.design.theme import set_role, set_tone
 from cns_desktop.design.tokens import GAP, SIZE
 from cns_desktop.design.widgets import SegmentedControl
+
+
+MEASURE_LIMIT = 100000
 
 
 class StripCard(QFrame):
@@ -57,6 +60,21 @@ class StripCard(QFrame):
     def set_compact(self, compact: bool) -> None:
         self._compact = compact
         self._show(compact and not self.underMouse())
+
+    def full_height(self, width: int) -> int:
+        column = self.layout()
+        margins = column.contentsMargins()
+        inner = max(width - margins.left() - margins.right(), 1)
+        title, _, detail = self._full.partition("\n")
+
+        def lines(label: QLabel, text: str) -> int:
+            box = QRect(0, 0, inner, MEASURE_LIMIT)
+            return label.fontMetrics().boundingRect(box, Qt.TextFlag.TextWordWrap, text).height()
+
+        height = margins.top() + margins.bottom() + lines(self.title, title)
+        if detail:
+            height += column.spacing() + lines(self.detail, detail)
+        return height
 
     def enterEvent(self, event) -> None:
         self._show(False)
@@ -118,13 +136,16 @@ class Strip(QScrollArea):
         for card in self.cards_list():
             card.set_compact(compact)
 
-    def content_height(self) -> int:
+    def content_height(self, full: bool = False) -> int:
         column = self.widget().layout()
         margins = column.contentsMargins()
         inner = self.width() - margins.left() - margins.right()
         cards = self.cards_list()
-        heights = [card.heightForWidth(inner) if card.hasHeightForWidth()
-                   else card.sizeHint().height() for card in cards]
+        if full:
+            heights = [card.full_height(inner) for card in cards]
+        else:
+            heights = [card.heightForWidth(inner) if card.hasHeightForWidth()
+                       else card.sizeHint().height() for card in cards]
         gaps = column.spacing() + self.cards.spacing() * max(len(cards) - 1, 0)
         return (margins.top() + self.heading.sizeHint().height() + gaps + sum(heights)
                 + margins.bottom())
@@ -171,8 +192,7 @@ class Viewport(QWidget):
     def cards_compact(self) -> bool:
         if self.window().width() < SIZE["narrow"]:
             return True
-        self.strip.set_compact(False)
-        return self.strip.content_height() > self.stack.height() / 4
+        return self.strip.content_height(full=True) > self.stack.height() / 4
 
     def place_strip(self) -> None:
         compact = self.cards_compact()
