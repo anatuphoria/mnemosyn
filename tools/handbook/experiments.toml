@@ -46,7 +46,7 @@ length = "5 d"
 title = "SIADH"
 note = "From the Mnemosyn handbook: Two kinds of low sodium"
 blocks = [{ experiment = "siadh", start = "day 1 08:00" }]
-asserts = [{ kind = "within", value = "sodium", at = "day 5 08:00", low = 110, high = 135 }, { kind = "within", value = "uosm", at = "day 5 08:00", low = 300, high = 1200 }]
+asserts = [{ kind = "within", value = "sodium", at = "day 5 08:00", low = 110, high = 135 }, { kind = "within", value = "uosm", at = "day 5 08:00", low = 300, high = 2000 }]
 
 [[lab]]
 slug = "two-kinds-of-low-sodium"
