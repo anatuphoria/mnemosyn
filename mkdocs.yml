@@ -48,7 +48,29 @@ nav:
   - Home: index.md
   - Get started:
       - Download: download.md
-      - Using the app: guide.md
+  - Handbook:
+      - Start here: handbook/index.md
+      - Why Mnemosyn: handbook/why.md
+      - Workspaces:
+          - Explore: handbook/explore.md
+          - Slices: handbook/slices.md
+          - Pathways: handbook/pathways.md
+          - Lab: handbook/lab.md
+          - The stress axis: handbook/lab-stress.md
+          - Water balance: handbook/lab-water.md
+          - Lesion: handbook/lesion.md
+          - Quizzes: handbook/quizzes.md
+      - Experiments:
+          - All experiments: handbook/experiments/index.md
+          - Central or nephrogenic?: handbook/experiments/central-or-nephrogenic.md
+          - A night without water: handbook/experiments/a-night-without-water.md
+          - Too much water: handbook/experiments/too-much-water.md
+          - The dexamethasone tests: handbook/experiments/dexamethasone-tests.md
+          - Addison's disease: handbook/experiments/addisons-disease.md
+          - Stopping a steroid course: handbook/experiments/stopping-a-steroid-course.md
+          - One artery, many structures: handbook/experiments/one-artery-many-structures.md
+          - Which side?: handbook/experiments/which-side.md
+      - Sources and review: handbook/trust.md
   - The atlas:
       - Structures: atlas/structures.md
       - Data sources: atlas/sources.md

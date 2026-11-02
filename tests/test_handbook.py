@@ -120,7 +120,7 @@ def test_every_page_reference_exists(tmp_path):
 
 def test_every_shot_is_used_and_every_used_shot_is_defined():
     used = {m for p in PAGES for m in re.findall(r"shots/([\w-]+)\.png", p.read_text())}
-    assert used <= set(SHOTS)
+    assert used == set(SHOTS)
     for name in used:
         assert (HANDBOOK / "shots" / f"{name}.png").exists(), name
 
@@ -130,3 +130,58 @@ def test_handbook_pages_follow_the_writing_rules():
         for number, line in enumerate(page.read_text().splitlines(), 1):
             assert "\u2014" not in line and "\u2013" not in line, (page, number)
             assert " - " not in line and not line.lstrip().startswith("- "), (page, number)
+
+
+def test_no_handbook_page_is_a_placeholder():
+    for page in PAGES:
+        assert "This page is being written" not in page.read_text(), page
+
+
+def test_the_old_guide_points_into_the_handbook(tmp_path):
+    from tools.build_site import build_site
+
+    build_site(ROOT, tmp_path / "out")
+    guide = (tmp_path / "out/guide.md").read_text()
+    assert "handbook/index.md" in guide and "handbook/lab.md" in guide
+    for target in re.findall(r"\]\(([^)#\s]+)", guide):
+        assert (tmp_path / "out" / target).exists(), target
+
+
+def test_every_handbook_page_is_in_the_navigation():
+    nav = (ROOT / "mkdocs.yml").read_text()
+    assert "Handbook:" in nav and "Using the app: guide.md" not in nav
+    for page in PAGES:
+        assert str(page.relative_to(ROOT / "site")) in nav, page
+
+
+@pytest.fixture
+def real_window():
+    import tempfile
+
+    from PySide6.QtCore import QSettings
+    from PySide6.QtWidgets import QApplication
+
+    from cns_atlas import Atlas
+    from cns_desktop.app import default_atlas
+    from cns_desktop.main_window import MainWindow
+
+    path = default_atlas()
+    if not (path / "metadata.json").exists():
+        pytest.skip("no built atlas")
+    QApplication.instance() or QApplication([])
+    with tempfile.TemporaryDirectory() as scratch:
+        settings = QSettings(f"{scratch}/s.ini", QSettings.Format.IniFormat)
+        window = MainWindow(Atlas.open(path), progress_path=Path(scratch) / "p.sqlite",
+                            settings=settings)
+        yield window
+        window.close()
+
+
+def test_every_app_shortcut_is_in_the_handbook(real_window):
+    from PySide6.QtGui import QAction
+
+    text = "\n".join(p.read_text() for p in PAGES)
+    for action in real_window.findChildren(QAction):
+        key = action.shortcut().toString()
+        if key:
+            assert f"`{key}`" in text, (action.text(), key)

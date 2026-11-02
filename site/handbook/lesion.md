@@ -37,6 +37,9 @@ that follow.
 The lesion is drawn in gold on the slice and in 3D. **Undo**, **Redo** and **Clear** work as you
 expect.
 
+![The Place tab before a lesion](shots/lesion.png){ .shot }
+<p class="caption">The Place tab before a lesion: the arterial territories grouped by artery, with the slice beside the 3D view.</p>
+
 **Read the result.** **Deficits** lists the routes the lesion breaks, from the side each route
 begins on, with the deficit at every broken step, the structures behind it, a **partly** mark when
 only a small share of a station is hit, and the sources; then the routes it spares. **Hit** ranks

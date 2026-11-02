@@ -102,7 +102,7 @@ hunger also play a schematic hormone timeline.
 ![The Lab after cutting the pituitary stalk, with the Why chain and the timeline](assets/screenshot-lab.png){ .shot }
 
 **The Lab.** The brain colours each part by how far it is from normal, and Why explains the
-difference as a numbered chain of causes, each with its sources. [How it works](guide.md#the-lab)
+difference as a numbered chain of causes, each with its sources. [How it works](handbook/lab.md)
 </div>
 
 </div>
@@ -113,7 +113,7 @@ difference as a numbered chain of causes, each with its sources. [How it works](
 
 [:material-download: **Download**<br>Get the app for Windows or Linux](download.md)
 
-[:material-mouse: **Using the app**<br>Workspaces, keys, slices, routes, quizzes and the Lab](guide.md)
+[:material-mouse: **Handbook**<br>Every workspace, why it helps, and experiments to try](handbook/index.md)
 
 [:material-book-open-variant: **Where the data comes from**<br>Every source with its citation and licence](atlas/sources.md)
 

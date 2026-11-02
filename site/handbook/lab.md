@@ -90,7 +90,7 @@ see the answer on a clock, and read why, with the source of every number one cli
 | `Space` | Play or pause the run |
 | `Home` | Back to the start of the run |
 | `V` | Switch the centre between the brain and the circuit |
-| `Delete` | Remove the selected change |
+| `Del` | Remove the selected change |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo or redo |
 | `Ctrl+N` / `Ctrl+O` | New or open an experiment |
 | `Ctrl+S` / `Ctrl+Shift+S` | Save or save as |

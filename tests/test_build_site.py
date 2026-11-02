@@ -101,7 +101,7 @@ def test_the_home_page_invites_specialists_without_changing_its_layout(tmp_path)
     home = (tmp_path / "out/index.md").read_text()
     assert "Help us review it](review.md)" in home
     assert home.count('<div class="start" markdown>') == 1
-    assert home.count("](download.md)") == 2 and "](guide.md)" in home
+    assert home.count("](download.md)") == 2 and "](handbook/index.md)" in home
     assert "install.md" not in home and "[Download](download.md)" in home
 
 
@@ -143,8 +143,8 @@ def test_the_website_keeps_its_pages_whatever_the_readme_says(tmp_path):
     (repo / "README.md").write_text("# Mnemosyn\n\nA short front page.\n")
     build_site(repo, tmp_path / "out")
     guide = (tmp_path / "out/guide.md").read_text()
-    assert guide.startswith("# Using the app") and "| Key | Action |" in guide
-    assert "| `F` | Frame the selection" in guide and "Tracts" in guide
+    assert guide.startswith("# Using the app") and "handbook/index.md" in guide
+    assert "## The Lab" in guide and "## Lesion" in guide
     performance = (tmp_path / "out/performance.md").read_text()
     assert "Budgets enforced by" in performance and ".timing-baseline.json" in performance
     download = (tmp_path / "out/download.md").read_text()
@@ -164,7 +164,7 @@ def test_the_home_page_opens_with_the_seal_and_shows_the_product(tmp_path):
     home = (tmp_path / "out/index.md").read_text()
     assert "assets/logo-seal-dark.svg#only-dark" in home
     assert "assets/logo-seal-light.svg#only-light" in home
-    assert "The Lab" in home and "guide.md#the-lab" in home
+    assert "The Lab" in home and "handbook/lab.md" in home
     for name in ("screenshot-slices.png", "screenshot-activity.png", "screenshot-lab.png"):
         assert f"assets/{name}" in home, name
         assert (tmp_path / "out/assets" / name).exists(), name
