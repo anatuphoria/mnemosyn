@@ -131,12 +131,6 @@ class ModelPanel(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(GAP["tight"])
         row.addWidget(spin, 1)
-        if p.control == "rate":
-            badge = QLabel()
-            set_tone(badge, "edited")
-            set_role(badge, "data")
-            row.addWidget(badge)
-            self._badges[p.key] = badge
         row.addWidget(reset)
         self._spins[p.key] = spin
         self._resets[p.key] = reset
@@ -170,11 +164,21 @@ class ModelPanel(QWidget):
         stack.addWidget(control)
         self._controls[p.key] = control
         if p.control == "rate":
+            badge = QLabel()
+            set_tone(badge, "edited")
+            set_role(badge, "data")
             note = QLabel()
             note.setWordWrap(True)
             set_role(note, "secondary")
             set_tone(note, "text3")
-            stack.addWidget(note)
+            line = QWidget()
+            row = QHBoxLayout(line)
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(GAP["small"])
+            row.addWidget(badge, 0, Qt.AlignmentFlag.AlignTop)
+            row.addWidget(note, 1)
+            stack.addWidget(line)
+            self._badges[p.key] = badge
             self._notes[p.key] = note
         return box
 
@@ -227,7 +231,11 @@ class ModelPanel(QWidget):
     def _typed(self, key: str) -> None:
         self._commit(key, self._spins[key].value())
 
+    def _rounded(self, key: str, value: float) -> float:
+        return round(value, self._spins[key].decimals())
+
     def _commit(self, key: str, value: float) -> None:
+        value = self._rounded(key, value)
         normal = self.document.model.parameter(key).value
         if abs(value - normal) <= SAME * max(1.0, abs(normal)):
             if self.is_marked(key):
@@ -241,6 +249,7 @@ class ModelPanel(QWidget):
             self.refresh()
 
     def _preview(self, key: str, value: float) -> None:
+        value = self._rounded(key, value)
         spin = self._spins[key]
         spin.blockSignals(True)
         spin.setValue(value)

@@ -140,6 +140,7 @@ class LabBrain:
         self._syncing = False
         self.on_show_on_timeline = None
         self.on_show_in_atlas = None
+        self._camera = None
         document.changed.connect(self.refresh)
         document.model_changed.connect(self._on_model)
         document.playhead_moved.connect(lambda _t: self.refresh())
@@ -201,6 +202,8 @@ class LabBrain:
 
     def activate(self) -> None:
         self.active = True
+        camera = self.view.renderer.GetActiveCamera()
+        self._camera = (self.view.camera_position.to_list(), camera.GetViewAngle())
         self._fill_strip()
         self.state.set_focus([i for ids in self._shaped().values() for i in ids])
         self.refresh()
@@ -209,6 +212,12 @@ class LabBrain:
     def deactivate(self) -> None:
         self.active = False
         self.view.set_home(None)
+        if self._camera is not None:
+            position, angle = self._camera
+            self.view.camera_position = position
+            self.view.renderer.GetActiveCamera().SetViewAngle(angle)
+            self._camera = None
+            self.view.render()
         self.view.set_lab_colors({i: None for ids in self._shaped().values() for i in ids})
         self.overlay.clear()
         self.state.set_focus(None)

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QScrollArea, QStackedWidget,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QScrollArea, QSizePolicy,
+                               QStackedWidget, QVBoxLayout, QWidget)
 
 from cns_desktop.design.theme import set_role, set_tone
 from cns_desktop.design.tokens import GAP, SIZE
 from cns_desktop.design.widgets import SegmentedControl
-
 
 
 class StripCard(QFrame):
@@ -17,6 +16,7 @@ class StripCard(QFrame):
     def __init__(self) -> None:
         super().__init__()
         self.setProperty("card", "true")
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._compact = False
         self._full = ""
@@ -119,7 +119,15 @@ class Strip(QScrollArea):
             card.set_compact(compact)
 
     def content_height(self) -> int:
-        return self.widget().sizeHint().height()
+        column = self.widget().layout()
+        margins = column.contentsMargins()
+        inner = self.width() - margins.left() - margins.right()
+        cards = self.cards_list()
+        heights = [card.heightForWidth(inner) if card.hasHeightForWidth()
+                   else card.sizeHint().height() for card in cards]
+        gaps = column.spacing() + self.cards.spacing() * max(len(cards) - 1, 0)
+        return (margins.top() + self.heading.sizeHint().height() + gaps + sum(heights)
+                + margins.bottom())
 
 
 class Viewport(QWidget):

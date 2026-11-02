@@ -150,3 +150,89 @@ def test_the_model_tab_fits_the_narrowest_panel(doc, qapp):
                 right = widget.mapTo(panel, widget.rect().topRight()).x()
                 assert widget.width() > 0 and right <= SIZE["panel_min"], (p.key, right)
     panel.close()
+
+
+def wheel(widget, notches=1):
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QWheelEvent
+
+    centre = QPointF(widget.rect().center())
+    event = QWheelEvent(centre, widget.mapToGlobal(centre), QPoint(0, 0), QPoint(0, 120 * notches),
+                        Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier,
+                        Qt.ScrollPhase.NoScrollPhase, False)
+    QApplication.sendEvent(widget, event)
+    return event
+
+
+def test_scrolling_over_a_curve_scrolls_the_tab_until_it_is_clicked(qapp):
+    from cns_desktop.app import DEFAULT_ATLAS
+
+    doc = LabDocument(Atlas.open(DEFAULT_ATLAS), "water", compute=False)
+    panel = ModelPanel(doc)
+    panel.resize(SIZE["panel_left"], 900)
+    panel.show()
+    graph = panel.control("K_u")
+    event = wheel(graph)
+    assert not event.isAccepted() and "n_u" not in graph.values()
+    centre = graph.rect().center()
+    QTest.mousePress(graph, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, centre)
+    QTest.mouseRelease(graph, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, centre)
+    assert wheel(graph, -1).isAccepted() and graph.values()["n_u"] < 4.0
+    panel.close()
+
+
+def test_clicking_a_handle_without_moving_keeps_the_exact_value(doc):
+    panel = ModelPanel(doc)
+    panel.resize(SIZE["panel_left"], 900)
+    panel.show()
+    doc.set_value("w", 0.05)
+    steps = doc.undo.count()
+    slider = panel.control("w")
+    track = slider.track_rect()
+    here = QPoint(int(track.left() + slider.scale.fraction(0.05) * track.width()) + 2,
+                  track.center().y())
+    QTest.mousePress(slider, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, here)
+    QTest.mouseRelease(slider, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, here)
+    assert doc.experiment.value_map == {"w": 0.05} and doc.undo.count() == steps
+    panel.close()
+
+
+def test_a_dragged_value_matches_its_field_so_leaving_the_field_adds_nothing(doc):
+    panel = ModelPanel(doc)
+    panel.resize(SIZE["panel_left"], 900)
+    panel.show()
+    slider = panel.control("w")
+    drag(slider, 0.83)
+    value = doc.experiment.value_map["w"]
+    assert value == round(value, panel.spin("w").decimals())
+    steps = doc.undo.count()
+    panel.spin("w").editingFinished.emit()
+    assert doc.undo.count() == steps
+    panel.close()
+
+
+def test_an_edited_rate_keeps_its_field_readable_at_the_narrowest_width(doc, qapp):
+    doc.set_value("w", 0.5)
+    panel = ModelPanel(doc)
+    panel.resize(SIZE["panel_min"], 900)
+    panel.show()
+    qapp.processEvents()
+    spin = panel.spin("w")
+    edit = spin.lineEdit()
+    assert edit.width() >= edit.fontMetrics().horizontalAdvance(spin.text())
+    assert panel.badge("w").mapTo(panel, panel.badge("w").rect().topLeft()).y() > \
+        spin.mapTo(panel, spin.rect().bottomLeft()).y()
+    panel.close()
+
+
+def test_slider_labels_never_overlap(qapp):
+    from cns_desktop.lab.controls import ScaleSlider
+    from cns_desktop.lab.scales import LinearScale, LogScale
+
+    for scale, normal in ((LinearScale(1.5, 10.0, 2.0), 2.0), (LinearScale(5.0, 500.0, 35.0), 35.0),
+                          (LogScale(0.0005, 0.005, 0.00167), 0.00167)):
+        slider = ScaleSlider(scale, normal, normal)
+        slider.resize(SIZE["panel_min"] - 2 * SIZE["panel_pad"], SIZE["slider"])
+        rects = [rect for rect, _label in slider.label_rects()]
+        assert "normal" in [label for _rect, label in slider.label_rects()]
+        assert all(not a.intersects(b) for i, a in enumerate(rects) for b in rects[i + 1:])

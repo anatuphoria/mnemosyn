@@ -62,6 +62,8 @@ class ScaleSlider(QWidget):
         self._value = value
         self._edited = False
         self._dragging = False
+        self._grab = 0.0
+        self._pressed = value
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setFixedHeight(SIZE["slider"])
         self.setMinimumWidth(SIZE["field_min"])
@@ -75,6 +77,24 @@ class ScaleSlider(QWidget):
     def set_value(self, value: float, edited: bool = False) -> None:
         self._value, self._edited = value, edited
         self.update()
+
+    def label_rects(self) -> list[tuple[QRectF, str]]:
+        from PySide6.QtGui import QFontMetrics
+
+        metrics = QFontMetrics(font("data"))
+        track = self.track_rect()
+        top = track.bottom() + GAP["medium"]
+        marks = sorted(self.scale.marks(), key=lambda m: m[1] != "normal")
+        kept: list[tuple[QRectF, str]] = []
+        for fraction, label in marks:
+            width = metrics.horizontalAdvance(label)
+            x = track.left() + fraction * track.width() - width / 2
+            x = min(max(x, 0.0), self.width() - width)
+            rect = QRectF(x, top, width, metrics.height())
+            padded = rect.adjusted(-GAP["tight"], 0, GAP["tight"], 0)
+            if not any(padded.intersects(other) for other, _ in kept):
+                kept.append((rect, label))
+        return sorted(kept, key=lambda k: k[0].left())
 
     def track_rect(self) -> QRect:
         pad = SIZE["handle"] // 2 + 1
@@ -92,20 +112,32 @@ class ScaleSlider(QWidget):
         self.update()
         self.previewed.emit(value)
 
+    def _handle_x(self) -> float:
+        track = self.track_rect()
+        return track.left() + self.scale.fraction(self._value) * track.width()
+
     def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._dragging = True
-            self._preview(self._value_at(event.position().x()))
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        self._dragging = True
+        self._pressed = self._value
+        x = event.position().x()
+        offset = x - self._handle_x()
+        if abs(offset) <= SIZE["handle"] / 2 + 1:
+            self._grab = offset
+        else:
+            self._grab = 0.0
+            self._preview(self._value_at(x))
 
     def mouseMoveEvent(self, event) -> None:
         if self._dragging:
-            self._preview(self._value_at(event.position().x()))
+            self._preview(self._value_at(event.position().x() - self._grab))
 
     def mouseReleaseEvent(self, event) -> None:
         if self._dragging and event.button() == Qt.MouseButton.LeftButton:
             self._dragging = False
-            self._preview(self._value_at(event.position().x()))
-            self.committed.emit(self._value)
+            if self._value != self._pressed:
+                self.committed.emit(self._value)
 
     def keyPressEvent(self, event) -> None:
         steps = {Qt.Key.Key_Left: -KEY_STEP, Qt.Key.Key_Right: KEY_STEP,
@@ -140,13 +172,9 @@ class ScaleSlider(QWidget):
         painter.drawLine(QPointF(normal, mid - GAP["small"] + 1), QPointF(normal, mid + GAP["small"] - 1))
         painter.setFont(font("data"))
         painter.setPen(colour("text3"))
-        metrics = painter.fontMetrics()
-        base = track.bottom() + GAP["medium"] + metrics.ascent()
-        for fraction, label in self.scale.marks():
-            width = metrics.horizontalAdvance(label)
-            x = track.left() + fraction * track.width() - width / 2
-            x = min(max(x, 0.0), self.width() - width)
-            painter.drawText(QPointF(x, base), label)
+        ascent = painter.fontMetrics().ascent()
+        for rect, label in self.label_rects():
+            painter.drawText(QPointF(rect.left(), rect.top() + ascent), label)
         radius = SIZE["handle"] / 2
         painter.setPen(QPen(tone, 2))
         painter.setBrush(colour("text"))
@@ -209,6 +237,9 @@ class CurveGraph(QWidget):
         self._values = dict(values)
         self._edited = False
         self._dragging = False
+        self._engaged = False
+        self._grab = 0.0
+        self._pressed = 0.0
         self._normal = curve_points(model, curve, {}, CURVE_POINTS)
         self._settle = QTimer(self, singleShot=True, interval=WHEEL_SETTLE_MS)
         self._settle.timeout.connect(self._commit_wheel)
@@ -256,19 +287,33 @@ class CurveGraph(QWidget):
         return x
 
     def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._dragging = True
-            self._move(event.position().x())
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        self._engaged = True
+        self._dragging = True
+        self._pressed = self._value(self.handle.key)
+        x = event.position().x()
+        offset = x - self._x_of(self._pressed, self._plot())
+        if abs(offset) <= SIZE["handle"] / 2 + 1:
+            self._grab = offset
+        else:
+            self._grab = 0.0
+            self._move(x)
 
     def mouseMoveEvent(self, event) -> None:
         if self._dragging:
-            self._move(event.position().x())
+            self._move(event.position().x() - self._grab)
 
     def mouseReleaseEvent(self, event) -> None:
         if self._dragging and event.button() == Qt.MouseButton.LeftButton:
             self._dragging = False
-            self._move(event.position().x())
-            self.committed.emit(self.handle.key, self._value(self.handle.key))
+            value = self._value(self.handle.key)
+            if value != self._pressed:
+                self.committed.emit(self.handle.key, value)
+
+    def leaveEvent(self, event) -> None:
+        self._engaged = False
+        super().leaveEvent(event)
 
     def _move(self, px: float) -> None:
         self._values[self.handle.key] = self._handle_at(px)
@@ -276,7 +321,7 @@ class CurveGraph(QWidget):
         self.previewed.emit(self.handle.key, self._values[self.handle.key])
 
     def wheelEvent(self, event) -> None:
-        if self.second is None:
+        if self.second is None or not self._engaged:
             event.ignore()
             return
         notches = event.angleDelta().y() / 120

@@ -125,3 +125,35 @@ def test_a_compact_card_keeps_its_tone(qapp, toy_lab_atlas, tmp_path):
     card.set_compact(False)
     assert card.title.property("tone") in (None, "")
     window.close()
+
+
+@pytest.mark.parametrize("system", ["stress", "water"])
+def test_the_strip_is_no_taller_than_its_cards(qapp, tmp_path, system):
+    from cns_desktop.app import DEFAULT_ATLAS
+
+    window = open_lab(qapp, DEFAULT_ATLAS, tmp_path, (1440, 900))
+    window.lab.choose_system(system)
+    qapp.processEvents()
+    strip = window.viewport.strip
+    last = strip.cards_list()[-1]
+    bottom = last.mapTo(strip, last.rect().bottomLeft()).y()
+    assert strip.height() - bottom <= GAP["medium"] + 2
+    window.close()
+
+
+def test_leaving_the_lab_gives_back_the_camera(qapp, toy_lab_atlas, tmp_path):
+    window = MainWindow(Atlas.open(toy_lab_atlas), progress_path=tmp_path / "progress.sqlite")
+    window.resize(1440, 900)
+    window.show()
+    qapp.processEvents()
+    window.view.camera.Zoom(0.5)
+    before = window.view.camera_position.to_list()
+    angle = window.view.renderer.GetActiveCamera().GetViewAngle()
+    window.workspaces.switch("Lab")
+    qapp.processEvents()
+    window.workspaces.switch("Explore")
+    qapp.processEvents()
+    after = window.view.camera_position.to_list()
+    assert [list(p) for p in after] == [pytest.approx(list(p)) for p in before]
+    assert window.view.renderer.GetActiveCamera().GetViewAngle() == pytest.approx(angle)
+    window.close()
