@@ -644,6 +644,7 @@ class MainWindow(QMainWindow):
     def _on_timeline(self, timeline) -> None:
         self.chart.show_timeline(timeline, self.pathways.pathway.name if self.pathways.pathway
                                  else "")
+        self.step_panel.set_timeline_note(self.chart.note_html())
         self._sync_chart()
 
     def chart_wanted(self) -> bool:

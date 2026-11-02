@@ -11,7 +11,7 @@ from cns_atlas.timelines import note_parts
 from ..design import rich
 from ..design.charts import Series, SmallMultiples
 from ..design.theme import set_role
-from ..design.tokens import GAP, SIZE
+from ..design.tokens import DATA_PALETTE, GAP, SIZE
 from ..state import AppState
 
 
@@ -31,7 +31,7 @@ class ActivityChart(QWidget):
         self.state = state
         self.timeline: Timeline | None = None
         self.timeline_items: list = []
-        self.plot = SmallMultiples()
+        self.plot = SmallMultiples(row_height=SIZE["lane"])
         self.multiples = self.plot
         self.cursor = _Cursor(self.multiples)
         self.multiples.clicked_x.connect(self._seek)
@@ -51,6 +51,8 @@ class ActivityChart(QWidget):
         self.note_area.setWidgetResizable(True)
         self.note_area.setWidget(self.note)
         self.note.hide()
+        self.note_area.hide()
+        self._note_html = ""
         heading = QHBoxLayout()
         heading.setContentsMargins(SIZE["panel_pad"], GAP["tight"], SIZE["panel_pad"], GAP["tight"])
         heading.addWidget(self.title)
@@ -62,8 +64,7 @@ class ActivityChart(QWidget):
         layout.addLayout(heading)
         row = QHBoxLayout()
         row.setSpacing(0)
-        row.addWidget(self.plot, 3)
-        row.addWidget(self.note_area, 1)
+        row.addWidget(self.plot, 1)
         layout.addLayout(row, 1)
 
     def show_timeline(self, timeline: Timeline | None, name: str = "") -> None:
@@ -74,8 +75,10 @@ class ActivityChart(QWidget):
             self.time_label.setText("")
             self.title.setText("")
             self.note.hide()
+            self._note_html = ""
             return
-        self.multiples.set_series([Series(f"c{n}", c.name, "relative level", c.color)
+        self.multiples.set_series([Series(f"c{n}", c.name, "relative level",
+                                          DATA_PALETTE[n % len(DATA_PALETTE)])
                                    for n, c in enumerate(timeline.curves)], y_range=(0.0, 1.0))
         for n, c in enumerate(timeline.curves):
             times, levels = zip(*c.points)
@@ -86,10 +89,17 @@ class ActivityChart(QWidget):
         self.title.setText(f"{name} · schematic" if name else "Schematic")
         text, refs = note_parts(timeline.note, self.state.atlas.references)
         items = "".join(f"<br>[{n}] {escape(r.citation())}" for n, r in enumerate(refs, 1))
-        self.note.setText(rich.secondary(f"{escape(text)} Schematic shapes, not measured data."
-                                         f"{items}"))
+        self._note_html = rich.secondary(f"{escape(text)} Schematic shapes, not measured data."
+                                         f"{items}")
+        self.note.setText(self._note_html)
         self.note.show()
         self.set_time(0.0)
+
+    def row_height(self) -> int:
+        return self.multiples.row_height
+
+    def note_html(self) -> str:
+        return self._note_html
 
     def set_time(self, time: float) -> None:
         self.multiples.set_cursor(time)

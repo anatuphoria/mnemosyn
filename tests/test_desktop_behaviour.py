@@ -215,14 +215,13 @@ def test_a_timeline_route_shows_the_activity_panel_even_after_closing_it(window)
     assert not window.chart_dock.isHidden()
 
 
-def test_the_timeline_note_sits_beside_a_tall_chart(window, qapp):
+def test_the_timeline_note_moves_to_the_step_tab_and_the_chart_takes_the_width(window, qapp):
     window.resize(1400, 950)
     window.pathways.open("mood")
     qapp.processEvents()
     chart = window.chart
-    assert chart.note_area.geometry().left() >= chart.plot.geometry().right()
-    assert chart.plot.height() >= 950 // 4
-    assert "Author A (2020)" in chart.note.text()
+    assert chart.note_area.isHidden() and chart.plot.width() >= chart.width() - 1
+    assert "Author A (2020)" in window.step_panel.details.toPlainText()
 
 
 def test_no_placeholder_signal_anywhere(window):

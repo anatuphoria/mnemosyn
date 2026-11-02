@@ -60,10 +60,13 @@ def _plot() -> pg.PlotWidget:
 
 
 class Row(QWidget):
-    def __init__(self, series: Series) -> None:
+    def __init__(self, series: Series, height: int | None = None) -> None:
         super().__init__()
         self.series = series
-        self.setMinimumHeight(SIZE["chart_row"])
+        if height is None:
+            self.setMinimumHeight(SIZE["chart_row"])
+        else:
+            self.setFixedHeight(height)
         names = QFrame()
         names.setFixedWidth(NAME_WIDTH)
         column = QVBoxLayout(names)
@@ -120,8 +123,9 @@ class Row(QWidget):
 class SmallMultiples(QWidget):
     clicked_x = Signal(float)
 
-    def __init__(self, axis_label: str = "", parent=None) -> None:
+    def __init__(self, axis_label: str = "", parent=None, row_height: int | None = None) -> None:
         super().__init__(parent)
+        self.row_height = row_height
         self.rows: list[Row] = []
         self._rows: dict[str, Row] = {}
         self.cursor_x = 0.0
@@ -174,7 +178,7 @@ class SmallMultiples(QWidget):
             row.setParent(None)
         self.rows, self._rows, self.y_range = [], {}, y_range
         for one in series:
-            row = Row(one)
+            row = Row(one, self.row_height)
             row.plot.scene().sigMouseClicked.connect(
                 lambda event, r=row: self.click(r, event.scenePos()) if
                 event.button() == Qt.MouseButton.LeftButton else None)
@@ -182,8 +186,10 @@ class SmallMultiples(QWidget):
                 row.plot.setXLink(self.rows[0].plot)
             self.rows.append(row)
             self._rows[one.key] = row
-            self._column.addWidget(row, 1)
+            self._column.addWidget(row, 0 if self.row_height else 1)
             row.show()
+        if self.row_height:
+            self._column.addStretch(1)
         self.set_cursor(self.cursor_x)
 
     def set_line(self, key: str, name: str, xs, ys) -> None:
