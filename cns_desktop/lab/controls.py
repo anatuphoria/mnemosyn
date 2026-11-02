@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import QPointF, QRect, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen, QValidator
 from PySide6.QtWidgets import QDoubleSpinBox, QHBoxLayout, QSizePolicy, QWidget
 
 from cns_atlas.models import Curve, LabModel, Parameter
@@ -39,8 +39,6 @@ class ClockSpinBox(QDoubleSpinBox):
             return self.value()
 
     def validate(self, text: str, pos: int):
-        from PySide6.QtGui import QValidator
-
         hours, colon, minutes = text.strip().partition(":")
         if not all(part.isdigit() or part == "" for part in (hours, minutes)) or text.count(":") > 1:
             return (QValidator.State.Invalid, text, pos)
@@ -79,8 +77,6 @@ class ScaleSlider(QWidget):
         self.update()
 
     def label_rects(self) -> list[tuple[QRectF, str]]:
-        from PySide6.QtGui import QFontMetrics
-
         metrics = QFontMetrics(font("data"))
         track = self.track_rect()
         top = track.bottom() + GAP["medium"]
@@ -267,8 +263,6 @@ class CurveGraph(QWidget):
     def _plot(self) -> QRectF:
         pad = SIZE["handle"] / 2 + 1
         text = font("data")
-        from PySide6.QtGui import QFontMetrics
-
         line = QFontMetrics(text).height()
         return QRectF(pad, pad + line, max(self.width() - 2 * pad, 1.0),
                       max(self.height() - 2 * pad - 2 * line, 1.0))

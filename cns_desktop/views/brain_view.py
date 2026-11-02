@@ -25,6 +25,7 @@ FAINT = 0.08
 PLANE_OPACITY = 0.18
 LESION_OPACITY = 0.55
 SHELL_OPACITY = 0.25
+HOME_FILL = 0.92
 
 
 def _rgb(color) -> tuple[float, float, float]:
@@ -51,8 +52,6 @@ def _surface_actor(block: pv.PolyData, color) -> vtkActor:
     prop.SetSpecular(0.15)
     return actor
 
-
-HOME_FILL = 0.92
 
 class BrainView(QtInteractor):
     def __init__(self, state: AppState, parent=None) -> None:

@@ -236,3 +236,40 @@ def test_slider_labels_never_overlap(qapp):
         rects = [rect for rect, _label in slider.label_rects()]
         assert "normal" in [label for _rect, label in slider.label_rects()]
         assert all(not a.intersects(b) for i, a in enumerate(rects) for b in rects[i + 1:])
+
+
+def test_dragging_a_curve_moves_its_halfway_point(doc):
+    panel = ModelPanel(doc)
+    panel.resize(SIZE["panel_left"], 900)
+    panel.show()
+    graph = panel.control("k")
+    plot = graph._plot()
+    y = int(plot.center().y())
+    start = QPoint(int(graph._x_of(2.0, plot)), y)
+    end = QPoint(int(graph._x_of(6.0, plot)), y)
+    QTest.mousePress(graph, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start)
+    QTest.mouseMove(graph, end)
+    QTest.mouseRelease(graph, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, end)
+    assert doc.experiment.value_map["k"] == pytest.approx(6.0, abs=0.1)
+    assert doc.undo.count() == 1 and panel.is_marked("k")
+    panel.close()
+
+
+def test_scrolling_a_clicked_curve_settles_into_one_step(qapp):
+    from cns_desktop.app import DEFAULT_ATLAS
+
+    doc = LabDocument(Atlas.open(DEFAULT_ATLAS), "water", compute=False)
+    panel = ModelPanel(doc)
+    panel.resize(SIZE["panel_left"], 900)
+    panel.show()
+    graph = panel.control("K_u")
+    centre = graph.rect().center()
+    QTest.mousePress(graph, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, centre)
+    QTest.mouseRelease(graph, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, centre)
+    steps = doc.undo.count()
+    wheel(graph, -1)
+    wheel(graph, -1)
+    assert "n_u" not in doc.experiment.value_map
+    QTest.qWait(600)
+    assert doc.experiment.value_map["n_u"] < 4.0 and doc.undo.count() == steps + 1
+    panel.close()
