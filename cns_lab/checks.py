@@ -112,20 +112,25 @@ def _assert(sim: Simulator, run: Run, normal: Run, blocks: list[Block], row: dic
             f"expected {row['expect']}")
 
 
-def run_check(sim: Simulator, check: Check) -> CheckOutcome:
-    model = sim.model
-    blocks = [_block(sim, row) for row in check.blocks]
-    experiment = Experiment(model.key, model.version, check.length, model.start_clock,
-                            tuple(blocks))
+def check_experiment(sim: Simulator, experiment: Experiment, asserts: tuple[dict, ...],
+                     key: str = "") -> CheckOutcome:
     run = sim.run(experiment)
-    normal = sim.normal(check.length, model.start_clock)
+    normal = sim.normal(experiment.length, experiment.start_clock)
+    blocks = list(experiment.blocks)
     failures, details = [], []
-    for row in check.asserts:
+    for row in asserts:
         passed, detail = _assert(sim, run, normal, blocks, row)
         details.append(detail)
         if not passed:
             failures.append(detail)
-    return CheckOutcome(check.key, not failures, "; ".join(failures or details))
+    return CheckOutcome(key, not failures, "; ".join(failures or details))
+
+
+def run_check(sim: Simulator, check: Check) -> CheckOutcome:
+    model = sim.model
+    blocks = tuple(_block(sim, row) for row in check.blocks)
+    experiment = Experiment(model.key, model.version, check.length, model.start_clock, blocks)
+    return check_experiment(sim, experiment, check.asserts, check.key)
 
 
 def run_checks(sim: Simulator) -> list[CheckOutcome]:
