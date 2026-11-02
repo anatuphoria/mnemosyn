@@ -16,6 +16,7 @@ EXPERIMENTS = Path(__file__).with_name("experiments.toml")
 FILES = ROOT / "site" / "handbook" / "experiments" / "files"
 SRC = ROOT / "atlas_src"
 CLOCK_KINDS = ("peak_within", "trough_within")
+HIT = 0.5
 
 
 @dataclass(frozen=True)
@@ -105,3 +106,39 @@ def write_files(models: dict[str, LabModel], out: Path = FILES) -> list[Path]:
         write(path, experiment(entry, models[entry.system]))
         written.append(path)
     return written
+
+
+
+def _territory_claim(atlas, claim: AtlasClaim) -> tuple[bool, str]:
+    from cns_atlas.lesions import hits, territory_lesion
+
+    found = next((s for s in atlas.structures if s.name == claim.target), None)
+    if found is None:
+        return False, f"no territory named {claim.target!r}"
+    hit = {atlas.get(i).name: share for i, share in hits(atlas, territory_lesion(atlas, found.id))
+           .items()}
+    missing = [name for name in claim.expect if hit.get(name, 0.0) < HIT]
+    return not missing, f"{claim.target} misses {missing}" if missing else claim.target
+
+
+def _route_claim(atlas, claim: AtlasClaim) -> tuple[bool, str]:
+    from cns_atlas.model import Crossing, Station
+
+    route = next((p for p in atlas.pathways if p.key == claim.target), None)
+    if route is None:
+        return False, f"no route {claim.target!r}"
+    crossed = False
+    for step in route.steps:
+        if isinstance(step, Crossing) or (isinstance(step, Station) and step.crossing):
+            crossed = True
+        elif crossed and isinstance(step, Station) and step.side == "same":
+            return False, f"{route.name} returns to the same side after crossing"
+    return crossed, route.name if crossed else f"{route.name} never crosses"
+
+
+def check_atlas_claim(atlas, claim: AtlasClaim) -> tuple[bool, str]:
+    if claim.kind == "territory":
+        return _territory_claim(atlas, claim)
+    if claim.kind == "route" and claim.expect == ("crosses",):
+        return _route_claim(atlas, claim)
+    return False, f"unknown claim {claim.kind} {claim.expect}"
