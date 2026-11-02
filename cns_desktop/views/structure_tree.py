@@ -64,8 +64,11 @@ class StructureTree(QWidget):
 
     def _on_item_checked(self, item: QTreeWidgetItem, _column: int) -> None:
         structure_id = item.data(0, ID_ROLE)
-        hidden = item.checkState(0) != Qt.CheckState.Checked
-        if not self.state.set_hidden(self.state.geometry_in(structure_id), hidden):
+        ids = self._geometry_of(structure_id)
+        hidden_now = len(ids & self.state.hidden_ids)
+        was_partial = 0 < hidden_now < len(ids)
+        hidden = was_partial or item.checkState(0) != Qt.CheckState.Checked
+        if not self.state.set_hidden(ids, hidden):
             self._sync_checks()
 
     def _geometry_of(self, structure_id: int) -> frozenset[int]:

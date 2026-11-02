@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 from fsrs import Rating
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
@@ -352,3 +353,28 @@ def test_the_tract_quiz_keeps_dimming_without_a_fade(window):
     quiz = start_quiz(window, "name-typed", "tracts")
     assert window.state.focus is None and opacity() == pytest.approx(0.15)
     quiz.stop()
+
+
+def click_check_box(window, qapp, structure_id):
+    tree = window.tree.tree
+    item = window.tree.items[structure_id]
+    tree.scrollToItem(item)
+    qapp.processEvents()
+    option = QStyleOptionViewItem()
+    option.initFrom(tree)
+    option.rect = tree.visualItemRect(item)
+    option.features |= QStyleOptionViewItem.ViewItemFeature.HasCheckIndicator
+    box = tree.style().subElementRect(QStyle.SubElement.SE_ItemViewItemCheckIndicator, option, tree)
+    QTest.mouseClick(tree.viewport(), Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, box.center())
+    qapp.processEvents()
+
+
+def test_clicking_a_half_shown_group_hides_all_of_it_then_shows_all_of_it(window, qapp):
+    group = window.state.geometry_in(2)
+    assert window.tree.items[2].checkState(0) == Qt.CheckState.PartiallyChecked
+    click_check_box(window, qapp, 2)
+    assert all(window.state.is_hidden(i) for i in group)
+    assert window.tree.items[2].checkState(0) == Qt.CheckState.Unchecked
+    click_check_box(window, qapp, 2)
+    assert not any(window.state.is_hidden(i) for i in group)
+    assert window.tree.items[2].checkState(0) == Qt.CheckState.Checked
