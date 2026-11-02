@@ -847,3 +847,25 @@ Results are recomputed once when the control is let go, not while it moves, sinc
 stress axis takes about a quarter of a second.
 Why: a student sees how far from normal a value is and what it shapes, not only a number.
 Design: [Lab pass, section 4](specs/2026-11-02-lab-pass-design.md).
+
+## 83. Pathways uses the same frame as the rest of the app
+
+2026-11-02. Pathways was built before the design system and kept its own single stacked panel. It
+now has Routes and Steps tabs on the left (a grouped, searchable route list, and numbered steps
+whose badges show passed, current and later), the step text in a Step tab on the right beside Info
+and Slices, the route controls (back, play, next, speed, side, Open in the Lab) in the top bar, and
+behaviour timelines drawn as lanes like the Lab's, with their note in the Step tab. In 3D the whole
+route is drawn at once: passed steps in the accent colour, later steps dimmed, the slice plane
+hidden and the camera framing the route. In narrow windows the step text sits under the steps.
+Why: the owner found that Pathways neither looked nor behaved like the rest of the app, and its
+most useful part, the step text, was squeezed into a small box.
+Design: [Pathways pass](specs/2026-11-02-pathways-pass-design.md).
+
+## 84. A route stays open until it is closed, and closing gives everything back
+
+2026-11-02. There is no leave mode. A route stays open until another is picked or it is closed with
+Close route or Esc; moving to the Lab or Lesion still closes it. Closing gives back the hidden
+structures, selection, slice, slice plane and camera the user had before.
+Why: no other workspace has a mode to leave, and the camera framing on opening must not cost the
+user their own view.
+Design: [Pathways pass, section 4](specs/2026-11-02-pathways-pass-design.md).

@@ -23,7 +23,9 @@ Lab with the stress axis and water balance on one Lab timeline (decision 75), an
 quizzes. Version 0.3.1 was checked on Windows by the owner on 2026-10-30; 0.4.0 still waits for
 that check (`docs/windows-check.md`). The first public forum post went out on 2026-10-30; there are
 no outside users or feedback yet. Since 0.4.0 the Lab pass (decisions 81 and 82) is built but not
-released: floating cards over a larger brain, and a control for each kind of setting.
+released: floating cards over a larger brain, and a control for each kind of setting. The Pathways
+pass (decisions 83 and 84) rebuilds Pathways on the same frame as the rest of the app, also not
+released.
 
 ## Unfinished
 
