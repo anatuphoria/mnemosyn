@@ -17,15 +17,15 @@ would make it a weaker copy of the paid apps; going deep is where it can be the 
 
 ## Where it stands
 
-Version 0.4.0 (2026-11-02) is a free test release for Windows and Linux. It has the 3D atlas,
+Version 0.5.0 (2026-11-02) is a free test release for Windows and Linux. It has the 3D atlas,
 slices, pathways and behaviour circuits, lesion mode with the arterial territories, the Simulation
 Lab with the stress axis and water balance on one Lab timeline (decision 75), and spaced repetition
-quizzes. Version 0.3.1 was checked on Windows by the owner on 2026-10-30; 0.4.0 still waits for
-that check (`docs/windows-check.md`). The first public forum post went out on 2026-10-30; there are
-no outside users or feedback yet. Since 0.4.0 the Lab pass (decisions 81 and 82) is built but not
-released: floating cards over a larger brain, and a control for each kind of setting. The Pathways
-pass (decisions 83 and 84) rebuilds Pathways on the same frame as the rest of the app, also not
-released.
+quizzes. Over 0.4.0 it adds the Lab pass (decisions 81 and 82: floating cards over a larger brain
+and a control for each kind of setting), the Pathways pass (decisions 83 and 84: Pathways on the
+same frame as the rest of the app), and About and Progress windows rebuilt on the design system.
+Version 0.3.1 was checked on Windows by the owner on 2026-10-30; 0.5.0 still waits for that check
+(`docs/windows-check.md`). The first public forum post went out on 2026-10-30; there are no
+outside users or feedback yet.
 
 ## Unfinished
 
