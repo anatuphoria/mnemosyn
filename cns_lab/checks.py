@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from cns_atlas.models import Check
+from cns_atlas.models import Check, LabModel
 
 from .engine import Run, Simulator
 from .experiment import Block, Experiment
@@ -52,9 +52,9 @@ def read_test(sim: Simulator, run: Run, block: Block) -> TestResult:
     return TestResult(test.key, readings, value, normal, test.cutoff, unit)
 
 
-def _block(sim: Simulator, row: dict) -> Block:
+def block_from_row(model: LabModel, row: dict) -> Block:
     key = row["experiment"]
-    experiment = next((e for e in sim.model.experiments if e.key == key), None)
+    experiment = next((e for e in model.experiments if e.key == key), None)
     mode = row.get("mode", experiment.mode if experiment else "from a time")
     length = row.get("length", experiment.length if experiment else None)
     options = tuple(sorted(row.get("options", {}).items()))
@@ -128,7 +128,7 @@ def check_experiment(sim: Simulator, experiment: Experiment, asserts: tuple[dict
 
 def run_check(sim: Simulator, check: Check) -> CheckOutcome:
     model = sim.model
-    blocks = tuple(_block(sim, row) for row in check.blocks)
+    blocks = tuple(block_from_row(model, row) for row in check.blocks)
     experiment = Experiment(model.key, model.version, check.length, model.start_clock, blocks)
     return check_experiment(sim, experiment, check.asserts, check.key)
 

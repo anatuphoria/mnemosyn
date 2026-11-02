@@ -1,0 +1,16 @@
+format = 1
+system = "stress"
+model_version = 1
+length = "2 d"
+start_clock = "08:00"
+title = "Addison's disease"
+note = "From the Mnemosyn handbook: Addison's disease"
+
+[values]
+
+[[blocks]]
+experiment = "addison"
+start = 0.0
+mode = "present"
+
+[blocks.options]

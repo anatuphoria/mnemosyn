@@ -1,0 +1,16 @@
+format = 1
+system = "water"
+model_version = 1
+length = "5 d"
+start_clock = "08:00"
+title = "SIADH"
+note = "From the Mnemosyn handbook: Two kinds of low sodium"
+
+[values]
+
+[[blocks]]
+experiment = "siadh"
+start = 0.0
+mode = "from a time"
+
+[blocks.options]

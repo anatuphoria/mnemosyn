@@ -1,0 +1,17 @@
+format = 1
+system = "stress"
+model_version = 1
+length = "8 w"
+start_clock = "08:00"
+title = "Four weeks of hydrocortisone, then stopping"
+note = "From the Mnemosyn handbook: Stopping a steroid course"
+
+[values]
+
+[[blocks]]
+experiment = "hydrocortisone_course"
+start = 0.0
+length = "4 w"
+mode = "from a time"
+
+[blocks.options]

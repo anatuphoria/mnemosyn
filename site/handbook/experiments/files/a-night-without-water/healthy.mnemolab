@@ -1,0 +1,16 @@
+format = 1
+system = "water"
+model_version = 1
+length = "1 d"
+start_clock = "08:00"
+title = "A healthy body: the water deprivation test"
+note = "From the Mnemosyn handbook: A night without water"
+
+[values]
+
+[[blocks]]
+experiment = "water_deprivation_test"
+start = 0.0
+mode = "from a time"
+
+[blocks.options]

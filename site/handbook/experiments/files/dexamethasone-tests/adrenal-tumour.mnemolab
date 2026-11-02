@@ -1,0 +1,30 @@
+format = 1
+system = "stress"
+model_version = 1
+length = "3 d"
+start_clock = "08:00"
+title = "An adrenal tumour: the dexamethasone tests"
+note = "From the Mnemosyn handbook: The dexamethasone tests"
+
+[values]
+
+[[blocks]]
+experiment = "adrenal_tumour"
+start = 0.0
+mode = "present"
+
+[blocks.options]
+
+[[blocks]]
+experiment = "low_dose_test"
+start = 900.0
+mode = "from a time"
+
+[blocks.options]
+
+[[blocks]]
+experiment = "high_dose_test"
+start = 2340.0
+mode = "from a time"
+
+[blocks.options]

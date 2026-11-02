@@ -1,0 +1,16 @@
+format = 1
+system = "water"
+model_version = 1
+length = "2 d"
+start_clock = "08:00"
+title = "Primary polydipsia"
+note = "From the Mnemosyn handbook: Two kinds of low sodium"
+
+[values]
+
+[[blocks]]
+experiment = "primary_polydipsia"
+start = 0.0
+mode = "present"
+
+[blocks.options]

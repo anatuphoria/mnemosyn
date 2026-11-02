@@ -1,0 +1,23 @@
+format = 1
+system = "water"
+model_version = 1
+length = "1 d"
+start_clock = "08:00"
+title = "Central diabetes insipidus: the desmopressin test"
+note = "From the Mnemosyn handbook: Central or nephrogenic?"
+
+[values]
+
+[[blocks]]
+experiment = "central_di"
+start = 0.0
+mode = "present"
+
+[blocks.options]
+
+[[blocks]]
+experiment = "desmopressin_test"
+start = 0.0
+mode = "from a time"
+
+[blocks.options]
