@@ -25,10 +25,19 @@ from .why_panel import WhyPanel
 
 TICK_MS = 30
 SPEEDS = (0.5, 1.0, 2.0, 4.0)
-LENGTHS = (("6 h", 360.0), ("1 d", DAY), ("3 d", 3 * DAY), ("1 w", 7 * DAY), ("4 w", 28 * DAY),
-           ("8 w", 56 * DAY))
+LENGTHS = (("6 h", 360.0), ("1 d", DAY), ("2 d", 2 * DAY), ("3 d", 3 * DAY), ("5 d", 5 * DAY),
+           ("1 w", 7 * DAY), ("4 w", 28 * DAY), ("8 w", 56 * DAY))
 STATUS_HINT = "drag a change to move it"
 TIMELINE_SHARE = 0.45
+
+
+def length_label(minutes: float) -> str:
+    for unit, size in (("w", 7 * DAY), ("d", DAY), ("h", 60.0)):
+        if minutes >= size and (minutes / size) * 10 == int((minutes / size) * 10):
+            return f"{minutes / size:g} {unit}"
+    return f"{minutes:g} min"
+
+
 GROUPS = (("Lab tools", "Experiments and model", (("experiments", "Experiments"), ("model", "Model"))),
           ("Lab explain", "Why and inspector", (("why", "Why"), ("inspector", "Inspector"))),
           ("Lab time", "Timeline", (("timeline", "Timeline"),)))
@@ -202,10 +211,17 @@ class LabWorkspace:
             widgets.button_icon("pause" if self.playing else "play"))
 
     def _sync_length(self) -> None:
-        index = self.length_box.findData(self.document.experiment.length)
-        self.length_box.blockSignals(True)
-        self.length_box.setCurrentIndex(index)
-        self.length_box.blockSignals(False)
+        length = self.document.experiment.length
+        box = self.length_box
+        box.blockSignals(True)
+        if box.count() > len(LENGTHS):
+            box.removeItem(len(LENGTHS))
+        index = box.findData(length)
+        if index < 0:
+            box.addItem(length_label(length), length)
+            index = box.count() - 1
+        box.setCurrentIndex(index)
+        box.blockSignals(False)
 
     def _build_menu(self) -> None:
         edit = self.window.topbar.menu("Edit")

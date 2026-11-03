@@ -141,6 +141,29 @@ def test_the_run_length_menu_and_the_longer_run_offer(window):
     assert lab.document.experiment.length == DAY
 
 
+def test_the_run_length_box_offers_the_handbook_lengths(window):
+    lab = window.lab
+    window.workspaces.switch("Lab")
+    for label, days in (("2 d", 2), ("5 d", 5)):
+        lab.length_action(label).trigger()
+        assert lab.document.experiment.length == days * DAY
+        assert lab.length_box.currentText() == label
+
+
+def test_the_run_length_box_shows_a_length_it_does_not_list(window):
+    lab = window.lab
+    window.workspaces.switch("Lab")
+    listed = lab.length_box.count()
+    lab.document.set_length(10 * DAY)
+    assert lab.length_box.currentText() == "10 d"
+    lab.document.set_length(90.0)
+    assert lab.length_box.currentText() == "1.5 h"
+    assert lab.length_box.count() == listed + 1
+    lab.length_action("1 d").trigger()
+    assert lab.length_box.currentText() == "1 d"
+    assert lab.length_box.count() == listed
+
+
 def test_showing_a_part_in_the_atlas(window):
     lab = window.lab
     window.workspaces.switch("Lab")
