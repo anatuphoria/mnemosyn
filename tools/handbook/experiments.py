@@ -30,6 +30,12 @@ class LabFile:
     blocks: tuple[dict, ...]
     asserts: tuple[dict, ...]
 
+    def blocks_at(self, start_clock: float) -> tuple[dict, ...]:
+        return tuple(_block_row(b, start_clock) for b in self.blocks)
+
+    def asserts_at(self, start_clock: float) -> tuple[dict, ...]:
+        return tuple(_assert_row(a, start_clock) for a in self.asserts)
+
 
 @dataclass(frozen=True)
 class AtlasClaim:
@@ -66,11 +72,9 @@ def _assert_row(row: dict, start_clock: float) -> dict:
 
 def load(path: Path = EXPERIMENTS) -> tuple[tuple[LabFile, ...], tuple[AtlasClaim, ...]]:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
-    start_clock = clock("08:00")
     lab = tuple(
         LabFile(row["slug"], row["file"], row["system"], duration(row["length"]), row["title"],
-                row["note"], tuple(_block_row(b, start_clock) for b in row["blocks"]),
-                tuple(_assert_row(a, start_clock) for a in row["asserts"]))
+                row["note"], tuple(row["blocks"]), tuple(row["asserts"]))
         for row in data.get("lab", []))
     atlas = tuple(AtlasClaim(row["slug"], row["kind"], row["target"], tuple(row["expect"]))
                   for row in data.get("atlas", []))
@@ -78,7 +82,7 @@ def load(path: Path = EXPERIMENTS) -> tuple[tuple[LabFile, ...], tuple[AtlasClai
 
 
 def experiment(entry: LabFile, model: LabModel) -> Experiment:
-    blocks = tuple(block_from_row(model, row) for row in entry.blocks)
+    blocks = tuple(block_from_row(model, row) for row in entry.blocks_at(model.start_clock))
     return Experiment(model.key, model.version, entry.length, model.start_clock, blocks,
                       title=entry.title, note=entry.note)
 

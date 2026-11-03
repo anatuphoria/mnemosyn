@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 import re
 from pathlib import Path
 
@@ -55,8 +56,21 @@ def test_every_handbook_lab_claim_holds():
     assert lab
     for entry in lab:
         sim = Simulator(load_model(entry.system))
-        outcome = check_experiment(sim, experiment(entry, sim.model), entry.asserts, entry.file)
+        outcome = check_experiment(sim, experiment(entry, sim.model),
+                                   entry.asserts_at(sim.model.start_clock), entry.file)
         assert outcome.passed, (entry.slug, entry.file, outcome.detail)
+
+
+def test_experiment_moments_follow_the_model_start_clock():
+    lab, _atlas = load()
+    entry = next(e for e in lab if e.slug == "dexamethasone-tests")
+    model = load_model(entry.system)
+    nine = replace(model, start_clock=9 * 60.0)
+    assert [b.start for b in experiment(entry, model).blocks] == [15 * 60.0, (24 + 15) * 60.0]
+    assert [b.start for b in experiment(entry, nine).blocks] == [14 * 60.0, (24 + 14) * 60.0]
+    timed = next(e for e in lab if any("at" in a for a in e.asserts))
+    early, late = timed.asserts_at(model.start_clock), timed.asserts_at(nine.start_clock)
+    assert next(a["at"] - b["at"] for a, b in zip(late, early, strict=True) if "at" in a) == -60.0
 
 
 def test_every_handbook_file_opens_cleanly():
