@@ -17,7 +17,7 @@ see what follows. Made for students; every shape and sentence cites its source.
 
 </div>
 
-<video class="shot teaser" src="assets/teaser.mp4" poster="assets/teaser-poster.jpg" autoplay muted loop playsinline aria-label="Mnemosyn in 17 seconds: the brain turning in 3D, an axial slice gliding through it, the cerebellar loop lit station by station, and the Lab cutting the pituitary stalk while the curves and the Why chain follow"></video>
+<video class="shot teaser" src="assets/teaser.mp4" poster="assets/teaser-poster.jpg" autoplay muted loop playsinline aria-label="Mnemosyn in 20 seconds: the brain turning in 3D, an axial slice gliding through it, the cerebellar loop lit station by station, the Lab cutting the pituitary stalk while the curves and the Why chain follow, and a stroke in the left middle cerebral artery territory with the routes it breaks"></video>
 
 <div class="features" markdown>
 
@@ -103,6 +103,13 @@ hunger also play a schematic hormone timeline.
 
 **The Lab.** The brain colours each part by how far it is from normal, and Why explains the
 difference as a numbered chain of causes, each with its sources. [How it works](handbook/lab.md)
+</div>
+
+<div markdown>
+![Lesion mode with the left middle cerebral artery frontal territory and the routes it breaks](assets/screenshot-lesion.png){ .shot }
+
+**Lesion.** Place a stroke by its artery, paint one or pick a structure, and read every route it
+breaks as the deficits that follow. [How it works](handbook/lesion.md)
 </div>
 
 </div>

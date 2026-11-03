@@ -11,11 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 FPS, WIDTH, HEIGHT, FADE = 30, 1280, 800, 9
 WINDOW = (1600, 1000)
 SCENES = (("intro", 2.6), ("explore", 3.0), ("slices", 2.6), ("pathway", 3.2), ("lab", 3.6),
-          ("end", 2.6))
+          ("lesion", 3.0), ("end", 2.6))
 CAPTIONS = {"explore": "The brain and spinal cord, in 3D.", "slices": "Read it like an atlas.",
-            "pathway": "Follow a pathway, station by station.", "lab": "Change the body. See why."}
+            "pathway": "Follow a pathway, station by station.", "lab": "Change the body. See why.",
+            "lesion": "Place a stroke. See what it breaks."}
 TAGLINE, ADDRESS = "Free  ·  open data  ·  every source cited", "mnemo.saeed.cool"
 ROUTE, CHANGE = "cerebellar", "stalk_cut"
+TERRITORY = "Middle cerebral artery frontal territory (left)"
 
 
 def ease(x: float) -> float:
@@ -53,6 +55,9 @@ class Recorder:
         self.previous = None
         self.window = MainWindow(Atlas.open(DEFAULT_ATLAS),
                                  progress_path=Path(tempfile.mkdtemp()) / "progress.sqlite")
+        from PySide6.QtCore import Qt
+
+        self.window.setWindowFlag(Qt.WindowType.X11BypassWindowManagerHint)
         self.window.setFixedSize(*WINDOW)
         self.window.show()
         self.wait(3000)
@@ -218,6 +223,17 @@ class Recorder:
         self.scene("lab", seconds["lab"], lab,
                    lambda f: (window.lab.document.set_playhead(1380.0 * ease(f)),
                               camera.Azimuth(0.25)))
+        def lesion():
+            window.workspaces.switch("Lesion")
+            atlas = window.state.atlas
+            sided = next(s for s in atlas.structures if s.name == TERRITORY)
+            window.lesion.place.set_side("left")
+            window.lesion.place.choose_territory(atlas.get(sided.id).parent)
+            window.view.reset_view()
+            camera.Azimuth(-35.0)
+            camera.Zoom(1.3)
+
+        self.scene("lesion", seconds["lesion"], lesion, lambda f: camera.Azimuth(0.35))
         self.card(seconds["end"], self.end_card)
         window.lab.document.undo.setClean()
         window.close()

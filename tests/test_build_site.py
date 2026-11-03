@@ -165,7 +165,11 @@ def test_the_home_page_opens_with_the_seal_and_shows_the_product(tmp_path):
     assert "assets/logo-seal-dark.svg#only-dark" in home
     assert "assets/logo-seal-light.svg#only-light" in home
     assert "The Lab" in home and "handbook/lab.md" in home
-    for name in ("screenshot-slices.png", "screenshot-activity.png", "screenshot-lab.png"):
+    assert home.count('<div class="closer" markdown>') == 1
+    closer = home[home.index('<div class="closer" markdown>'):home.index("## Start here")]
+    assert closer.count("{ .shot }") == 4
+    for name in ("screenshot-slices.png", "screenshot-activity.png", "screenshot-lab.png",
+                 "screenshot-lesion.png"):
         assert f"assets/{name}" in home, name
         assert (tmp_path / "out/assets" / name).exists(), name
     assert "divider" not in home

@@ -8,7 +8,7 @@
 <p align="center"><b>Mnemosyn</b> is a free 3D atlas of the human brain and spinal cord, with a lab<br>
 for the body's control systems. Made for students; every shape and sentence cites its source.</p>
 
-<p align="center"><picture><source srcset="brand/teaser.avif" type="image/avif"><img src="brand/teaser.webp" alt="Mnemosyn in 17 seconds: the brain turning in 3D, an axial slice gliding through it, the cerebellar loop lit station by station, and the Lab cutting the pituitary stalk while the curves and the Why chain follow" width="900"></picture></p>
+<p align="center"><picture><source srcset="brand/teaser.avif" type="image/avif"><img src="brand/teaser.webp" alt="Mnemosyn in 20 seconds: the brain turning in 3D, an axial slice gliding through it, the cerebellar loop lit station by station, the Lab cutting the pituitary stalk while the curves and the Why chain follow, and a stroke in the left middle cerebral artery territory with the routes it breaks" width="900"></picture></p>
 
 <p align="center">
   <a href="https://github.com/anatuphoria/mnemosyn/releases"><img src="brand/badge-release.svg" alt="Release" height="28"></a>
@@ -102,6 +102,19 @@ small `.mnemolab` text file you can send to someone; it holds only the experimen
 <details><summary>See the same experiment as a live circuit</summary>
 
 <p align="center"><img src="brand/screenshot-circuit.png" alt="The same experiment as a live circuit, with the charts of every value below it" width="900"></p>
+
+</details>
+
+### Localise a lesion
+
+Lesion mode teaches localisation: place a stroke by its arterial territory, paint a lesion with a
+brush or pick a whole structure, and Mnemosyn shows which structures it hits, which steps of the
+sensory and motor routes it breaks, and the deficit each broken step causes, with sources. Cases
+turn it around: read a patient's signs, place the lesion you think explains them, and check.
+
+<details><summary>See a stroke and the routes it breaks</summary>
+
+<p align="center"><img src="brand/screenshot-lesion.png" alt="Lesion mode with the left middle cerebral artery frontal territory lesion in gold and the deficits of every route it breaks" width="900"></p>
 
 </details>
 

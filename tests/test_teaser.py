@@ -16,9 +16,10 @@ def test_the_encoders_keep_the_teaser_sharp():
 
 def test_the_scenes_add_up_to_a_short_teaser():
     seconds = sum(s for _name, s in teaser.SCENES)
-    assert 10 <= seconds <= 20
+    assert 10 <= seconds <= 22
     assert [name for name, _s in teaser.SCENES] == ["intro", "explore", "slices", "pathway",
-                                                     "lab", "end"]
+                                                     "lab", "lesion", "end"]
+    assert set(teaser.CAPTIONS) == {"explore", "slices", "pathway", "lab", "lesion"}
 
 
 def test_the_readme_opens_with_the_teaser_and_a_fallback():
@@ -36,3 +37,14 @@ def test_the_feature_screenshots_are_folded_away():
     folded = re.findall(r"<details><summary>[^<]+</summary>\s*<p align=\"center\"><img src=\"brand/"
                         r"screenshot[^\"]*\"[^>]*></p>\s*</details>", section)
     assert images and len(folded) == len(images)
+
+
+def test_every_screenshot_the_readme_and_home_page_show_has_a_setup():
+    from tools import screens
+
+    text = README.read_text() + (ROOT / "site/index.md").read_text()
+    used = set(re.findall(r"(screenshot[\w-]*)\.png", text))
+    assert used == set(screens.SCREENS)
+    assert "screenshot-lesion" in used
+    for name in used:
+        assert (ROOT / "brand" / f"{name}.png").exists(), name
