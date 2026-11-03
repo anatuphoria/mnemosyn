@@ -29,11 +29,11 @@ cortex? And how much cortisol does the body make in the days after stopping?
 
 ??? note "What you will see, and why"
     During the course each morning dose holds ACTH down to almost nothing for a few hours. With
-    less ACTH each day the adrenal cortex slowly shrinks: by the end of the fourth week it is at
-    most three quarters of its normal mass.
+    less ACTH each day the adrenal cortex slowly shrinks: by the end of the fourth week it has
+    lost at least a fifth of its normal mass.
 
     When the course stops, the hormone is gone at once but the small gland is not. Two days later
-    the body makes at most four fifths of its normal cortisol, even with ACTH back above normal,
+    the body makes less than 85% of its normal cortisol, even with ACTH back above normal,
     because a shrunken cortex cannot answer ACTH fully. Only over the following weeks does the
     gland grow back, and by the end of the eighth week cortisol is within 15% of its normal day.
 
