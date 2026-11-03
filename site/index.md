@@ -43,7 +43,7 @@ Axial, coronal and sagittal sections with labels over an MRI template, linked to
 
 **Pathways and circuits**
 
-Eighteen routes station by station, with what a lesion causes and the drugs that act there.
+Every route station by station, with what a lesion causes and the drugs that act there.
 </div>
 
 <div markdown>
@@ -51,7 +51,16 @@ Eighteen routes station by station, with what a lesion causes and the drugs that
 
 **The Lab**
 
-Cut, dose, stress or test the stress axis and watch the computed result over hours to weeks.
+Cut, dose, stress or test the stress axis and water balance, and watch the computed result over
+hours to weeks.
+</div>
+
+<div markdown>
+:material-target:{ .feature-icon }
+
+**Lesion**
+
+Place a stroke by its artery, a brush or a structure, and read the deficits it causes.
 </div>
 
 <div markdown>
@@ -63,11 +72,19 @@ Name it, find it and flashcards, scheduled with spaced repetition.
 </div>
 
 <div markdown>
+:material-book-open-page-variant-outline:{ .feature-icon }
+
+**Handbook**
+
+How to use each part, why it helps, and [experiments to try](handbook/experiments/index.md).
+</div>
+
+<div markdown>
 :material-view-dashboard-outline:{ .feature-icon }
 
 **Made to work in**
 
-Four workspaces, panels you can move, a key for every action and windows from 850 px wide.
+Five workspaces, panels you can move, a key for every action and windows from 850 px wide.
 </div>
 
 </div>
@@ -75,7 +92,7 @@ Four workspaces, panels you can move, a key for every action and windows from 85
 <div class="stats" markdown>
 <div><span>@structures@</span>structures</div>
 <div><span>@groups@</span>groups</div>
-<div><span>18</span>pathways</div>
+<div><span>@pathways@</span>pathways</div>
 <div><span>@shared@</span>shared sources</div>
 <div><span>@decisions@</span>recorded decisions</div>
 </div>

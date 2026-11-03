@@ -192,3 +192,17 @@ def test_the_home_page_plays_the_teaser_video(tmp_path):
     script = (REPO / "site/javascripts/teaser.js").read_text()
     assert "prefers-reduced-motion: reduce" in script and "controls" in script
     assert "javascripts/teaser.js" in (REPO / "mkdocs.yml").read_text()
+
+
+def test_the_home_page_counts_and_features_follow_the_app(tmp_path):
+    import tomllib
+
+    build_site(REPO, tmp_path / "out")
+    home = (tmp_path / "out/index.md").read_text()
+    routes = len(tomllib.loads((REPO / "atlas_src/pathways.toml").read_text())["pathways"])
+    assert f"<div><span>{routes}</span>pathways</div>" in home and "@pathways@" not in home
+    features = home[home.index('<div class="features" markdown>'):home.index('<div class="stats"')]
+    assert features.count("{ .feature-icon }") == 8
+    assert "**Lesion**" in features and "**Handbook**" in features
+    assert "Five workspaces" in features and "water balance" in features
+    assert "Four workspaces" not in home and "Eighteen" not in home

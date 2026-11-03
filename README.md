@@ -79,13 +79,18 @@ three of them play a schematic hormone timeline beside it.
 
 ### Run experiments in the Lab
 
-The Lab runs a computed model of a body system, starting with the stress axis (hypothalamus,
-pituitary, adrenal cortex and cortisol) after Karin and colleagues (2020). Drag a change onto the
-timeline: remove the pituitary or the adrenal glands, cut the pituitary stalk, give dexamethasone
-or hydrocortisone once or every day, switch on Addison's disease, Cushing's disease or an adrenal
-tumour, add a short or a long stressor, or run the overnight 1 mg and 8 mg dexamethasone tests and
-the ACTH stimulation test. The model computes every value in real units over hours to weeks, next
-to the untouched normal day.
+The Lab runs computed models of two body systems: the stress axis (hypothalamus, pituitary,
+adrenal cortex and cortisol) after Karin and colleagues (2020), and water balance (plasma sodium,
+vasopressin, the kidney and thirst) after the classic measurements of Robertson and colleagues.
+Drag a change onto the timeline. In the stress axis: remove the pituitary or the adrenal glands,
+cut the pituitary stalk, give dexamethasone or hydrocortisone once or every day, switch on
+Addison's disease, Cushing's disease or an adrenal tumour, add a short or a long stressor, or run
+the overnight 1 mg and 8 mg dexamethasone tests and the ACTH stimulation test. In water balance:
+drink water, stop drinking, give a salty infusion or desmopressin, switch on central or
+nephrogenic diabetes insipidus, SIADH or primary polydipsia, or run the water deprivation and
+desmopressin tests. The model computes every value in real units over hours to weeks, next to the
+untouched normal day. Eight ready made experiments, with their answers, are in the
+[handbook](https://mnemo.saeed.cool/handbook/experiments/).
 
 <details><summary>See the Lab after an experiment</summary>
 
@@ -96,7 +101,7 @@ to the untouched normal day.
 The brain colours each part by how far it is from normal, or the centre turns into a live circuit
 whose arrows thicken and thin with each signal. **Why** explains the difference at the playhead as a
 numbered chain of causes, each marked with what it does and with its sources. Experts can open every
-one of the model's 25 parameters with its normal value, range and source. An experiment saves as a
+one of a model's parameters with its normal value, range and source. An experiment saves as a
 small `.mnemolab` text file you can send to someone; it holds only the experiment.
 
 <details><summary>See the same experiment as a live circuit</summary>

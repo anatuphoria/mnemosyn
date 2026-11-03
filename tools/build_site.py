@@ -185,6 +185,8 @@ def build_site(repo: Path, out: Path) -> None:
     decisions = (repo / "docs/decisions.md").read_text()
     counts = {"structures": len(structures["concepts"]), "groups": len(structures["groups"]),
               "shared": len(sources) - len(local),
+              "pathways": len(tomllib.loads((repo / "atlas_src/pathways.toml").read_text())
+                              ["pathways"]),
               "decisions": len(re.findall(r"^\| \d+ \|", decisions, re.MULTILINE))}
     home = (out / "index.md").read_text()
     for key, value in counts.items():
