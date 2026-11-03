@@ -2,7 +2,7 @@
 
 Where Mnemosyn stands, what is unfinished, and what may come next. Unlike `decisions.md`, nothing
 here is decided: an idea becomes a decision only when the owner approves its design. Last reviewed
-2026-11-02, after version 0.4.0.
+2026-11-03, after version 0.5.0 and the handbook.
 
 ## Vision
 
@@ -24,15 +24,16 @@ quizzes. Over 0.4.0 it adds the Lab pass (decisions 81 and 82: floating cards ov
 and a control for each kind of setting), the Pathways pass (decisions 83 and 84: Pathways on the
 same frame as the rest of the app), and About and Progress windows rebuilt on the design system.
 Version 0.3.1 was checked on Windows by the owner on 2026-10-30; 0.5.0 still waits for that check
-(`docs/windows-check.md`). The first public forum post went out on 2026-10-30; there are no
-outside users or feedback yet.
+(`docs/windows-check.md`). Since 2026-11-03 the website has a handbook in place of the single guide
+page (see below). The first public forum post went out on 2026-10-30; there are no outside users or
+feedback yet.
 
 ## Unfinished
 
 The main features are built: lesion mode (decision 76) with the arterial territories, which 0.4.0
 carries in the public download (decision 77), and water balance, the second Lab system
-(decision 78). The stabilization pass is merged and released in 0.4.0. What follows is the
-handbook below. Cord lesions work only in local builds until PAM50 allows
+(decision 78). The stabilization pass is merged and released in 0.4.0, and the handbook is
+live, so all later work is enhancements and fixes. Cord lesions work only in local builds until PAM50 allows
 sharing, and medullary syndromes need cranial nerve nuclei the atlas does not have.
 
 
@@ -63,8 +64,9 @@ These were left out of earlier designs on purpose and are expected to come back.
 6. Code signing of the Windows installer, for example through the SignPath Foundation programme.
 7. macOS, automatic updates, and package managers (winget, Flathub).
 
-## Handbook (after the main features)
+## Handbook (done)
 
+Live at mnemo.saeed.cool/handbook/ since 2026-11-03 (design: `docs/specs/2026-11-03-handbook-design.md`).
 Agreed with the owner on 2026-11-01, to start once the main features are finished, so that all
 later work is enhancements and fixes. First a stabilization pass (one polish pass per workspace and a full
 Windows check; the deferred minors are done), then a handbook on the website in place of the single guide page:
