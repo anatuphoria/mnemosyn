@@ -1,16 +1,20 @@
+from pathlib import Path
+
 import pytest
 
 from cns_atlas import Atlas
 from tools.handbook.experiments import AtlasClaim, check_atlas_claim, load
 
+SHAREABLE = Path(__file__).resolve().parents[1] / "build" / "atlas-shareable"
 
-@pytest.fixture(scope="module")
-def real_atlas():
+
+@pytest.fixture(scope="module", params=["local", "shareable"])
+def real_atlas(request):
     from cns_desktop.app import default_atlas
 
-    path = default_atlas()
+    path = default_atlas() if request.param == "local" else SHAREABLE
     if not (path / "metadata.json").exists():
-        pytest.skip("no built atlas")
+        pytest.skip(f"no {request.param} atlas built")
     return Atlas.open(path)
 
 
