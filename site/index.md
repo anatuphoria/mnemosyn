@@ -9,9 +9,10 @@ hide: [navigation, toc]
 
 # Mnemosyn { .visually-hidden }
 
-A free 3D atlas of the human brain and spinal cord, with a lab for the body's control systems.
+A free 3D atlas of the human brain, with a lab for the body's control systems.
 Turn it, slice it, follow a pathway through it, test yourself on it, and change a body system to
-see what follows. Made for students; every shape and sentence cites its source.
+see what follows. Made for students; every shape and sentence cites its source. The spinal cord
+is in [local builds](building-the-atlas.md) only, until its authors allow sharing.
 
 [Download](download.md){ .md-button .md-button--primary } [What is inside](atlas/structures.md){ .md-button }
 
@@ -26,7 +27,7 @@ see what follows. Made for students; every shape and sentence cites its source.
 
 **Explore in 3D**
 
-The whole central nervous system in one scene: hide, isolate, search and frame any structure, and
+The whole brain in one scene: hide, isolate, search and frame any structure, and
 show the white matter tracts.
 </div>
 
