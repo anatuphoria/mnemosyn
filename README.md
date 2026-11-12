@@ -205,6 +205,7 @@ pip install "mkdocs>=1.6,<2" "mkdocs-material>=9.5,<10"
 python -m tools.build_site && mkdocs serve   # preview the website
 .venv/bin/pip install -e ".[brand]" && .venv/bin/python -m tools.brand   # redraw logos and badges
 .venv/bin/python -m tools.teaser      # record the README teaser from the app (needs a display)
+.venv/bin/python -m tools.screens     # README screenshots from the shareable atlas (needs a display)
 ```
 
 ```

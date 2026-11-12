@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "brand"
+DEFAULT = ROOT / "build" / "atlas-shareable"
 WINDOW = (1600, 1000)
 SETTLE_MS = 900
 HOUR = 60.0
@@ -81,9 +82,11 @@ def take(atlas_path: Path, out: Path = OUT, names=None) -> list[Path]:
     from cns_desktop.design.theme import apply_theme
     from cns_desktop.main_window import MainWindow
 
+    atlas = Atlas.open(atlas_path)
+    if atlas.local_only:
+        raise ValueError("README screenshots need a shareable atlas, not a local build")
     app = QApplication.instance() or QApplication([])
     apply_theme(app)
-    atlas = Atlas.open(atlas_path)
     taken = []
     with tempfile.TemporaryDirectory() as scratch:
         for name in names or SCREENS:
@@ -108,12 +111,10 @@ def take(atlas_path: Path, out: Path = OUT, names=None) -> list[Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    from cns_desktop.app import DEFAULT_ATLAS
-
     parser = argparse.ArgumentParser(prog="python -m tools.screens",
                                      description="Take the README and home page screenshots "
                                                  "from the real app (needs a display)")
-    parser.add_argument("--atlas", type=Path, default=DEFAULT_ATLAS)
+    parser.add_argument("--atlas", type=Path, default=DEFAULT)
     parser.add_argument("--only", nargs="*", default=None)
     args = parser.parse_args(argv)
     for path in take(args.atlas, names=args.only):

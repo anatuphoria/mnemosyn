@@ -48,3 +48,25 @@ def test_every_screenshot_the_readme_and_home_page_show_has_a_setup():
     assert "screenshot-lesion" in used
     for name in used:
         assert (ROOT / "brand" / f"{name}.png").exists(), name
+
+
+def test_the_readme_screenshots_refuse_a_local_atlas(tmp_path):
+    import json
+
+    import pytest
+    from atlas_package import tetra, tiny_structures, write_package
+
+    from tools import screens
+
+    root = write_package(tmp_path / "pkg", tiny_structures(), meshes={101: tetra()})
+    metadata = json.loads((root / "metadata.json").read_text())
+    metadata["local_only"] = ["toylocal"]
+    (root / "metadata.json").write_text(json.dumps(metadata))
+    with pytest.raises(ValueError, match="shareable atlas"):
+        screens.take(root, tmp_path)
+
+
+def test_the_readme_screenshots_default_to_the_shareable_atlas():
+    from tools import screens
+
+    assert screens.DEFAULT == ROOT / "build" / "atlas-shareable"
