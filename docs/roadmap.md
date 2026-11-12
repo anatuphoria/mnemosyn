@@ -2,7 +2,7 @@
 
 Where Mnemosyn stands, what is unfinished, and what may come next. Unlike `decisions.md`, nothing
 here is decided: an idea becomes a decision only when the owner approves its design. Last reviewed
-2026-11-03, after version 0.5.0 and the handbook.
+2026-11-12, after version 0.5.1.
 
 ## Vision
 
@@ -23,9 +23,12 @@ Lab with the stress axis and water balance on one Lab timeline (decision 75), an
 quizzes. Over 0.4.0 it adds the Lab pass (decisions 81 and 82: floating cards over a larger brain
 and a control for each kind of setting), the Pathways pass (decisions 83 and 84: Pathways on the
 same frame as the rest of the app), and About and Progress windows rebuilt on the design system.
-Version 0.3.1 was checked on Windows by the owner on 2026-10-30; 0.5.0 still waits for that check
-(`docs/windows-check.md`). Since 2026-11-03 the website has a handbook in place of the single guide
-page (see below). The first public forum post went out on 2026-10-30; there are no outside users or
+Version 0.5.1 (2026-11-12) is a fix and content release on 0.5.0: a draft description for every
+structure, group, tract, territory and spinal segment, quiz fixes (wrapped answers, first try
+scoring, the brain framed around a Name it target, room for the slices on a narrow window), shorter
+names in the structure tree and named Lab cards. Version 0.3.1 was checked on Windows by the owner
+on 2026-10-30; 0.5.1 still waits for that check (`docs/windows-check.md`). Since 2026-11-03 the
+website has a handbook in place of the single guide page (see below). The first public forum post went out on 2026-10-30; there are no outside users or
 feedback yet.
 
 ## Unfinished
