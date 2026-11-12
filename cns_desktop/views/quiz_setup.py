@@ -19,7 +19,9 @@ STYLES = (("Type the name", "name-typed"), ("Choose from 4", "name-choice"))
 LEVELS = (("Structures", "structures"), ("Groups", "groups"), ("Tracts", "tracts"))
 SESSIONS = (("Due now", False), ("Practice", True))
 NO_ITEMS = "Nothing to ask in this scope at this level."
-NO_REVIEWED = "No reviewed descriptions yet."
+NO_REVIEWED = ("Flashcards use reviewed descriptions only, and none in this scope are reviewed "
+               "yet. Cards appear here as descriptions are reviewed. Name it and Find it work "
+               "now.")
 NOTHING_DUE = "Nothing due now and no new items left today. Choose Practice to study anyway."
 
 

@@ -658,6 +658,29 @@ def test_setup_explains_when_there_is_nothing_to_ask(window):
     dialog.reject()
 
 
+def test_setup_says_why_flashcards_are_empty_and_when_they_fill_in(window):
+    dialog = window.open_quiz_setup()
+    dialog.mode.setCurrentIndex(2)
+    text = dialog.note.text()
+    assert "reviewed descriptions only" in text
+    assert "none" in text and "yet" in text
+    assert "as descriptions are reviewed" in text
+    dialog.reject()
+
+
+def test_long_choices_wrap_inside_the_quiz_panel(window):
+    quiz = start_quiz(window, "name-choice")
+    long = "1. Pontine reticular nucleus, oral part, written out at a length no panel fits"
+    button = quiz.choice_buttons[0]
+    button.setText(long)
+    QApplication.processEvents()
+    assert button.text() == long
+    assert button.minimumSizeHint().width() < button.fontMetrics().horizontalAdvance(long) // 2
+    assert button.width() <= quiz.width()
+    one_line = button.fontMetrics().height()
+    assert button.heightForWidth(quiz.width()) > 2 * one_line
+
+
 def test_setup_offers_practice_when_nothing_is_due(window):
     quiz = start_quiz(window, "name-typed")
     while quiz.phase == "asking":

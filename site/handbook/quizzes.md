@@ -29,7 +29,9 @@ A highlighted structure to name, or a name to find, and a Progress window that s
 1. **A mode.** *Name it* highlights a structure on both sides and asks for its name: type it, or
    pick one of four with the keys `1` to `4`. Typed answers accept synonyms, abbreviations, any word
    order and small typos. *Find it* names a structure and you click it in 3D or in a slice.
-   *Flashcards* show a reviewed description and ask what it describes.
+   *Flashcards* show a structure's name, then its description when you ask for it, and you rate
+   how well you knew it. They use reviewed descriptions only. None are reviewed yet, so this mode
+   stays empty for now and fills in as descriptions are reviewed.
 2. **A level.** Single structures, bigger groups, or the white matter tracts.
 3. **How much.** The whole atlas or one part of it, such as the brainstem.
 4. **Due or practice.** A due round asks what the schedule says you need today. A practice round
