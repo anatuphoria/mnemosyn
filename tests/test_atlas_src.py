@@ -90,10 +90,19 @@ def test_acronyms_are_unique():
 
 
 def test_every_description_cites_a_reference():
+    references = load_references(SRC / "knowledge" / "references.toml")
     paths = sorted((SRC / "knowledge").glob("*/*.md"))
-    assert len(paths) == 26
     for path in paths:
-        assert parse_entry(path.read_text(encoding="utf-8"), str(path)).citations, path
+        entry = parse_entry(path.read_text(encoding="utf-8"), str(path))
+        assert entry.citations, path
+        assert set(entry.citations) <= set(references), path
+
+
+def test_every_structure_has_a_description():
+    raws = load_structures(SRC / "structures.toml")
+    described = {p.stem for p in (SRC / "knowledge" / "en").glob("*.md")}
+    missing = [f"{r.id} {r.name}" for r in raws if r.concept is None and str(r.id) not in described]
+    assert missing == []
 
 
 @pytest.mark.slow
