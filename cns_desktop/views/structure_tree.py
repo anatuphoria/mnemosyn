@@ -1,13 +1,62 @@
 from __future__ import annotations
 
+import re
+
 from PySide6.QtCore import QSignalBlocker, Qt
-from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
+                               QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from ..design.tokens import GAP, SIZE
 from ..design.widgets import SearchField
 from ..state import AppState
 
 ID_ROLE = Qt.ItemDataRole.UserRole
+SIDE = re.compile(r" \((?:left|right)\)$")
+
+
+def shorten(name: str, metrics, width: int) -> str:
+    if metrics.horizontalAdvance(name) <= width:
+        return name
+    found = SIDE.search(name)
+    side = found.group() if found else ""
+    base = name[:found.start()] if found else name
+    head, comma, rest = base.rpartition(", ")
+    part = f"{comma}{rest}" if comma else ""
+    if comma:
+        base = head
+    tail = part + side
+    if tail:
+        room = width - metrics.horizontalAdvance(tail)
+        if room >= metrics.horizontalAdvance(base[:3] + "…"):
+            return metrics.elidedText(base, Qt.TextElideMode.ElideRight, room) + tail
+        if room >= metrics.horizontalAdvance("…"):
+            return "…" + tail
+    if part:
+        lead = "… "
+        budget = width - metrics.horizontalAdvance(lead) - metrics.horizontalAdvance(side)
+        if budget >= metrics.horizontalAdvance(rest[:3] + "…"):
+            return lead + metrics.elidedText(rest, Qt.TextElideMode.ElideRight, budget) + side
+    if side:
+        room = width - metrics.horizontalAdvance(side)
+        if room >= metrics.horizontalAdvance("……"):
+            unsided = name[:found.start()]
+            return metrics.elidedText(unsided, Qt.TextElideMode.ElideMiddle, room) + side
+    return metrics.elidedText(name, Qt.TextElideMode.ElideMiddle, width)
+
+
+class NameDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index) -> None:
+        view = QStyleOptionViewItem(option)
+        self.initStyleOption(view, index)
+        widget = option.widget
+        style = widget.style() if widget is not None else None
+        if style is None:
+            super().paint(painter, option, index)
+            return
+        text = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, view, widget)
+        view.text = shorten(view.text, view.fontMetrics, text.width() - 2 * style.pixelMetric(
+            QStyle.PixelMetric.PM_FocusFrameHMargin, view, widget) - 2)
+        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, view, painter, widget)
 
 
 class StructureTree(QWidget):
@@ -19,6 +68,7 @@ class StructureTree(QWidget):
         self.tree.setHeaderHidden(True)
         self.tree.setIndentation(SIZE["indent"])
         self.tree.setTextElideMode(Qt.TextElideMode.ElideMiddle)
+        self.tree.setItemDelegate(NameDelegate(self.tree))
         self.tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, GAP["small"], 0, 0)
