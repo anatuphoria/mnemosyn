@@ -440,6 +440,19 @@ class BrainView(QtInteractor):
         self.reset_camera(render=False, bounds=bounds)
         self.render()
 
+    def frame_around(self, ids, room: float) -> None:
+        extents = [self._extent(i) for i in ids]
+        if not extents:
+            return
+        low = np.min([e[0] for e in extents], axis=0)
+        high = np.max([e[1] for e in extents], axis=0)
+        centre = (low + high) / 2
+        half = np.maximum((high - low) / 2, room / 2)
+        bounds = tuple(v for axis in range(3)
+                       for v in (centre[axis] - half[axis], centre[axis] + half[axis]))
+        self.reset_camera(render=False, bounds=bounds)
+        self._request_render()
+
     def _on_visibility_changed(self, ids: frozenset[int]) -> None:
         if any(i in self._tract_set and not self.state.is_hidden(i) for i in ids):
             self._ensure_tracts()

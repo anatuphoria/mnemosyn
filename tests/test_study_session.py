@@ -3,11 +3,11 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from fsrs import Rating, Scheduler, State
+from fsrs import Rating, State
 
 from cns_study.items import Item
 from cns_study.progress import ProgressStore, day_start
-from cns_study.session import Session, due_and_new
+from cns_study.session import Session, due_and_new, new_scheduler
 
 T0 = day_start(datetime(2026, 10, 11, 12, tzinfo=UTC)) + timedelta(hours=9)
 
@@ -30,7 +30,7 @@ def make_items(count):
 
 def session(store, items, clock, **options):
     return Session(items, "find", store, now=clock, rng=random.Random(1),
-                   scheduler=Scheduler(enable_fuzzing=False), **options)
+                   scheduler=new_scheduler(fuzzing=False), **options)
 
 
 def drain(quiz, rating=Rating.Easy, correct=True):
@@ -100,11 +100,33 @@ def test_practice_shuffles_and_saves_nothing(store):
 
 
 def test_answers_are_stored_with_the_fsrs_schedule(store):
-    quiz = session(store, make_items(1), Clock())
+    quiz = session(store, make_items(2), Clock())
     quiz.next()
     quiz.answer(Rating.Good, True, 1500)
-    card = store.card(1, "find")
-    assert card.state == State.Learning and card.due == T0 + timedelta(minutes=10)
+    quiz.next()
+    quiz.answer(Rating.Again, False, 1500)
+    right, missed = store.card(1, "find"), store.card(2, "find")
+    assert right.state == State.Review and right.due >= T0 + timedelta(days=1)
+    assert missed.state == State.Learning and missed.due == T0 + timedelta(minutes=1)
+
+
+def test_a_right_answer_finishes_a_new_item_for_the_session(store):
+    quiz = Session(make_items(3), "find", store, now=Clock(), rng=random.Random(1))
+    assert quiz.remaining() == 3
+    quiz.next()
+    quiz.answer(Rating.Good, True, 800)
+    assert quiz.remaining() == 2
+    assert drain(quiz, Rating.Good) == [2, 3]
+
+
+def test_the_summary_scores_first_tries_and_counts_repeats(store):
+    quiz = session(store, make_items(3), Clock())
+    quiz.next()
+    quiz.answer(Rating.Again, False, 800)
+    drain(quiz, Rating.Good)
+    summary = quiz.summary()
+    assert (summary.asked, summary.first_right, summary.answered) == (3, 2, 4)
+    assert summary.percent == 67
 
 
 def test_summary_counts_answers_and_most_missed(store):

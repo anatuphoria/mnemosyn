@@ -13,10 +13,15 @@ from .progress import ProgressStore, day_start
 
 NEW_PER_DAY = 20
 LEARN_AHEAD = timedelta(minutes=20)
+LEARNING_STEPS = (timedelta(minutes=1),)
 
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def new_scheduler(fuzzing: bool = True) -> Scheduler:
+    return Scheduler(learning_steps=LEARNING_STEPS, enable_fuzzing=fuzzing)
 
 
 @dataclass(frozen=True)
@@ -29,6 +34,8 @@ class QuizChoice:
 
 @dataclass(frozen=True)
 class Summary:
+    asked: int
+    first_right: int
     answered: int
     correct: int
     percent: int
@@ -56,13 +63,14 @@ class Session:
         self.practice = practice
         self.now = now
         self.rng = rng or random.Random()
-        self.scheduler = scheduler or Scheduler()
+        self.scheduler = scheduler or new_scheduler()
         self.cards: dict[int, Card] = {}
         self.waiting: list[int] = []
         self.current: Item | None = None
         self.answered = 0
         self.right = 0
         self.missed: Counter[int] = Counter()
+        self.first: dict[int, bool] = {}
         if practice:
             self.queue = list(self.items)
             self.rng.shuffle(self.queue)
@@ -103,13 +111,15 @@ class Session:
         self.current = None
         self.answered += 1
         self.right += int(correct)
+        self.first.setdefault(item.id, correct)
         if not correct:
             self.missed[item.id] += 1
 
     def summary(self) -> Summary:
-        percent = round(100 * self.right / self.answered) if self.answered else 0
+        asked, first_right = len(self.first), sum(self.first.values())
+        percent = round(100 * first_right / asked) if asked else 0
         order = sorted(self.missed.items(), key=lambda pair: (-pair[1], pair[0]))
         tomorrow_end = day_start(self.now(), 2)
         due = sum(card.due < tomorrow_end for card in self.cards.values())
-        return Summary(self.answered, self.right, percent,
+        return Summary(asked, first_right, self.answered, self.right, percent,
                        tuple(self.items[i] for i, _ in order[:5]), due)

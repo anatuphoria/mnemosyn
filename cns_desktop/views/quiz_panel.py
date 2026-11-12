@@ -100,6 +100,7 @@ class QuizPanel(QWidget):
     finished = Signal()
     centre_requested = Signal()
     find_target = Signal(object)
+    frame_target = Signal(object)
     dim_grey = Signal(bool)
 
     def __init__(self, state: AppState, parent=None) -> None:
@@ -243,6 +244,7 @@ class QuizPanel(QWidget):
             return
         self._select(item.id)
         self.centre_requested.emit()
+        self.frame_target.emit(frozenset(item.geometry))
         if self.mode == "flashcard":
             self.prompt.setText(f"<b>{escape(item.name)}</b> ({escape(item.acronym)})")
             self.hint.setText("Space shows the description")
@@ -271,7 +273,9 @@ class QuizPanel(QWidget):
         if self.phase != "asking" or self.mode != "name-choice":
             return
         if 0 <= index < len(self.options):
-            self._judge(self.options[index].id == self.item.id, "")
+            picked = self.options[index]
+            right = picked.id == self.item.id
+            self._judge(right, "" if right else f"You chose: {picked.name}.")
 
     def _judge(self, correct: bool, note: str) -> None:
         self.answer_ms = round((time.perf_counter() - self._shown_at) * 1000)
@@ -327,11 +331,15 @@ class QuizPanel(QWidget):
         self.item, self.phase, self.options = None, "summary", []
         self._select(None)
         self.find_target.emit(frozenset())
+        self.frame_target.emit(frozenset())
         self.dim_grey.emit(False)
         self.state.set_focus(None)
         missed = ", ".join(item.name for item in summary.most_missed) or "none"
-        lines = [f"{summary.answered} answered, {summary.percent}% correct",
-                 f"Most missed: {escape(missed)}"]
+        lines = [f"{summary.asked} asked, {summary.first_right} right the first time"
+                 f" ({summary.percent}%)"]
+        if summary.answered > summary.asked:
+            lines.append(f"Asked again after a miss: {summary.answered - summary.asked}")
+        lines.append(f"Most missed: {escape(missed)}")
         lines.append("Practice: your schedule did not change." if self.session.practice
                      else f"Due by the end of tomorrow: {summary.due_tomorrow}")
         self.prompt.setText(f"<b>Done</b><br>{'<br>'.join(lines)}")

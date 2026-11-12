@@ -561,7 +561,7 @@ def test_finishing_shows_a_summary_and_closes(window):
         quiz.submit_text(quiz.item.name)
         quiz.go_on(Rating.Easy)
     assert quiz.phase == "summary"
-    assert "3 answered, 100% correct" in quiz.prompt.text()
+    assert "3 asked, 3 right the first time (100%)" in quiz.prompt.text()
     assert window.state.selected is None
     QTest.keyClick(quiz, Qt.Key.Key_Return)
     assert not window.quiz_active and window.tree_dock.isVisible()
@@ -822,6 +822,73 @@ def test_every_step_works_with_the_mouse(reviewed_window):
     assert quiz.phase == "summary" and quiz.next_button.text() == "Close"
     quiz.next_button.click()
     assert not window.quiz_active
+
+
+def test_a_wrong_choice_says_which_one_was_picked(window):
+    quiz = start_quiz(window, "name-choice")
+    wrong = next(n for n, option in enumerate(quiz.options) if option.id != quiz.item.id)
+    quiz.choose(wrong)
+    assert f"You chose: {quiz.options[wrong].name}." in quiz.feedback.text()
+
+
+def test_the_counter_goes_down_after_a_right_answer(window):
+    quiz = start_quiz(window, "name-choice")
+    assert quiz.counter.text() == "3 left"
+    right = next(n for n, option in enumerate(quiz.options) if option.id == quiz.item.id)
+    quiz.choose(right)
+    quiz.go_on()
+    assert quiz.counter.text() == "2 left"
+
+
+def test_the_summary_reports_first_tries(window):
+    quiz = start_quiz(window, "name-choice")
+    while quiz.phase == "asking":
+        right = next(n for n, option in enumerate(quiz.options) if option.id == quiz.item.id)
+        quiz.choose(right)
+        quiz.go_on()
+    assert "3 asked, 3 right the first time (100%)" in quiz.prompt.text()
+
+
+def camera(window):
+    return [tuple(round(v, 3) for v in point) for point in window.view.camera_position.to_list()]
+
+
+def test_name_it_frames_the_target_with_room_around_it(window):
+    from cns_desktop.main_window import QUIZ_ROOM_MM
+
+    quiz = start_quiz(window, "name-choice")
+    low, high = window.view.extent_of(next(iter(quiz.item.geometry)))
+    for i in quiz.item.geometry:
+        a, b = window.view.extent_of(i)
+        low, high = np.minimum(low, a), np.maximum(high, b)
+    focal = np.array(window.view.camera_position.to_list()[1])
+    assert np.allclose(focal, (low + high) / 2, atol=1e-3)
+    distance = np.linalg.norm(np.subtract(*window.view.camera_position.to_list()[:2]))
+    assert distance > QUIZ_ROOM_MM / 2
+
+
+def test_find_it_leaves_the_camera_where_it_was(window):
+    before = camera(window)
+    start_quiz(window, "find")
+    assert camera(window) == before
+
+
+def test_the_summary_puts_the_camera_back(window):
+    before = camera(window)
+    quiz = start_quiz(window, "name-choice")
+    while quiz.phase == "asking":
+        right = next(n for n, option in enumerate(quiz.options) if option.id == quiz.item.id)
+        quiz.choose(right)
+        quiz.go_on()
+    assert quiz.phase == "summary" and camera(window) == before
+
+
+def test_ending_a_quiz_puts_the_camera_back(window):
+    before = camera(window)
+    quiz = start_quiz(window, "name-choice")
+    assert camera(window) != before
+    quiz.stop()
+    assert camera(window) == before
 
 
 def test_next_button_moves_on_after_feedback(window):

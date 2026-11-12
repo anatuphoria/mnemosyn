@@ -26,8 +26,9 @@ A highlighted structure to name, or a name to find, and a Progress window that s
 
 **Start a quiz** with `Q` or **Study, Start quiz**. Choose:
 
-1. **A mode.** *Name it* highlights a structure on both sides and asks for its name: type it, or
-   pick one of four with the keys `1` to `4`. Typed answers accept synonyms, abbreviations, any word
+1. **A mode.** *Name it* highlights a structure on both sides, brings the 3D view in close enough
+   to see it with the brain around it, and asks for its name: type it, or pick one of four with the
+   keys `1` to `4`. Typed answers accept synonyms, abbreviations, any word
    order and small typos. *Find it* names a structure and you click it in 3D or in a slice.
    *Flashcards* show a structure's name, then its description when you ask for it, and you rate
    how well you knew it. They use reviewed descriptions only. None are reviewed yet, so this mode
@@ -46,7 +47,9 @@ In *Flashcards*, `Space` shows the description and `1` to `4` rate how well you 
 again to easy.
 
 **Scheduling** uses FSRS, the spaced repetition method many flashcard apps use, with at most 20 new
-items a day in each mode. Your answers are saved after every question, on your own computer, in a
+items a day in each mode. A right answer is done until its next review; a miss comes back a minute
+or so later in the same round. The round ends with your score on first tries and the items you
+missed most. Your answers are saved after every question, on your own computer, in a
 file called `progress.sqlite` in your user data folder (on Linux,
 `~/.local/share/mnemosyn/progress.sqlite`).
 

@@ -60,6 +60,7 @@ KEYS = {
     "lab": (("Space", "play"), ("V", "brain or circuit"), ("Del", "remove change")),
 }
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
+QUIZ_ROOM_MM = 60.0
 ARROW_WIDGETS = (QAbstractSlider, QAbstractItemView, QAbstractSpinBox)
 ROUTE_DIM = 0.55
 ROUTE_KEYS = ("Play or pause", "Back", "Next")
@@ -203,6 +204,7 @@ class MainWindow(QMainWindow):
         self.quiz.finished.connect(self.leave_quiz)
         self.quiz.centre_requested.connect(self.slices.centre_on_selection)
         self.quiz.find_target.connect(self._prefer_in_slices)
+        self.quiz.frame_target.connect(self._frame_quiz_target)
         self.quiz.dim_grey.connect(
             lambda dim: self.view.set_grey_opacity(GREY_DIMMED if dim else 1.0))
         self.pathways.entered.connect(self.enter_pathway)
@@ -502,7 +504,7 @@ class MainWindow(QMainWindow):
         state = self.state
         self._saved = (self.saveState(), *self._snapshot(),
                        [(w, w.focusPolicy()) for w in (self.view, self.slices.view)],
-                       self.workspaces.joins())
+                       self.workspaces.joins(), self.view.camera_position.to_list())
         self.workspaces.release_joins()
         self.quiz_active = True
         self.workspaces.set_locked(True)
@@ -522,10 +524,20 @@ class MainWindow(QMainWindow):
         self.statusBar().clearMessage()
         self._update_status()
 
+    def _frame_quiz_target(self, ids) -> None:
+        if ids:
+            self.view.frame_around(ids, QUIZ_ROOM_MM)
+        elif self.quiz_active:
+            self._put_camera(self._saved[-1])
+
+    def _put_camera(self, camera) -> None:
+        self.view.camera_position = camera
+        self.view.renderer.ResetCameraClippingRange()
+
     def leave_quiz(self) -> None:
         if not self.quiz_active:
             return
-        layout, hidden, selected, axis, mm, volume, focus, joins = self._saved
+        layout, hidden, selected, axis, mm, volume, focus, joins, camera = self._saved
         self.quiz_active = False
         self.workspaces.set_locked(False)
         if self.lab is not None:
@@ -538,6 +550,7 @@ class MainWindow(QMainWindow):
         self.restoreState(layout)
         self.workspaces.apply_joins(joins)
         self._restore(hidden, selected, axis, mm, volume)
+        self._put_camera(camera)
         self._sync_chart()
         self._update_status()
 
