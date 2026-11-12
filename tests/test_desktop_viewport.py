@@ -133,3 +133,58 @@ def test_a_strip_card_is_tall_enough_for_its_wrapped_text(window, qapp, monkeypa
     qapp.processEvents()
     assert card.title.text() == text
     assert card.title.height() >= card.title.heightForWidth(card.title.width())
+
+
+def start_a_quiz(window, mode):
+    import random
+
+    from cns_study.session import QuizChoice
+
+    window.start_quiz(QuizChoice(mode, "structures", None, True), rng=random.Random(1))
+    return window.quiz
+
+
+@pytest.mark.parametrize("mode", ["name-choice", "find"])
+def test_a_quiz_fits_a_narrow_window(window, qapp, mode):
+    window.workspaces.switch("Explore")
+    resize_to(window, qapp, 850, 700)
+    start_a_quiz(window, mode)
+    resize_to(window, qapp, 850, 700)
+    assert window.width() == 850 and window.minimumSizeHint().width() <= 850
+    assert window.slice_dock.isVisible()
+    assert window.dockWidgetArea(window.slice_dock) == Qt.DockWidgetArea.LeftDockWidgetArea
+
+
+def test_starting_a_quiz_keeps_the_window_width(window, qapp):
+    window.workspaces.switch("Explore")
+    resize_to(window, qapp, 850, 700)
+    quiz = start_a_quiz(window, "find")
+    qapp.processEvents()
+    assert window.width() == 850
+    quiz.stop()
+    qapp.processEvents()
+    assert window.width() == 850
+
+
+def test_a_narrow_quiz_shows_every_choice_above_the_slice(window, qapp):
+    window.workspaces.switch("Explore")
+    resize_to(window, qapp, 850, 900)
+    quiz = start_a_quiz(window, "name-choice")
+    for button in quiz.choice_buttons:
+        button.setText("1. A structure with a name long enough to wrap onto two lines")
+    window.fit_quiz_column()
+    qapp.processEvents()
+    assert quiz.parentWidget().height() >= quiz.layout().totalHeightForWidth(quiz.width()) > 0
+    assert window.slice_dock.height() >= 200
+
+
+def test_narrowing_the_window_during_a_quiz_keeps_it_inside(window, qapp):
+    window.workspaces.switch("Explore")
+    quiz = start_a_quiz(window, "name-choice")
+    qapp.processEvents()
+    assert window.dockWidgetArea(window.slice_dock) == Qt.DockWidgetArea.RightDockWidgetArea
+    resize_to(window, qapp, 850, 700)
+    assert window.width() == 850 and window.minimumSizeHint().width() <= 850
+    quiz.stop()
+    resize_to(window, qapp, 1400, 900)
+    assert window.dockWidgetArea(window.slice_dock) == Qt.DockWidgetArea.RightDockWidgetArea

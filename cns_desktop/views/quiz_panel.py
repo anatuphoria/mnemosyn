@@ -101,6 +101,7 @@ class QuizPanel(QWidget):
     centre_requested = Signal()
     find_target = Signal(object)
     frame_target = Signal(object)
+    laid_out = Signal()
     dim_grey = Signal(bool)
 
     def __init__(self, state: AppState, parent=None) -> None:
@@ -184,6 +185,7 @@ class QuizPanel(QWidget):
             button.setVisible(self.phase == "revealed")
         self.next_button.setVisible(self.phase in ("feedback", "summary"))
         self.next_button.setText("Close" if self.phase == "summary" else "Next")
+        self.laid_out.emit()
 
     def _advance(self) -> None:
         if self.phase == "summary":

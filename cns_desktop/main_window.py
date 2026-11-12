@@ -205,6 +205,7 @@ class MainWindow(QMainWindow):
         self.quiz.centre_requested.connect(self.slices.centre_on_selection)
         self.quiz.find_target.connect(self._prefer_in_slices)
         self.quiz.frame_target.connect(self._frame_quiz_target)
+        self.quiz.laid_out.connect(lambda: QTimer.singleShot(0, self.fit_quiz_column))
         self.quiz.dim_grey.connect(
             lambda dim: self.view.set_grey_opacity(GREY_DIMMED if dim else 1.0))
         self.pathways.entered.connect(self.enter_pathway)
@@ -258,6 +259,10 @@ class MainWindow(QMainWindow):
                           event.size().width())
         if hasattr(self, "workspaces"):
             self.workspaces.width_changed(event.oldSize().width(), event.size().width())
+        old, new = event.oldSize().width(), event.size().width()
+        if (getattr(self, "quiz_active", False) and old > 0
+                and (old < SIZE["narrow"]) != (new < SIZE["narrow"])):
+            self._arrange_quiz(new)
 
     def showEvent(self, event) -> None:
         if not getattr(self, "_fitted", False):
@@ -502,6 +507,7 @@ class MainWindow(QMainWindow):
         if self.quiz_active:
             return
         state = self.state
+        before = self.size()
         self._saved = (self.saveState(), *self._snapshot(),
                        [(w, w.focusPolicy()) for w in (self.view, self.slices.view)],
                        self.workspaces.joins(), self.view.camera_position.to_list())
@@ -521,8 +527,38 @@ class MainWindow(QMainWindow):
         self.chart_dock.hide()
         self.step_group.hide()
         self.quiz_dock.show()
+        self._arrange_quiz(before.width())
+        self.resize(before)
+        QTimer.singleShot(0, lambda: self.quiz_active and self.resize(before))
+        QTimer.singleShot(0, self.fit_quiz_column)
         self.statusBar().clearMessage()
         self._update_status()
+
+    def _arrange_quiz(self, width: int | None = None) -> None:
+        side = SIZE["panel_left"]
+        width = self.width() if width is None else width
+        if width < SIZE["narrow"]:
+            self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.slice_dock)
+            self.splitDockWidget(self.quiz_dock, self.slice_dock, Qt.Orientation.Vertical)
+            self.resizeDocks([self.quiz_dock], [side], Qt.Orientation.Horizontal)
+            self.fit_quiz_column()
+        else:
+            self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.slice_dock)
+            room = width - side - SIZE["central_min"]
+            self.resizeDocks([self.quiz_dock, self.slice_dock], [side, max(room // 2, side)],
+                             Qt.Orientation.Horizontal)
+        self.slice_dock.show()
+
+    def fit_quiz_column(self) -> None:
+        if (not self.quiz_active or self.dockWidgetArea(self.slice_dock)
+                != Qt.DockWidgetArea.LeftDockWidgetArea):
+            return
+        chrome = self.quiz_dock.height() - self.quiz.parentWidget().height()
+        needed = self.quiz.layout().totalHeightForWidth(self.quiz.width())
+        want = max(needed, self.quiz.sizeHint().height()) + max(chrome, 0)
+        shared = self.quiz_dock.height() + self.slice_dock.height()
+        self.resizeDocks([self.quiz_dock, self.slice_dock], [want, max(shared - want, 1)],
+                         Qt.Orientation.Vertical)
 
     def _frame_quiz_target(self, ids) -> None:
         if ids:
@@ -538,6 +574,7 @@ class MainWindow(QMainWindow):
         if not self.quiz_active:
             return
         layout, hidden, selected, axis, mm, volume, focus, joins, camera = self._saved
+        size = self.size()
         self.quiz_active = False
         self.workspaces.set_locked(False)
         if self.lab is not None:
@@ -551,6 +588,8 @@ class MainWindow(QMainWindow):
         self.workspaces.apply_joins(joins)
         self._restore(hidden, selected, axis, mm, volume)
         self._put_camera(camera)
+        self.resize(size)
+        QTimer.singleShot(0, lambda: self.quiz_active or self.resize(size))
         self._sync_chart()
         self._update_status()
 
