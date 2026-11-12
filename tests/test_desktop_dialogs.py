@@ -240,3 +240,19 @@ def test_progress_fits_its_mode_switch_and_text(progress, qapp):
     assert dialog.minimumSizeHint().height() <= dialog.height()
     assert SIZE["dialog"][0] == dialog.width()
     dialog.close()
+
+
+def test_a_source_checkout_reports_the_version_in_pyproject():
+    import tomllib
+    from pathlib import Path
+
+    root = Path(about.__file__).resolve().parents[2]
+    project = tomllib.loads((root / "pyproject.toml").read_text())["project"]["version"]
+    assert about.app_version() == project
+
+
+def test_a_packaged_app_reports_its_bundled_version(tmp_path, monkeypatch):
+    (tmp_path / "VERSION").write_text("9.8.7\n")
+    monkeypatch.setattr(about.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(about.sys, "_MEIPASS", str(tmp_path), raising=False)
+    assert about.app_version() == "9.8.7"

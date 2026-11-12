@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tomllib
 from html import escape
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -33,13 +34,28 @@ LICENCE_TAGS = (
 )
 
 
+PROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
+
+
+def _checkout_version() -> str | None:
+    try:
+        project = tomllib.loads(PROJECT.read_text(encoding="utf-8"))["project"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        return None
+    return project.get("version") if project.get("name") == "mnemosyn" else None
+
+
 def app_version() -> str:
+    if getattr(sys, "frozen", False):
+        bundled = Path(getattr(sys, "_MEIPASS", "")) / "VERSION"
+        if bundled.is_file():
+            return bundled.read_text(encoding="utf-8").strip()
+    checkout = _checkout_version()
+    if checkout:
+        return checkout
     try:
         return version("mnemosyn")
     except PackageNotFoundError:
-        bundled = Path(getattr(sys, "_MEIPASS", "")) / "VERSION"
-        if getattr(sys, "frozen", False) and bundled.is_file():
-            return bundled.read_text(encoding="utf-8").strip()
         return "development"
 
 
