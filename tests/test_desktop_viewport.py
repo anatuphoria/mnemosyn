@@ -117,3 +117,19 @@ def test_every_workspace_fits_850_px(window, qapp):
         window.workspaces.switch(name)
         qapp.processEvents()
         assert window.minimumSizeHint().width() <= 850, name
+
+
+@pytest.mark.parametrize("text", ["Osmoreceptors · 1.84 cm", "Osmoreceptors · 1.8 cm",
+                                  "Posterior pituitary · 1.99 pg/mL", "Kidney · 1127 mOsm/kg",
+                                  "A part with a long name · 12.5 units of something"])
+def test_a_strip_card_is_tall_enough_for_its_wrapped_text(window, qapp, monkeypatch, text):
+    window.workspaces.switch("Lab")
+    qapp.processEvents()
+    monkeypatch.setattr(window.viewport, "cards_compact", lambda: True)
+    brain = window.lab.brain
+    card = brain.strip_button(brain.strip_keys()[0])
+    card.setText(text.replace(" · ", "\n", 1), text)
+    window.viewport.place_strip()
+    qapp.processEvents()
+    assert card.title.text() == text
+    assert card.title.height() >= card.title.heightForWidth(card.title.width())

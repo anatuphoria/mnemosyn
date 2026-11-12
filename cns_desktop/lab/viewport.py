@@ -19,7 +19,7 @@ class StripCard(QFrame):
     def __init__(self) -> None:
         super().__init__()
         self.setProperty("card", "true")
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._compact = False
         self._full = ""
