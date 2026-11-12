@@ -6,9 +6,9 @@ import time
 from html import escape
 
 from fsrs import Rating
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton, QTextBrowser,
-                               QVBoxLayout, QWidget)
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton, QSizePolicy,
+                               QTextBrowser, QVBoxLayout, QWidget)
 
 from cns_study.answers import AnswerIndex
 from cns_study.choices import choices
@@ -41,6 +41,52 @@ class AnswerBox(QLineEdit):
             self.submitted.emit(self.text())
             return
         super().keyPressEvent(event)
+
+
+class ChoiceButton(QPushButton):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setProperty("wrap", True)
+        self.label = QLabel(self)
+        self.label.setWordWrap(True)
+        self.label.setTextFormat(Qt.TextFormat.PlainText)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(GAP["medium"], GAP["small"], GAP["medium"], GAP["small"])
+        layout.addWidget(self.label)
+        policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        policy.setHeightForWidth(True)
+        self.setSizePolicy(policy)
+
+    def text(self) -> str:
+        return self.label.text()
+
+    def setText(self, text: str) -> None:
+        self.label.setText(text)
+        self.updateGeometry()
+
+    def _pad(self) -> tuple[int, int]:
+        margins = self.layout().contentsMargins()
+        return margins.left() + margins.right(), margins.top() + margins.bottom()
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, width: int) -> int:
+        across, down = self._pad()
+        text = self.label.heightForWidth(max(width - across, 1))
+        return max(text + down, SIZE["control"])
+
+    def minimumSizeHint(self) -> QSize:
+        across, _ = self._pad()
+        width = across + self.fontMetrics().horizontalAdvance("0" * 8)
+        return QSize(width, self.heightForWidth(width))
+
+    def sizeHint(self) -> QSize:
+        across, _ = self._pad()
+        width = across + self.fontMetrics().horizontalAdvance(self.text())
+        return QSize(width, self.heightForWidth(width))
 
 
 def _rich_label() -> QLabel:
@@ -76,7 +122,7 @@ class QuizPanel(QWidget):
         self.counter = QLabel()
         self.prompt = _rich_label()
         self.answer_box = AnswerBox(placeholderText="Type the name, then press Enter")
-        self.choice_buttons = [QPushButton() for _ in range(4)]
+        self.choice_buttons = [ChoiceButton() for _ in range(4)]
         self.feedback = _rich_label()
         self.back = QTextBrowser()
         self.reveal_button = QPushButton("Show the description")

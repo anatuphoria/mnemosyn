@@ -91,6 +91,8 @@ QPushButton[variant="ghost"] { background: transparent; border: 1px solid transp
     color: $text2; }
 QPushButton[variant="ghost"]:hover { background: $s2; color: $text; }
 QPushButton[variant="ghost"]:focus { border: 1px solid $accent; }
+QPushButton[wrap="true"] { max-height: 4000px; padding: 0; }
+QPushButton[wrap="true"] QLabel { background: transparent; color: $text; font-weight: 500; }
 
 QToolButton { background: transparent; color: $text2; border: 1px solid transparent;
     border-radius: ${r_control}px; padding: 0; }
