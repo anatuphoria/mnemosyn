@@ -200,7 +200,12 @@ class Viewport(QWidget):
         area = self.stack.geometry()
         margin = GAP["medium"]
         width = self.strip.width()
-        height = max(min(self.strip.content_height(), area.height() - 2 * margin), 0)
+        room = area.height() - 2 * margin
+        content = self.strip.content_height()
+        self.strip.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff if content <= room
+            else Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        height = max(min(content, room), 0)
         self.strip.setGeometry(area.right() - margin - width + 1, area.top() + margin, width, height)
         self.strip.raise_()
 

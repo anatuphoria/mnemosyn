@@ -105,7 +105,9 @@ def test_the_circuit_view_hides_the_cards(window, qapp):
     assert window.viewport.strip.isVisible()
 
 
-def test_a_compact_card_leaves_out_the_value_name(qapp, toy_lab_atlas, tmp_path):
+def test_a_compact_card_names_what_its_number_measures(qapp, toy_lab_atlas, tmp_path):
+    from cns_desktop.lab.brain_overlay import quantity
+
     window = open_lab(qapp, toy_lab_atlas, tmp_path, (1000, 760))
     brain = window.lab.brain
     for key in brain.strip_keys():
@@ -113,8 +115,21 @@ def test_a_compact_card_leaves_out_the_value_name(qapp, toy_lab_atlas, tmp_path)
         if part.values:
             name = brain.document.simulator.values[part.values[0]].name
             title = brain.strip_button(key).title.text()
-            assert title.startswith(f"{part.name} · ") and f"· {name} " not in title, title
+            assert title.startswith(f"{part.name} · {quantity(part.name, name)} "), title
     window.close()
+
+
+@pytest.mark.parametrize(("part", "value", "shown"), [
+    ("Osmoreceptors", "Thirst", "thirst"),
+    ("Anterior pituitary", "ACTH", "ACTH"),
+    ("Adrenal cortex", "Adrenal cortex mass", "mass"),
+    ("Blood", "Plasma sodium", "plasma sodium"),
+    ("Kidney", "Urine osmolality", "urine osmolality"),
+])
+def test_the_quantity_drops_the_part_name_and_keeps_acronyms(part, value, shown):
+    from cns_desktop.lab.brain_overlay import quantity
+
+    assert quantity(part, value) == shown
 
 
 def test_a_compact_card_keeps_its_tone(qapp, toy_lab_atlas, tmp_path):

@@ -188,3 +188,23 @@ def test_narrowing_the_window_during_a_quiz_keeps_it_inside(window, qapp):
     quiz.stop()
     resize_to(window, qapp, 1400, 900)
     assert window.dockWidgetArea(window.slice_dock) == Qt.DockWidgetArea.RightDockWidgetArea
+
+
+def test_the_strip_drops_its_scrollbar_once_the_cards_fit(window, qapp, monkeypatch):
+    window.workspaces.switch("Lab")
+    qapp.processEvents()
+    monkeypatch.setattr(window.viewport, "cards_compact", lambda: True)
+    brain = window.lab.brain
+    strip = window.viewport.strip
+    long = "A part with a long name · a quantity with a long name 1127 units"
+    for key in brain.strip_keys():
+        brain.strip_button(key).setText(long.replace(" · ", "\n", 1), long)
+    strip.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+    strip.resize(strip.width(), 40)
+    qapp.processEvents()
+    assert strip.verticalScrollBar().isVisible()
+    window.viewport.place_strip()
+    qapp.processEvents()
+    assert strip.height() < window.viewport.stack.height()
+    assert not strip.verticalScrollBar().isVisible()
+    assert strip.widget().height() <= strip.viewport().height()

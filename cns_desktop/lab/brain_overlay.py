@@ -41,6 +41,15 @@ def label_layer(view) -> vtkRenderer:
     return layer
 
 
+
+def quantity(part_name: str, value_name: str) -> str:
+    rest = value_name
+    if value_name.lower().startswith(f"{part_name.lower()} "):
+        rest = value_name[len(part_name) + 1:]
+    if rest[:2].isupper():
+        return rest
+    return rest[:1].lower() + rest[1:]
+
 class BrainOverlay:
     def __init__(self, view) -> None:
         self.view = view
@@ -273,7 +282,9 @@ class LabBrain:
         _title, _, detail = text.partition(" · ")
         if part.values:
             name = self.document.simulator.values[part.values[0]].name
-            detail = detail.removeprefix(f"{name} ")
+            if detail.startswith(f"{name} "):
+                rest = detail.removeprefix(f"{name} ").removeprefix("= ")
+                detail = f"{quantity(part.name, name)} {rest}"
         detail = detail.removeprefix("= ")
         return f"{part.name} · {detail}" if detail else part.name
 
