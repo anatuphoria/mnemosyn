@@ -60,7 +60,7 @@ KEYS = {
     "lab": (("Space", "play"), ("V", "brain or circuit"), ("Del", "remove change")),
 }
 QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
-QUIZ_ROOM_MM = 60.0
+QUIZ_ROOM_MM = 80.0
 ARROW_WIDGETS = (QAbstractSlider, QAbstractItemView, QAbstractSpinBox)
 ROUTE_DIM = 0.55
 ROUTE_KEYS = ("Play or pause", "Back", "Next")
