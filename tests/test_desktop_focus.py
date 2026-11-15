@@ -1,16 +1,10 @@
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
 from cns_desktop.views.brain_view import FAINT
 
 ROUTE = frozenset({101, 112, 120, 152})
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

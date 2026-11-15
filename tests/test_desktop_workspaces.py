@@ -1,18 +1,13 @@
 import pytest
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDockWidget, QLabel
+from PySide6.QtWidgets import QDockWidget, QLabel
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
 from cns_desktop.workspaces import NAMES
 
 LEFT, RIGHT = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockWidgetArea
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def settings_at(path):

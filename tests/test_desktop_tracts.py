@@ -5,7 +5,7 @@ import pytest
 from fsrs import Rating
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem
+from PySide6.QtWidgets import QStyle, QStyleOptionViewItem
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
@@ -13,11 +13,6 @@ from cns_study.session import QuizChoice
 
 TRACT_LEAVES = (151, 152, 160)
 GREY = (101, 102, 111, 112, 120, 131, 132, 140)
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def open_window(qapp, root, tmp_path):

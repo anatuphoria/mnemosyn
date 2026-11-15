@@ -1,17 +1,11 @@
 import pytest
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from lab_helpers import wait_until
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.inspector import Inspector
 from cns_desktop.lab.why_panel import INTERVAL_MS, WhyPanel, time_heading
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

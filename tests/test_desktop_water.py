@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QMessageBox
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
@@ -10,11 +10,6 @@ REAL_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
 WATER_LANES = ["sodium", "avp", "uosm", "thirst"]
 
 pytestmark = pytest.mark.slow
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

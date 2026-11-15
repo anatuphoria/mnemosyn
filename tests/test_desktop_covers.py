@@ -3,7 +3,7 @@ import random
 import numpy as np
 import pytest
 import pyvista as pv
-from PySide6.QtWidgets import QApplication, QDockWidget
+from PySide6.QtWidgets import QDockWidget
 
 from atlas_package import write_package
 from cns_atlas import Atlas
@@ -15,11 +15,6 @@ from cns_study.session import QuizChoice
 
 UPPER, LOWER, HORN, TRACT, OUTER = 401, 402, 300, 310, 110
 GREY = (170, 170, 180)
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def mesh_data(mesh: pv.PolyData) -> MeshData:

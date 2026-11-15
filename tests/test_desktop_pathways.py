@@ -3,7 +3,6 @@ import random
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
 
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import Atlas, Pathway, Station
@@ -15,11 +14,6 @@ LEFT_ROUTE = {101, 152, 112, 120}
 RIGHT_ROUTE = {102, 151, 111, 120}
 LABELS = ["1 Alpha gyrus (left)", "2 ✕ Toy crossing", "3 Long tract (right)",
           "4 Beta nucleus (right)", "5 Toy relay (right)", "6 Gamma body (midline)"]
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def open_window(qapp, root, tmp_path):
@@ -272,7 +266,6 @@ def test_leaving_draws_the_3d_view_once(window):
     before = window.view.render_count
     window.pathways.leave()
     assert window.view.render_count == before + 1
-
 
 
 def test_the_pathway_page_holds_the_controls_and_the_close_button(window):

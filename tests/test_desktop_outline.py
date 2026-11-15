@@ -1,16 +1,9 @@
 import numpy as np
-import pytest
 import pyvista as pv
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
 from cns_desktop.views.outline import OutlineLayer
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def open_window(qapp, root, tmp_path):

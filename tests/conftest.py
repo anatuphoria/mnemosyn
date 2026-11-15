@@ -37,6 +37,20 @@ def timing(request):
 
 
 @pytest.fixture(scope="session")
+def qapp():
+    widgets = pytest.importorskip("PySide6.QtWidgets")
+    return widgets.QApplication.instance() or widgets.QApplication([])
+
+
+@pytest.fixture(scope="session")
+def themed(qapp):
+    from cns_desktop.design.theme import apply_theme
+
+    apply_theme(qapp)
+    return qapp
+
+
+@pytest.fixture(scope="session")
 def toy_atlas(tmp_path_factory):
     pytest.importorskip("pyvista")
     from atlas_fixtures import build_toy_atlas

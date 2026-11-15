@@ -1,14 +1,8 @@
 import numpy as np
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture
@@ -129,7 +123,6 @@ def test_route_steps_and_quiz_answers_leave_the_camera(qapp, toy_pathway_atlas, 
         qapp.processEvents()
         assert w.view.camera_position == before
     w.close()
-
 
 
 def drag(view, button, x, y, dx, dy, steps=4):

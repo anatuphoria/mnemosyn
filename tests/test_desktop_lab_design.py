@@ -1,20 +1,14 @@
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
-from cns_desktop.design.theme import apply_theme
 from cns_desktop.design.tokens import TYPE
 from cns_desktop.design.widgets import SearchField
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import ExperimentsPage
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 @pytest.fixture

@@ -1,18 +1,12 @@
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
 from cns_desktop.views.pathway_panel import PAUSE_TIP, PLAY_TIP
 
 MOOD_ROUTE = {111, 112, 101, 102, 120}
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication
 
 from atlas_fixtures import place_territories, sha256_file, write_extended_source_tree
 from cns_atlas import Atlas
@@ -13,11 +12,6 @@ from cns_desktop.lesion.place_panel import CORD_MISSING, TERRITORIES_MISSING
 from cns_desktop.lesion.results_panel import EMPTY_LESION
 from cns_desktop.main_window import MainWindow
 from tools.build_atlas.build import build
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def open_window(qapp, atlas, tmp_path):

@@ -1,17 +1,12 @@
 import pytest
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QMessageBox
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
 
 DAY = 1440.0
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def open_window(qapp, atlas_path, tmp_path):

@@ -73,17 +73,25 @@ def _clamped(name: str, unit: str, value: float, low: float, high: float,
     return kept
 
 
-def read(path: Path, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str, ...]]:
+def _load(path: Path) -> dict:
     try:
         data = tomllib.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
         raise FileError("This file cannot be read as a Lab experiment.") from exc
     if data.get("format") != FORMAT:
         raise FileError("This file is not a Lab experiment this version of Mnemosyn can open.")
+    return data
+
+
+def _model_of(data: dict, models: dict[str, LabModel]) -> LabModel:
     system = data.get("system")
     model = models.get(system) if isinstance(system, str) else None
     if model is None:
         raise FileError(f"This file is for a system this atlas does not have: {system!r}.")
+    return model
+
+
+def _header(data: dict) -> tuple[float, str, int, dict, list]:
     try:
         length = duration(data["length"])
         start_clock = clock(data.get("start_clock", "08:00"))
@@ -94,80 +102,106 @@ def read(path: Path, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str
             raise TypeError("values and blocks")
     except (KeyError, TypeError, ValueError, TimeError) as exc:
         raise FileError("This file cannot be read as a Lab experiment.") from exc
+    return length, start_clock, version, values, rows
+
+
+def _run_length(length: float, report: list[str]) -> float:
+    if SHORTEST <= length <= LONGEST:
+        return length
+    kept = min(max(length, SHORTEST), LONGEST)
+    report.append(f"The run was {duration_text(length)} long; it is now {duration_text(kept)}.")
+    return kept
+
+
+def _numbers(given: dict, known: dict, what: str, owner: str,
+             report: list[str]) -> list[tuple[str, float]]:
+    of = f" of {owner}" if owner else ""
+    kept = []
+    for key, value in given.items():
+        item = known.get(key)
+        if item is None:
+            report.append(f"The {what} {key}{of} is not in this model and was left out.")
+        elif not _finite(value):
+            report.append(f"The {what} {key}{of} is not a number and was left out.")
+        else:
+            kept.append((key, _clamped(f"{item.name}{of}", item.unit, float(value), item.low,
+                                       item.high, report)))
+    return kept
+
+
+def _mode(row: dict, found) -> str:
+    mode = row.get("mode", FROM_A_TIME)
+    if mode == PRESENT and found is not None and found.mode == PRESENT:
+        return PRESENT
+    return FROM_A_TIME
+
+
+def _start(row: dict, mode: str, name: str, length: float, report: list[str]) -> float:
+    start = row.get("start", 0.0)
+    start = float(start) if _finite(start) else 0.0
+    if mode == PRESENT:
+        return 0.0
+    if start < 0:
+        report.append(f"{name} started before the run and was moved to its start.")
+        return 0.0
+    if start > length - 1:
+        report.append(f"{name} started after the end of the run and was moved to its end.")
+        return length - 1
+    return start
+
+
+def _block_length(row: dict, found, name: str, start: float, length: float,
+                  report: list[str]) -> float | None:
+    block_length = found.length if found else None
+    if block_length is None:
+        return None
+    if "length" in row:
+        try:
+            block_length = duration(row["length"])
+        except TimeError:
+            pass
+    block_length = max(block_length, 1.0)
+    if start + block_length > length:
+        report.append(f"{name} lasted past the end of the run and now ends with it.")
+        block_length = max(length - start, 1.0)
+    return block_length
+
+
+def _block(row, model: LabModel, length: float, report: list[str]) -> Block | None:
+    experiments = {e.key: e for e in model.experiments}
+    tests = {t.key: t for t in model.tests}
+    key = row.get("experiment") if isinstance(row, dict) else None
+    found = experiments.get(key) if isinstance(key, str) else None
+    if found is None and not (isinstance(key, str) and key in tests):
+        report.append(f"The change {key} is not in this model and was left out.")
+        return None
+    name = found.name if found else tests[key].name
+    mode = _mode(row, found)
+    start = _start(row, mode, name, length, report)
+    block_length = _block_length(row, found, name, start, length, report)
+    given = row.get("options", {}) if isinstance(row.get("options", {}), dict) else {}
+    known = {o.key: o for o in found.options} if found else {}
+    options = _numbers(given, known, "option", name, report)
+    return Block(key, start, block_length, tuple(options), mode)
+
+
+def _text(data: dict, key: str) -> str:
+    value = data.get(key, "")
+    return value if isinstance(value, str) else ""
+
+
+def read(path: Path, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str, ...]]:
+    data = _load(path)
+    model = _model_of(data, models)
+    length, start_clock, version, values, rows = _header(data)
     report: list[str] = []
-    if not SHORTEST <= length <= LONGEST:
-        kept = min(max(length, SHORTEST), LONGEST)
-        report.append(f"The run was {duration_text(length)} long; it is now "
-                      f"{duration_text(kept)}.")
-        length = kept
+    length = _run_length(length, report)
     if version != model.version:
         report.append(f"This file was made with version {version} of the model; "
                       f"this is version {model.version}.")
-    parameters = {p.key: p for p in model.parameters}
-    kept_values = []
-    for key, value in values.items():
-        parameter = parameters.get(key)
-        if parameter is None:
-            report.append(f"The value {key} is not in this model and was left out.")
-            continue
-        if not _finite(value):
-            report.append(f"The value {key} is not a number and was left out.")
-            continue
-        kept_values.append((key, _clamped(parameter.name, parameter.unit, float(value),
-                                          parameter.low, parameter.high, report)))
-    experiments = {e.key: e for e in model.experiments}
-    tests = {t.key: t for t in model.tests}
-    blocks = []
-    for row in rows:
-        key = row.get("experiment") if isinstance(row, dict) else None
-        found = experiments.get(key) if isinstance(key, str) else None
-        if found is None and not (isinstance(key, str) and key in tests):
-            report.append(f"The change {key} is not in this model and was left out.")
-            continue
-        name = found.name if found else tests[key].name
-        mode = row.get("mode", FROM_A_TIME)
-        if mode not in (PRESENT, FROM_A_TIME) or (mode == PRESENT and not (
-                found and found.mode == PRESENT)):
-            mode = FROM_A_TIME
-        start = row.get("start", 0.0)
-        start = float(start) if _finite(start) else 0.0
-        if mode == PRESENT:
-            start = 0.0
-        elif start < 0:
-            report.append(f"{name} started before the run and was moved to its start.")
-            start = 0.0
-        elif start > length - 1:
-            report.append(f"{name} started after the end of the run and was moved to its end.")
-            start = length - 1
-        block_length = found.length if found else None
-        if block_length is not None and "length" in row:
-            try:
-                block_length = duration(row["length"])
-            except TimeError:
-                pass
-        if block_length is not None:
-            block_length = max(block_length, 1.0)
-            if start + block_length > length:
-                report.append(f"{name} lasted past the end of the run and now ends with it.")
-                block_length = max(length - start, 1.0)
-        options = []
-        given = row.get("options", {}) if isinstance(row.get("options", {}), dict) else {}
-        known = {o.key: o for o in found.options} if found else {}
-        for option_key, value in given.items():
-            option = known.get(option_key)
-            if option is None:
-                report.append(f"The option {option_key} of {name} is not in this model and "
-                              "was left out.")
-                continue
-            if not _finite(value):
-                report.append(f"The option {option_key} of {name} is not a number and was "
-                              "left out.")
-                continue
-            options.append((option_key, _clamped(f"{option.name} of {name}", option.unit,
-                                                 float(value), option.low, option.high, report)))
-        blocks.append(Block(key, start, block_length, tuple(options), mode))
-    title = data.get("title", "") if isinstance(data.get("title", ""), str) else ""
-    note = data.get("note", "") if isinstance(data.get("note", ""), str) else ""
+    kept_values = _numbers(values, {p.key: p for p in model.parameters}, "value", "", report)
+    blocks = [block for row in rows
+              if (block := _block(row, model, length, report)) is not None]
     experiment = Experiment(model.key, model.version, length, start_clock, tuple(blocks),
-                            tuple(kept_values), title, note)
+                            tuple(kept_values), _text(data, "title"), _text(data, "note"))
     return experiment, tuple(report)

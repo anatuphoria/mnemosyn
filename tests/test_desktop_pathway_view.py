@@ -1,15 +1,9 @@
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from cns_desktop.design.tokens import rgb
 from pathway_helpers import open_window, projected_height
 
 ACCENT = tuple(c / 255 for c in rgb("accent"))
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

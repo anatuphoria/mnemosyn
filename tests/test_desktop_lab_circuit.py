@@ -1,17 +1,12 @@
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QLabel
 
 from cns_atlas import Atlas
 from cns_desktop.lab.circuit import CircuitView
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.viewport import Viewport
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

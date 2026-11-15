@@ -9,11 +9,6 @@ from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.model_panel import ModelPanel
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
 @pytest.fixture
 def doc(qapp, toy_lab_atlas):
     return LabDocument(Atlas.open(toy_lab_atlas), "toy")

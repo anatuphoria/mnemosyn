@@ -55,88 +55,100 @@ def check_ids(raws: list[RawStructure], lock: IdLock) -> list[str]:
     return problems
 
 
-def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[str]:
-    labels = {spec.source.id: spec for spec in recipe.sources}
-    tracts = {spec.source.id: spec for spec in recipe.tracts}
-    known = set(labels) | set(tracts)
-    volumes = {v.name for v in recipe.volumes}
-    groups = {r.id for r in raws if r.kind == "group"}
-    referenced = {ref.source for r in raws for ref in r.labels}
+def _licence_problems(spec, src: Path) -> list[str]:
+    name = spec.source.id
     problems = []
-    for spec in recipe.sources:
-        name = spec.source.id
-        if not spec.source.licence:
-            problems.append(f"source {name}: licence is missing")
-        if spec.local_only and spec.source.redistribution:
-            problems.append(f"source {name}: a shareable source must not be local-only")
-        elif not spec.source.redistribution and not spec.local_only:
-            problems.append(f"source {name}: redistribution is not allowed")
-        if spec.licence_file and not (src / spec.licence_file).exists():
-            problems.append(f"source {name}: licence file {spec.licence_file} is missing")
-        if spec.volume not in volumes:
-            problems.append(f"source {name}: unknown volume {spec.volume!r}")
-        if spec.mesh_grid not in MESH_GRIDS:
-            problems.append(f"source {name}: mesh_grid must be one of {MESH_GRIDS}")
-        if spec.members and spec.member:
-            problems.append(f"source {name}: give member or members, not both")
-        ignored = [key for key, value in (("drop", spec.drop), ("crop", spec.crop),
-                                          ("mask", spec.mask), ("label_names", spec.label_names))
-                   if spec.members and value]
-        if ignored:
-            problems.append(f"source {name}: drop, crop, mask and label_names do not apply to "
-                            f"members; remove {', '.join(ignored)}")
-        if spec.margin < 0:
-            problems.append(f"source {name}: margin must be zero or more, not {spec.margin}")
-        elif spec.margin and not spec.crop:
-            problems.append(f"source {name}: margin needs crop = true")
-        if spec.manual and not spec.source.url:
-            problems.append(f"source {name}: a manual source needs a url to download it from")
-        if spec.separate and not spec.members:
-            problems.append(f"source {name}: separate needs members")
-        elif spec.separate and spec.mesh_grid != "native":
-            problems.append(f"source {name}: separate needs mesh_grid = \"native\"")
-        if spec.outline_of and spec.outline_of not in labels:
-            problems.append(f"source {name}: outline_of {spec.outline_of!r} is not a label source")
-        if spec.inside and (spec.inside not in labels or not labels[spec.inside].outline_of
-                            or labels[spec.inside].volume != spec.volume):
-            problems.append(f"source {name}: inside {spec.inside!r} is not an outline source of "
-                            f"volume {spec.volume}")
-        if spec.outline_of and name in referenced:
-            problems.append(f"source {name}: an outline source cannot have structures")
-        if spec.tiles is not None and not spec.members:
-            problems.append(f"source {name}: tiles needs members")
-        elif spec.tiles is not None and spec.separate:
-            problems.append(f"source {name}: tiles and separate do not mix")
-        if spec.parts and spec.threshold is None:
-            problems.append(f"source {name}: parts need a threshold")
-        if spec.trim_outside is not None and spec.trim_outside not in groups:
-            problems.append(f"source {name}: trim_outside {spec.trim_outside} is not a group")
-        if spec.within and (spec.within not in labels or labels[spec.within].volume != spec.volume):
-            problems.append(f"source {name}: within {spec.within!r} is not a label source of "
-                            f"volume {spec.volume}")
-        if spec.threshold is not None and not (spec.mask or spec.members or spec.parts):
-            problems.append(f"source {name}: threshold needs mask = true or members")
-        problems += [f"source {name}: drop value {value!r} is not a label number"
-                     for value in spec.drop
-                     if not isinstance(value, int) or isinstance(value, bool)]
-    for spec in recipe.tracts:
-        name = spec.source.id
-        if not spec.source.licence:
-            problems.append(f"tracts {name}: licence is missing")
-        if not spec.source.redistribution:
-            problems.append(f"tracts {name}: redistribution is not allowed")
-        if spec.licence_file and not (src / spec.licence_file).exists():
-            problems.append(f"tracts {name}: licence file {spec.licence_file} is missing")
-        if spec.labels not in volumes:
-            problems.append(f"tracts {name}: unknown volume {spec.labels!r}")
-        if "{name}" not in spec.download:
-            problems.append(f"tracts {name}: download must contain {{name}}")
-        if not spec.files:
-            problems.append(f"tracts {name}: no files listed")
-        problems += [f"tracts {name}: dropped file {dropped!r} is not listed"
-                     for dropped in spec.drop if dropped not in spec.names]
-    if len({spec.labels for spec in recipe.tracts}) > 1:
-        problems.append("tracts: all tract sources must use one label volume")
+    if not spec.source.licence:
+        problems.append(f"source {name}: licence is missing")
+    if spec.local_only and spec.source.redistribution:
+        problems.append(f"source {name}: a shareable source must not be local-only")
+    elif not spec.source.redistribution and not spec.local_only:
+        problems.append(f"source {name}: redistribution is not allowed")
+    if spec.licence_file and not (src / spec.licence_file).exists():
+        problems.append(f"source {name}: licence file {spec.licence_file} is missing")
+    return problems
+
+
+def _shape_problems(spec, volumes: set[str]) -> list[str]:
+    name = spec.source.id
+    problems = []
+    if spec.volume not in volumes:
+        problems.append(f"source {name}: unknown volume {spec.volume!r}")
+    if spec.mesh_grid not in MESH_GRIDS:
+        problems.append(f"source {name}: mesh_grid must be one of {MESH_GRIDS}")
+    if spec.members and spec.member:
+        problems.append(f"source {name}: give member or members, not both")
+    ignored = [key for key, value in (("drop", spec.drop), ("crop", spec.crop),
+                                      ("mask", spec.mask), ("label_names", spec.label_names))
+               if spec.members and value]
+    if ignored:
+        problems.append(f"source {name}: drop, crop, mask and label_names do not apply to "
+                        f"members; remove {', '.join(ignored)}")
+    if spec.margin < 0:
+        problems.append(f"source {name}: margin must be zero or more, not {spec.margin}")
+    elif spec.margin and not spec.crop:
+        problems.append(f"source {name}: margin needs crop = true")
+    if spec.manual and not spec.source.url:
+        problems.append(f"source {name}: a manual source needs a url to download it from")
+    if spec.separate and not spec.members:
+        problems.append(f"source {name}: separate needs members")
+    elif spec.separate and spec.mesh_grid != "native":
+        problems.append(f"source {name}: separate needs mesh_grid = \"native\"")
+    return problems
+
+
+def _link_problems(spec, labels: dict, groups: set[int], referenced: set[str]) -> list[str]:
+    name = spec.source.id
+    problems = []
+    if spec.outline_of and spec.outline_of not in labels:
+        problems.append(f"source {name}: outline_of {spec.outline_of!r} is not a label source")
+    if spec.inside and (spec.inside not in labels or not labels[spec.inside].outline_of
+                        or labels[spec.inside].volume != spec.volume):
+        problems.append(f"source {name}: inside {spec.inside!r} is not an outline source of "
+                        f"volume {spec.volume}")
+    if spec.outline_of and name in referenced:
+        problems.append(f"source {name}: an outline source cannot have structures")
+    if spec.tiles is not None and not spec.members:
+        problems.append(f"source {name}: tiles needs members")
+    elif spec.tiles is not None and spec.separate:
+        problems.append(f"source {name}: tiles and separate do not mix")
+    if spec.parts and spec.threshold is None:
+        problems.append(f"source {name}: parts need a threshold")
+    if spec.trim_outside is not None and spec.trim_outside not in groups:
+        problems.append(f"source {name}: trim_outside {spec.trim_outside} is not a group")
+    if spec.within and (spec.within not in labels or labels[spec.within].volume != spec.volume):
+        problems.append(f"source {name}: within {spec.within!r} is not a label source of "
+                        f"volume {spec.volume}")
+    if spec.threshold is not None and not (spec.mask or spec.members or spec.parts):
+        problems.append(f"source {name}: threshold needs mask = true or members")
+    problems += [f"source {name}: drop value {value!r} is not a label number"
+                 for value in spec.drop
+                 if not isinstance(value, int) or isinstance(value, bool)]
+    return problems
+
+
+def _tract_problems(spec, volumes: set[str], src: Path) -> list[str]:
+    name = spec.source.id
+    problems = []
+    if not spec.source.licence:
+        problems.append(f"tracts {name}: licence is missing")
+    if not spec.source.redistribution:
+        problems.append(f"tracts {name}: redistribution is not allowed")
+    if spec.licence_file and not (src / spec.licence_file).exists():
+        problems.append(f"tracts {name}: licence file {spec.licence_file} is missing")
+    if spec.labels not in volumes:
+        problems.append(f"tracts {name}: unknown volume {spec.labels!r}")
+    if "{name}" not in spec.download:
+        problems.append(f"tracts {name}: download must contain {{name}}")
+    if not spec.files:
+        problems.append(f"tracts {name}: no files listed")
+    problems += [f"tracts {name}: dropped file {dropped!r} is not listed"
+                 for dropped in spec.drop if dropped not in spec.names]
+    return problems
+
+
+def _volume_problems(recipe: Recipe, labels: dict) -> list[str]:
+    problems = []
     for v in recipe.volumes:
         if v.grid_source not in labels:
             problems.append(f"volume {v.name}: unknown grid source {v.grid_source!r}")
@@ -145,6 +157,12 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
                 for s in (*recipe.sources, *recipe.templates)):
             problems.append(f"volume {v.name}: grid source {v.grid_source!r} is local-only, so "
                             f"every source and template of the volume must be local-only")
+    return problems
+
+
+def _reference_problems(raws: list[RawStructure], labels: dict, tracts: dict) -> list[str]:
+    known = set(labels) | set(tracts)
+    problems = []
     mapped: dict[str, set[str]] = {name: set() for name in tracts}
     numbers: dict[str, set[int]] = {name: set() for name in labels}
     used: dict[str, set[str]] = {name: set() for name in labels}
@@ -192,6 +210,26 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
     for name, spec in labels.items():
         problems += [f"source {name}: member {member!r} has no structure"
                      for member in spec.member_values if member not in used[name]]
+    return problems
+
+
+def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[str]:
+    labels = {spec.source.id: spec for spec in recipe.sources}
+    tracts = {spec.source.id: spec for spec in recipe.tracts}
+    volumes = {v.name for v in recipe.volumes}
+    groups = {r.id for r in raws if r.kind == "group"}
+    referenced = {ref.source for r in raws for ref in r.labels}
+    problems = []
+    for spec in recipe.sources:
+        problems += _licence_problems(spec, src)
+        problems += _shape_problems(spec, volumes)
+        problems += _link_problems(spec, labels, groups, referenced)
+    for spec in recipe.tracts:
+        problems += _tract_problems(spec, volumes, src)
+    if len({spec.labels for spec in recipe.tracts}) > 1:
+        problems.append("tracts: all tract sources must use one label volume")
+    problems += _volume_problems(recipe, labels)
+    problems += _reference_problems(raws, labels, tracts)
     return problems
 
 

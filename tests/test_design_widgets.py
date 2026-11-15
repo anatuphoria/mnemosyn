@@ -6,15 +6,11 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QApplication, QLabel
 
-from cns_desktop.design import stylesheet, theme, widgets
+from cns_desktop.design import stylesheet, widgets
 from cns_desktop.design.tokens import COLOURS, contrast
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    theme.apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 def colour_of(widget):

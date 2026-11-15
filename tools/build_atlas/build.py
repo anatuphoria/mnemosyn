@@ -5,7 +5,7 @@ import shutil
 import sys
 import tempfile
 import time
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import nibabel as nib
@@ -125,13 +125,39 @@ def _replaceable(out: Path) -> bool:
     return isinstance(metadata, dict) and "format_version" in metadata
 
 
-def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
-          local: bool = False, manual_dir: Path | None = None,
-          accept_changes: bool = False) -> Path:
-    started = time.perf_counter()
-    src, out = Path(src), Path(out)
-    if not _replaceable(out):
-        raise BuildError([f"{out}: exists and is not an atlas package; refusing to replace it"])
+@dataclass(frozen=True)
+class Inputs:
+    recipe: Recipe
+    raws: list
+    lock: IdLock
+    pathways: list
+    timelines: list
+    models: list
+
+
+@dataclass(frozen=True)
+class Chosen:
+    sources: list
+    skipped: set
+    skipped_volumes: set
+    templates: list
+
+
+@dataclass
+class Loaded:
+    images: dict
+    names: dict
+    overlaps: dict
+    archives: dict
+    extents: dict
+
+
+def _stop_on(problems: list[str]) -> None:
+    if problems:
+        raise BuildError(problems)
+
+
+def _inputs(src: Path) -> Inputs:
     recipe = load_recipe(src / "recipe.toml")
     raws = load_structures(src / "structures.toml")
     lock = load_lock(src / "ids.lock")
@@ -152,10 +178,13 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                                 {f"pathway-{p.key}" for p in pathways})
     problems += check_pathway_texts(src / "knowledge", pathways,
                                     [n for r in raws for n in (r.name, *r.synonyms)])
-    if problems:
-        raise BuildError(problems)
+    _stop_on(problems)
     raws = resolve_members(raws, {s.source.id: s.member_values
                                   for s in recipe.sources if s.members})
+    return Inputs(recipe, raws, lock, pathways, timelines, models)
+
+
+def _choose(recipe: Recipe, local: bool, cache: Path, manual_dir: Path | None, log) -> Chosen:
     skipped = set() if local else {s.source.id for s in recipe.sources if s.local_only}
     for spec in recipe.sources:
         if spec.source.id not in skipped and spec.optional and missing_manual(
@@ -166,22 +195,18 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
     sources = [s for s in recipe.sources if s.source.id not in skipped]
     skipped_volumes = {v.name for v in recipe.volumes if v.grid_source in skipped
                        or not any(s.volume == v.name for s in sources)}
-    templates_used = [t for t in recipe.templates
-                      if t.volume not in skipped_volumes and (local or not t.local_only)]
+    templates = [t for t in recipe.templates
+                 if t.volume not in skipped_volumes and (local or not t.local_only)]
     problems = missing_manual(sources, cache, manual_dir)
     problems += [f"tracts {t.source.id}: label volume {t.labels!r} is left out of this build"
                  for t in recipe.tracts if t.labels in skipped_volumes]
-    if problems:
-        raise BuildError(problems)
-    planned = build_tree(without_sources(raws, skipped))
-    left_out = {r.id for r in raws} - {p.structure.id for p in planned}
-    problems = check_pathways(pathways, [p.structure for p in planned],
-                              {p.structure.id for p in planned if p.labels}, left_out)
-    if problems:
-        raise BuildError(problems)
+    _stop_on(problems)
+    return Chosen(sources, skipped, skipped_volumes, templates)
 
+
+def _load(sources: list, planned: list, by_id: dict, cache: Path, manual_dir: Path | None,
+          log) -> Loaded:
     images, names, overlaps, archives = {}, {}, {}, {}
-    by_id = {p.structure.id: p.structure for p in planned}
     for spec in sources:
         log(f"fetching {spec.source.id}")
         archive = archives[spec.source.id] = fetch(spec, cache, manual_dir)
@@ -206,13 +231,20 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                for s in sources if s.within or s.outline_of}
     for name, extent in extents.items():
         images[name] = clip_z(images[name], *extent)
+    return Loaded(images, names, overlaps, archives, extents)
+
+
+def _small(sources: list, images: dict, planned: list, by_id: dict) -> list:
     small = []
     for s in (s for s in sources if s.tiles is not None):
         mapping = mapping_for(s.source.id, planned)
         small += small_shapes(relabel(images[s.source.id], mapping), mapping.values(),
                               {i: by_id[i].name for i in mapping.values()})
-    outlines = [s for s in sources if s.outline_of]
-    cut = {s.outline_of for s in outlines}
+    return small
+
+
+def _unmapped(sources: list, images: dict, planned: list) -> list[str]:
+    problems = []
     for spec in (s for s in sources if not s.outline_of):
         values = source_values(images[spec.source.id])
         mapped = set(mapping_for(spec.source.id, planned))
@@ -221,24 +253,26 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                      for value in sorted(values - mapped - dropped)]
         problems += [f"source {spec.source.id}: drop value {value} is not in the source"
                      for value in sorted(dropped - values)]
-    planned = with_xrefs(planned, names)
-    def merged() -> tuple[list, list]:
-        volumes, fills = [], []
-        for vspec in recipe.volumes:
-            if vspec.name in skipped_volumes:
-                continue
-            layers = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
-                      for s in sources if s.volume == vspec.name and not s.outline_of]
-            grid = nib.as_closest_canonical(images[vspec.grid_source])
-            volumes.append((vspec, merge(grid, layers), grid.affine))
-            fill = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
-                    for s in sources if s.volume == vspec.name and s.fill]
-            if fill:
-                fills.append((vspec.name, merge(grid, fill), grid.affine))
-        return volumes, fills
+    return problems
 
-    volumes, fills = merged()
-    grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
+
+def _merged(recipe: Recipe, chosen: Chosen, images: dict, planned: list) -> tuple[list, list]:
+    volumes, fills = [], []
+    for vspec in recipe.volumes:
+        if vspec.name in chosen.skipped_volumes:
+            continue
+        layers = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
+                  for s in chosen.sources if s.volume == vspec.name and not s.outline_of]
+        grid = nib.as_closest_canonical(images[vspec.grid_source])
+        volumes.append((vspec, merge(grid, layers), grid.affine))
+        fill = [(s.priority, images[s.source.id], mapping_for(s.source.id, planned))
+                for s in chosen.sources if s.volume == vspec.name and s.fill]
+        if fill:
+            fills.append((vspec.name, merge(grid, fill), grid.affine))
+    return volumes, fills
+
+
+def _trim(sources: list, images: dict, planned: list, volumes: list) -> bool:
     trimmed = [s for s in sources if s.trim_outside is not None]
     for s in trimmed:
         allowed = {p.structure.id for p in planned
@@ -248,15 +282,19 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                 continue
             images[s.source.id] = trim_against(images[s.source.id], data, affine,
                                                allowed if vspec.name == s.volume else None)
-    if trimmed:
-        volumes, fills = merged()
+    return bool(trimmed)
+
+
+def _natives(sources: list, loaded: Loaded, planned: list, cut: set) -> list:
+    images = loaded.images
     natives = []
     for s in sources:
         if s.mesh_grid != "native" or s.outline_of or s.source.id in cut or s.tiles is not None:
             continue
         if s.separate:
-            found = separate_natives(s, archives[s.source.id], mapping_for(s.source.id, planned),
-                                     extents.get(s.source.id))
+            found = separate_natives(s, loaded.archives[s.source.id],
+                                     mapping_for(s.source.id, planned),
+                                     loaded.extents.get(s.source.id))
         else:
             found = [crop(relabel(images[s.source.id], mapping_for(s.source.id, planned)),
                           images[s.source.id].affine)]
@@ -264,16 +302,22 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
             found = [crop(keep_inside(data, affine, images[s.inside]), affine)
                      for data, affine in found]
         natives += found
+    return natives
+
+
+def _fields(sources: list, loaded: Loaded, planned: list) -> list:
     fields = []
     for s in (s for s in sources if s.tiles is not None):
         mapping = mapping_for(s.source.id, planned)
         fields += [(mapping[value], field, affine) for value, field, affine in
-                   tile_fields(s, archives[s.source.id], images[s.source.id], set(mapping),
-                               extents.get(s.source.id))]
-    native_ids = set().union(*(present(data) for data, _ in natives))
-    native_ids |= {structure_id for structure_id, _, _ in fields}
-    native_ids |= {sid for s in outlines for sid in mapping_for(s.outline_of, planned).values()}
-    tract_rows: list[tuple[int, np.ndarray]] = []
+                   tile_fields(s, loaded.archives[s.source.id], loaded.images[s.source.id],
+                               set(mapping), loaded.extents.get(s.source.id))]
+    return fields
+
+
+def _tract_rows(recipe: Recipe, planned: list, grids: dict, cache: Path,
+                log) -> list[tuple[int, np.ndarray]]:
+    rows: list[tuple[int, np.ndarray]] = []
     for spec in recipe.tracts:
         shape, affine = grids[spec.labels]
         for p in planned:
@@ -282,108 +326,104 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
                     log(f"fetching {spec.source.id} {ref.value}")
                     image = nib.load(fetch(spec.file_spec(ref.value), cache))
                     flat = place(image, shape, affine, f"tracts {spec.source.id}: {ref.value}")
-                    tract_rows.append((p.structure.id, flat))
-    tract_ids = {structure_id for structure_id, flat in tract_rows if len(flat)}
-    label_ids = set().union(*(present(data) for _, data, _ in volumes))
-    shape_only = [p.structure.name for p in planned if p.structure.id in native_ids - label_ids]
-    problems += check_voxels(planned, [data for _, data, _ in volumes],
-                             spared=native_ids | tract_ids)
-    if problems:
-        raise BuildError(problems)
+                    rows.append((p.structure.id, flat))
+    return rows
+
+
+def _templates(specs: list, grids: dict, cache: Path, log) -> list:
     templates = []
-    for spec in templates_used:
+    for spec in specs:
         log(f"fetching {spec.source.id}")
         image = nib.load(member_path(spec, fetch(spec, cache), spec.member))
         shape, affine = grids[spec.volume]
         if not covers(image, shape, affine):
             raise BuildError([f"template {spec.source.id} does not cover volume {spec.volume}"])
         templates.append((spec.volume, to_uint8(on_grid(image, shape, affine)), affine))
+    return templates
 
-    log("meshing")
+
+class _Meshes:
+    def __init__(self, recipe: Recipe) -> None:
+        self.recipe = recipe
+        self.levels: list[dict[int, MeshData]] = [{} for _ in recipe.lod_fractions]
+        self.repaired = 0
+
+    def _surface(self, data, affine, value: int):
+        recipe = self.recipe
+        return surface(data, affine, value, recipe.smoothing_iterations,
+                       recipe.smoothing_pass_band, recipe.smoothing_blur_mm)
+
+    def _keep(self, structure_id: int, built) -> None:
+        for level, mesh_data in zip(self.levels, built):
+            level[structure_id] = mesh_data
+
+    def _add(self, structure_id: int, mesh) -> None:
+        recipe = self.recipe
+        built, count = levels(mesh, recipe.lod0_max_faces, recipe.lod_fractions,
+                              recipe.min_faces)
+        self.repaired += count
+        self._keep(structure_id, built)
+
+    def labels(self, jobs: list, planned: list) -> None:
+        for data, affine, ids in jobs:
+            for p in planned:
+                if p.structure.id in ids:
+                    self._add(p.structure.id, self._surface(data, affine, p.structure.id))
+
+    def fields(self, fields: list, planned: list) -> None:
+        planned_ids = {p.structure.id for p in planned}
+        for structure_id, field, affine in fields:
+            mesh = field_surface(field, affine)
+            if structure_id in planned_ids and mesh.n_points:
+                self._add(structure_id, mesh)
+
+    def outlines(self, outlines: list, images: dict, planned: list) -> None:
+        recipe = self.recipe
+        for s in outlines:
+            outline = (np.asarray(images[s.source.id].dataobj) > 0).astype(np.uint8)
+            if not outline.any():
+                continue
+            mesh = self._surface(outline, images[s.source.id].affine, 1)
+            cuts = bands(images[s.outline_of], mapping_for(s.outline_of, planned))
+            pieces, count = cut_levels(mesh, cuts, recipe.lod0_max_faces * len(cuts),
+                                       recipe.lod_fractions, recipe.min_faces)
+            self.repaired += count
+            _stop_on(empty_pieces(pieces, cuts,
+                                  {p.structure.id: p.structure.name for p in planned}))
+            for structure_id, built in pieces.items():
+                self._keep(structure_id, built)
+
+
+def _jobs(recipe: Recipe, natives: list, volumes: list, native_ids: set, tract_rows: list,
+          grids: dict) -> tuple[list, tuple | None]:
     jobs = [(data, affine, present(data)) for data, affine in natives]
     jobs += [(data, affine, present(data) - native_ids) for spec, data, affine in volumes
              if spec.role == "labels"]
-    tracts = None
-    if recipe.tracts:
-        name = recipe.tracts[0].labels
-        shape, affine = grids[name]
-        tracts = (name, tract_rows)
-        for structure_id, flat in tract_rows:
-            mask = np.zeros(shape, dtype=np.uint16)
-            mask.flat[flat] = structure_id
-            jobs.append((mask, affine, {structure_id}))
-    meshes: list[dict[int, MeshData]] = [{} for _ in recipe.lod_fractions]
-    repaired = 0
-    for data, affine, ids in jobs:
-        for p in planned:
-            if p.structure.id in ids:
-                mesh = surface(data, affine, p.structure.id, recipe.smoothing_iterations,
-                               recipe.smoothing_pass_band, recipe.smoothing_blur_mm)
-                built, count = levels(mesh, recipe.lod0_max_faces, recipe.lod_fractions,
-                                      recipe.min_faces)
-                repaired += count
-                for level, mesh_data in zip(meshes, built):
-                    level[p.structure.id] = mesh_data
+    if not recipe.tracts:
+        return jobs, None
+    name = recipe.tracts[0].labels
+    shape, affine = grids[name]
+    for structure_id, flat in tract_rows:
+        mask = np.zeros(shape, dtype=np.uint16)
+        mask.flat[flat] = structure_id
+        jobs.append((mask, affine, {structure_id}))
+    return jobs, (name, tract_rows)
 
-    planned_ids = {p.structure.id for p in planned}
-    for structure_id, field, affine in fields:
-        mesh = field_surface(field, affine)
-        if structure_id in planned_ids and mesh.n_points:
-            built, count = levels(mesh, recipe.lod0_max_faces, recipe.lod_fractions,
-                                  recipe.min_faces)
-            repaired += count
-            for level, mesh_data in zip(meshes, built):
-                level[structure_id] = mesh_data
-    for s in outlines:
-        outline = (np.asarray(images[s.source.id].dataobj) > 0).astype(np.uint8)
-        if not outline.any():
-            continue
-        mesh = surface(outline, images[s.source.id].affine, 1, recipe.smoothing_iterations,
-                       recipe.smoothing_pass_band, recipe.smoothing_blur_mm)
-        cuts = bands(images[s.outline_of], mapping_for(s.outline_of, planned))
-        pieces, count = cut_levels(mesh, cuts, recipe.lod0_max_faces * len(cuts),
-                                   recipe.lod_fractions, recipe.min_faces)
-        repaired += count
-        problems = empty_pieces(pieces, cuts, {p.structure.id: p.structure.name for p in planned})
-        if problems:
-            raise BuildError(problems)
-        for structure_id, built in pieces.items():
-            for level, mesh_data in zip(meshes, built):
-                level[structure_id] = mesh_data
 
-    structures = recolour([p.structure for p in planned],
-                          {r.id for r in raws if r.palette == "distinct"},
-                          {r.id for r in raws if r.color is not None}, meshes[0])
-    problems = check_pathways(pathways, structures, set(meshes[0]), left_out)
-    if problems:
-        raise BuildError(problems)
-    specs = (*sources, *templates_used, *recipe.tracts)
-    licence_files = [src / s.licence_file for s in specs if s.licence_file]
-    per_source = {spec.source.id: sum(any(ref.source == spec.source.id for ref in p.labels)
-                                      for p in planned)
-                  for spec in (*sources, *recipe.tracts)}
-    included = [s.source.id for s in (*sources, *templates_used) if s.local_only]
-    left = skipped | {t.source.id for t in recipe.templates if t not in templates_used}
+def _local_note(included: list, left: set) -> str:
     if included:
-        local_note = f"- local-only sources included: {', '.join(included)}"
-    elif left:
-        local_note = f"- local-only sources left out: {', '.join(sorted(left))}"
-    else:
-        local_note = ""
-    changes = compare(out, structures, volumes, set(lock.retired) | left_out)
-    if changes is not None and changes.blocking and not accept_changes:
-        raise BuildError([*changes.blocking, ACCEPT_HINT])
-    report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
-                          per_source, len(pathways), local_note, sources, repaired,
-                          overlaps=overlaps, small=small)
+        return f"- local-only sources included: {', '.join(included)}"
+    if left:
+        return f"- local-only sources left out: {', '.join(sorted(left))}"
+    return ""
+
+
+def _publish(out: Path, write, changes, started: float) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{out.name}-", dir=out.parent))
     try:
         package = staging / "package"
-        write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
-                      src / "knowledge", licence_files, report, templates, tracts,
-                      for_package(pathways, {r.id: r.name for r in raws}, left_out), included,
-                      timelines=timelines, fills=fills, models=models)
+        write(package)
         size = sum(p.stat().st_size for p in package.rglob("*") if p.is_file())
         with (package / "build-report.md").open("a", encoding="utf-8") as report_file:
             report_file.write("".join(f"{line}\n" for line in report_lines(changes)))
@@ -403,6 +443,83 @@ def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
             raise
     finally:
         shutil.rmtree(staging, ignore_errors=True)
-    write_lock(src / "ids.lock", IdLock(lock.published | {r.id for r in raws}, lock.retired))
+
+
+def build(src: Path, out: Path, cache: Path = DEFAULT_CACHE, log=print,
+          local: bool = False, manual_dir: Path | None = None,
+          accept_changes: bool = False) -> Path:
+    started = time.perf_counter()
+    src, out = Path(src), Path(out)
+    if not _replaceable(out):
+        raise BuildError([f"{out}: exists and is not an atlas package; refusing to replace it"])
+    inputs = _inputs(src)
+    recipe, raws, pathways = inputs.recipe, inputs.raws, inputs.pathways
+    chosen = _choose(recipe, local, cache, manual_dir, log)
+    sources = chosen.sources
+    planned = build_tree(without_sources(raws, chosen.skipped))
+    left_out = {r.id for r in raws} - {p.structure.id for p in planned}
+    _stop_on(check_pathways(pathways, [p.structure for p in planned],
+                            {p.structure.id for p in planned if p.labels}, left_out))
+
+    by_id = {p.structure.id: p.structure for p in planned}
+    loaded = _load(sources, planned, by_id, cache, manual_dir, log)
+    images = loaded.images
+    small = _small(sources, images, planned, by_id)
+    outlines = [s for s in sources if s.outline_of]
+    problems = _unmapped(sources, images, planned)
+    planned = with_xrefs(planned, loaded.names)
+    volumes, fills = _merged(recipe, chosen, images, planned)
+    grids = {spec.name: (data.shape, affine) for spec, data, affine in volumes}
+    if _trim(sources, images, planned, volumes):
+        volumes, fills = _merged(recipe, chosen, images, planned)
+    natives = _natives(sources, loaded, planned, {s.outline_of for s in outlines})
+    fields = _fields(sources, loaded, planned)
+    native_ids = set().union(*(present(data) for data, _ in natives))
+    native_ids |= {structure_id for structure_id, _, _ in fields}
+    native_ids |= {sid for s in outlines for sid in mapping_for(s.outline_of, planned).values()}
+    tract_rows = _tract_rows(recipe, planned, grids, cache, log)
+    tract_ids = {structure_id for structure_id, flat in tract_rows if len(flat)}
+    label_ids = set().union(*(present(data) for _, data, _ in volumes))
+    shape_only = [p.structure.name for p in planned if p.structure.id in native_ids - label_ids]
+    _stop_on(problems + check_voxels(planned, [data for _, data, _ in volumes],
+                                     spared=native_ids | tract_ids))
+    templates = _templates(chosen.templates, grids, cache, log)
+
+    log("meshing")
+    jobs, tracts = _jobs(recipe, natives, volumes, native_ids, tract_rows, grids)
+    made = _Meshes(recipe)
+    made.labels(jobs, planned)
+    made.fields(fields, planned)
+    made.outlines(outlines, images, planned)
+    meshes = made.levels
+
+    structures = recolour([p.structure for p in planned],
+                          {r.id for r in raws if r.palette == "distinct"},
+                          {r.id for r in raws if r.color is not None}, meshes[0])
+    _stop_on(check_pathways(pathways, structures, set(meshes[0]), left_out))
+    specs = (*sources, *chosen.templates, *recipe.tracts)
+    licence_files = [src / s.licence_file for s in specs if s.licence_file]
+    per_source = {spec.source.id: sum(any(ref.source == spec.source.id for ref in p.labels)
+                                      for p in planned)
+                  for spec in (*sources, *recipe.tracts)}
+    included = [s.source.id for s in (*sources, *chosen.templates) if s.local_only]
+    left = chosen.skipped | {t.source.id for t in recipe.templates
+                             if t not in chosen.templates}
+    changes = compare(out, structures, volumes, set(inputs.lock.retired) | left_out)
+    if changes is not None and changes.blocking and not accept_changes:
+        raise BuildError([*changes.blocking, ACCEPT_HINT])
+    report = build_report(recipe, structures, meshes, volumes, templates, tracts, shape_only,
+                          per_source, len(pathways), _local_note(included, left), sources,
+                          made.repaired, overlaps=loaded.overlaps, small=small)
+
+    def write(package: Path) -> None:
+        write_package(package, recipe, structures, [s.source for s in specs], volumes, meshes,
+                      src / "knowledge", licence_files, report, templates, tracts,
+                      for_package(pathways, {r.id: r.name for r in raws}, left_out), included,
+                      timelines=inputs.timelines, fills=fills, models=inputs.models)
+
+    _publish(out, write, changes, started)
+    write_lock(src / "ids.lock",
+               IdLock(inputs.lock.published | {r.id for r in raws}, inputs.lock.retired))
     log(f"wrote {out}")
     return out

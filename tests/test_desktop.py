@@ -30,11 +30,6 @@ from cns_study.session import QuizChoice
 
 
 @pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
-@pytest.fixture(scope="session")
 def atlas(toy_atlas):
     return Atlas.open(toy_atlas)
 

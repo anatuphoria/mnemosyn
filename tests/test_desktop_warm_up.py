@@ -1,16 +1,9 @@
 import sys
 import time
 
-import pytest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.main_window import MainWindow
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def open_window(qapp, root, tmp_path):

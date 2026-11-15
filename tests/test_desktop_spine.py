@@ -2,17 +2,11 @@ import numpy as np
 import pytest
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QImage
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop import slices
 from cns_desktop.main_window import MainWindow
 from cns_desktop.state import AppState
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(scope="session")

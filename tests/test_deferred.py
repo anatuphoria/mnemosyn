@@ -4,16 +4,11 @@ from PySide6.QtWidgets import QApplication, QLabel, QMainWindow
 
 from cns_atlas import Atlas
 from cns_desktop.design import theme
-from cns_desktop.design.theme import apply_theme
 from cns_desktop.design.tokens import COLOURS
 from cns_desktop.main_window import MainWindow
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 def open_window(qapp, atlas, tmp_path, width=1400, height=900, settings=None):

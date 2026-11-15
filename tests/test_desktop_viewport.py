@@ -1,18 +1,13 @@
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QToolButton
+from PySide6.QtWidgets import QToolButton
 
 from cns_atlas import Atlas
-from cns_desktop.design.theme import apply_theme
 from cns_desktop.design.tokens import COLOURS, SIZE
 from cns_desktop.main_window import MainWindow
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 def open_window(qapp, atlas, tmp_path, size=(1400, 900)):

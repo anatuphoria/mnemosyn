@@ -1,15 +1,9 @@
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import MIME, ExperimentsPanel
 from cns_desktop.lab.model_panel import ModelPanel
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

@@ -1,12 +1,6 @@
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from pathway_helpers import open_window
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

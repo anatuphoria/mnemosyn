@@ -1,17 +1,12 @@
 import pytest
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QSignalSpy, QTest
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QTabBar, QWidget
+from PySide6.QtWidgets import QLabel, QMainWindow, QTabBar, QWidget
 
-from cns_desktop.design import theme
 from cns_desktop.design.panels import PanelGroup
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    theme.apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 @pytest.fixture

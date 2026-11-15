@@ -2,18 +2,12 @@ import random
 
 import pytest
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.main_window import MainWindow
 from cns_study.session import QuizChoice
 from pathway_helpers import open_window
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

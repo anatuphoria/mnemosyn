@@ -10,7 +10,6 @@ from PySide6.QtWidgets import QApplication
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas, Source
 from cns_desktop.design.brand import KeyMark
-from cns_desktop.design.theme import apply_theme
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.design.widgets import SegmentedControl
 from cns_desktop.views import about_dialog as about
@@ -28,11 +27,7 @@ SHARED = Source("toyshared", "Shared atlas", "Test A", 2024, "1",
                 url="https://example.org/shared", provides="Shared part")
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 @pytest.fixture

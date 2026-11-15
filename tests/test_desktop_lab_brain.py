@@ -1,15 +1,9 @@
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.lab.brain_overlay import LabBrain, RAISED
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.main_window import MainWindow
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

@@ -1,18 +1,14 @@
 import re
 
 import pytest
-from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QLabel, QLineEdit,
+from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QLabel, QLineEdit,
                                QPushButton, QSpinBox)
 
 from cns_desktop.design import stylesheet, theme
 from cns_desktop.design.tokens import COLOURS
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    theme.apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 def test_the_stylesheet_uses_only_token_colours():

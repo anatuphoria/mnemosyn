@@ -292,52 +292,71 @@ def _check_curve_links(r: _Reader, data: dict, curves: list[Curve], values: list
             r.say(f"{where}: cannot compare with {matches} ({exc})")
 
 
-def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dict,
-           routes: set[str]) -> tuple[LabModel | None, list[str]]:
-    data = read_toml(path)
-    r = _Reader(str(path))
-    unknown = set(data) - TOP
-    if unknown:
-        r.say(f"unknown keys {sorted(unknown)}")
-    key = data.get("key")
-    if not (isinstance(key, str) and key.isidentifier()):
-        r.say("needs a key")
-        return None, r.problems
-    if path.stem != key:
-        r.say(f"file name must be {key}.toml")
-    texts_path = knowledge / "en" / f"lab-{key}.toml"
-    texts = _texts(texts_path, r)
-    used: set[str] = set()
+SETTINGS = (("settle_speedup", 50), ("settle_days", 10), ("why_threshold", 0.1),
+            ("why_unchanged", 0.02))
 
-    def text(text_key: str) -> str:
-        used.add(text_key)
-        if text_key not in texts:
-            r.say(f"text {text_key!r} is missing from {texts_path.name}")
-            return text_key
-        return CITATION.sub("", texts[text_key]).strip()
 
-    version = data.get("version")
-    if not (isinstance(version, int) and not isinstance(version, bool) and version >= 1):
-        r.say("version must be a whole number from 1")
-        version = 1
-    route = data.get("route")
-    if route is not None and route not in routes:
-        r.say(f"unknown route {route!r}")
-    start_clock = r.time(clock, data.get("start_clock", "08:00"), "start_clock", 480.0)
-    max_step = r.time(duration, data.get("max_step", "30 min"), "max_step", 30.0)
-    numbers = {}
-    for name, default in (("settle_speedup", 50), ("settle_days", 10), ("why_threshold", 0.1),
-                          ("why_unchanged", 0.02)):
-        value = data.get(name, default)
-        if not (_number(value) and value > 0):
-            r.say(f"{name} must be a positive number")
-            value = default
-        numbers[name] = value
-    if not isinstance(numbers["settle_days"], int):
-        r.say("settle_days must be a whole number")
+class _Texts:
+    def __init__(self, r: _Reader, path: Path) -> None:
+        self.r = r
+        self.path = path
+        self.found = _texts(path, r)
+        self.used: set[str] = set()
 
-    values = []
-    for row in r.rows(data, "values"):
+    def __call__(self, key: str) -> str:
+        self.used.add(key)
+        if key not in self.found:
+            self.r.say(f"text {key!r} is missing from {self.path.name}")
+            return key
+        return CITATION.sub("", self.found[key]).strip()
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.found
+
+    def check(self, references: dict) -> None:
+        for key in sorted(set(self.found) - self.used):
+            self.r.say(f"text {key!r} in {self.path.name} is not used by the model")
+        for key, value in self.found.items():
+            for ref in CITATION.findall(value):
+                if ref not in references:
+                    self.r.say(f"text {key!r} cites missing reference [{ref}]")
+
+
+class _Sections:
+    def __init__(self, r: _Reader, data: dict, text: _Texts, references: dict,
+                 structure_ids: set[int]) -> None:
+        self.r = r
+        self.data = data
+        self.text = text
+        self.references = references
+        self.structure_ids = structure_ids
+        self.value_keys: set[str] = set()
+        self.parameter_keys: set[str] = set()
+        self.part_keys: set[str] = set()
+        self.block_keys: set[str] = set()
+        self.start_clock = 0.0
+
+    def version(self) -> int:
+        version = self.data.get("version")
+        if isinstance(version, int) and not isinstance(version, bool) and version >= 1:
+            return version
+        self.r.say("version must be a whole number from 1")
+        return 1
+
+    def numbers(self) -> dict:
+        numbers = {}
+        for name, default in SETTINGS:
+            value = self.data.get(name, default)
+            if not (_number(value) and value > 0):
+                self.r.say(f"{name} must be a positive number")
+                value = default
+            numbers[name] = value
+        if not isinstance(numbers["settle_days"], int):
+            self.r.say("settle_days must be a whole number")
+        return numbers
+
+    def _value(self, row: dict) -> Value:
+        r, text = self.r, self.text
         k, where = row["key"], f"value {row['key']}"
         for field in ("unit", "display_unit"):
             if not _text(row.get(field)):
@@ -353,19 +372,22 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
         relative = bool(row.get("relative", False))
         if relative:
             text(f"value.{k}.note")
-        values.append(Value(k, text(f"value.{k}.name"), str(row.get("unit", "")),
-                            float(row.get("start", 1.0)) if _number(row.get("start")) else 1.0,
-                            float(row["display_scale"]) if _number(row.get("display_scale"))
-                            else 1.0,
-                            str(row.get("display_unit", "")), str(row.get("other_unit", "")),
-                            float(row.get("other_scale", 0.0)), relative,
-                            tuple(float(v) for v in normal) if normal else None,
-                            row.get("lane"), bool(row.get("slow", False)),
-                            r.refs(row, references, where)))
-    value_keys = {v.key for v in values}
+        return Value(k, text(f"value.{k}.name"), str(row.get("unit", "")),
+                     float(row.get("start", 1.0)) if _number(row.get("start")) else 1.0,
+                     float(row["display_scale"]) if _number(row.get("display_scale")) else 1.0,
+                     str(row.get("display_unit", "")), str(row.get("other_unit", "")),
+                     float(row.get("other_scale", 0.0)), relative,
+                     tuple(float(v) for v in normal) if normal else None,
+                     row.get("lane"), bool(row.get("slow", False)),
+                     r.refs(row, self.references, where))
 
-    parameters = []
-    for row in r.rows(data, "parameters"):
+    def values(self) -> list[Value]:
+        values = [self._value(row) for row in self.r.rows(self.data, "values")]
+        self.value_keys = {v.key for v in values}
+        return values
+
+    def _parameter(self, row: dict) -> Parameter:
+        r, text = self.r, self.text
         k, where = row["key"], f"parameter {row['key']}"
         if not _text(row.get("unit")):
             r.say(f"{where}: needs unit")
@@ -376,93 +398,96 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
         group, control, stops = _setting_kind(r, row, where, ok, text)
         if control == "rate":
             for side in ("up", "down"):
-                if f"parameter.{k}.{side}" in texts:
+                if f"parameter.{k}.{side}" in text:
                     text(f"parameter.{k}.{side}")
-        parameters.append(Parameter(k, text(f"parameter.{k}.name"),
-                                    float(row["value"]) if ok else 0.0, str(row.get("unit", "")),
-                                    float(row["low"]) if ok else 0.0,
-                                    float(row["high"]) if ok else 0.0,
-                                    r.refs(row, references, where), row.get("panel", True) is True,
-                                    group, control, stops))
-    parameter_keys = {p.key for p in parameters}
-    curves = _curves(r, data, parameters, text)
-    clash = value_keys & parameter_keys
-    if clash:
-        r.say(f"names used for both a value and a parameter: {sorted(clash)}")
+        return Parameter(k, text(f"parameter.{k}.name"),
+                         float(row["value"]) if ok else 0.0, str(row.get("unit", "")),
+                         float(row["low"]) if ok else 0.0, float(row["high"]) if ok else 0.0,
+                         r.refs(row, self.references, where), row.get("panel", True) is True,
+                         group, control, stops)
 
-    parts = []
-    for row in r.rows(data, "parts"):
+    def parameters(self) -> list[Parameter]:
+        parameters = [self._parameter(row) for row in self.r.rows(self.data, "parameters")]
+        self.parameter_keys = {p.key for p in parameters}
+        return parameters
+
+    def _part(self, row: dict) -> Part:
+        r = self.r
         k, where = row["key"], f"part {row['key']}"
         structure = row.get("structure")
-        if structure is not None and structure not in structure_ids:
+        if structure is not None and structure not in self.structure_ids:
             r.say(f"{where}: unknown structure {structure}")
         if not (_number(row.get("x")) and _number(row.get("y"))):
             r.say(f"{where}: x and y must be numbers")
         shown = row.get("values", [])
         for v in shown:
-            if v not in value_keys:
+            if v not in self.value_keys:
                 r.say(f"{where}: unknown value {v!r}")
-        parts.append(Part(k, text(f"part.{k}"), structure, float(row.get("x", 0)),
-                          float(row.get("y", 0)), tuple(shown)))
-    part_keys = {p.key for p in parts}
+        return Part(k, self.text(f"part.{k}"), structure, float(row.get("x", 0)),
+                    float(row.get("y", 0)), tuple(shown))
 
-    def arrow(row: dict, where: str):
+    def parts(self) -> list[Part]:
+        parts = [self._part(row) for row in self.r.rows(self.data, "parts")]
+        self.part_keys = {p.key for p in parts}
+        return parts
+
+    def _arrow(self, row: dict, where: str):
         found = row.get("arrow")
         if found is None:
             return None
         if not (isinstance(found, list) and len(found) == 2
                 and all(isinstance(p, str) for p in found)):
-            r.say(f"{where}: arrow must be [from part, to part]")
+            self.r.say(f"{where}: arrow must be [from part, to part]")
             return None
         for p in found:
-            if p not in part_keys:
-                r.say(f"{where}: arrow names unknown part {p!r}")
+            if p not in self.part_keys:
+                self.r.say(f"{where}: arrow names unknown part {p!r}")
         return tuple(found)
 
-    def via(row: dict, where: str) -> tuple:
+    def _via(self, row: dict, where: str) -> tuple:
         found = row.get("via", [])
         if not found:
             return ()
         if not (isinstance(found, list) and all(isinstance(p, str) for p in found)):
-            r.say(f"{where}: via must be a list of parts")
+            self.r.say(f"{where}: via must be a list of parts")
             return ()
         if row.get("arrow") is None:
-            r.say(f"{where}: via needs an arrow")
+            self.r.say(f"{where}: via needs an arrow")
         for p in found:
-            if p not in part_keys:
-                r.say(f"{where}: via names unknown part {p!r}")
+            if p not in self.part_keys:
+                self.r.say(f"{where}: via names unknown part {p!r}")
         return tuple(found)
 
-    effects = []
-    allowed = value_keys | parameter_keys | {"t", "clock"}
-    for row in r.rows(data, "effects"):
-        k, where = row["key"], f"effect {row['key']}"
-        if row.get("kind") not in EFFECT_KINDS:
-            r.say(f"{where}: kind must be one of {sorted(EFFECT_KINDS)}")
-        effects.append(Effect(k, r.expr(row.get("expr"), allowed, where), str(row.get("kind")),
-                              arrow(row, where), via(row, where)))
-        text(f"effect.{k}")
-        allowed = allowed | {k}
+    def effects_and_terms(self) -> tuple[list[Effect], list[Term]]:
+        r = self.r
+        effects = []
+        allowed = self.value_keys | self.parameter_keys | {"t", "clock"}
+        for row in r.rows(self.data, "effects"):
+            k, where = row["key"], f"effect {row['key']}"
+            if row.get("kind") not in EFFECT_KINDS:
+                r.say(f"{where}: kind must be one of {sorted(EFFECT_KINDS)}")
+            effects.append(Effect(k, r.expr(row.get("expr"), allowed, where),
+                                  str(row.get("kind")), self._arrow(row, where),
+                                  self._via(row, where)))
+            self.text(f"effect.{k}")
+            allowed = allowed | {k}
+        terms = []
+        for row in r.rows(self.data, "terms"):
+            k, where = row["key"], f"term {row['key']}"
+            if row.get("value") not in self.value_keys:
+                r.say(f"{where}: unknown value {row.get('value')!r}")
+            if row.get("sign") not in (1, -1):
+                r.say(f"{where}: sign must be 1 or -1")
+            if row.get("kind") not in TERM_KINDS:
+                r.say(f"{where}: kind must be one of {sorted(TERM_KINDS)}")
+            terms.append(Term(k, str(row.get("value")), int(row.get("sign", 1)),
+                              r.expr(row.get("expr"), allowed, where), str(row.get("kind")),
+                              self._arrow(row, where), self._via(row, where)))
+            self.text(f"term.{k}")
+        return effects, terms
 
-    terms = []
-    for row in r.rows(data, "terms"):
-        k, where = row["key"], f"term {row['key']}"
-        if row.get("value") not in value_keys:
-            r.say(f"{where}: unknown value {row.get('value')!r}")
-        if row.get("sign") not in (1, -1):
-            r.say(f"{where}: sign must be 1 or -1")
-        if row.get("kind") not in TERM_KINDS:
-            r.say(f"{where}: kind must be one of {sorted(TERM_KINDS)}")
-        terms.append(Term(k, str(row.get("value")), int(row.get("sign", 1)),
-                          r.expr(row.get("expr"), allowed, where), str(row.get("kind")),
-                          arrow(row, where), via(row, where)))
-        text(f"term.{k}")
-    _check_curve_links(r, data, curves, values, parameters, effects, terms)
-    names_used = value_keys | parameter_keys | {e.key for e in effects} | {t.key for t in terms}
-    if len(names_used) != len(values) + len(parameters) + len(effects) + len(terms):
-        r.say("keys of values, parameters, effects and terms must all differ")
-
-    def parse_edits(row: dict, where: str, option_keys: set) -> list:
+    def _edits(self, row: dict, where: str, option_keys: set) -> list[Edit]:
+        r = self.r
         edits = []
         for n, edit in enumerate(row.get("edits", []), 1):
             ew = f"{where} edit {n}"
@@ -471,10 +496,10 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
                 continue
             op, target = edit.get("op"), edit.get("target")
             if op in PARAMETER_OPS:
-                if target not in parameter_keys:
+                if target not in self.parameter_keys:
                     r.say(f"{ew}: {op} needs a parameter, not {target!r}")
             elif op in VALUE_OPS:
-                if target not in value_keys:
+                if target not in self.value_keys:
                     r.say(f"{ew}: {op} needs a value, not {target!r}")
             else:
                 r.say(f"{ew}: op must be one of {sorted(PARAMETER_OPS | VALUE_OPS)}")
@@ -482,19 +507,16 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
             if daily and op != "dose":
                 r.say(f"{ew}: only a dose can be daily")
             edits.append(Edit(str(op), str(target),
-                              r.expr(edit.get("expr"), option_keys | parameter_keys, ew), daily))
+                              r.expr(edit.get("expr"), option_keys | self.parameter_keys, ew),
+                              daily))
         return edits
 
-    experiments = []
-    for row in r.rows(data, "experiments"):
-        k, where = row["key"], f"experiment {row['key']}"
-        if not _text(row.get("group")):
-            r.say(f"{where}: needs a group")
-        mode = row.get("mode", "from a time")
-        if mode not in MODES:
-            r.say(f"{where}: mode must be one of {sorted(MODES)}")
+    def _length(self, row: dict, where: str) -> float | None:
         length = row.get("length")
-        length = None if length is None else r.time(duration, length, where, 60.0)
+        return None if length is None else self.r.time(duration, length, where, 60.0)
+
+    def _options(self, row: dict, k: str, where: str) -> list[Option]:
+        r = self.r
         options = []
         for n, opt in enumerate(row.get("options", []), 1):
             ow = f"{where} option {n}"
@@ -503,38 +525,63 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
                 r.say(f"{ow}: needs a key")
                 continue
             ok = r.ranged(opt, "default", ow)
-            options.append(Option(opt["key"], text(f"experiment.{k}.option.{opt['key']}"),
+            options.append(Option(opt["key"], self.text(f"experiment.{k}.option.{opt['key']}"),
                                   str(opt.get("unit", "")),
                                   float(opt["default"]) if ok else 0.0,
                                   float(opt["low"]) if ok else 0.0,
                                   float(opt["high"]) if ok else 0.0))
-        option_keys = {o.key for o in options}
-        edits = parse_edits(row, where, option_keys)
+        return options
+
+    def _experiment(self, row: dict) -> Experiment:
+        r, text = self.r, self.text
+        k, where = row["key"], f"experiment {row['key']}"
+        if not _text(row.get("group")):
+            r.say(f"{where}: needs a group")
+        mode = row.get("mode", "from a time")
+        if mode not in MODES:
+            r.say(f"{where}: mode must be one of {sorted(MODES)}")
+        length = self._length(row, where)
+        options = self._options(row, k, where)
+        edits = self._edits(row, where, {o.key for o in options})
         if not edits:
             r.say(f"{where}: needs at least one edit")
         text(f"experiment.{k}.description")
-        experiments.append(Experiment(k, str(row.get("group", "")), text(f"experiment.{k}"),
-                                      str(mode), length, tuple(options), tuple(edits),
-                                      bool(row.get("weeks", False)), _icon(r, row, where)))
+        return Experiment(k, str(row.get("group", "")), text(f"experiment.{k}"), str(mode),
+                          length, tuple(options), tuple(edits), bool(row.get("weeks", False)),
+                          _icon(r, row, where))
 
-    tests = []
-    for row in r.rows(data, "tests"):
-        k, where = row["key"], f"test {row['key']}"
+    def experiments(self) -> list[Experiment]:
+        return [self._experiment(row) for row in self.r.rows(self.data, "experiments")]
+
+    def _doses(self, row: dict, where: str) -> list:
+        r = self.r
         doses = []
         for n, dose in enumerate(row.get("doses", []), 1):
             dw = f"{where} dose {n}"
-            if not isinstance(dose, dict) or dose.get("value") not in value_keys:
+            if not isinstance(dose, dict) or dose.get("value") not in self.value_keys:
                 r.say(f"{dw}: needs a known value")
                 continue
             after = r.time(duration, dose["after"], dw) if "after" in dose else 0.0
-            doses.append((after, dose["value"], r.expr(dose.get("amount"), parameter_keys, dw)))
+            doses.append((after, dose["value"],
+                          r.expr(dose.get("amount"), self.parameter_keys, dw)))
+        return doses
+
+    def _readings(self, row: dict, where: str) -> list[Reading]:
+        r = self.r
         readings = []
         for n, reading in enumerate(row.get("readings", []), 1):
             rw = f"{where} reading {n}"
-            if not isinstance(reading, dict) or reading.get("value") not in value_keys:
+            if not isinstance(reading, dict) or reading.get("value") not in self.value_keys:
                 r.say(f"{rw}: needs a known value")
                 continue
             readings.append(Reading(reading["value"], r.time(duration, reading.get("after"), rw)))
+        return readings
+
+    def _test(self, row: dict) -> LabTest:
+        r, text = self.r, self.text
+        k, where = row["key"], f"test {row['key']}"
+        doses = self._doses(row, where)
+        readings = self._readings(row, where)
         if not readings:
             r.say(f"{where}: needs at least one reading")
         if row.get("rule") not in RULES:
@@ -543,28 +590,25 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
             r.say(f"{where}: cutoff must be a number")
         for suffix in ("", ".normal", ".abnormal", ".description"):
             text(f"test.{k}{suffix}")
-        length = row.get("length")
-        length = None if length is None else r.time(duration, length, where, 60.0)
-        tests.append(LabTest(k, text(f"test.{k}"), tuple(doses), tuple(readings),
-                             str(row.get("rule")), float(row.get("cutoff", 0)),
-                             _icon(r, row, where), tuple(parse_edits(row, where, set())), length))
-    block_keys = {e.key for e in experiments} | {t.key for t in tests}
-    if len(block_keys) != len(experiments) + len(tests):
-        r.say("experiments and tests must have different keys")
+        length = self._length(row, where)
+        return LabTest(k, text(f"test.{k}"), tuple(doses), tuple(readings),
+                       str(row.get("rule")), float(row.get("cutoff", 0)), _icon(r, row, where),
+                       tuple(self._edits(row, where, set())), length)
 
-    checks = []
-    for row in r.rows(data, "checks"):
-        k, where = row["key"], f"check {row['key']}"
-        length = r.time(duration, row.get("length"), where, 1440.0)
+    def tests(self) -> list[LabTest]:
+        return [self._test(row) for row in self.r.rows(self.data, "tests")]
+
+    def _check_blocks(self, row: dict, where: str) -> list[dict]:
+        r = self.r
         blocks = []
         for n, block in enumerate(row.get("blocks", []), 1):
             bw = f"{where} block {n}"
-            if not isinstance(block, dict) or block.get("experiment") not in block_keys:
+            if not isinstance(block, dict) or block.get("experiment") not in self.block_keys:
                 r.say(f"{bw}: needs a known experiment or test")
                 continue
             out = {"experiment": block["experiment"],
                    "start": r.time(moment, block.get("start", "day 1 00:00"), bw)
-                   - start_clock}
+                   - self.start_clock}
             if "length" in block:
                 out["length"] = r.time(duration, block["length"], bw)
             if "mode" in block:
@@ -574,54 +618,106 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
             if "options" in block:
                 out["options"] = dict(block["options"])
             blocks.append(out)
-        asserts = []
-        for n, check in enumerate(row.get("asserts", []), 1):
-            aw = f"{where} assert {n}"
-            kind = check.get("kind") if isinstance(check, dict) else None
-            if kind not in ASSERTS:
-                r.say(f"{aw}: kind must be one of {sorted(ASSERTS)}")
-                continue
-            missing = ASSERTS[kind] - set(check)
-            if missing:
-                r.say(f"{aw}: needs {sorted(missing)}")
-                continue
-            out = dict(check)
-            for field in ("value", "first", "then"):
-                if field in out and out[field] not in value_keys:
-                    r.say(f"{aw}: unknown value {out[field]!r}")
-            for field in ("at", "by"):
-                if field in out:
-                    out[field] = r.time(moment, out[field], aw) - start_clock
-            if "window" in out:
-                out["window"] = [r.time(moment, w, aw) - start_clock for w in out["window"]]
-            if "expect" in out and kind != "test_result":
-                out["expect"] = [r.time(clock, w, aw) for w in out["expect"]]
-            if kind == "vs_normal" and not ({"rises", "falls"} & set(out)):
-                r.say(f"{aw}: needs rises or falls")
-            if kind == "test_result":
-                if not (isinstance(out["block"], int) and 0 <= out["block"] < len(blocks)):
-                    r.say(f"{aw}: block must be the index of one of the check's blocks")
-                if out["expect"] not in ("normal", "abnormal"):
-                    r.say(f"{aw}: expect must be normal or abnormal")
-            asserts.append(out)
-        text(f"check.{k}")
-        checks.append(Check(k, length, tuple(blocks), tuple(asserts)))
+        return blocks
 
-    notes = []
-    for row in r.rows(data, "normal"):
-        where = f"normal {row['key']}"
-        notes.append(NormalNote(row["key"], r.time(clock, row.get("from"), where),
-                                r.time(clock, row.get("to"), where)))
-        text(f"normal.{row['key']}")
+    def _assert(self, check, aw: str, blocks: list) -> dict | None:
+        r = self.r
+        kind = check.get("kind") if isinstance(check, dict) else None
+        if kind not in ASSERTS:
+            r.say(f"{aw}: kind must be one of {sorted(ASSERTS)}")
+            return None
+        missing = ASSERTS[kind] - set(check)
+        if missing:
+            r.say(f"{aw}: needs {sorted(missing)}")
+            return None
+        out = dict(check)
+        for field in ("value", "first", "then"):
+            if field in out and out[field] not in self.value_keys:
+                r.say(f"{aw}: unknown value {out[field]!r}")
+        for field in ("at", "by"):
+            if field in out:
+                out[field] = r.time(moment, out[field], aw) - self.start_clock
+        if "window" in out:
+            out["window"] = [r.time(moment, w, aw) - self.start_clock for w in out["window"]]
+        if "expect" in out and kind != "test_result":
+            out["expect"] = [r.time(clock, w, aw) for w in out["expect"]]
+        if kind == "vs_normal" and not ({"rises", "falls"} & set(out)):
+            r.say(f"{aw}: needs rises or falls")
+        if kind == "test_result":
+            if not (isinstance(out["block"], int) and 0 <= out["block"] < len(blocks)):
+                r.say(f"{aw}: block must be the index of one of the check's blocks")
+            if out["expect"] not in ("normal", "abnormal"):
+                r.say(f"{aw}: expect must be normal or abnormal")
+        return out
 
+    def _check(self, row: dict) -> Check:
+        k, where = row["key"], f"check {row['key']}"
+        length = self.r.time(duration, row.get("length"), where, 1440.0)
+        blocks = self._check_blocks(row, where)
+        asserts = [found for n, check in enumerate(row.get("asserts", []), 1)
+                   if (found := self._assert(check, f"{where} assert {n}", blocks)) is not None]
+        self.text(f"check.{k}")
+        return Check(k, length, tuple(blocks), tuple(asserts))
+
+    def checks(self) -> list[Check]:
+        return [self._check(row) for row in self.r.rows(self.data, "checks")]
+
+    def notes(self) -> list[NormalNote]:
+        notes = []
+        for row in self.r.rows(self.data, "normal"):
+            where = f"normal {row['key']}"
+            notes.append(NormalNote(row["key"], self.r.time(clock, row.get("from"), where),
+                                    self.r.time(clock, row.get("to"), where)))
+            self.text(f"normal.{row['key']}")
+        return notes
+
+
+def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dict,
+           routes: set[str]) -> tuple[LabModel | None, list[str]]:
+    data = read_toml(path)
+    r = _Reader(str(path))
+    unknown = set(data) - TOP
+    if unknown:
+        r.say(f"unknown keys {sorted(unknown)}")
+    key = data.get("key")
+    if not (isinstance(key, str) and key.isidentifier()):
+        r.say("needs a key")
+        return None, r.problems
+    if path.stem != key:
+        r.say(f"file name must be {key}.toml")
+    text = _Texts(r, knowledge / "en" / f"lab-{key}.toml")
+    read = _Sections(r, data, text, references, structure_ids)
+    version = read.version()
+    route = data.get("route")
+    if route is not None and route not in routes:
+        r.say(f"unknown route {route!r}")
+    start_clock = read.start_clock = r.time(clock, data.get("start_clock", "08:00"),
+                                            "start_clock", 480.0)
+    max_step = r.time(duration, data.get("max_step", "30 min"), "max_step", 30.0)
+    numbers = read.numbers()
+    values = read.values()
+    parameters = read.parameters()
+    curves = _curves(r, data, parameters, text)
+    clash = read.value_keys & read.parameter_keys
+    if clash:
+        r.say(f"names used for both a value and a parameter: {sorted(clash)}")
+    parts = read.parts()
+    effects, terms = read.effects_and_terms()
+    _check_curve_links(r, data, curves, values, parameters, effects, terms)
+    names_used = (read.value_keys | read.parameter_keys | {e.key for e in effects}
+                  | {t.key for t in terms})
+    if len(names_used) != len(values) + len(parameters) + len(effects) + len(terms):
+        r.say("keys of values, parameters, effects and terms must all differ")
+    experiments = read.experiments()
+    tests = read.tests()
+    read.block_keys = {e.key for e in experiments} | {t.key for t in tests}
+    if len(read.block_keys) != len(experiments) + len(tests):
+        r.say("experiments and tests must have different keys")
+    checks = read.checks()
+    notes = read.notes()
     name = text("name")
     text("scope")
-    for text_key in sorted(set(texts) - used):
-        r.say(f"text {text_key!r} in {texts_path.name} is not used by the model")
-    for text_key, value in texts.items():
-        for ref in CITATION.findall(value):
-            if ref not in references:
-                r.say(f"text {text_key!r} cites missing reference [{ref}]")
+    text.check(references)
     model = LabModel(key, name, version, route, start_clock, float(numbers["settle_speedup"]),
                      int(numbers["settle_days"]), max_step, float(numbers["why_threshold"]),
                      tuple(values), tuple(parameters), tuple(effects), tuple(terms), tuple(parts),

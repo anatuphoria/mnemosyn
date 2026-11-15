@@ -3,11 +3,10 @@ import random
 import pytest
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLabel, QMenuBar, QTabBar, QToolBar
+from PySide6.QtWidgets import QLabel, QMenuBar, QTabBar, QToolBar
 
 from cns_atlas import Atlas
 from cns_desktop.design.panels import PanelGroup
-from cns_desktop.design.theme import apply_theme
 from cns_desktop.design.topbar import TopBar
 from cns_desktop.main_window import MainWindow
 from cns_study.session import QuizChoice
@@ -16,11 +15,7 @@ LEFT, RIGHT = Qt.DockWidgetArea.LeftDockWidgetArea, Qt.DockWidgetArea.RightDockW
 BOTTOM = Qt.DockWidgetArea.BottomDockWidgetArea
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 def settings_at(path):

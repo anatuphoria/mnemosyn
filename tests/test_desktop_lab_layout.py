@@ -1,17 +1,11 @@
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
-from cns_desktop.design.theme import apply_theme
 from cns_desktop.design.tokens import GAP
 from cns_desktop.main_window import MainWindow
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 def open_lab(qapp, atlas, tmp_path, size):

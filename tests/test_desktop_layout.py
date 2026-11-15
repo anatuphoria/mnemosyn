@@ -1,21 +1,16 @@
 import pytest
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication, QLabel, QTabBar
+from PySide6.QtWidgets import QLabel, QTabBar
 
 from cns_atlas import Atlas
 from cns_desktop.design.panels import PanelGroup
-from cns_desktop.design.theme import apply_theme
 from cns_desktop.design.tokens import SIZE
 from cns_desktop.main_window import MainWindow
 
 NAMES = ("Explore", "Slices", "Pathways", "Lab", "Lesion")
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 def open_at(qapp, atlas, tmp_path, width, height):

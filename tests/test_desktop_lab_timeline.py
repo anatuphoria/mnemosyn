@@ -15,11 +15,6 @@ from cns_desktop.lab.timeline import (CHANGES_HEIGHT, LABEL_WIDTH, LANE_HEIGHT, 
 DAY = 1440.0
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
-
-
 @pytest.fixture
 def timeline(qapp, toy_lab_atlas):
     doc = LabDocument(Atlas.open(toy_lab_atlas), "toy")

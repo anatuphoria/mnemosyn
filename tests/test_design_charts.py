@@ -2,18 +2,12 @@ import numpy as np
 import pyqtgraph as pg
 import pytest
 from PySide6.QtCore import QPointF
-from PySide6.QtWidgets import QApplication
 
-from cns_desktop.design import theme
 from cns_desktop.design.charts import Series, SmallMultiples
 from cns_desktop.design.tokens import COLOURS, SIZE
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    theme.apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 def chart(qapp, count=3, height=400):

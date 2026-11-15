@@ -1,18 +1,12 @@
 from itertools import pairwise
 
 import pytest
-from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
 from cns_desktop.lab.document import LabDocument
 from cns_lab.experiment import Block
 
 DAY = 1440.0
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture

@@ -2,23 +2,17 @@ from __future__ import annotations
 
 import pytest
 from fsrs import Card, Rating, Scheduler
-from PySide6.QtWidgets import QApplication
 
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import Atlas
 from cns_desktop.app import report_errors
-from cns_desktop.design.theme import apply_theme
 from cns_desktop.errors import LOG_NAME
 from cns_desktop.main_window import DOWNLOAD_URL, PROBLEM_URL, MainWindow
 from cns_study.progress import ProgressStore
 from cns_study.session import utc_now
 
 
-@pytest.fixture(scope="session")
-def qapp():
-    app = QApplication.instance() or QApplication([])
-    apply_theme(app)
-    return app
+pytestmark = pytest.mark.usefixtures("themed")
 
 
 @pytest.fixture

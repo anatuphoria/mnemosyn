@@ -3,7 +3,6 @@ import random
 import numpy as np
 import pytest
 import pyvista as pv
-from PySide6.QtWidgets import QApplication
 
 from atlas_package import write_package
 from cns_atlas import Atlas
@@ -15,11 +14,6 @@ from cns_study.session import QuizChoice
 
 SHELL, INNER, OUTER = 230, 231, 110
 GREY = (170, 170, 180)
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 def sphere(radius, centre=(0.0, 0.0, 0.0)) -> MeshData:
