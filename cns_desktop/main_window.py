@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import sqlite3
 from contextlib import contextmanager
 from collections.abc import Callable
 from datetime import datetime
@@ -53,6 +54,13 @@ HOVER_MS = 1500
 GREY_DIMMED = 0.15
 MOUSE_HINT = "drag rotates · right drag pans · wheel zooms · click selects"
 HANDBOOK_URL = "https://mnemo.saeed.cool/handbook/"
+DOWNLOAD_URL = "https://mnemo.saeed.cool/download/"
+PROBLEM_URL = "https://github.com/anatuphoria/mnemosyn/issues/new"
+RESET_QUESTION = ("This starts your quiz progress again from nothing. Your progress so far is "
+                  "kept as a file in the data folder, so you can put it back by hand.")
+RESET_DONE = "Your progress was reset. The old progress is kept as:\n{path}"
+BACKUP_DONE = "A copy of your progress was saved to:\n{path}"
+BACKUP_FAILED = "The copy could not be saved to:\n{path}"
 KEYS = {
     "explore": (("F", "frame"), ("H", "hide"), ("I", "isolate"), ("Q", "quiz")),
     "pathway": (("Space", "play"), ("←", "back"), ("→", "next"), ("Esc", "close")),
@@ -309,6 +317,10 @@ class MainWindow(QMainWindow):
         study = self.topbar.menu("Study")
         action("Start quiz", "Q", self.open_quiz_setup, study)
         study.addAction(QAction("Progress", self, triggered=self.show_progress))
+        study.addSeparator()
+        study.addAction(QAction("Back up progress…", self, triggered=self.ask_backup))
+        self.reset_action = QAction("Reset progress…", self, triggered=self.ask_reset)
+        study.addAction(self.reset_action)
         icons = {"Hide": "eye-off", "Isolate": "scan", "Show all": "eye", "Tracts": "waypoints",
                  "Start quiz": "graduation-cap"}
 
@@ -357,8 +369,25 @@ class MainWindow(QMainWindow):
         self.addAction(about)
         help_menu.addAction(about)
         self.shortcuts["About"] = about
-        help_menu.addAction(QAction("Handbook on the website", self, triggered=lambda:
-                                    QDesktopServices.openUrl(QUrl(HANDBOOK_URL))))
+        for text, target in (("Handbook on the website", HANDBOOK_URL),
+                             ("Check for a newer version", DOWNLOAD_URL),
+                             ("Report a problem", PROBLEM_URL)):
+            help_menu.addAction(QAction(text, self, triggered=lambda _checked=False, u=target:
+                                        self.open_url(QUrl(u))))
+        help_menu.addSeparator()
+        help_menu.addAction(QAction("Open data folder", self, triggered=self.open_data_folder))
+        self.help_menu = help_menu
+
+    def open_url(self, url: QUrl) -> None:
+        QDesktopServices.openUrl(url)
+
+    def open_data_folder(self) -> None:
+        folder = self.progress_path.parent
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return
+        self.open_url(QUrl.fromLocalFile(str(folder)))
 
     def open_lab(self, route: str) -> None:
         if self.lab is None:
@@ -474,6 +503,40 @@ class MainWindow(QMainWindow):
         dialog.open()
         return dialog
 
+    def backup_progress(self, to: Path) -> bool:
+        try:
+            self.progress_store().backup(Path(to))
+        except (OSError, sqlite3.Error):
+            return False
+        return True
+
+    def ask_backup(self) -> None:
+        name = f"mnemosyn-progress-{datetime.now():%Y-%m-%d}.sqlite"
+        chosen, _kind = QFileDialog.getSaveFileName(
+            self, "Back up progress", str(Path.home() / name), "Progress file (*.sqlite)")
+        if not chosen:
+            return
+        text = BACKUP_DONE if self.backup_progress(Path(chosen)) else BACKUP_FAILED
+        QMessageBox.information(self, "Back up progress", text.format(path=chosen))
+
+    def reset_progress(self) -> Path | None:
+        if self.quiz_active:
+            return None
+        return self.progress_store().reset()
+
+    def ask_reset(self) -> None:
+        if self.quiz_active:
+            return
+        answer = QMessageBox.question(
+            self, "Reset progress", RESET_QUESTION,
+            QMessageBox.StandardButton.Reset | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        if answer != QMessageBox.StandardButton.Reset:
+            return
+        kept = self.reset_progress()
+        if kept is not None:
+            QMessageBox.information(self, "Reset progress", RESET_DONE.format(path=kept))
+
     def show_progress(self) -> ProgressDialog:
         dialog = ProgressDialog(self.state.atlas, self.progress_store(), self)
         dialog.open()
@@ -500,7 +563,7 @@ class MainWindow(QMainWindow):
     def _quiz_locked(self) -> list[QAction]:
         docks = (self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock,
                  self.step_group)
-        return [*(self.shortcuts[name] for name in QUIZ_LOCKED),
+        return [*(self.shortcuts[name] for name in QUIZ_LOCKED), self.reset_action,
                 *(dock.toggleViewAction() for dock in docks)]
 
     def enter_quiz(self) -> None:

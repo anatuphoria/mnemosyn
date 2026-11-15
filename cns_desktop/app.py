@@ -40,6 +40,22 @@ def offer_disclaimer(window, settings):
     return box
 
 
+def report_errors(window, folder: Path | None = None):
+    from PySide6.QtWidgets import QMessageBox
+
+    from .errors import Reporter
+    from .views.about_dialog import app_version
+
+    def show(text: str) -> None:
+        window.error_box = QMessageBox(QMessageBox.Icon.Warning, "Something went wrong", text,
+                                       QMessageBox.StandardButton.Ok, window)
+        window.error_box.open()
+
+    reporter = Reporter(folder or window.progress_path.parent, app_version(), show)
+    reporter.install()
+    return reporter
+
+
 def _status_mb(field: str) -> float | None:
     try:
         with open("/proc/self/status", encoding="utf-8") as status:
@@ -144,8 +160,12 @@ def main(argv: list[str] | None = None) -> int:
         window.close()
         return 0
     migrate_progress()
+    reporter = report_errors(window)
     offer_disclaimer(window, settings)
-    return app.exec()
+    try:
+        return app.exec()
+    finally:
+        reporter.remove()
 
 
 if __name__ == "__main__":

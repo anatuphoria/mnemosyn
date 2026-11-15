@@ -81,8 +81,8 @@ class ProgressStore:
             raise
         return db
 
-    def _set_aside(self) -> Path:
-        broken = self.path.with_name(f"{self.path.name}.broken-{datetime.now():%Y%m%d-%H%M%S}")
+    def _set_aside(self, word: str = "broken") -> Path:
+        broken = self.path.with_name(f"{self.path.name}.{word}-{datetime.now():%Y%m%d-%H%M%S}")
         self.path.replace(broken)
         for suffix in ("-wal", "-shm"):
             sidecar = self.path.with_name(self.path.name + suffix)
@@ -134,6 +134,20 @@ class ProgressStore:
         rows = self.db.execute("SELECT target, matched, missed, extra FROM lesion_cases "
                                "WHERE atlas = ? ORDER BY id", (self.atlas,))
         return [tuple(row) for row in rows]
+
+    def backup(self, to: Path) -> None:
+        target = sqlite3.connect(to)
+        try:
+            self.db.backup(target)
+        finally:
+            target.close()
+
+    def reset(self) -> Path:
+        self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        self.db.close()
+        kept = self._set_aside("reset")
+        self.db = self._open()
+        return kept
 
     def close(self) -> None:
         self.db.close()

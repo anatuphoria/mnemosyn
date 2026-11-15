@@ -148,3 +148,28 @@ def test_lesion_cases_are_kept_per_atlas(tmp_path):
     again = ProgressStore(path, "atlas-a")
     assert again.cases() == [(101, 2, 1, 0)]
     assert ProgressStore(path, "atlas-b").cases() == []
+
+
+def test_a_backup_is_a_full_copy_that_opens_on_its_own(tmp_path):
+    store = ProgressStore(tmp_path / "progress.sqlite", "toy")
+    store.record(1, "find", reviewed(1, Rating.Good, T0), Rating.Good, True, 500, T0)
+    store.backup(tmp_path / "copy.sqlite")
+    store.close()
+    copy = ProgressStore(tmp_path / "copy.sqlite", "toy")
+    assert list(copy.cards("find")) == [1]
+    assert copy.review_count("find") == 1
+    copy.close()
+
+
+def test_a_reset_starts_empty_and_keeps_the_old_progress_as_a_file(tmp_path):
+    store = ProgressStore(tmp_path / "progress.sqlite", "toy")
+    store.record(1, "find", reviewed(1, Rating.Good, T0), Rating.Good, True, 500, T0)
+    kept = store.reset()
+    assert store.cards("find") == {}
+    assert kept.exists() and ".reset-" in kept.name
+    old = ProgressStore(kept, "toy")
+    assert list(old.cards("find")) == [1]
+    old.close()
+    store.record(2, "find", reviewed(2, Rating.Good, T0), Rating.Good, True, 500, T0)
+    assert list(store.cards("find")) == [2]
+    store.close()
