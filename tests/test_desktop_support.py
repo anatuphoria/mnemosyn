@@ -7,7 +7,8 @@ from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import Atlas
 from cns_desktop.app import report_errors
 from cns_desktop.errors import LOG_NAME
-from cns_desktop.main_window import DOWNLOAD_URL, PROBLEM_URL, MainWindow
+from cns_desktop.main_window import MainWindow
+from cns_desktop.window_menus import DOWNLOAD_URL, PROBLEM_URL
 from cns_study.progress import ProgressStore
 from cns_study.session import utc_now
 

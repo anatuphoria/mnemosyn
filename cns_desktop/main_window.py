@@ -1,50 +1,41 @@
 from __future__ import annotations
 
-import random
-import sqlite3
-from contextlib import contextmanager
-from collections.abc import Callable
-from datetime import datetime
 from itertools import pairwise
 from pathlib import Path
 
-import numpy as np
-from PySide6.QtCore import QEvent, QStandardPaths, Qt, QTimer, QUrl
-from PySide6.QtGui import QAction, QDesktopServices, QKeySequence
-from PySide6.QtWidgets import (QAbstractItemView, QAbstractSlider, QAbstractSpinBox, QCheckBox,
-                               QFileDialog, QHBoxLayout, QLabel, QMainWindow, QMessageBox,
-                               QWidget)
+from PySide6.QtCore import QEvent, QStandardPaths, Qt, QTimer
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (QAbstractItemView, QAbstractSlider, QAbstractSpinBox, QFileDialog,
+                               QHBoxLayout, QLabel, QMainWindow,
+                               QMessageBox, QWidget)
 
 from shiboken6 import delete
 
-from cns_atlas import DISCLAIMER, Atlas
+from cns_atlas import Atlas
 from cns_atlas.lesions import prepare as prepare_lesions
 from cns_study.answers import AnswerIndex
-from cns_study.items import (group_items, items, structure_items, tract_items,
-                             with_reviewed_entries)
 from cns_study.progress import ProgressStore
-from cns_study.session import QuizChoice, Session, utc_now
 
 from .design import widgets
 from .design.panels import PanelGroup
 from .design.theme import set_role
-from .design.tokens import GAP, SIZE, rgb
+from .design.tokens import GAP, SIZE
 from .design.topbar import TopBar
 from .lab.viewport import Viewport
 from .lab.workspace import LabWorkspace
 from .lesion.workspace import LesionWorkspace
 from .state import AppState
-from .views.about_dialog import AboutDialog
 from .views.activity_chart import ActivityChart
 from .views.brain_view import BrainView
 from .views.info_panel import InfoPanel
 from .views.pathway_panel import PathwayPanel
-from .views.progress_dialog import ProgressDialog
 from .views.quiz_panel import QuizPanel
-from .views.quiz_setup import QuizSetup
 from .views.slice_panel import SlicePanel
 from .views.structure_tree import StructureTree
 from .warm_up import WarmUp
+from .window_menus import WindowMenus
+from .window_quiz import QuizMode
+from .window_routes import RouteMode
 from .workspaces import Workspaces
 
 APP_NAME = "Mnemosyn"
@@ -53,32 +44,13 @@ OLD_FOLDER = "cns-atlas"
 HOVER_MS = 1500
 GREY_DIMMED = 0.15
 MOUSE_HINT = "drag rotates · right drag pans · wheel zooms · click selects"
-HANDBOOK_URL = "https://mnemo.saeed.cool/handbook/"
-DOWNLOAD_URL = "https://mnemo.saeed.cool/download/"
-PROBLEM_URL = "https://github.com/anatuphoria/mnemosyn/issues/new"
-RESET_QUESTION = ("This starts your quiz progress again from nothing. Your progress so far is "
-                  "kept as a file in the data folder, so you can put it back by hand.")
-RESET_DONE = "Your progress was reset. The old progress is kept as:\n{path}"
-BACKUP_DONE = "A copy of your progress was saved to:\n{path}"
-BACKUP_FAILED = "The copy could not be saved to:\n{path}"
 KEYS = {
     "explore": (("F", "frame"), ("H", "hide"), ("I", "isolate"), ("Q", "quiz")),
     "pathway": (("Space", "play"), ("←", "back"), ("→", "next"), ("Esc", "close")),
     "quiz": (("Esc", "end the quiz"),),
     "lab": (("Space", "play"), ("V", "brain or circuit"), ("Del", "remove change")),
 }
-QUIZ_LOCKED = ("Hide", "Isolate", "Show all", "Start quiz", "Tracts")
-QUIZ_ROOM_MM = 80.0
 ARROW_WIDGETS = (QAbstractSlider, QAbstractItemView, QAbstractSpinBox)
-ROUTE_DIM = 0.55
-ROUTE_KEYS = ("Play or pause", "Back", "Next")
-PATHWAY_LOCKED = ("Hide", "Isolate", "Show all", "Tracts")
-RECOVERED = {
-    "damaged": ("Progress file damaged", "Your progress file could not be read. It was kept as "
-                "{path} and a new one was started."),
-    "newer": ("Progress file from a newer version", "Your progress file was written by a newer "
-              "version of Mnemosyn. It was kept as {path} and a new one was started."),
-}
 FIRST_DRAW_WAIT_MS = 250
 
 
@@ -114,7 +86,7 @@ def gpu_name(view: BrainView) -> str:
     return "unknown GPU"
 
 
-class MainWindow(QMainWindow):
+class MainWindow(WindowMenus, QuizMode, RouteMode, QMainWindow):
     def __init__(self, atlas: Atlas, progress_path: Path | None = None, settings=None) -> None:
         super().__init__()
         self.setDockOptions(QMainWindow.DockOption.AnimatedDocks
@@ -291,104 +263,6 @@ class MainWindow(QMainWindow):
         self.addDockWidget(area, group)
         return group
 
-    def _add_actions(self) -> None:
-        view = self.topbar.menu("View")
-
-        def action(text: str, key: str, slot, menu=view) -> QAction:
-            act = QAction(text, self, shortcut=QKeySequence(key), triggered=slot)
-            act.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
-            self.addAction(act)
-            menu.addAction(act)
-            self.shortcuts[text] = act
-            return act
-
-        action("Hide", "H", self._hide_selected)
-        action("Isolate", "I", self._isolate_selected)
-        action("Show all", "U", self.state.show_all)
-        view.addSeparator()
-        action("Tracts", "T", self.state.toggle_tracts)
-        view.addSeparator()
-        action("Reset view", "R", self.view.reset_view)
-        action("Frame selection", "F", self.frame)
-        action("Centre slice", "C", self.slices.centre_on_selection)
-        focus_filter = QAction(self, shortcut=QKeySequence.StandardKey.Find,
-                               triggered=lambda: self.tree.filter_box.setFocus())
-        self.addAction(focus_filter)
-        study = self.topbar.menu("Study")
-        action("Start quiz", "Q", self.open_quiz_setup, study)
-        study.addAction(QAction("Progress", self, triggered=self.show_progress))
-        study.addSeparator()
-        study.addAction(QAction("Back up progress…", self, triggered=self.ask_backup))
-        self.reset_action = QAction("Reset progress…", self, triggered=self.ask_reset)
-        study.addAction(self.reset_action)
-        icons = {"Hide": "eye-off", "Isolate": "scan", "Show all": "eye", "Tracts": "waypoints",
-                 "Start quiz": "graduation-cap"}
-
-        def buttons(names):
-            return [None if name is None else widgets.icon_button(self.shortcuts[name],
-                                                                  icons[name])
-                    for name in names]
-
-        full = ("Hide", "Isolate", "Show all", None, "Tracts", None, "Start quiz")
-        self.topbar.add_group("Explore", buttons(full))
-        self.topbar.add_group("Slices", buttons(full))
-        self.topbar.add_group("Pathways", [*self.pathways.controls(), None,
-                                           *buttons(("Tracts", None, "Start quiz"))])
-        for name, icon in (("Frame selection", "maximize"), ("Reset view", "rotate-ccw")):
-            self.viewport.add_tool(widgets.icon_button(self.shortcuts[name], icon))
-        self.viewport.add_tool(buttons(("Tracts",))[0])
-        leave = QAction("Close route", self, shortcut=QKeySequence("Esc"),
-                        triggered=self.pathways.leave)
-        leave.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
-        leave.setEnabled(False)
-        self.addAction(leave)
-        self.shortcuts["Close route"] = leave
-        for name, key, slot in (("Play or pause", "Space", self.pathways.toggle_play),
-                                ("Back", "Left", self.pathways.back),
-                                ("Next", "Right", self.pathways.next)):
-            route_key = QAction(name, self, shortcut=QKeySequence(key), triggered=slot)
-            route_key.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
-            route_key.setEnabled(False)
-            self.addAction(route_key)
-            self.shortcuts[name] = route_key
-
-    def _add_window_menu(self) -> None:
-        self.window_menu = self.topbar.menu("Window")
-        for dock in (self.structures_group, self.routes_group, self.step_group,
-                     self.slices_group, self.info_group, self.activity_group):
-            self.window_menu.addAction(dock.toggleViewAction())
-        self.window_separator = self.window_menu.addSeparator()
-        self.window_menu.addAction(QAction("Reset layout", self,
-                                           triggered=lambda: self.workspaces.reset()))
-
-    def _add_help_menu(self) -> None:
-        help_menu = self.topbar.menu("Help")
-        about = QAction("About Mnemosyn", self, shortcut=QKeySequence("F1"),
-                        triggered=self.show_about)
-        about.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
-        self.addAction(about)
-        help_menu.addAction(about)
-        self.shortcuts["About"] = about
-        for text, target in (("Handbook on the website", HANDBOOK_URL),
-                             ("Check for a newer version", DOWNLOAD_URL),
-                             ("Report a problem", PROBLEM_URL)):
-            help_menu.addAction(QAction(text, self, triggered=lambda _checked=False, u=target:
-                                        self.open_url(QUrl(u))))
-        help_menu.addSeparator()
-        help_menu.addAction(QAction("Open data folder", self, triggered=self.open_data_folder))
-        self.help_menu = help_menu
-
-    def open_url(self, url: QUrl) -> None:
-        QDesktopServices.openUrl(url)
-
-    def open_data_folder(self) -> None:
-        folder = self.progress_path.parent
-        try:
-            folder.mkdir(parents=True, exist_ok=True)
-        except OSError:
-            return
-        self.open_url(QUrl.fromLocalFile(str(folder)))
-
     def open_lab(self, route: str) -> None:
         if self.lab is None:
             return
@@ -476,324 +350,11 @@ class MainWindow(QMainWindow):
         self.slices.preferred = frozenset(ids)
         self.view.set_preferred(ids)
 
-    def progress_store(self) -> ProgressStore:
-        if self._store is None:
-            name = str(self.state.atlas.metadata.get("name", "atlas"))
-            self._store = ProgressStore(self.progress_path, name)
-            if self._store.recovered_from is not None:
-                title, text = RECOVERED[self._store.recovery_reason]
-                self.recovery_box = QMessageBox(
-                    QMessageBox.Icon.Warning, title, text.format(path=self._store.recovered_from),
-                    QMessageBox.StandardButton.Ok, self)
-                self.recovery_box.open()
-        return self._store
-
-    def answer_index(self) -> AnswerIndex:
-        if self._answers is None:
-            atlas = self.state.atlas
-            pool = structure_items(atlas) + group_items(atlas) + tract_items(atlas)
-            self._answers = AnswerIndex(pool)
-        return self._answers
-
-    def open_quiz_setup(self) -> QuizSetup:
-        self._out_of_lab()
-        self.slices.label_centres()
-        dialog = QuizSetup(self.state.atlas, self.progress_store(), self)
-        dialog.accepted.connect(lambda: self.start_quiz(dialog.choice()))
-        dialog.open()
-        return dialog
-
-    def backup_progress(self, to: Path) -> bool:
-        try:
-            self.progress_store().backup(Path(to))
-        except (OSError, sqlite3.Error):
-            return False
-        return True
-
-    def ask_backup(self) -> None:
-        name = f"mnemosyn-progress-{datetime.now():%Y-%m-%d}.sqlite"
-        chosen, _kind = QFileDialog.getSaveFileName(
-            self, "Back up progress", str(Path.home() / name), "Progress file (*.sqlite)")
-        if not chosen:
-            return
-        text = BACKUP_DONE if self.backup_progress(Path(chosen)) else BACKUP_FAILED
-        QMessageBox.information(self, "Back up progress", text.format(path=chosen))
-
-    def reset_progress(self) -> Path | None:
-        if self.quiz_active:
-            return None
-        return self.progress_store().reset()
-
-    def ask_reset(self) -> None:
-        if self.quiz_active:
-            return
-        answer = QMessageBox.question(
-            self, "Reset progress", RESET_QUESTION,
-            QMessageBox.StandardButton.Reset | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel)
-        if answer != QMessageBox.StandardButton.Reset:
-            return
-        kept = self.reset_progress()
-        if kept is not None:
-            QMessageBox.information(self, "Reset progress", RESET_DONE.format(path=kept))
-
-    def show_progress(self) -> ProgressDialog:
-        dialog = ProgressDialog(self.state.atlas, self.progress_store(), self)
-        dialog.open()
-        return dialog
-
-    def start_quiz(self, choice: QuizChoice, rng: random.Random | None = None,
-                   now: Callable[[], datetime] = utc_now) -> None:
-        atlas = self.state.atlas
-        pool = items(atlas, choice.level)
-        chosen = items(atlas, choice.level, choice.scope)
-        if choice.mode == "flashcard":
-            chosen = with_reviewed_entries(atlas, chosen)
-        rng = rng or random.Random()
-        session = Session(chosen, choice.mode, self.progress_store(), choice.practice, now=now,
-                          rng=rng)
-        if self.pathway_active:
-            self.pathways.leave()
-        self._out_of_lab()
-        self.enter_quiz()
-        shown = choice.level == "tracts" and choice.mode == "find"
-        self.state.set_hidden(self.state.tract_ids, not shown)
-        self.quiz.start(session, choice.mode, self.answer_index(), pool, rng)
-
-    def _quiz_locked(self) -> list[QAction]:
-        docks = (self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock,
-                 self.step_group)
-        return [*(self.shortcuts[name] for name in QUIZ_LOCKED), self.reset_action,
-                *(dock.toggleViewAction() for dock in docks)]
-
-    def enter_quiz(self) -> None:
-        if self.quiz_active:
-            return
-        state = self.state
-        before = self.size()
-        self._saved = (self.saveState(), *self._snapshot(),
-                       [(w, w.focusPolicy()) for w in (self.view, self.slices.view)],
-                       self.workspaces.joins(), self.view.camera_position.to_list())
-        self.workspaces.release_joins()
-        self.quiz_active = True
-        self.workspaces.set_locked(True)
-        if self.lab is not None:
-            self.lab.set_files_enabled(False)
-        for action in self._quiz_locked():
-            action.setEnabled(False)
-        state.set_hidden([i for i in state.geometry_ids if not state.is_tract(i)], False)
-        for widget, _ in self._saved[6]:
-            widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.tree_dock.hide()
-        self.pathway_dock.hide()
-        self.info_dock.hide()
-        self.chart_dock.hide()
-        self.step_group.hide()
-        self.quiz_dock.show()
-        self._arrange_quiz(before.width())
-        self.resize(before)
-        QTimer.singleShot(0, lambda: self.quiz_active and self.resize(before))
-        QTimer.singleShot(0, self.fit_quiz_column)
-        self.statusBar().clearMessage()
-        self._update_status()
-
-    def _arrange_quiz(self, width: int | None = None) -> None:
-        side = SIZE["panel_left"]
-        width = self.width() if width is None else width
-        if width < SIZE["narrow"]:
-            self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.slice_dock)
-            self.splitDockWidget(self.quiz_dock, self.slice_dock, Qt.Orientation.Vertical)
-            self.resizeDocks([self.quiz_dock], [side], Qt.Orientation.Horizontal)
-            self.fit_quiz_column()
-        else:
-            self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.slice_dock)
-            room = width - side - SIZE["central_min"]
-            self.resizeDocks([self.quiz_dock, self.slice_dock], [side, max(room // 2, side)],
-                             Qt.Orientation.Horizontal)
-        self.slice_dock.show()
-
-    def fit_quiz_column(self) -> None:
-        if (not self.quiz_active or self.dockWidgetArea(self.slice_dock)
-                != Qt.DockWidgetArea.LeftDockWidgetArea):
-            return
-        chrome = self.quiz_dock.height() - self.quiz.parentWidget().height()
-        needed = self.quiz.layout().totalHeightForWidth(self.quiz.width())
-        want = max(needed, self.quiz.sizeHint().height()) + max(chrome, 0)
-        shared = self.quiz_dock.height() + self.slice_dock.height()
-        self.resizeDocks([self.quiz_dock, self.slice_dock], [want, max(shared - want, 1)],
-                         Qt.Orientation.Vertical)
-
-    def _frame_quiz_target(self, ids) -> None:
-        if ids:
-            self.view.frame_around(ids, QUIZ_ROOM_MM)
-        elif self.quiz_active:
-            self._put_camera(self._saved[-1])
-
-    def _put_camera(self, camera) -> None:
-        self.view.camera_position = camera
-        self.view.renderer.ResetCameraClippingRange()
-
-    def leave_quiz(self) -> None:
-        if not self.quiz_active:
-            return
-        layout, hidden, selected, axis, mm, volume, focus, joins, camera = self._saved
-        size = self.size()
-        self.quiz_active = False
-        self.workspaces.set_locked(False)
-        if self.lab is not None:
-            self.lab.set_files_enabled(True)
-        for action in self._quiz_locked():
-            action.setEnabled(True)
-        for widget, policy in focus:
-            widget.setFocusPolicy(policy)
-        self.workspaces.release_joins()
-        self.restoreState(layout)
-        self.workspaces.apply_joins(joins)
-        self._restore(hidden, selected, axis, mm, volume)
-        self._put_camera(camera)
-        self.resize(size)
-        QTimer.singleShot(0, lambda: self.quiz_active or self.resize(size))
-        self._sync_chart()
-        self._update_status()
-
-    def _snapshot(self) -> tuple:
-        state = self.state
-        hidden = [i for i in state.geometry_ids if state.is_hidden(i)]
-        return hidden, state.selected, state.slice_axis, state.slice_mm, state.slice_volume
-
-    def _restore(self, hidden, selected, axis, mm, volume="") -> None:
-        self.state.select(selected)
-        kept = set(hidden)
-        self.state.set_hidden([i for i in self.state.geometry_ids if i not in kept], False)
-        self.state.set_hidden(hidden, True)
-        if volume:
-            self.state.set_slice_volume(volume)
-        self.state.set_slice(axis, mm)
-
-    def _prepare_pathways(self, shown: bool) -> None:
-        if shown and self.state.atlas.pathways:
-            self.slices.label_centres()
-            self.view.prepare_tracts()
-
-    @contextmanager
-    def _held(self):
-        with self.view.held(), self.slices.held():
-            yield
-
-    def route_bounds(self) -> tuple[float, ...]:
-        ids = [i for ids in self.pathways.lights for i in ids if i in self.view.blocks]
-        if not ids:
-            return tuple(self.view.scene_bounds)
-        extents = [self.view.extent_of(i) for i in ids]
-        low = np.min([e[0] for e in extents], axis=0)
-        high = np.max([e[1] for e in extents], axis=0)
-        return (low[0], high[0], low[1], high[1], low[2], high[2])
-
-    def _paint_route(self, *_args) -> None:
-        panel = self.pathways
-        if panel.pathway is None:
-            return
-        accent = tuple(c / 255 for c in rgb("accent"))
-        back = rgb("s0")
-        wanted: dict[int, tuple] = {}
-        for n, ids in enumerate(panel.lights):
-            if n == panel.index:
-                continue
-            for i in ids:
-                if n < panel.index:
-                    wanted[i] = accent
-                else:
-                    own = self.state.atlas.get(i).rgb_triplet
-                    wanted[i] = tuple((o + (b - o) * ROUTE_DIM) / 255 for o, b in zip(own, back))
-        for i in panel.lights[panel.index] if panel.lights else ():
-            wanted.pop(i, None)
-        changes = {i: c for i, c in wanted.items() if self._route_painted.get(i) != c}
-        changes.update({i: None for i in self._route_painted if i not in wanted})
-        self._route_painted = wanted
-        if changes:
-            self.view.set_lab_colors(changes)
-
-    def _show_step_tab(self) -> None:
-        if self.step_group.isVisible():
-            self.step_group.show_page("step")
-
-    def _frame_route(self) -> None:
-        self.view.set_plane_shown(False)
-        self.view.set_home(self.route_bounds(), 0)
-        self.view.reset_view(render=False)
-
-    def enter_pathway(self) -> None:
-        self._pathway_saved = self._snapshot()
-        camera = self.view.renderer.GetActiveCamera()
-        self._route_camera = (self.view.camera_position.to_list(), camera.GetViewAngle(),
-                              self.view.plane_shown())
-        self.pathway_active = True
-        for name in PATHWAY_LOCKED:
-            self.shortcuts[name].setEnabled(False)
-        self.shortcuts["Close route"].setEnabled(True)
-        self._sync_chart()
-        for name in ROUTE_KEYS:
-            self.shortcuts[name].setEnabled(True)
-        self._update_status()
-
-    def leave_pathway(self) -> None:
-        if not self.pathway_active:
-            return
-        self.pathway_active = False
-        for name in PATHWAY_LOCKED:
-            self.shortcuts[name].setEnabled(True)
-        self.shortcuts["Close route"].setEnabled(False)
-        with self._held():
-            self.view.set_lab_colors({i: None for i in self._route_painted})
-            self._route_painted = {}
-            self.view.set_home(None)
-            if self._route_camera is not None:
-                position, angle, plane = self._route_camera
-                self.view.camera_position = position
-                self.view.renderer.GetActiveCamera().SetViewAngle(angle)
-                self.view.set_plane_shown(plane)
-                self._route_camera = None
-            self.state.set_focus(None)
-            self._restore(*self._pathway_saved)
-        for name in ROUTE_KEYS:
-            self.shortcuts[name].setEnabled(False)
-        self._sync_chart()
-        self._update_status()
-
-    def _on_timeline(self, timeline) -> None:
-        self.chart.show_timeline(timeline, self.pathways.pathway.name if self.pathways.pathway
-                                 else "")
-        self.step_panel.set_timeline_note(self.chart.note_html())
-        self._sync_chart()
-
-    def chart_wanted(self) -> bool:
-        return (self.pathway_active and not self.quiz_active
-                and self.pathways.timeline is not None)
-
-    def _sync_chart(self) -> None:
-        wanted = self.chart_wanted()
-        self.chart_dock.toggleViewAction().setEnabled(wanted)
-        if wanted and self.chart_dock.isHidden():
-            self.chart_dock.show()
-            self.resizeDocks([self.chart_dock], [self.height() // 3], Qt.Orientation.Vertical)
-        elif not wanted:
-            self.chart_dock.hide()
-
     def frame(self) -> None:
         if self.slices.layer is not None and self.slices.view.underMouse():
             self.slices.fit_volume()
         else:
             self.view.frame_selection()
-
-    def show_about(self) -> None:
-        AboutDialog(self.state.atlas, self).exec()
-
-    def show_disclaimer(self) -> QMessageBox:
-        box = QMessageBox(QMessageBox.Icon.Information, "Before you start", DISCLAIMER,
-                          QMessageBox.StandardButton.Ok, self)
-        box.setCheckBox(QCheckBox("Don't show this again", box))
-        box.open()
-        return box
 
     def _hide_selected(self) -> None:
         if self.state.selected:

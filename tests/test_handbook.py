@@ -230,7 +230,7 @@ def test_what_the_old_guide_said_is_still_in_the_handbook():
 def test_help_opens_the_handbook(qapp_toy):
     from PySide6.QtGui import QAction
 
-    from cns_desktop.main_window import HANDBOOK_URL
+    from cns_desktop.window_menus import HANDBOOK_URL
 
     assert HANDBOOK_URL == "https://mnemo.saeed.cool/handbook/"
     texts = [a.text() for a in qapp_toy.findChildren(QAction)]

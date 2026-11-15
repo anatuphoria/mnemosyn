@@ -849,7 +849,7 @@ def camera(window):
 
 
 def test_name_it_frames_the_target_with_room_around_it(window):
-    from cns_desktop.main_window import QUIZ_ROOM_MM
+    from cns_desktop.window_quiz import QUIZ_ROOM_MM
 
     quiz = start_quiz(window, "name-choice")
     low, high = window.view.extent_of(next(iter(quiz.item.geometry)))
