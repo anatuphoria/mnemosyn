@@ -40,11 +40,9 @@ live, so all later work is enhancements and fixes. Cord lesions work only in loc
 sharing, and medullary syndromes need cranial nerve nuclei the atlas does not have.
 
 
-1. The cells view (neuron scale) is on hold on the `cells` branch. The approach needs a new design
-   before any further work; the old plan is not to be continued as it is.
-2. The specialist review: the review pages and booklet are live; the request form link waits for
+1. The specialist review: the review pages and booklet are live; the request form link waits for
    the owner's check, and the second edition email to the existing reviewers is not sent.
-3. Permission to share PAM50, the Brainstem Navigator, the Iglesias bodies and the pituitary and
+2. Permission to share PAM50, the Brainstem Navigator, the Iglesias bodies and the pituitary and
    pineal masks. Until the authors agree they stay in local builds only. The PAM50 email is open.
 
 ## Speed
