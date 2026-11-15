@@ -77,6 +77,13 @@ view, not just reciting a name.
 3. Try the **Tracts** level: while a tract is asked, the grey matter around it dims so the tract
    stands out.
 
+## Your progress file
+
+Your progress is one file on your computer. **Study**, then **Back up progress** saves a copy
+wherever you choose, for example before you move to a new computer. **Study**, then **Reset
+progress** starts again from nothing; the old progress is not deleted but kept beside the new file
+in the data folder (**Help**, then **Open data folder**), so you can put it back by hand.
+
 ## Shortcuts
 
 | Key | Action |

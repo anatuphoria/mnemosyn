@@ -40,7 +40,7 @@ jobs:
         with:
           python-version: "3.14"
       - name: Install
-        run: python -m pip install -e ".[desktop,atlas-build,package]"
+        run: python -m pip install -c tools/package/requirements-release.txt -e ".[desktop,atlas-build,package]"
       - name: Sources that can only be downloaded by hand
         shell: bash
         env:

@@ -99,3 +99,19 @@ other than 3.14, Inno Setup not installed, or a source file with a different nam
 4. When the release is published, set `version = "0.2.0"` in `site/download.toml`, commit and push
    `main`. The website's Download buttons then point at the new files. They never point at a
    version before its files exist.
+
+## Library versions in a release
+
+The release build installs the exact library versions listed in
+`tools/package/requirements-release.txt`, so two builds of the same tag use the same libraries and a
+new library version cannot enter a release unseen. Dependabot proposes updates to that file as pull
+requests. To refresh it by hand:
+
+```bash
+pip install uv
+uv pip compile pyproject.toml --extra desktop --extra atlas-build --extra package --universal \
+  --python-version 3.14 --no-header --no-annotate -o tools/package/requirements-release.txt
+```
+
+After a change to that file, run the Release workflow by hand from the Actions page (it builds and
+opens both packages without publishing) before tagging.

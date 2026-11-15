@@ -81,6 +81,12 @@ brings it back, and **Window, Reset layout** restores the arrangement the worksp
 In a narrow window the default arrangements fold the right hand panels into the left one and the
 menus into one menu button; an arrangement you made yourself is never changed.
 
+## If something goes wrong
+
+If an error happens, Mnemosyn keeps running, tells you once, and saves the details to a file named
+`errors.log` in its data folder (**Help**, then **Open data folder**). To tell us about it, choose
+**Help**, then **Report a problem**, and attach that file. Nothing is sent by itself.
+
 ## Where next
 
 1. Try an experiment: [Central or nephrogenic?](experiments/central-or-nephrogenic.md) takes five

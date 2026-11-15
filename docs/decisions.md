@@ -85,6 +85,12 @@ entry replaces it and the old one says so.
 | 77 | 2026-11-01 | The arterial territories are a shared but manual source | in force |
 | 78 | 2026-11-01 | Water balance is the second Lab system, independent of the stress axis | in force |
 | 79 | 2026-11-01 | Lab tests may hold a change for a while and read a rise | in force |
+| 80 | 2026-11-01 | Water balance keeps a few simplifications, stated in its texts | in force |
+| 81 | 2026-11-02 | In the Lab, the parts outside the brain float over a brain that fills the view | in force |
+| 82 | 2026-11-02 | Each Lab setting has a kind of control and a group, named in its model file | in force |
+| 83 | 2026-11-02 | Pathways uses the same frame as the rest of the app | in force |
+| 84 | 2026-11-02 | A route stays open until it is closed, and closing gives everything back | in force |
+| 85 | 2026-11-15 | The app stays offline and keeps its errors, progress and settings on the computer | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -869,3 +875,14 @@ structures, selection, slice, slice plane and camera the user had before.
 Why: no other workspace has a mode to leave, and the camera framing on opening must not cost the
 user their own view.
 Design: [Pathways pass, section 4](specs/2026-11-02-pathways-pass-design.md).
+
+## 85. The app stays offline and keeps its errors, progress and settings on the computer
+
+2026-11-15. Mnemosyn never connects to the internet. An error while it runs is saved to `errors.log`
+in the data folder and the user is told once per run; a hard crash leaves its trace in `crashes.log`.
+Nothing is sent: the user attaches the log when they report a problem from the Help menu. Looking
+for a newer version is a Help item that opens the Download page, not an automatic check. Quiz
+progress can be backed up to a file and reset; a reset keeps the old file beside the new one.
+Release builds install the library versions pinned in `tools/package/requirements-release.txt`.
+Why: an installed app showed nothing and kept nothing when it failed, so a user could not say what
+went wrong, and being offline is a promise the website makes.

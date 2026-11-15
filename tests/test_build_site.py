@@ -131,6 +131,14 @@ def test_the_download_page_links_the_published_versions_files(tmp_path):
     assert "download.md" not in page and "docs/packaging.md" not in page
 
 
+def test_the_download_page_says_what_the_app_keeps_and_how_to_check_a_file(tmp_path):
+    build_site(download_settings(tmp_path, "0.4.2"), tmp_path / "out")
+    page = (tmp_path / "out/download.md").read_text()
+    assert "## Privacy" in page and "does not connect to the internet" in page
+    assert "Open data folder" in page and "Check for a newer version" in page
+    assert "sha256sum" in page and "Get-FileHash" in page
+
+
 def test_before_the_first_release_the_buttons_say_coming_soon(tmp_path):
     build_site(download_settings(tmp_path, ""), tmp_path / "out")
     page = (tmp_path / "out/download.md").read_text()

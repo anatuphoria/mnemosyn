@@ -156,6 +156,17 @@ chmod +x Mnemosyn-{version}-x86_64.AppImage
 
 Your quiz progress is kept in your user folder, so it survives updates.
 
+## Privacy
+
+Mnemosyn does not connect to the internet and has no account, no tracking and no usage reports.
+It keeps three things, all on your computer and only there: your quiz progress, your settings (such
+as the window layout) and a log of errors, which you can attach if you report a problem. **Help**,
+then **Open data folder** shows where they are. Mnemosyn does not look for updates by itself;
+**Help**, then **Check for a newer version** opens this page in your browser.
+
+To check a download, compare it with `SHA256SUMS.txt` on the release page: `sha256sum` on Linux,
+or `Get-FileHash` in PowerShell on Windows.
+
 ## Build from source
 {quickstart}"""
 

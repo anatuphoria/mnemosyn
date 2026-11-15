@@ -84,8 +84,11 @@ def test_menus_are_file_edit_view_study_experiment_window_help(window):
     view = [a.text() for a in window.topbar.menu("View").actions() if a.text()]
     assert view == ["Hide", "Isolate", "Show all", "Tracts", "Reset view", "Frame selection",
                     "Centre slice"]
-    help_items = [a.text() for a in window.topbar.menu("Help").actions()]
-    assert help_items == ["About Mnemosyn", "Handbook on the website"]
+    help_items = [a.text() for a in window.topbar.menu("Help").actions() if a.text()]
+    assert help_items == ["About Mnemosyn", "Handbook on the website",
+                          "Check for a newer version", "Report a problem", "Open data folder"]
+    study = [a.text() for a in window.topbar.menu("Study").actions() if a.text()]
+    assert study == ["Start quiz", "Progress", "Back up progress…", "Reset progress…"]
 
 
 def test_explore_has_no_pathways_panel(window):
