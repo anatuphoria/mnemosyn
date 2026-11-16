@@ -154,16 +154,18 @@ def main(argv: list[str] | None = None) -> int:
     from PySide6.QtCore import QSettings
     from PySide6.QtWidgets import QApplication
 
-    from .design.theme import apply_theme
+    from .design.theme import apply_theme, choose
+    from .preferences import stored_theme
 
     app = QApplication.instance() or QApplication(sys.argv[:1])
     app.setApplicationName("Mnemosyn")
+    settings = None if (args.bench or args.first_frame) else QSettings("mnemosyn", "mnemosyn")
+    choose(stored_theme(settings))
     apply_theme(app)
     apply_identity(app)
 
     from .main_window import MainWindow, migrate_progress
 
-    settings = None if (args.bench or args.first_frame) else QSettings("mnemosyn", "mnemosyn")
     window = MainWindow(atlas, settings=settings)
     if args.bench:
         window.showFullScreen()

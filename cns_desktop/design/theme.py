@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from cns_desktop.design import fonts, stylesheet
+from cns_desktop.design import fonts, icons, stylesheet, tokens
 from cns_desktop.design.tokens import COLOURS
 
 PALETTE = {
@@ -9,6 +9,13 @@ PALETTE = {
     "ToolTipText": "text", "PlaceholderText": "text3", "BrightText": "text", "Link": "accent_text",
     "Mid": "line", "Dark": "s0", "Light": "s3", "Midlight": "s2", "Shadow": "s0",
 }
+
+
+def choose(name: str) -> None:
+    tokens.use(name if name in tokens.THEMES else tokens.DEFAULT_THEME)
+    stylesheet.build.cache_clear()
+    for cached in (icons._svg, icons.pixmap, icons.icon, icons.file):
+        cached.cache_clear()
 
 
 def apply_theme(app) -> None:

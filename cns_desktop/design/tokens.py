@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-COLOURS = {
+DARK = {
     "s0": "#000000",
     "s1": "#0a0a0c",
     "s2": "#131317",
@@ -20,7 +20,49 @@ COLOURS = {
     "success": "#5fbf8f",
 }
 
-DATA_PALETTE = ("#6d98f2", "#e4b04e", "#5fbf8f", "#c58af0", "#ef7f9c", "#4fc3c9")
+LIGHT = {
+    "s0": "#ffffff",
+    "s1": "#f5f5f7",
+    "s2": "#ebebef",
+    "s3": "#dfdfe5",
+    "line": "#d3d3da",
+    "control": "#7b7b86",
+    "text": "#17171b",
+    "text2": "#4b4b55",
+    "text3": "#737380",
+    "accent": "#2f5fc4",
+    "accent_text": "#2450b0",
+    "edited": "#8f6200",
+    "raised": "#b84e14",
+    "lowered": "#245fc0",
+    "normal": "#6c6c77",
+    "danger": "#c0392b",
+    "success": "#1b7f4c",
+}
+
+THEMES = {"dark": DARK, "light": LIGHT}
+PALETTES = {
+    "dark": ("#6d98f2", "#e4b04e", "#5fbf8f", "#c58af0", "#ef7f9c", "#4fc3c9"),
+    "light": ("#2f62cf", "#946600", "#1b7f4c", "#8540c4", "#c4365f", "#0b7f86"),
+}
+DEFAULT_THEME = "dark"
+
+COLOURS = dict(DARK)
+DATA_PALETTE = list(PALETTES[DEFAULT_THEME])
+_current = [DEFAULT_THEME]
+
+
+def theme() -> str:
+    return _current[0]
+
+
+def use(name: str) -> None:
+    if name not in THEMES:
+        raise KeyError(name)
+    COLOURS.clear()
+    COLOURS.update(THEMES[name])
+    DATA_PALETTE[:] = PALETTES[name]
+    _current[0] = name
 
 TYPE = {
     "title": (22, 28, 600),

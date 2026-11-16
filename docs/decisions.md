@@ -973,3 +973,47 @@ smaller atlas lacks are reported per step. Lesion views, flashcards, timed playb
 notes and collecting answers are left out. All three packages register the file type.
 Why: a teacher had no way to hand a class a prepared path through the atlas, and the views, routes,
 experiments and questions it needs all existed and could already be restored from saved state.
+
+## 92. Blood pressure over days is the fourth Lab system, built on one salt balance
+
+2026-11-17. The system follows mean arterial pressure, extracellular fluid, sodium excretion,
+renin, angiotensin II and aldosterone on the hours scale. Sodium and water move together at a fixed
+concentration. The kidney excretes sodium according to its perfusion pressure, angiotensin II and
+aldosterone; renin answers the pressure at the kidney and the salt reaching the macula densa. So
+the long run pressure is the one at which excretion equals intake, and a change in vessel
+resistance alone does not last. It has 12 experiments (diets, saline, fluid loss, five drugs, renal
+artery narrowing, primary aldosteronism, reduced kidney mass) and 13 checks, which also feed the
+quiz. It has no brain structures. The fast reflex (decision 90), potassium, natriuretic peptides
+and the renal nerves are left out and the system does not link to the other three. Its key is
+`volume` so that the stress axis stays first in the list. The hormone strengths are assumptions set
+to give textbook sized responses, each marked as such in its text.
+Why: the owner asked for the full blood pressure system after the reflex, and the reflex alone
+leaves the most examined question open, which is what sets pressure in the long run.
+
+## 93. A lesson step can hold a lesion
+
+2026-11-17. A fifth step kind, lesion, stores the placed lesion and the camera. The lesion is kept
+per image as its size and its voxels, packed to bits, compressed and written as text, so a
+territory or a brushed lesion of any shape fits in a few kilobytes. Reading checks the sizes before
+unpacking and never unpacks more than the image holds. Showing the step switches to Lesion and sets
+the lesion as one undoable change, so the student's own lesion comes back with Undo. A lesion made
+on images the open atlas lacks is reported and not shown. This replaces the exclusion of Lesion
+views in decision 91; flashcards stay out.
+Why: a stroke case is the most natural lesson a teacher builds, and it was the one workspace a
+lesson could not reach.
+
+## 94. A Settings window, and a light theme chosen there for the next start
+
+2026-11-17. **File, Settings** opens a small window with three groups: the theme (dark or light),
+four display options of the Lab timeline (normal line, change guides, values under the pointer,
+whole run bar), and what shows at start (the medical notice, the welcome tour). Each choice is
+stored as it is made; there is no confirm step. The timeline options apply at once and are also
+saved when the window closes, so the right click menu and Settings agree. The light theme is a
+second set of the same colour roles that meets the same contrast rules as the dark set, with its
+own chart colours. The theme is read once at start, before the screens are built, so a new choice
+shows on the next start; switching while the app runs is left for later because many drawing
+constants are fixed when their screens load. Dark stays the default. MRI slices keep their black
+background in both themes.
+Why: the owner asked for a Settings window, there was no place for preferences, and a dark only
+app is hard to use in a bright room or on a projector.
+

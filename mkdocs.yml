@@ -63,6 +63,7 @@ nav:
           - The stress axis: handbook/lab-stress.md
           - Water balance: handbook/lab-water.md
           - Blood pressure reflex: handbook/lab-pressure.md
+          - Blood pressure over days: handbook/lab-volume.md
           - Lesion: handbook/lesion.md
           - Quizzes: handbook/quizzes.md
       - Experiments:
@@ -76,6 +77,7 @@ nav:
           - One artery, many structures: handbook/experiments/one-artery-many-structures.md
           - Which side?: handbook/experiments/which-side.md
       - Lessons: handbook/lessons.md
+      - Settings: handbook/settings.md
       - Sources and review: handbook/trust.md
   - The atlas:
       - Structures: atlas/structures.md

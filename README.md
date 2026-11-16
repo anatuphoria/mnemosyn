@@ -134,8 +134,8 @@ progress stays on your computer.
 ### One interface for all of it
 
 Five workspaces (Explore, Slices, Pathways, the Lab and Lesion) arrange the window for each task,
-and every panel can be moved, floated or closed. The interface follows one design system: a black dark theme
-with checked contrast, the Inter typeface and Lucide icons bundled so it looks the same on every
+and every panel can be moved, floated or closed. The interface follows one design system: a black dark theme and a
+light theme, both with checked contrast, the Inter typeface and Lucide icons bundled so it looks the same on every
 computer, and layouts that fit windows from 850 px wide to large screens. Every action has a key;
 the [handbook](https://mnemo.saeed.cool/handbook/) lists them all.
 

@@ -16,6 +16,7 @@ from cns_atlas.lesions import prepare as prepare_lesions
 from cns_study.answers import AnswerIndex
 from cns_study.progress import ProgressStore
 
+from . import preferences
 from .design import dialogs, widgets
 from .design.panels import PanelGroup
 from .design.theme import set_role
@@ -155,6 +156,7 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
         self._add_window_menu()
         self._add_help_menu()
         self._add_lesson_menu()
+        self._add_settings_action()
         narrow = {"Explore": [("Structures", "Info"), ("Structures", "Slices")],
                   "Slices": [("Structures", "Info")],
                   "Pathways": [("Pathways", "Info"), ("Pathways", "Slices")]}
@@ -168,6 +170,8 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
         self.pick_save = lambda: QFileDialog.getSaveFileName(
             self, "Save experiment", "", "Lab experiments (*.mnemolab)")[0]
         self.lab = LabWorkspace(self, next(iter(atlas.models))) if atlas.models else None
+        if self.lab is not None:
+            preferences.load_timeline(settings, self.lab.timeline)
         lesions = any(p.texts == "lesion" for p in atlas.pathways)
         self.lesion = LesionWorkspace(self) if lesions else None
         for kind in ARROW_WIDGETS:
@@ -427,6 +431,8 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
             self.quiz.stop()
             self.leave_quiz()
         self.workspaces.save()
+        if self.lab is not None:
+            preferences.save_timeline(self.settings, self.lab.timeline)
         if self.settings is not None:
             self.settings.sync()
         self._status_timer.stop()

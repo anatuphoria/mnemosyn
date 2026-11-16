@@ -108,6 +108,21 @@ class WindowMenus:
         help_menu.addAction(QAction("Open data folder", self, triggered=self.open_data_folder))
         self.help_menu = help_menu
 
+    def _add_settings_action(self) -> None:
+        menu = self.topbar.menu("File")
+        menu.addSeparator()
+        self.settings_action = QAction("Settings…", self, shortcut=QKeySequence("Ctrl+,"),
+                                       triggered=lambda _checked=False: self.show_settings())
+        self.settings_action.setMenuRole(QAction.MenuRole.PreferencesRole)
+        menu.addAction(self.settings_action)
+
+    def show_settings(self):
+        from .views.settings_dialog import SettingsDialog
+
+        self.settings_dialog = SettingsDialog(self)
+        self.settings_dialog.show()
+        return self.settings_dialog
+
     def show_welcome(self) -> WelcomeTour | None:
         if self.quiz_active or self.workspaces.locked:
             return None

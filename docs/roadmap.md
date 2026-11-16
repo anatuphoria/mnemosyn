@@ -60,11 +60,10 @@ build the Lab only when it is first opened; its code and charts take about 0.2 s
 
 These were left out of earlier designs on purpose and are expected to come back.
 
-1. More Lab systems: the long term control of blood pressure (kidney, renin and salt; the reflex
-   is decision 90), sleep, hunger. Each needs a model file, not new engine or
-   screen code. Linking systems (for example cortisol raising blood pressure) is a later design.
+1. More Lab systems: sleep, hunger (blood pressure is done: the reflex is decision 90, the long
+   term control is decision 92). Each needs a model file, not new engine or screen code. Linking systems (for example cortisol raising blood pressure) is a later design.
 2. Translating the texts, which are already prepared for it.
-3. A light theme, which the design system leaves room for.
+3. Switching the theme without a restart (the light theme itself is decision 94).
 4. Code signing of the Windows installer, for example through the SignPath Foundation programme.
 5. Automatic updates and package managers (winget, Flathub).
 6. The Mac build (decision 86) is on the Download page with a notice that it waits for a first
@@ -94,9 +93,8 @@ so a change to the model can never leave a page wrong without a failing test.
 Ranked by how much they would add to the vision. None of them has a design yet.
 
 1. Reach. A browser version much later, only once the content is clearly ahead.
-2. A Settings window. The owner asked to keep one in mind. The Lab timeline already names its
-   display options (`compare_on`, `show_guides`, `show_hover`, `show_overview`) so a window can
-   offer them; nothing is stored yet.
+2. More in the Settings window (decision 94 holds the first set): text size, and the default
+   run length of each Lab system.
 
 Set aside: fitting the Lab model to one real person, accounts of any kind, and new features for the
 terminal viewer.
