@@ -62,9 +62,12 @@ def test_a_file_opened_during_a_quiz_ends_the_quiz_first(window, tmp_path):
 
 def test_every_package_registers_the_lab_file_type():
     desktop = (PACKAGE / "mnemosyn.desktop").read_text()
-    assert "Exec=Mnemosyn %f" in desktop and "MimeType=application/x-mnemolab;" in desktop
+    assert "Exec=Mnemosyn %f" in desktop
+    assert "MimeType=application/x-mnemolab;application/x-mnemolesson;" in desktop
     installer = (PACKAGE / "mnemosyn.iss").read_text()
     assert "ChangesAssociations=yes" in installer and r"Software\Classes\.mnemolab" in installer
     assert '""{app}\\Mnemosyn.exe"" ""%1""' in installer and "HKLM" not in installer
     spec = (PACKAGE / "mnemosyn.spec").read_text()
     assert "CFBundleDocumentTypes" in spec and '"public.filename-extension": ["mnemolab"]' in spec
+    assert r"Software\Classes\.mnemolesson" in installer
+    assert '"public.filename-extension": ["mnemolesson"]' in spec

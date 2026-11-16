@@ -34,6 +34,10 @@ Root: HKCU; Subkey: "Software\Classes\.mnemolab"; ValueType: string; ValueName: 
 Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Experiment"; ValueType: string; ValueName: ""; ValueData: "Mnemosyn Lab experiment"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Experiment\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\Mnemosyn.exe,0"
 Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Experiment\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\Mnemosyn.exe"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\.mnemolesson"; ValueType: string; ValueName: ""; ValueData: "Mnemosyn.Lesson"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Lesson"; ValueType: string; ValueName: ""; ValueData: "Mnemosyn lesson"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Lesson\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\Mnemosyn.exe,0"
+Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Lesson\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\Mnemosyn.exe"" ""%1"""
 
 [Run]
 Filename: "{app}\Mnemosyn.exe"; Description: "Open Mnemosyn"; Flags: nowait postinstall skipifsilent

@@ -28,10 +28,19 @@ if mac:
                            "CFBundleTypeName": "Mnemosyn Lab experiment",
                            "CFBundleTypeRole": "Editor",
                            "LSHandlerRank": "Owner",
-                           "LSItemContentTypes": ["cool.saeed.mnemosyn.mnemolab"]}],
+                           "LSItemContentTypes": ["cool.saeed.mnemosyn.mnemolab"]}, {
+                           "CFBundleTypeName": "Mnemosyn lesson",
+                           "CFBundleTypeRole": "Editor",
+                           "LSHandlerRank": "Owner",
+                           "LSItemContentTypes": ["cool.saeed.mnemosyn.mnemolesson"]}],
                        "UTExportedTypeDeclarations": [{
                            "UTTypeIdentifier": "cool.saeed.mnemosyn.mnemolab",
                            "UTTypeDescription": "Mnemosyn Lab experiment",
                            "UTTypeConformsTo": ["public.data"],
                            "UTTypeTagSpecification": {
-                               "public.filename-extension": ["mnemolab"]}}]})
+                               "public.filename-extension": ["mnemolab"]}}, {
+                           "UTTypeIdentifier": "cool.saeed.mnemosyn.mnemolesson",
+                           "UTTypeDescription": "Mnemosyn lesson",
+                           "UTTypeConformsTo": ["public.json"],
+                           "UTTypeTagSpecification": {
+                               "public.filename-extension": ["mnemolesson"]}}]})

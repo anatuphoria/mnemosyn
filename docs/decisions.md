@@ -96,6 +96,7 @@ entry replaces it and the old one says so.
 | 88 | 2026-11-16 | A reviewed text names its reviewer and date, and every text can be reported from where it is read | in force |
 | 89 | 2026-11-16 | A welcome tour on the first start, which switches the workspaces as it describes them | in force |
 | 90 | 2026-11-16 | The blood pressure reflex is the third Lab system, and Lab systems may run in minutes | in force |
+| 91 | 2026-11-16 | A lesson is one file of steps that point into the app, made and played in a Lesson window | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -956,3 +957,19 @@ behaviour and stay first in the system list. The model's strengths and speeds ar
 to give textbook sized responses, each marked as such in its text.
 Why: the reflex is brainstem anatomy the atlas already shows, it is examined through exceptions
 that a running model makes plain, and it acts in seconds, which the Lab could not show.
+
+## 91. A lesson is one file of steps that point into the app, made and played in a Lesson window
+
+2026-11-16. A `.mnemolesson` file holds a title, an author and up to 200 steps of four kinds: a
+view (workspace, selection, hidden structures, camera, slice), a route step (route, side, station),
+a Lab experiment (the experiment as its own file text, and the playhead) and a question round
+(level, scope, mode, always practice). Each step has a title and a note from the teacher. A
+separate window that does not block the app lists the steps, adds the current state as a step,
+edits, reorders and saves; opened from a file it plays the steps with Back and Next and can be
+switched to editing. The file is JSON, read strictly: unknown kinds, wrong types, files over 2 MB
+and newer formats are refused with a plain message, and fields the reader does not know are
+dropped. A lesson stores pointers and the teacher's notes only, never the app's texts. Things a
+smaller atlas lacks are reported per step. Lesion views, flashcards, timed playback, pictures in
+notes and collecting answers are left out. All three packages register the file type.
+Why: a teacher had no way to hand a class a prepared path through the atlas, and the views, routes,
+experiments and questions it needs all existed and could already be restored from saved state.

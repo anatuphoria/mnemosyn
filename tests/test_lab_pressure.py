@@ -129,3 +129,19 @@ def test_the_texts_say_what_the_model_leaves_out(model):
     for word in ("kidneys", "renin", "resetting", "first seconds to minutes"):
         assert word in scope, word
     assert "does not follow" in texts["experiment.denervation.description"]
+
+
+def test_a_short_run_and_a_short_change_survive_saving_and_opening(model, tmp_path):
+    from cns_lab.files import loads, read, write
+
+    made = Experiment(model.key, model.version, 10.0, model.start_clock,
+                      (Block("carotid_massage", 2.5, 0.25), Block("stand", 9.9)))
+    path = tmp_path / "short.mnemolab"
+    write(path, made)
+    opened, report = read(path, {model.key: model})
+    assert report == () and opened == made
+    assert loads(path.read_text(), {model.key: model})[0] == made
+    tiny = Experiment(model.key, model.version, 0.2, model.start_clock)
+    write(path, tiny)
+    opened, report = read(path, {model.key: model})
+    assert opened.length == 1.0 and "it is now 1 min" in report[0]

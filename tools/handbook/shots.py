@@ -12,6 +12,7 @@ SIZE = (1440, 900)
 SETTLE_MS = 600
 HOUR = 60.0
 REVIEWED = 40
+LESSON_NOTE = "Here the fibres cross. A lesion above this point weakens the opposite side."
 
 
 def _id(window, name: str) -> int:
@@ -128,6 +129,26 @@ def lesion_territory(window):
     place.choose_territory(concept)
 
 
+def lessons(window):
+    from cns_study.session import QuizChoice
+
+    made = window.new_lesson()
+    made.title.setText("How we move")
+    made.title.textEdited.emit("How we move")
+    _workspace(window, "Explore")
+    window.state.select(_id(window, "Precentral gyrus (left)"))
+    made.add_current()
+    pathways_route(window)
+    made.add_current()
+    _lab(window, "pressure")
+    made.add_current()
+    made._questions_chosen(QuizChoice("route-next", "routes", None, True))
+    made.go(1)
+    made.note.setPlainText(LESSON_NOTE)
+    made.saved = made.lesson
+    made.move(window.x() + SIZE[0] - made.width() - 30, window.y() + 150)
+
+
 SHOTS: dict[str, Callable] = {
     "explore": explore,
     "explore-isolate": explore_isolate,
@@ -140,6 +161,7 @@ SHOTS: dict[str, Callable] = {
     "lab-stress": lab_stress,
     "lab-water": lab_water,
     "lab-pressure": lab_pressure,
+    "lessons": lessons,
     "lesion": lesion,
     "lesion-territory": lesion_territory,
     "exp-central-or-nephrogenic": lambda w: _lab_file(
@@ -155,6 +177,19 @@ SHOTS: dict[str, Callable] = {
     "exp-stopping-a-steroid-course": lambda w: _lab_file(
         w, "stopping-a-steroid-course", "course.mnemolab", 30 * 24 * HOUR),
 }
+
+
+def _picture(window, target):
+    from PySide6.QtGui import QPainter
+
+    picture = target.grab()
+    over = window.lesson_window
+    if over is None or target is not window:
+        return picture
+    painter = QPainter(picture)
+    painter.drawPixmap(over.pos() - window.pos(), over.grab())
+    painter.end()
+    return picture
 
 
 def _check_shareable(atlas_path: Path):
@@ -197,11 +232,13 @@ def take(atlas_path: Path, out: Path = SHOTS_DIR, names: Iterable[str] | None = 
             window.view.render()
             QTest.qWait(SETTLE_MS)
             path = out / f"{name}.png"
-            target.grab().save(str(path))
+            _picture(window, target).save(str(path))
             taken.append(path)
             if target is not window:
                 target.close()
             if window.lab is not None:
                 window.lab.document.undo.setClean()
+            if window.lesson_window is not None:
+                window.lesson_window.saved = window.lesson_window.lesson
             window.close()
     return taken

@@ -13,6 +13,7 @@ from .times import UNITS, TimeError, clock, duration
 EXTENSION = ".mnemolab"
 FORMAT = 1
 SHORTEST = 60.0
+LIMITS = {"hours": (SHORTEST, 1.0), "minutes": (1.0, 0.05)}
 LONGEST = 8 * 7 * 1440.0
 
 
@@ -41,7 +42,7 @@ def _clock_text(minutes: float) -> str:
     return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
 
-def write(path: Path, experiment: Experiment) -> None:
+def dumps(experiment: Experiment) -> str:
     lines = [f"format = {FORMAT}", f"system = {_string(experiment.system)}",
              f"model_version = {experiment.version}",
              f"length = {_string(duration_text(experiment.length))}",
@@ -56,7 +57,11 @@ def write(path: Path, experiment: Experiment) -> None:
             lines.append(f"length = {_string(duration_text(block.length))}")
         lines += [f"mode = {_string(block.mode)}", "", "[blocks.options]"]
         lines += [f"{key} = {_number(value)}" for key, value in block.options]
-    Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return "\n".join(lines) + "\n"
+
+
+def write(path: Path, experiment: Experiment) -> None:
+    Path(path).write_text(dumps(experiment), encoding="utf-8")
 
 
 def _finite(value) -> bool:
@@ -105,10 +110,10 @@ def _header(data: dict) -> tuple[float, str, int, dict, list]:
     return length, start_clock, version, values, rows
 
 
-def _run_length(length: float, report: list[str]) -> float:
-    if SHORTEST <= length <= LONGEST:
+def _run_length(length: float, report: list[str], shortest: float = SHORTEST) -> float:
+    if shortest <= length <= LONGEST:
         return length
-    kept = min(max(length, SHORTEST), LONGEST)
+    kept = min(max(length, shortest), LONGEST)
     report.append(f"The run was {duration_text(length)} long; it is now {duration_text(kept)}.")
     return kept
 
@@ -136,7 +141,8 @@ def _mode(row: dict, found) -> str:
     return FROM_A_TIME
 
 
-def _start(row: dict, mode: str, name: str, length: float, report: list[str]) -> float:
+def _start(row: dict, mode: str, name: str, length: float, report: list[str],
+           least: float = 1.0) -> float:
     start = row.get("start", 0.0)
     start = float(start) if _finite(start) else 0.0
     if mode == PRESENT:
@@ -144,14 +150,14 @@ def _start(row: dict, mode: str, name: str, length: float, report: list[str]) ->
     if start < 0:
         report.append(f"{name} started before the run and was moved to its start.")
         return 0.0
-    if start > length - 1:
+    if start > length - least:
         report.append(f"{name} started after the end of the run and was moved to its end.")
-        return length - 1
+        return length - least
     return start
 
 
 def _block_length(row: dict, found, name: str, start: float, length: float,
-                  report: list[str]) -> float | None:
+                  report: list[str], least: float = 1.0) -> float | None:
     block_length = found.length if found else None
     if block_length is None:
         return None
@@ -160,10 +166,10 @@ def _block_length(row: dict, found, name: str, start: float, length: float,
             block_length = duration(row["length"])
         except TimeError:
             pass
-    block_length = max(block_length, 1.0)
+    block_length = max(block_length, least)
     if start + block_length > length:
         report.append(f"{name} lasted past the end of the run and now ends with it.")
-        block_length = max(length - start, 1.0)
+        block_length = max(length - start, least)
     return block_length
 
 
@@ -177,8 +183,9 @@ def _block(row, model: LabModel, length: float, report: list[str]) -> Block | No
         return None
     name = found.name if found else tests[key].name
     mode = _mode(row, found)
-    start = _start(row, mode, name, length, report)
-    block_length = _block_length(row, found, name, start, length, report)
+    least = LIMITS.get(model.scale, LIMITS["hours"])[1]
+    start = _start(row, mode, name, length, report, least)
+    block_length = _block_length(row, found, name, start, length, report, least)
     given = row.get("options", {}) if isinstance(row.get("options", {}), dict) else {}
     known = {o.key: o for o in found.options} if found else {}
     options = _numbers(given, known, "option", name, report)
@@ -191,11 +198,24 @@ def _text(data: dict, key: str) -> str:
 
 
 def read(path: Path, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str, ...]]:
-    data = _load(path)
+    return _read(_load(path), models)
+
+
+def loads(text: str, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str, ...]]:
+    try:
+        data = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        raise FileError("This text cannot be read as a Lab experiment.") from exc
+    if data.get("format") != FORMAT:
+        raise FileError("This is not a Lab experiment this version of Mnemosyn can open.")
+    return _read(data, models)
+
+
+def _read(data: dict, models: dict[str, LabModel]) -> tuple[Experiment, tuple[str, ...]]:
     model = _model_of(data, models)
     length, start_clock, version, values, rows = _header(data)
     report: list[str] = []
-    length = _run_length(length, report)
+    length = _run_length(length, report, LIMITS.get(model.scale, LIMITS["hours"])[0])
     if version != model.version:
         report.append(f"This file was made with version {version} of the model; "
                       f"this is version {model.version}.")

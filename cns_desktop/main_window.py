@@ -34,6 +34,7 @@ from .views.slice_panel import SlicePanel
 from .views.structure_tree import StructureTree
 from .warm_up import WarmUp
 from .window_menus import WindowMenus
+from .window_lessons import LessonMode
 from .window_quiz import QuizMode
 from .window_routes import RouteMode
 from .workspaces import Workspaces
@@ -86,7 +87,7 @@ def gpu_name(view: BrainView) -> str:
     return "unknown GPU"
 
 
-class MainWindow(WindowMenus, QuizMode, RouteMode, QMainWindow):
+class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
     def __init__(self, atlas: Atlas, progress_path: Path | None = None, settings=None) -> None:
         super().__init__()
         self.setDockOptions(QMainWindow.DockOption.AnimatedDocks
@@ -153,6 +154,7 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, QMainWindow):
         self.workspaces = Workspaces(self, settings)
         self._add_window_menu()
         self._add_help_menu()
+        self._add_lesson_menu()
         narrow = {"Explore": [("Structures", "Info"), ("Structures", "Slices")],
                   "Slices": [("Structures", "Info")],
                   "Pathways": [("Pathways", "Info"), ("Pathways", "Slices")]}
@@ -414,6 +416,9 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, QMainWindow):
         return super().eventFilter(watched, event)
 
     def closeEvent(self, event) -> None:
+        if self.lesson_window is not None and not self.lesson_window.close():
+            event.ignore()
+            return
         if self.lab is not None and not self.lab.confirm_discard():
             event.ignore()
             return

@@ -16,6 +16,7 @@ def default_atlas() -> Path:
     return DEFAULT_ATLAS
 DISCLAIMER_KEY = "disclaimer_hidden"
 LAB_SUFFIX = ".mnemolab"
+LESSON_SUFFIX = ".mnemolesson"
 
 
 def apply_identity(app) -> None:
@@ -50,6 +51,8 @@ def offer_welcome(window, box=None) -> None:
 
 def open_file(window, path) -> bool:
     path = Path(path)
+    if path.suffix.lower() == LESSON_SUFFIX:
+        return window.open_lesson(path) is not None
     if window.lab is None or path.suffix.lower() != LAB_SUFFIX:
         return False
     if window.quiz_active:

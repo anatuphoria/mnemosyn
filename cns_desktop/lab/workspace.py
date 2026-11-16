@@ -507,16 +507,25 @@ class LabWorkspace:
         check = next((c for c in models[model_key].checks if c.key == check_key), None)
         if check is None or not self.confirm_discard():
             return False
-        if model_key != self.document.model.key:
-            self._switch_model(model_key)
-        model = self.document.model
+        model = models[model_key]
         blocks = tuple(block_from_row(model, row) for row in check.blocks)
-        self.document.load(Experiment(model.key, model.version, check.length, model.start_clock,
-                                      blocks), None)
-        self.window.workspaces.switch("Lab")
-        self.document.set_playhead(at)
-        self.update_title()
+        self._show(Experiment(model.key, model.version, check.length, model.start_clock, blocks),
+                   at)
         return True
+
+    def show_experiment(self, experiment: Experiment, playhead: float) -> bool:
+        if not self.confirm_discard():
+            return False
+        self._show(experiment, playhead)
+        return True
+
+    def _show(self, experiment: Experiment, playhead: float) -> None:
+        if experiment.system != self.document.model.key:
+            self._switch_model(experiment.system)
+        self.document.load(experiment, None)
+        self.window.workspaces.switch("Lab")
+        self.document.set_playhead(playhead)
+        self.update_title()
 
     def _write(self, path: Path) -> bool:
         path = Path(path)
