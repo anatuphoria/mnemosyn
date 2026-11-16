@@ -336,3 +336,39 @@ volume = "5"
 pages = "54"
 year = 2019
 doi = "10.1038/s41572-019-0103-2"
+
+[guyenet2006]
+authors = "Guyenet PG"
+title = "The sympathetic control of blood pressure"
+year = 2006
+journal = "Nature Reviews Neuroscience"
+volume = "7"
+pages = "335-346"
+doi = "10.1038/nrn1902"
+
+[jose1970]
+authors = "Jose AD, Collison D"
+title = "The normal range and determinants of the intrinsic heart rate in man"
+year = 1970
+journal = "Cardiovascular Research"
+volume = "4"
+pages = "160-167"
+doi = "10.1093/cvr/4.2.160"
+
+[cowley1973]
+authors = "Cowley AW, Liard JF, Guyton AC"
+title = "Role of the baroreceptor reflex in daily control of arterial blood pressure and other variables in dogs"
+year = 1973
+journal = "Circulation Research"
+volume = "32"
+pages = "564-576"
+doi = "10.1161/01.RES.32.5.564"
+
+[freeman2011]
+authors = "Freeman R, Wieling W, Axelrod FB, et al."
+title = "Consensus statement on the definition of orthostatic hypotension, neurally mediated syncope and the postural tachycardia syndrome"
+year = 2011
+journal = "Clinical Autonomic Research"
+volume = "21"
+pages = "69-72"
+doi = "10.1007/s10286-011-0119-5"

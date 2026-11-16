@@ -80,9 +80,9 @@ def _setting(model, check) -> tuple[str, float, float] | None:
     return ", then ".join(names), (max(starts) if starts else -1.0), max(ends, default=-1.0)
 
 
-def _when(at: float, start: float, end: float, start_clock: float) -> str:
+def _when(at: float, start: float, end: float, start_clock: float, fine: bool = False) -> str:
     if start < 0 or at <= start:
-        return f"On {moment_text(at, start_clock)}"
+        return f"After {span_text(at)}" if fine else f"On {moment_text(at, start_clock)}"
     if end > start and at > end:
         return f"{span_text(at - end)} after it ends".capitalize()
     if end > start:
@@ -114,7 +114,7 @@ def lab_items(atlas: Atlas) -> list[Item]:
                     continue
                 answer, at, measure = outcome
                 value = model.value(row["value"]).name
-                when = _when(at, start, end, model.start_clock)
+                when = _when(at, start, end, model.start_clock, model.scale == "minutes")
                 found.append(Item(
                     stable_id(f"lab:{model.key}:{check.key}:{row['value']}:{at:g}"), "lab",
                     f"{change}: {value}", "", (answer,), frozenset(), (),

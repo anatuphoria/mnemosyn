@@ -5,7 +5,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu
 
 from .experiments_panel import MIME
-from .timeline_metrics import (EDGE, FINE_STEPS, GRAB, LABEL_WIDTH, LANE_HEIGHT, MIN_SPAN, SWIPE)
+from .timeline_metrics import EDGE, FINE_STEPS, GRAB, LABEL_WIDTH, LANE_HEIGHT, SWIPE
 
 
 class TimelineInput:
@@ -33,9 +33,9 @@ class TimelineInput:
         if press["kind"] == "window":
             self._set_span(start + minutes, end + minutes)
         elif press["kind"] == "window_left":
-            self._set_span(min(max(start + minutes, 0.0), end - MIN_SPAN), end)
+            self._set_span(min(max(start + minutes, 0.0), end - self.document.scale.min_span), end)
         else:
-            end = max(min(end + minutes, length), start + MIN_SPAN)
+            end = max(min(end + minutes, length), start + self.document.scale.min_span)
             self.span = (start, end)
             self.update()
 
@@ -80,9 +80,10 @@ class TimelineInput:
 
     def _limits(self, start: float, length: float | None) -> tuple[float, float | None]:
         run = self.document.experiment.length
-        start = min(max(start, 0.0), run - 1)
+        least = self.document.scale.least
+        start = min(max(start, 0.0), run - least)
         if length is not None:
-            length = min(max(length, 1.0), run - start)
+            length = min(max(length, least), run - start)
         return start, length
 
     def mouseMoveEvent(self, event) -> None:

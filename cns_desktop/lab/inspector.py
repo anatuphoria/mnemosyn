@@ -165,10 +165,11 @@ class Inspector(QWidget):
     def _hours(self, minutes: float, low: float, high: float, slot) -> QDoubleSpinBox:
         spin = QDoubleSpinBox()
         spin.setDecimals(2)
-        spin.setRange(low / 60.0, high / 60.0)
-        spin.setSuffix(" h")
-        spin.setValue(minutes / 60.0)
-        spin.editingFinished.connect(lambda: slot(spin.value() * 60.0))
+        scale = self.document.scale
+        spin.setRange(low / scale.unit_minutes, high / scale.unit_minutes)
+        spin.setSuffix(f" {scale.unit}")
+        spin.setValue(minutes / scale.unit_minutes)
+        spin.editingFinished.connect(lambda: slot(spin.value() * scale.unit_minutes))
         return spin
 
     def _build_fields(self) -> None:
@@ -202,11 +203,11 @@ class Inspector(QWidget):
             self.form.addRow("Starts", box)
             self._mode = box
         if not block.present:
-            self._start = self._hours(block.start, 0.0, doc.experiment.length - 1,
+            self._start = self._hours(block.start, 0.0, doc.experiment.length - doc.scale.least,
                                       lambda m: self._move(index, m))
             self.form.addRow("Starts at", self._start)
             if block.length is not None:
-                self._length = self._hours(block.length, 1.0, doc.experiment.length,
+                self._length = self._hours(block.length, doc.scale.least, doc.experiment.length,
                                            lambda m: self._stretch(index, m))
                 self.form.addRow("Lasts", self._length)
         if experiment:
@@ -232,9 +233,9 @@ class Inspector(QWidget):
         if self._mode is not None:
             _set(self._mode, 0 if block.present else 1)
         if self._start is not None:
-            _set(self._start, block.start / 60.0)
+            _set(self._start, block.start / doc.scale.unit_minutes)
         if self._length is not None and block.length is not None:
-            _set(self._length, block.length / 60.0)
+            _set(self._length, block.length / doc.scale.unit_minutes)
         for key, spin in self._spins.items():
             _set(spin, block.option_map.get(key, spin.value()))
 

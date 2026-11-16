@@ -28,6 +28,8 @@ def duration_text(minutes: float) -> str:
 
 
 def moment_text(document, t: float) -> str:
+    if document.scale.fine:
+        return document.scale.text(t)
     if t < 1440:
         return duration_text(t)
     clock = round(document.experiment.start_clock + t)
@@ -52,7 +54,9 @@ def time_heading(document, t: float) -> str:
     if started:
         last = max(started, key=lambda b: b.start)
         if t > last.start:
-            heading += f", {duration_text(t - last.start)} after {block_label(document, last)}"
+            gap = t - last.start
+            since = document.scale.text(gap) if document.scale.fine else duration_text(gap)
+            heading += f", {since} after {block_label(document, last)}"
     return heading
 
 

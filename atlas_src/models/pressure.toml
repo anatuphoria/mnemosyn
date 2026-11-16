@@ -1,0 +1,736 @@
+key = "pressure"
+version = 1
+scale = "minutes"
+period = "10 min"
+start_clock = "08:00"
+settle_speedup = 1
+settle_days = 3
+max_step = "0.05 min"
+why_threshold = 0.03
+why_unchanged = 0.01
+
+[[values]]
+key = "map"
+unit = "mmHg"
+start = 93.0
+display_scale = 1.0
+display_unit = "mmHg"
+normal = [70, 105]
+lane = 1
+refs = ["hall2021"]
+
+[[values]]
+key = "hr"
+unit = "beats/min"
+start = 70.0
+display_scale = 1.0
+display_unit = "beats/min"
+normal = [60, 100]
+lane = 2
+refs = ["hall2021"]
+
+[[values]]
+key = "symp"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+lane = 3
+refs = ["guyenet2006"]
+
+[[values]]
+key = "vagal"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+lane = 4
+refs = ["hall2021"]
+
+[[values]]
+key = "tpr"
+unit = "mmHg per L/min"
+start = 18.98
+display_scale = 1.0
+display_unit = "mmHg per L/min"
+lane = 5
+refs = ["hall2021"]
+
+[[values]]
+key = "blood"
+unit = "L"
+start = 5.0
+display_scale = 1.0
+display_unit = "L"
+refs = ["hall2021"]
+
+[[parameters]]
+key = "set_point"
+value = 93
+unit = "mmHg"
+low = 70
+high = 130
+refs = ["hall2021"]
+group = "sensors"
+control = "curve"
+
+[[parameters]]
+key = "steepness"
+value = 6
+unit = "number"
+low = 2
+high = 12
+refs = ["hall2021"]
+group = "sensors"
+control = "curve"
+
+[[parameters]]
+key = "k_map"
+value = 6
+unit = "/min"
+low = 2
+high = 12
+group = "heart"
+control = "rate"
+
+[[parameters]]
+key = "k_hr"
+value = 12
+unit = "/min"
+low = 4
+high = 30
+group = "heart"
+control = "rate"
+
+[[parameters]]
+key = "k_vagal"
+value = 20
+unit = "/min"
+low = 5
+high = 40
+refs = ["hall2021"]
+group = "nerves"
+control = "rate"
+
+[[parameters]]
+key = "k_symp"
+value = 4
+unit = "/min"
+low = 1
+high = 10
+refs = ["hall2021"]
+group = "nerves"
+control = "rate"
+
+[[parameters]]
+key = "k_tpr"
+value = 3
+unit = "/min"
+low = 1
+high = 10
+group = "vessels"
+control = "rate"
+
+[[parameters]]
+key = "hr_intrinsic"
+value = 100
+unit = "beats/min"
+low = 80
+high = 120
+refs = ["jose1970"]
+group = "heart"
+
+[[parameters]]
+key = "hr_symp"
+value = 20
+unit = "beats/min"
+low = 5
+high = 40
+group = "heart"
+
+[[parameters]]
+key = "hr_vagal"
+value = 50
+unit = "beats/min"
+low = 20
+high = 70
+group = "heart"
+
+[[parameters]]
+key = "sv_rest"
+value = 70
+unit = "mL"
+low = 50
+high = 100
+refs = ["hall2021"]
+group = "heart"
+
+[[parameters]]
+key = "starling"
+value = 2
+unit = "number"
+low = 0.5
+high = 3
+refs = ["hall2021"]
+group = "heart"
+
+[[parameters]]
+key = "inotropy"
+value = 0.15
+unit = "number"
+low = 0
+high = 0.5
+group = "heart"
+
+[[parameters]]
+key = "venous"
+value = 0.1
+unit = "number"
+low = 0
+high = 0.4
+group = "vessels"
+
+[[parameters]]
+key = "tpr_rest"
+value = 18.98
+unit = "mmHg per L/min"
+low = 12
+high = 30
+refs = ["hall2021"]
+group = "vessels"
+
+[[parameters]]
+key = "tpr_gain"
+value = 0.45
+unit = "number"
+low = 0.1
+high = 1
+group = "vessels"
+
+[[parameters]]
+key = "blood_normal"
+value = 5
+unit = "L"
+low = 4
+high = 6
+refs = ["hall2021"]
+group = "vessels"
+
+[[parameters]]
+key = "refill"
+value = 0.002
+unit = "/min"
+low = 0.0005
+high = 0.01
+group = "vessels"
+control = "rate"
+
+[[parameters]]
+key = "afferent"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+group = "sensors"
+control = "switch"
+stops = [{ key = "normal", value = 1 }, { key = "partial", value = 0.5 }, { key = "none", value = 0 }]
+
+[[parameters]]
+key = "reflex"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+group = "nerves"
+control = "switch"
+stops = [{ key = "normal", value = 1 }, { key = "partial", value = 0.5 }, { key = "none", value = 0.05 }]
+
+[[parameters]]
+key = "symp_range"
+value = 0.5
+unit = "times normal"
+low = 0.2
+high = 1
+refs = ["guyenet2006"]
+group = "nerves"
+
+[[parameters]]
+key = "vagal_range"
+value = 0.8
+unit = "times normal"
+low = 0.2
+high = 1
+group = "nerves"
+
+[[parameters]]
+key = "afterload"
+value = 0.35
+unit = "number"
+low = 0
+high = 0.6
+refs = ["hall2021"]
+group = "heart"
+
+[[parameters]]
+key = "reset"
+value = 25
+unit = "mmHg"
+low = 0
+high = 50
+group = "sensors"
+
+[[parameters]]
+key = "pooling"
+value = 1
+unit = "fraction"
+low = 0.6
+high = 1
+panel = false
+
+[[parameters]]
+key = "beta"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+panel = false
+
+[[parameters]]
+key = "muscarinic"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+panel = false
+
+[[parameters]]
+key = "alpha"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+panel = false
+
+[[parameters]]
+key = "dilate"
+value = 1
+unit = "fraction"
+low = 0.4
+high = 1
+panel = false
+
+[[parameters]]
+key = "constrict"
+value = 0
+unit = "mmHg per L/min"
+low = 0
+high = 20
+panel = false
+
+[[parameters]]
+key = "sinus_press"
+value = 0
+unit = "mmHg"
+low = 0
+high = 60
+panel = false
+
+[[parameters]]
+key = "command"
+value = 0
+unit = "times normal"
+low = 0
+high = 2
+panel = false
+
+[[curves]]
+key = "baroreceptors"
+parameters = ["set_point", "steepness"]
+x_low = 40
+x_high = 160
+expr = "afferent * (1 - hill(x, set_point, steepness))"
+matches = "firing"
+input = "sensed"
+
+[[effects]]
+key = "sensed"
+expr = "map + sinus_press - reset * command"
+kind = "drives"
+
+[[effects]]
+key = "firing"
+expr = "afferent * (1 - hill(sensed, set_point, steepness))"
+kind = "drives"
+arrow = ["baroreceptors", "nts"]
+via = ["nerves"]
+
+[[effects]]
+key = "symp_drive"
+expr = "pos(1 + reflex * (symp_range * (1 - 2 * firing) + command))"
+kind = "holds back"
+arrow = ["nts", "vasomotor"]
+
+[[effects]]
+key = "vagal_drive"
+expr = "pos(1 - reflex * (vagal_range * (1 - 2 * firing) + 0.5 * command))"
+kind = "drives"
+arrow = ["nts", "vagus"]
+
+[[effects]]
+key = "hr_target"
+expr = "pos(hr_intrinsic + hr_symp * beta * symp - hr_vagal * muscarinic * vagal)"
+kind = "drives"
+arrow = ["vagus", "heart"]
+
+[[effects]]
+key = "fill"
+expr = "(blood / blood_normal) * pooling * (1 + venous * (alpha * symp - 1))"
+kind = "drives"
+arrow = ["vessels", "heart"]
+
+[[effects]]
+key = "stroke"
+expr = "sv_rest * pos(1 + starling * (fill - 1)) * (1 + inotropy * (beta * symp - 1)) * pos(1 - afterload * (map / set_point - 1))"
+kind = "drives"
+
+[[effects]]
+key = "output"
+expr = "hr * stroke / 1000"
+kind = "drives"
+arrow = ["heart", "vessels"]
+
+[[effects]]
+key = "tpr_target"
+expr = "tpr_rest * (1 + tpr_gain * (alpha * symp - 1)) * dilate + constrict"
+kind = "drives"
+arrow = ["vasomotor", "vessels"]
+
+[[terms]]
+key = "build_pressure"
+value = "map"
+sign = 1
+expr = "k_map * output * tpr"
+kind = "drives"
+
+[[terms]]
+key = "run_off"
+value = "map"
+sign = -1
+expr = "k_map * map"
+kind = "clears"
+
+[[terms]]
+key = "pace"
+value = "hr"
+sign = 1
+expr = "k_hr * hr_target"
+kind = "drives"
+
+[[terms]]
+key = "settle_rate"
+value = "hr"
+sign = -1
+expr = "k_hr * hr"
+kind = "clears"
+
+[[terms]]
+key = "fire_symp"
+value = "symp"
+sign = 1
+expr = "k_symp * symp_drive"
+kind = "drives"
+
+[[terms]]
+key = "fade_symp"
+value = "symp"
+sign = -1
+expr = "k_symp * symp"
+kind = "clears"
+
+[[terms]]
+key = "fire_vagal"
+value = "vagal"
+sign = 1
+expr = "k_vagal * vagal_drive"
+kind = "drives"
+
+[[terms]]
+key = "fade_vagal"
+value = "vagal"
+sign = -1
+expr = "k_vagal * vagal"
+kind = "clears"
+
+[[terms]]
+key = "tighten"
+value = "tpr"
+sign = 1
+expr = "k_tpr * tpr_target"
+kind = "drives"
+
+[[terms]]
+key = "relax"
+value = "tpr"
+sign = -1
+expr = "k_tpr * tpr"
+kind = "clears"
+
+[[terms]]
+key = "refill_blood"
+value = "blood"
+sign = 1
+expr = "refill * blood_normal"
+kind = "absorbs"
+
+[[terms]]
+key = "shift_out"
+value = "blood"
+sign = -1
+expr = "refill * blood"
+kind = "clears"
+
+[[parts]]
+key = "baroreceptors"
+x = 0
+y = 0
+values = []
+
+[[parts]]
+key = "nerves"
+x = 1
+y = 0
+values = []
+
+[[parts]]
+key = "nts"
+structure = 2830
+x = 2
+y = 0
+values = []
+
+[[parts]]
+key = "vasomotor"
+structure = 2840
+x = 3
+y = 0
+values = ["symp"]
+
+[[parts]]
+key = "vagus"
+structure = 3450
+x = 3
+y = 1
+values = ["vagal"]
+
+[[parts]]
+key = "heart"
+x = 4
+y = 1
+values = ["hr"]
+
+[[parts]]
+key = "vessels"
+x = 4
+y = 0
+values = ["map", "tpr", "blood"]
+
+[[normal]]
+key = "steady"
+from = "00:00"
+to = "00:00"
+
+[[experiments]]
+key = "stand"
+icon = "zap"
+group = "Posture and blood"
+edits = [{ op = "set", target = "pooling", expr = "0.87" }]
+
+[[experiments]]
+key = "blood_loss"
+icon = "droplet"
+group = "Posture and blood"
+options = [{ key = "volume", unit = "L", default = 1, low = 0.25, high = 2 }]
+edits = [{ op = "dose", target = "blood", expr = "-volume" }]
+
+[[experiments]]
+key = "fluid"
+icon = "droplet"
+group = "Posture and blood"
+options = [{ key = "volume", unit = "L", default = 0.5, low = 0.25, high = 2 }]
+edits = [{ op = "dose", target = "blood", expr = "volume" }]
+
+[[experiments]]
+key = "carotid_massage"
+icon = "zap"
+group = "Posture and blood"
+length = "0.25 min"
+edits = [{ op = "set", target = "sinus_press", expr = "30" }]
+
+[[experiments]]
+key = "fright"
+icon = "zap"
+group = "Stressors"
+length = "3 min"
+edits = [{ op = "set", target = "command", expr = "0.4" }]
+
+[[experiments]]
+key = "beta_blocker"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "beta", expr = "0.25" }]
+
+[[experiments]]
+key = "atropine"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "muscarinic", expr = "0.1" }]
+
+[[experiments]]
+key = "alpha_blocker"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "alpha", expr = "0.4" }]
+
+[[experiments]]
+key = "vasoconstrictor"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "constrict", expr = "12" }]
+
+[[experiments]]
+key = "vasodilator"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "dilate", expr = "0.7" }]
+
+[[experiments]]
+key = "denervation"
+icon = "unlink"
+group = "Conditions"
+mode = "present"
+edits = [{ op = "set", target = "afferent", expr = "0" }]
+
+[[experiments]]
+key = "autonomic_failure"
+icon = "heart-pulse"
+group = "Conditions"
+mode = "present"
+edits = [{ op = "set", target = "reflex", expr = "0.05" }]
+
+[[checks]]
+key = "rest"
+length = "10 min"
+asserts = [
+  { kind = "within", value = "map", at = "day 1 08:05", low = 85, high = 100 },
+  { kind = "within", value = "hr", at = "day 1 08:05", low = 60, high = 80 },
+]
+
+[[checks]]
+key = "standing"
+length = "10 min"
+blocks = [{ experiment = "stand", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "hr", at = "day 1 08:05", rises = 1.1 },
+  { kind = "vs_normal", value = "symp", at = "day 1 08:05", rises = 1.05 },
+  { kind = "vs_normal", value = "vagal", at = "day 1 08:05", falls = 0.9 },
+  { kind = "vs_normal", value = "tpr", at = "day 1 08:05", rises = 1.02 },
+  { kind = "back_to_normal", value = "map", by = "day 1 08:05", tolerance = 0.1 },
+]
+
+[[checks]]
+key = "bleeding"
+length = "10 min"
+blocks = [{ experiment = "blood_loss", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "hr", at = "day 1 08:05", rises = 1.15 },
+  { kind = "vs_normal", value = "symp", at = "day 1 08:05", rises = 1.1 },
+  { kind = "vs_normal", value = "tpr", at = "day 1 08:05", rises = 1.05 },
+  { kind = "vs_normal", value = "map", at = "day 1 08:05", falls = 0.95 },
+]
+
+[[checks]]
+key = "tightening"
+length = "10 min"
+blocks = [{ experiment = "vasoconstrictor", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 1 08:05", rises = 1.05 },
+  { kind = "vs_normal", value = "hr", at = "day 1 08:05", falls = 0.9 },
+  { kind = "vs_normal", value = "vagal", at = "day 1 08:05", rises = 1.1 },
+]
+
+[[checks]]
+key = "relaxing"
+length = "10 min"
+blocks = [{ experiment = "vasodilator", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 1 08:05", falls = 0.97 },
+  { kind = "vs_normal", value = "hr", at = "day 1 08:05", rises = 1.1 },
+]
+
+[[checks]]
+key = "beta_blocked"
+length = "10 min"
+blocks = [{ experiment = "beta_blocker", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "hr", at = "day 1 08:05", falls = 0.97 },
+  { kind = "vs_normal", value = "symp", at = "day 1 08:05", rises = 1.05 },
+]
+
+[[checks]]
+key = "vagus_blocked"
+length = "10 min"
+blocks = [{ experiment = "atropine", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "hr", at = "day 1 08:05", rises = 1.3 },
+  { kind = "vs_normal", value = "symp", at = "day 1 08:05", falls = 0.9 },
+]
+
+[[checks]]
+key = "alpha_blocked"
+length = "10 min"
+blocks = [{ experiment = "alpha_blocker", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 1 08:05", falls = 0.95 },
+  { kind = "vs_normal", value = "hr", at = "day 1 08:05", rises = 1.1 },
+]
+
+[[checks]]
+key = "nerves_cut"
+length = "10 min"
+blocks = [{ experiment = "denervation" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 1 08:05", rises = 1.3 },
+  { kind = "vs_normal", value = "hr", at = "day 1 08:05", rises = 1.3 },
+  { kind = "vs_normal", value = "vagal", at = "day 1 08:05", falls = 0.5 },
+]
+
+[[checks]]
+key = "failure_standing"
+length = "10 min"
+blocks = [{ experiment = "autonomic_failure" }, { experiment = "stand", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 1 08:05", falls = 0.9 },
+  { kind = "back_to_normal", value = "hr", by = "day 1 08:05", tolerance = 0.05 },
+]
+
+[[checks]]
+key = "sinus_pressed"
+length = "10 min"
+blocks = [{ experiment = "carotid_massage", start = "day 1 08:02", length = "1 min" }]
+asserts = [
+  { kind = "vs_normal", value = "hr", at = "day 1 08:03", falls = 0.9 },
+  { kind = "vs_normal", value = "map", at = "day 1 08:03", falls = 0.9 },
+  { kind = "back_to_normal", value = "hr", by = "day 1 08:06", tolerance = 0.05 },
+]
+
+[[checks]]
+key = "alarm"
+length = "10 min"
+blocks = [{ experiment = "fright", start = "day 1 08:02" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 1 08:04", rises = 1.1 },
+  { kind = "vs_normal", value = "symp", at = "day 1 08:04", rises = 1.15 },
+  { kind = "back_to_normal", value = "map", by = "day 1 08:08", tolerance = 0.05 },
+]

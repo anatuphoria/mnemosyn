@@ -106,7 +106,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
 
     def _set_span(self, start: float, end: float) -> None:
         length = self.document.experiment.length
-        width = min(max(end - start, MIN_SPAN), length)
+        width = min(max(end - start, self.document.scale.min_span), length)
         start = min(max(start, 0.0), length - width)
         self.span = (start, start + width)
         self.update()
@@ -159,7 +159,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
     def zoom(self, factor: float, around: float) -> None:
         length = self.document.experiment.length
         start, end = self.span
-        width = min(max((end - start) * factor, MIN_SPAN), length)
+        width = min(max((end - start) * factor, self.document.scale.min_span), length)
         share = (around - start) / (end - start) if end > start else 0.5
         start = around - share * width
         start = min(max(start, 0.0), length - width)

@@ -13,7 +13,7 @@ from .timeline_metrics import (BACKGROUND, BADGE_INSET, BADGE_PAD, BAR, BAR_INSE
                                GUIDE_ALPHA, INK, LABEL_WIDTH,
                                LANE_COLORS, LINE, MARK_BACKING,
                                MARK_INSET, MUTED, NORMAL, PAD,
-                               PLAYHEAD, TAG_PAD, WINDOW, time_text)
+                               PLAYHEAD, TAG_PAD, WINDOW)
 
 
 class TimelinePaint:
@@ -160,7 +160,7 @@ class TimelinePaint:
     def _paint_hover_time(self, painter: QPainter) -> None:
         if not self.hover_values():
             return
-        ruler, text = self.ruler_rect(), time_text(self.hover_t)
+        ruler, text = self.ruler_rect(), self.document.scale.text(self.hover_t)
         width = QFontMetricsF(font("data")).horizontalAdvance(text) + 2 * BADGE_PAD
         left = min(max(self.x_of(self.hover_t) - width / 2, LABEL_WIDTH),
                    LABEL_WIDTH + self._plot_width() - width)
@@ -194,7 +194,8 @@ class TimelinePaint:
         painter.drawRoundedRect(badge, RADIUS["small"], RADIUS["small"])
         painter.setFont(font("data"))
         painter.setPen(BACKGROUND)
-        painter.drawText(badge, Qt.AlignmentFlag.AlignCenter, time_text(self.document.playhead))
+        painter.drawText(badge, Qt.AlignmentFlag.AlignCenter,
+                         self.document.scale.text(self.document.playhead))
 
     def _paint_names(self, painter: QPainter) -> None:
         for key in self.lane_keys():

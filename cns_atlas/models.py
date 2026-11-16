@@ -225,6 +225,8 @@ class LabModel(_Record):
     normal_notes: tuple[NormalNote, ...] = ()
     why_unchanged: float = 0.02
     curves: tuple[Curve, ...] = ()
+    period: float = 1440.0
+    scale: str = "hours"
 
     NESTED: ClassVar[dict] = {"values": Value, "parameters": Parameter, "effects": Effect, "terms": Term,
               "parts": Part, "experiments": Experiment, "tests": LabTest, "checks": Check,

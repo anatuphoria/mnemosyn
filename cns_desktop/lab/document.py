@@ -10,9 +10,10 @@ from cns_lab.engine import Run, SettleError, Simulator
 from cns_lab.experiment import FROM_A_TIME, PRESENT, Block, Experiment
 from cns_lab.solver import SolverError
 
+from .timescale import scale_of
+
 DAY = 1440.0
 WEEKS = 4 * 7 * DAY
-MIN_LENGTH = 1.0
 
 
 class _Change(QUndoCommand):
@@ -35,14 +36,15 @@ class LabDocument(QObject):
     selection_changed = Signal(object)
     wants_longer = Signal(float)
 
-    def __init__(self, atlas: Atlas, model_key: str, length: float = DAY,
+    def __init__(self, atlas: Atlas, model_key: str, length: float | None = None,
                  compute: bool = True) -> None:
         super().__init__()
         self.atlas = atlas
         self.model = atlas.models[model_key]
         self.simulator = Simulator(self.model)
         self.undo = QUndoStack(self)
-        self.experiment = self._blank(length)
+        self.scale = scale_of(self.model)
+        self.experiment = self._blank(self.scale.default if length is None else length)
         self.run: Run | None = None
         self.normal: Run | None = None
         self.snapshot: Run | None = None
@@ -71,7 +73,8 @@ class LabDocument(QObject):
         self.path = None
         self.snapshot = None
         self.selection = None
-        self.experiment = self._blank(DAY)
+        self.scale = scale_of(self.model)
+        self.experiment = self._blank(self.scale.default)
         self.run = self.normal = None
         self.error = ""
         self.playhead = 0.0
@@ -114,10 +117,10 @@ class LabDocument(QObject):
             self.undo.push(_Change(self, self.experiment, experiment, text))
 
     def _fit(self, block: Block, length: float) -> Block:
-        start = min(max(block.start, 0.0), length - 1)
+        start = min(max(block.start, 0.0), length - self.scale.least)
         size = block.length
         if size is not None:
-            size = min(max(size, MIN_LENGTH), length - start)
+            size = min(max(size, self.scale.least), length - start)
         return Block(block.experiment, start, size, block.options, block.mode)
 
     def _blocks(self, blocks) -> tuple[Block, ...]:
@@ -176,7 +179,7 @@ class LabDocument(QObject):
 
     def duplicate_block(self, index: int) -> None:
         block = self.experiment.blocks[index]
-        start = block.start + (block.length if block.length is not None else 60.0)
+        start = block.start + (block.length if block.length is not None else self.scale.gap)
         copy = Block(block.experiment, 0.0 if block.present else start, block.length,
                      block.options, block.mode)
         self.apply(self.experiment.replace(blocks=self._blocks((*self.experiment.blocks, copy))),
@@ -215,7 +218,7 @@ class LabDocument(QObject):
         self.apply(self.experiment.replace(values=()), "Reset every value")
 
     def set_length(self, minutes: float) -> None:
-        minutes = max(float(minutes), 60.0)
+        minutes = max(float(minutes), self.scale.shortest)
         experiment = self.experiment.replace(length=minutes)
         blocks = tuple(self._fit(b, minutes) for b in experiment.blocks)
         self.apply(experiment.replace(blocks=blocks), "Change the run length")
@@ -255,7 +258,7 @@ class LabDocument(QObject):
         self.undo.setClean()
 
     def new(self) -> None:
-        self.load(self._blank(DAY), None)
+        self.load(self._blank(self.scale.default), None)
 
     def is_modified(self) -> bool:
         return not self.undo.isClean()

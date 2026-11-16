@@ -52,7 +52,7 @@ Every route station by station, with what a lesion causes and the drugs that act
 
 **The Lab**
 
-Cut, dose, stress or test the stress axis and water balance, and watch the computed result over
+Cut, dose, stress or test the stress axis, water balance and the blood pressure reflex, and watch the computed result over
 hours to weeks.
 </div>
 

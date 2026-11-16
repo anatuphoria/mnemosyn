@@ -95,6 +95,7 @@ entry replaces it and the old one says so.
 | 87 | 2026-11-16 | Quiz questions on routes and the Lab, answered by choice and drawn from data the app already checks | in force |
 | 88 | 2026-11-16 | A reviewed text names its reviewer and date, and every text can be reported from where it is read | in force |
 | 89 | 2026-11-16 | A welcome tour on the first start, which switches the workspaces as it describes them | in force |
+| 90 | 2026-11-16 | The blood pressure reflex is the third Lab system, and Lab systems may run in minutes | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -941,3 +942,17 @@ shown, and Help, Welcome tour opens it again. Workspaces an atlas does not have 
 the tour is not offered during a quiz.
 Why: a new user landed on a brain with no hint that four other workspaces, the Lab or the quizzes
 existed.
+
+## 90. The blood pressure reflex is the third Lab system, and Lab systems may run in minutes
+
+2026-11-16. The Lab gains the baroreflex: the pressure sensors, the nucleus of the solitary tract,
+the ventrolateral medulla, the vagus, the heart and the vessels, with mean arterial pressure, heart
+rate, sympathetic and vagal activity, vessel resistance and blood volume. The owner chose the
+reflex alone; the kidney, renin and the long term control of pressure are left for a later system.
+A model file may now say `scale = "minutes"` and give a `period`: such a system settles over its
+period where the others settle over days, opens with a 10 minute run, offers run lengths from 2
+minutes to 3 hours, and its timeline reads and snaps in seconds. The slow systems keep their
+behaviour and stay first in the system list. The model's strengths and speeds are assumptions set
+to give textbook sized responses, each marked as such in its text.
+Why: the reflex is brainstem anatomy the atlas already shows, it is examined through exceptions
+that a running model makes plain, and it acts in seconds, which the Lab could not show.

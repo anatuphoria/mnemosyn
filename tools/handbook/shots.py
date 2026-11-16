@@ -109,6 +109,12 @@ def lab_water(window):
     window.lab.document.set_playhead(9 * HOUR)
 
 
+def lab_pressure(window):
+    _lab(window, "pressure")
+    window.lab.document.add_block("stand", 2.0)
+    window.lab.document.set_playhead(2.5)
+
+
 def lesion(window):
     _workspace(window, "Lesion")
 
@@ -133,6 +139,7 @@ SHOTS: dict[str, Callable] = {
     "lab": lab,
     "lab-stress": lab_stress,
     "lab-water": lab_water,
+    "lab-pressure": lab_pressure,
     "lesion": lesion,
     "lesion-territory": lesion_territory,
     "exp-central-or-nephrogenic": lambda w: _lab_file(
@@ -194,5 +201,7 @@ def take(atlas_path: Path, out: Path = SHOTS_DIR, names: Iterable[str] | None = 
             taken.append(path)
             if target is not window:
                 target.close()
+            if window.lab is not None:
+                window.lab.document.undo.setClean()
             window.close()
     return taken

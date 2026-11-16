@@ -60,7 +60,8 @@ build the Lab only when it is first opened; its code and charts take about 0.2 s
 
 These were left out of earlier designs on purpose and are expected to come back.
 
-1. More Lab systems: blood pressure, sleep, hunger. Each needs a model file, not new engine or
+1. More Lab systems: the long term control of blood pressure (kidney, renin and salt; the reflex
+   is decision 90), sleep, hunger. Each needs a model file, not new engine or
    screen code. Linking systems (for example cortisol raising blood pressure) is a later design.
 2. Opening `.mnemolab` files from the file manager.
 3. Translating the texts, which are already prepared for it.

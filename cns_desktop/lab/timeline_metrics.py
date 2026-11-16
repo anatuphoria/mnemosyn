@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from cns_desktop.design.tokens import DATA_PALETTE, SIZE, color
 
+from .timescale import coarse_text
+
 
 LABEL_WIDTH = 150
 RULER_HEIGHT = 24
@@ -41,10 +43,4 @@ MARK_BACKING = 210
 DAY = 1440.0
 
 
-def time_text(minutes: float) -> str:
-    minutes = round(minutes)
-    days, rest = divmod(minutes, 1440)
-    hours, mins = divmod(rest, 60)
-    if days:
-        return f"{days} d {hours} h" if hours else f"{days} d"
-    return f"{hours} h {mins} min" if mins else f"{hours} h"
+time_text = coarse_text

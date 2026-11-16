@@ -13,7 +13,9 @@ from cns_lab.times import TimeError, clock, duration, moment
 
 from .recipe import BuildError, read_toml
 
+SCALES = ("hours", "minutes")
 TOP = {"key", "version", "route", "start_clock", "settle_speedup", "settle_days", "max_step",
+       "period", "scale",
        "why_threshold", "why_unchanged", "values", "parameters", "effects", "terms", "parts", "experiments",
        "tests", "checks", "normal", "curves"}
 FIELDS = {
@@ -694,6 +696,11 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
     start_clock = read.start_clock = r.time(clock, data.get("start_clock", "08:00"),
                                             "start_clock", 480.0)
     max_step = r.time(duration, data.get("max_step", "30 min"), "max_step", 30.0)
+    period = r.time(duration, data.get("period", "1 d"), "period", 1440.0)
+    scale = data.get("scale", "hours")
+    if scale not in SCALES:
+        r.say(f"scale must be one of {list(SCALES)}")
+        scale = "hours"
     numbers = read.numbers()
     values = read.values()
     parameters = read.parameters()
@@ -722,7 +729,7 @@ def _model(path: Path, knowledge: Path, structure_ids: set[int], references: dic
                      int(numbers["settle_days"]), max_step, float(numbers["why_threshold"]),
                      tuple(values), tuple(parameters), tuple(effects), tuple(terms), tuple(parts),
                      tuple(experiments), tuple(tests), tuple(checks), tuple(notes),
-                     float(numbers["why_unchanged"]), tuple(curves))
+                     float(numbers["why_unchanged"]), tuple(curves), period, scale)
     return model, r.problems
 
 
@@ -744,4 +751,4 @@ def load_models(folder: Path, knowledge: Path, structure_ids: set[int], referenc
             models.append(model)
     if problems:
         raise BuildError(problems)
-    return models
+    return sorted(models, key=lambda model: (model.scale != "hours", model.key))

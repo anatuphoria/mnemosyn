@@ -23,12 +23,13 @@ from .experiments_panel import ExperimentsPage
 from .inspector import Inspector
 from .model_panel import ModelPanel
 from .timeline import Timeline
+from .timescale import HOURS, MINUTES
 from .why_panel import WhyPanel
 
 TICK_MS = 30
 SPEEDS = (0.5, 1.0, 2.0, 4.0)
-LENGTHS = (("6 h", 360.0), ("1 d", DAY), ("2 d", 2 * DAY), ("3 d", 3 * DAY), ("5 d", 5 * DAY),
-           ("1 w", 7 * DAY), ("4 w", 28 * DAY), ("8 w", 56 * DAY))
+LENGTHS = HOURS.lengths
+ALL_LENGTHS = (*HOURS.lengths, *MINUTES.lengths)
 STATUS_HINT = "drag a change to move it"
 TIMELINE_SHARE = 0.45
 
@@ -186,10 +187,11 @@ class LabWorkspace:
             lambda i: self.choose_system(self.system_box.itemData(i)))
         scope = self._add("What this model includes", self.show_scope)
         self.length_box = QComboBox()
-        for label, minutes in LENGTHS:
-            self.length_box.addItem(label, minutes)
+        for label, minutes in ALL_LENGTHS:
             self._add(f"Length {label}", lambda _=False, m=minutes: doc.set_length(m))
-        self.length_box.setCurrentIndex(1)
+        self._scale = None
+        self.length_menu = None
+        self._fill_lengths()
         self.length_box.activated.connect(lambda i: doc.set_length(self.length_box.itemData(i)))
         self.length_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.length_box.setToolTip("Run length")
@@ -212,12 +214,29 @@ class LabWorkspace:
         self._actions["Play or pause"].setIcon(
             widgets.button_icon("pause" if self.playing else "play"))
 
-    def _sync_length(self) -> None:
-        length = self.document.experiment.length
+    def _fill_lengths(self) -> None:
+        scale = self._scale = self.document.scale
         box = self.length_box
         box.blockSignals(True)
-        if box.count() > len(LENGTHS):
-            box.removeItem(len(LENGTHS))
+        box.clear()
+        for label, minutes in scale.lengths:
+            box.addItem(label, minutes)
+        box.setCurrentIndex(box.findData(scale.default))
+        box.blockSignals(False)
+        if self.length_menu is not None:
+            self.length_menu.clear()
+            for label, _minutes in scale.lengths:
+                self.length_menu.addAction(self._actions[f"Length {label}"])
+
+    def _sync_length(self) -> None:
+        if self._scale is not self.document.scale:
+            self._fill_lengths()
+        length = self.document.experiment.length
+        box = self.length_box
+        count = len(self.document.scale.lengths)
+        box.blockSignals(True)
+        if box.count() > count:
+            box.removeItem(count)
         index = box.findData(length)
         if index < 0:
             box.addItem(length_label(length), length)
@@ -234,9 +253,8 @@ class LabWorkspace:
         menu = self.window.topbar.menu("Experiment")
         self.add_menu = menu.addMenu("Add at the playhead")
         self._fill_add_menu()
-        lengths = menu.addMenu("Run length")
-        for label, _minutes in LENGTHS:
-            lengths.addAction(self._actions[f"Length {label}"])
+        self.length_menu = menu.addMenu("Run length")
+        self._fill_lengths()
         menu.addSeparator()
         for name in ("Compare with normal", "Take snapshot", "Clear snapshot",
                      "What this model includes"):

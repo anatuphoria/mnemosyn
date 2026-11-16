@@ -24,11 +24,13 @@ causes.
 ![The stress axis after cutting the pituitary stalk](shots/lab.png){ .shot }
 <p class="caption">The stress axis after cutting the pituitary stalk: CRH piles up, ACTH and cortisol fall, and the Why panel explains each step.</p>
 
-Two systems are in the Lab today, each with its own page:
+Three systems are in the Lab today, each with its own page:
 
 1. **[The stress axis](lab-stress.md):** the hypothalamus, pituitary and adrenal cortex, and
    cortisol.
 2. **[Water balance](lab-water.md):** plasma sodium, vasopressin, the kidney and thirst.
+3. **[The blood pressure reflex](lab-pressure.md):** the pressure sensors, the medulla, the heart
+   and the vessels, over seconds to minutes.
 
 ## How to use it
 

@@ -11,11 +11,11 @@ from cns_desktop.design.fonts import font
 from .experiments_panel import icon_for
 from .labels import plain
 from .lane_values import lane_scale, mark_text, tone
-from .timeline_metrics import (BADGE_INSET, BADGE_PAD, BAR_INSET, CHANGES_HEIGHT, DAY, GRAB,
+from .timeline_metrics import (BADGE_INSET, BADGE_PAD, BAR_INSET, CHANGES_HEIGHT, GRAB,
                                LABEL_WIDTH, LANE_HEIGHT,
                                MIN_BLOCK_WIDTH, NAME_ROW,
                                OVERVIEW_HEIGHT, PAD, RIGHT_MARGIN,
-                               RULER_HEIGHT, VALUE_GAP, time_text)
+                               RULER_HEIGHT, VALUE_GAP)
 
 
 class TimelineLayout:
@@ -120,8 +120,7 @@ class TimelineLayout:
         return start + (x - LABEL_WIDTH) / self._plot_width() * (end - start)
 
     def _snap(self, t: float) -> float:
-        step = 1.0 if self.span[1] - self.span[0] < 2 * DAY else 15.0
-        return round(t / step) * step
+        return self.document.scale.snap(t, self.span[1] - self.span[0])
 
     def lane_rect(self, key: str) -> QRectF:
         index = self.lane_keys().index(key)
@@ -207,13 +206,13 @@ class TimelineLayout:
     def ruler_labels(self) -> list[tuple[float, QRectF, str]]:
         metrics = QFontMetricsF(font("data"))
         start, end = self.span
-        steps = [30, 60, 120, 240, 360, 720, 1440, 2880, 10080]
-        step = next((s for s in steps if (end - start) / s <= 8), 10080)
+        steps = self.document.scale.ruler
+        step = next((s for s in steps if (end - start) / s <= 8), steps[-1])
         labels = []
         tick = (start // step) * step
         while tick <= end:
             x = self.x_of(tick)
-            text = time_text(tick)
+            text = self.document.scale.text(tick)
             rect = QRectF(x + 4, self.ruler_rect().top(), metrics.horizontalAdvance(text),
                           RULER_HEIGHT - 4)
             if rect.right() > self.width():
@@ -267,7 +266,7 @@ class TimelineLayout:
 
     def badge_rect(self) -> QRectF:
         ruler = self.ruler_rect()
-        text = time_text(self.document.playhead)
+        text = self.document.scale.text(self.document.playhead)
         width = QFontMetricsF(font("data")).horizontalAdvance(text) + 2 * BADGE_PAD
         left = self.x_of(self.document.playhead) - width / 2
         left = min(max(left, LABEL_WIDTH), LABEL_WIDTH + self._plot_width() - width)
