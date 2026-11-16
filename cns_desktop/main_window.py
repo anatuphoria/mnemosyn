@@ -185,6 +185,7 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, QMainWindow):
         self.quiz.centre_requested.connect(self.slices.centre_on_selection)
         self.quiz.find_target.connect(self._prefer_in_slices)
         self.quiz.frame_target.connect(self._frame_quiz_target)
+        self.quiz.lab_requested.connect(self.open_quiz_in_lab)
         self.quiz.laid_out.connect(lambda: QTimer.singleShot(0, self.fit_quiz_column))
         self.quiz.dim_grey.connect(
             lambda dim: self.view.set_grey_opacity(GREY_DIMMED if dim else 1.0))

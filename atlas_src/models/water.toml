@@ -655,6 +655,8 @@ length = "1 d"
 blocks = [{ experiment = "water_load", start = "day 1 10:00" }]
 asserts = [
   { kind = "vs_normal", value = "sodium", at = "day 1 11:00", falls = 0.99 },
+  { kind = "vs_normal", value = "avp", at = "day 1 11:00", falls = 0.5 },
+  { kind = "vs_normal", value = "uosm", at = "day 1 11:00", falls = 0.4 },
   { kind = "within", value = "uosm", at = "day 1 11:00", low = 50, high = 100 },
   { kind = "back_to_normal", value = "water", by = "day 1 14:00", tolerance = 0.005 },
 ]
@@ -687,10 +689,49 @@ asserts = [{ kind = "within", value = "uosm", at = "day 1 16:00", low = 300, hig
 key = "siadh_sodium"
 length = "5 d"
 blocks = [{ experiment = "siadh", start = "day 1 08:00" }]
-asserts = [{ kind = "within", value = "sodium", at = "day 5 08:00", low = 110, high = 135 }]
+asserts = [
+  { kind = "within", value = "sodium", at = "day 5 08:00", low = 110, high = 135 },
+  { kind = "vs_normal", value = "sodium", at = "day 5 08:00", falls = 0.95 },
+  { kind = "vs_normal", value = "avp", at = "day 5 08:00", rises = 3 },
+  { kind = "vs_normal", value = "uosm", at = "day 5 08:00", rises = 2 },
+  { kind = "vs_normal", value = "water", at = "day 5 08:00", rises = 1.05 },
+]
 
 [[checks]]
 key = "saline_vasopressin"
 length = "1 d"
 blocks = [{ experiment = "hypertonic_saline", start = "day 1 10:00" }]
-asserts = [{ kind = "vs_normal", value = "avp", at = "day 1 12:00", rises = 1.5 }]
+asserts = [
+  { kind = "vs_normal", value = "avp", at = "day 1 12:00", rises = 1.5 },
+  { kind = "vs_normal", value = "uosm", at = "day 1 12:00", rises = 2 },
+  { kind = "vs_normal", value = "thirst", at = "day 1 12:00", rises = 2 },
+]
+
+[[checks]]
+key = "central_di_values"
+length = "2 d"
+blocks = [{ experiment = "central_di" }]
+asserts = [
+  { kind = "vs_normal", value = "avp", at = "day 2 12:00", falls = 0.5 },
+  { kind = "vs_normal", value = "uosm", at = "day 2 12:00", falls = 0.3 },
+  { kind = "vs_normal", value = "thirst", at = "day 2 12:00", rises = 2 },
+]
+
+[[checks]]
+key = "nephrogenic_di_values"
+length = "2 d"
+blocks = [{ experiment = "nephrogenic_di" }]
+asserts = [
+  { kind = "vs_normal", value = "avp", at = "day 2 12:00", rises = 3 },
+  { kind = "vs_normal", value = "uosm", at = "day 2 12:00", falls = 0.5 },
+  { kind = "vs_normal", value = "thirst", at = "day 2 12:00", rises = 2 },
+]
+
+[[checks]]
+key = "polydipsia_values"
+length = "2 d"
+blocks = [{ experiment = "primary_polydipsia" }]
+asserts = [
+  { kind = "vs_normal", value = "avp", at = "day 2 12:00", falls = 0.7 },
+  { kind = "vs_normal", value = "uosm", at = "day 2 12:00", falls = 0.4 },
+]

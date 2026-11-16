@@ -11,9 +11,10 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from cns_study.answers import AnswerIndex
-from cns_study.items import (group_items, items, structure_items, tract_items,
+from cns_study.items import (group_items, structure_items, tract_items,
                              with_reviewed_entries)
 from cns_study.progress import ProgressStore
+from cns_study.questions import pool_for
 from cns_study.session import QuizChoice, Session, utc_now
 
 from .design.tokens import SIZE
@@ -105,8 +106,8 @@ class QuizMode:
     def start_quiz(self, choice: QuizChoice, rng: random.Random | None = None,
                    now: Callable[[], datetime] = utc_now) -> None:
         atlas = self.state.atlas
-        pool = items(atlas, choice.level)
-        chosen = items(atlas, choice.level, choice.scope)
+        pool = pool_for(atlas, choice.level)
+        chosen = pool_for(atlas, choice.level, choice.scope)
         if choice.mode == "flashcard":
             chosen = with_reviewed_entries(atlas, chosen)
         rng = rng or random.Random()
@@ -119,6 +120,10 @@ class QuizMode:
         shown = choice.level == "tracts" and choice.mode == "find"
         self.state.set_hidden(self.state.tract_ids, not shown)
         self.quiz.start(session, choice.mode, self.answer_index(), pool, rng)
+
+    def open_quiz_in_lab(self, item) -> None:
+        if self.lab is not None and item.source:
+            self.lab.show_check(*item.source)
 
     def _quiz_locked(self) -> list[QAction]:
         docks = (self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock,

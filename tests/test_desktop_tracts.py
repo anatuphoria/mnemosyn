@@ -164,7 +164,7 @@ def test_other_levels_hide_tracts_and_leaving_restores_them(window):
 
 def test_the_setup_dialog_offers_the_tracts_level(window):
     dialog = window.open_quiz_setup()
-    assert dialog.level.count() == 3
+    assert dialog.level.itemData(2) == "tracts"
     dialog.level.setCurrentIndex(2)
     assert dialog.note.text() == "0 due, 2 new"
     dialog.reject()

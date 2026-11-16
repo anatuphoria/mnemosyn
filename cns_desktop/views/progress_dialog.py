@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QFrame, QHBoxLayout, Q
 from cns_atlas import Atlas
 from cns_study.items import LEVELS, items
 from cns_study.progress import MODES, ModeStats, ProgressStore, mode_stats, weakest
+from cns_study.questions import QUESTION_MODES, question_items
 from cns_study.session import utc_now
 
 from ..design.theme import set_flag, set_role, set_tone
@@ -205,14 +206,19 @@ class ProgressDialog(QDialog):
                 found += [(recall, names[i], level)
                           for i, recall in weakest(cards, ids, scheduler, moment)]
             self.weak[mode] = sorted(found)[:WEAK_COUNT]
+        self.question_stats = {
+            level: mode_stats(store.cards(mode), [q.id for q in question_items(atlas, level)],
+                              moment)
+            for level, mode in QUESTION_MODES.items()}
 
         tiles = QHBoxLayout()
         tiles.setSpacing(GAP["medium"])
         self.tiles: dict[str, QLabel] = {}
-        due_today = sum(s.due_today for s in self.stats.values())
-        due_week = sum(s.due_week for s in self.stats.values())
-        known = sum(s.known for s in self.stats.values())
-        total = sum(s.new + s.learning + s.known for s in self.stats.values())
+        every = [*self.stats.values(), *self.question_stats.values()]
+        due_today = sum(s.due_today for s in every)
+        due_week = sum(s.due_week for s in every)
+        known = sum(s.known for s in every)
+        total = sum(s.new + s.learning + s.known for s in every)
         for key, caption, value in (("due_today", "Due today", due_today),
                                     ("due_week", "Due this week", due_week),
                                     ("known", "Known", known)):
@@ -231,6 +237,14 @@ class ProgressDialog(QDialog):
         self.levels = {level: LevelRow(level, n == 0) for n, level in enumerate(LEVELS)}
         for row in self.levels.values():
             level_column.addWidget(row)
+        question_panel, question_column = _panel()
+        self.questions = {level: LevelRow(level, n == 0)
+                          for n, level in enumerate(QUESTION_MODES)}
+        for level, row in self.questions.items():
+            row.show_stats(self.question_stats[level])
+            question_column.addWidget(row)
+        question_panel.setVisible(any(s.new + s.learning + s.known
+                                      for s in self.question_stats.values()))
 
         self.weak_heading = _label("", role="heading")
         weak_body = QWidget()
@@ -260,6 +274,7 @@ class ProgressDialog(QDialog):
         layout.addSpacing(GAP["tight"])
         layout.addWidget(self.modes, 0, Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(level_panel)
+        layout.addWidget(question_panel)
         layout.addSpacing(GAP["tight"])
         layout.addWidget(self.weak_heading)
         layout.addWidget(scroll, 1)

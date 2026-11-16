@@ -7,8 +7,9 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout
                                QVBoxLayout)
 
 from cns_atlas import Atlas
-from cns_study.items import items, with_reviewed_entries
+from cns_study.items import with_reviewed_entries
 from cns_study.progress import ProgressStore
+from cns_study.questions import QUESTION_MODES, pool_for, scopes
 from cns_study.session import QuizChoice, due_and_new, utc_now
 
 from ..design.theme import set_role
@@ -16,7 +17,9 @@ from ..design.tokens import GAP
 
 MODES = (("Name it", "name"), ("Find it", "find"), ("Flashcards", "flashcard"))
 STYLES = (("Type the name", "name-typed"), ("Choose from 4", "name-choice"))
-LEVELS = (("Structures", "structures"), ("Groups", "groups"), ("Tracts", "tracts"))
+LEVELS = (("Structures", "structures"), ("Groups", "groups"), ("Tracts", "tracts"),
+          ("Routes: what comes next", "routes"), ("Lab: what happens", "lab"))
+ALL = {"routes": "All routes", "lab": "All systems"}
 SESSIONS = (("Due now", False), ("Practice", True))
 NO_ITEMS = "Nothing to ask in this scope at this level."
 NO_REVIEWED = ("Flashcards use reviewed descriptions only, and none in this scope are reviewed "
@@ -38,12 +41,13 @@ class QuizSetup(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Start quiz")
         self.atlas, self.store, self.now = atlas, store, now
-        groups = [("    " * (s.depth - 1) + s.name, s.id) for s in atlas.structures
-                  if s.kind == "group" and s.depth > 0]
+        self.groups = [("    " * (s.depth - 1) + s.name, s.id) for s in atlas.structures
+                       if s.kind == "group" and s.depth > 0]
+        self._scoped = ""
         self.mode = _combo(MODES)
         self.answer_style = _combo(STYLES)
         self.level = _combo(LEVELS)
-        self.scope = _combo([("Whole atlas", None), *groups])
+        self.scope = _combo([("Whole atlas", None), *self.groups])
         self.session = _combo(SESSIONS)
         self.note = QLabel()
         self.note.setWordWrap(True)
@@ -72,16 +76,32 @@ class QuizSetup(QDialog):
         self.refresh()
 
     def choice(self) -> QuizChoice:
-        mode = self.mode.currentData()
+        level = self.level.currentData()
+        mode = QUESTION_MODES.get(level) or self.mode.currentData()
         if mode == "name":
             mode = self.answer_style.currentData()
-        return QuizChoice(mode, self.level.currentData(), self.scope.currentData(),
-                          self.session.currentData())
+        return QuizChoice(mode, level, self.scope.currentData(), self.session.currentData())
+
+    def _fill_scope(self, level: str) -> None:
+        kind = level if level in QUESTION_MODES else ""
+        if kind == self._scoped:
+            return
+        self._scoped = kind
+        entries = ([(ALL[kind], None), *scopes(self.atlas, kind)] if kind
+                   else [("Whole atlas", None), *self.groups])
+        self.scope.blockSignals(True)
+        self.scope.clear()
+        for label, data in entries:
+            self.scope.addItem(label, data)
+        self.scope.blockSignals(False)
 
     def refresh(self) -> None:
-        self.answer_style.setEnabled(self.mode.currentData() == "name")
+        asking = self.level.currentData() in QUESTION_MODES
+        self._fill_scope(self.level.currentData())
+        self.mode.setEnabled(not asking)
+        self.answer_style.setEnabled(not asking and self.mode.currentData() == "name")
         choice = self.choice()
-        pool = items(self.atlas, choice.level, choice.scope)
+        pool = pool_for(self.atlas, choice.level, choice.scope)
         if pool and choice.mode == "flashcard":
             pool = with_reviewed_entries(self.atlas, pool)
             text = NO_REVIEWED

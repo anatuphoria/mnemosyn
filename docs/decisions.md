@@ -92,6 +92,7 @@ entry replaces it and the old one says so.
 | 84 | 2026-11-02 | A route stays open until it is closed, and closing gives everything back | in force |
 | 85 | 2026-11-15 | The app stays offline and keeps its errors, progress and settings on the computer | in force |
 | 86 | 2026-11-16 | A Mac download for Apple Silicon, unsigned, offered with a notice until a Mac user has checked it | in force |
+| 87 | 2026-11-16 | Quiz questions on routes and the Lab, answered by choice and drawn from data the app already checks | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -898,3 +899,17 @@ goes when someone with a Mac has gone through `docs/mac-check.md`. `mac = false`
 `site/download.toml` takes the Mac file off the page. This replaces decision 57.
 Why: the owner wants Mac users to be able to use the app, the Windows and Linux test versions are
 unsigned too, and every Mac sold since 2020 has Apple Silicon.
+
+## 87. Quiz questions on routes and the Lab, answered by choice and drawn from data the app already checks
+
+2026-11-16. The quiz gains two levels. Routes asks which station comes after a given one, for every
+pair of neighbouring stations whose next stop is unambiguous; the wrong choices are other stations
+of the same route. Lab asks whether a value is higher than normal, lower or about normal after a
+change, one question for each `vs_normal` or `back_to_normal` assert in a model's checks, so the
+answers are the ones the test suite verifies. Both are answered by choice, scheduled with the same
+spaced repetition and stored in the same progress file under their own modes. A question's id is
+built from its content, not its position, so editing a route or a model keeps the progress of the
+questions that did not change. Questions on what a lesion at a station causes are left out until
+those texts are reviewed.
+Why: route order and the direction of a hormone change are what students most often get wrong, and
+both were already in the app, tested, but could not be practised.

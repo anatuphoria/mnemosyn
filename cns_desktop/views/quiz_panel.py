@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton, QSiz
 from cns_study.answers import AnswerIndex
 from cns_study.choices import choices
 from cns_study.items import Item, item_for
+from cns_study.questions import LAB_MODE, QUESTION_MODES, offered
 from cns_study.session import Session
 
 from ..design import rich
@@ -28,6 +29,7 @@ RIGHT = f"<span style='color:{COLOURS['success']}'><b>Correct</b></span>"
 WRONG = f"<span style='color:{COLOURS['danger']}'><b>Wrong</b></span>"
 RATINGS = ("1 Again", "2 Hard", "3 Good", "4 Easy")
 WHAT = {"structures": "structure", "groups": "group", "tracts": "tract"}
+QUESTIONS = tuple(QUESTION_MODES.values())
 SAVE_FAILED = {"feedback": "Could not save this answer. Press Enter to try again.",
                "revealed": "Could not save this answer. Please rate it again."}
 
@@ -103,6 +105,7 @@ class QuizPanel(QWidget):
     frame_target = Signal(object)
     laid_out = Signal()
     dim_grey = Signal(bool)
+    lab_requested = Signal(object)
 
     def __init__(self, state: AppState, parent=None) -> None:
         super().__init__(parent)
@@ -116,6 +119,7 @@ class QuizPanel(QWidget):
         self.phase = "idle"
         self.item: Item | None = None
         self.options: list[Item] = []
+        self.texts: list[str] = []
         self.correct = False
         self.answer_ms = 0
         self._shown_at = 0.0
@@ -132,6 +136,8 @@ class QuizPanel(QWidget):
         self.reveal_button.setProperty("variant", "primary")
         self.rate_buttons = [QPushButton(label) for label in RATINGS]
         self.next_button = QPushButton("Next")
+        self.lab_button = QPushButton("End quiz and open in the Lab")
+        self.lab_button.setProperty("variant", "ghost")
         self.hint = QLabel()
         self.end_button = QPushButton("End quiz")
         self.end_button.setToolTip("Esc")
@@ -151,6 +157,7 @@ class QuizPanel(QWidget):
             ratings.addWidget(button)
         layout.addLayout(ratings)
         layout.addWidget(self.next_button)
+        layout.addWidget(self.lab_button)
         layout.addStretch(1)
         layout.addWidget(self.hint)
         layout.addWidget(self.end_button)
@@ -161,7 +168,9 @@ class QuizPanel(QWidget):
             button.clicked.connect(lambda _checked=False, v=value: self.rate(v))
         self.reveal_button.clicked.connect(self.reveal)
         self.next_button.clicked.connect(self._advance)
-        for button in (*self.rate_buttons, self.reveal_button, self.next_button, self.end_button):
+        self.lab_button.clicked.connect(self.open_in_lab)
+        for button in (*self.rate_buttons, self.reveal_button, self.next_button, self.end_button,
+                       self.lab_button):
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.end_button.clicked.connect(self.stop)
         self.answer_box.submitted.connect(self.submit_text)
@@ -176,8 +185,11 @@ class QuizPanel(QWidget):
     def _layout(self) -> None:
         asking = self.phase == "asking"
         self.answer_box.setVisible(asking and self.mode == "name-typed")
+        shown = len(self.texts) if self.mode in QUESTIONS else len(self.options)
+        choosing = asking and self.mode in ("name-choice", *QUESTIONS)
         for n, button in enumerate(self.choice_buttons):
-            button.setVisible(asking and self.mode == "name-choice" and n < len(self.options))
+            button.setVisible(choosing and n < shown)
+        self.lab_button.setVisible(self.phase == "feedback" and self.mode == LAB_MODE)
         self.feedback.setVisible(self.phase == "feedback")
         self.back.setVisible(self.phase == "revealed")
         self.reveal_button.setVisible(asking and self.mode == "flashcard")
@@ -229,8 +241,30 @@ class QuizPanel(QWidget):
         self._focus()
         self._shown_at = time.perf_counter()
 
+    def _show_tracts_of(self, ids: frozenset[int]) -> None:
+        tracts = self.state.tract_ids
+        self.state.set_hidden([i for i in tracts if i not in ids], True)
+        self.state.set_hidden([i for i in tracts if i in ids], False)
+
+    def _present_question(self, item: Item) -> None:
+        self.dim_grey.emit(False)
+        self._show_tracts_of(item.geometry)
+        self._select(None)
+        self.find_target.emit(frozenset())
+        self.state.set_focus(item.geometry or None)
+        self.frame_target.emit(item.geometry)
+        head, _, question = item.prompt.partition(". ")
+        self.prompt.setText(f"<small>{escape(head)}</small><br><b>{escape(question)}</b>")
+        self.texts = offered(item, self.rng)
+        for n, (button, text) in enumerate(zip(self.choice_buttons, self.texts), 1):
+            button.setText(f"{n}. {text}")
+        self.hint.setText(f"Keys 1 to {len(self.texts)} choose")
+
     def _present(self, item: Item) -> None:
-        self.options = []
+        self.options, self.texts = [], []
+        if self.mode in QUESTIONS:
+            self._present_question(item)
+            return
         self.dim_grey.emit(item.level == "tracts" and self.mode != "find")
         naming = self.mode != "find" and item.level != "tracts"
         self.state.set_focus(frozenset(item.geometry) if naming else None)
@@ -272,6 +306,11 @@ class QuizPanel(QWidget):
         self._judge(verdict.correct, note)
 
     def choose(self, index: int) -> None:
+        if self.phase == "asking" and self.mode in QUESTIONS:
+            if 0 <= index < len(self.texts):
+                right = self.texts[index] == self.item.answer
+                self._judge(right, "" if right else f"You chose: {self.texts[index]}.")
+            return
         if self.phase != "asking" or self.mode != "name-choice":
             return
         if 0 <= index < len(self.options):
@@ -283,10 +322,17 @@ class QuizPanel(QWidget):
         self.answer_ms = round((time.perf_counter() - self._shown_at) * 1000)
         self.correct, self.phase = correct, "feedback"
         item = self.item
-        lines = [f"<b>{escape(item.name)}</b> ({escape(item.acronym)})"]
-        others = [a for a in item.answers if a not in (item.name, item.acronym)]
-        if others:
-            lines.append(f"Also: {escape(', '.join(others))}")
+        if self.mode in QUESTIONS:
+            lines = [f"<b>{escape(item.answer)}</b>", escape(item.note)]
+            shown = item.geometry | item.reveal
+            self._show_tracts_of(shown)
+            self.state.set_focus(shown or None)
+            self.frame_target.emit(shown)
+        else:
+            lines = [f"<b>{escape(item.name)}</b> ({escape(item.acronym)})"]
+            others = [a for a in item.answers if a not in (item.name, item.acronym)]
+            if others:
+                lines.append(f"Also: {escape(', '.join(others))}")
         if note:
             lines.append(escape(note))
         self.feedback.setText(f"<p>{RIGHT if correct else WRONG}</p><p>{'<br>'.join(lines)}</p>")
@@ -311,6 +357,14 @@ class QuizPanel(QWidget):
         if self.phase == "feedback" and self._record(rating):
             self._ask()
 
+    def open_in_lab(self) -> None:
+        item = self.item
+        if self.phase != "feedback" or self.mode != LAB_MODE or item is None:
+            return
+        self.stop()
+        if self.phase == "idle":
+            self.lab_requested.emit(item)
+
     def reveal(self) -> None:
         if self.phase != "asking" or self.mode != "flashcard":
             return
@@ -330,7 +384,7 @@ class QuizPanel(QWidget):
 
     def _show_summary(self) -> None:
         summary = self.session.summary()
-        self.item, self.phase, self.options = None, "summary", []
+        self.item, self.phase, self.options, self.texts = None, "summary", [], []
         self._select(None)
         self.find_target.emit(frozenset())
         self.frame_target.emit(frozenset())
@@ -356,6 +410,7 @@ class QuizPanel(QWidget):
         if self.phase == "feedback" and not self._record(None):
             return
         self.phase, self.item, self.session, self.options = "idle", None, None, []
+        self.texts = []
         self.find_target.emit(frozenset())
         self.dim_grey.emit(False)
         self.state.set_focus(None)
@@ -363,7 +418,7 @@ class QuizPanel(QWidget):
         self.finished.emit()
 
     def _on_selection(self, structure_id: int | None) -> None:
-        if self._selecting or self.item is None:
+        if self._selecting or self.item is None or self.mode in QUESTIONS:
             return
         if self.mode != "find" or self.phase != "asking":
             self._hold(self.item.id)
@@ -388,7 +443,8 @@ class QuizPanel(QWidget):
             self.go_on(Rating.Easy)
         elif self.phase == "summary" and key in ENTER:
             self.stop()
-        elif self.phase == "asking" and self.mode == "name-choice" and key in CHOICE_KEYS:
+        elif (self.phase == "asking" and self.mode in ("name-choice", *QUESTIONS)
+              and key in CHOICE_KEYS):
             self.choose(CHOICE_KEYS[key])
         elif self.phase == "asking" and self.mode == "flashcard" and key == Qt.Key.Key_Space:
             self.reveal()

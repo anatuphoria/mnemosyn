@@ -16,6 +16,13 @@ class Item:
     answers: tuple[str, ...]
     geometry: frozenset[int]
     path: tuple[int, ...]
+    prompt: str = ""
+    answer: str = ""
+    options: tuple[str, ...] = ()
+    reveal: frozenset[int] = frozenset()
+    note: str = ""
+    scope: str = ""
+    source: tuple = ()
 
 
 def _meshed(atlas: Atlas) -> frozenset[int]:

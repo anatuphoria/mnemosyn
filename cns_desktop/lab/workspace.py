@@ -12,6 +12,8 @@ from cns_desktop.design import widgets
 from cns_desktop.design.panels import PanelGroup
 from cns_desktop.design.tokens import SIZE
 
+from cns_lab.checks import block_from_row
+from cns_lab.experiment import Experiment
 from cns_lab.files import EXTENSION, FileError, read, write
 
 from .brain_overlay import LabBrain
@@ -481,6 +483,22 @@ class LabWorkspace:
         if report:
             self.window.inform("Opened with changes", "\n".join(report))
         self.update_title()
+
+    def show_check(self, model_key: str, check_key: str, at: float) -> bool:
+        models = self.window.state.atlas.models
+        check = next((c for c in models[model_key].checks if c.key == check_key), None)
+        if check is None or not self.confirm_discard():
+            return False
+        if model_key != self.document.model.key:
+            self._switch_model(model_key)
+        model = self.document.model
+        blocks = tuple(block_from_row(model, row) for row in check.blocks)
+        self.document.load(Experiment(model.key, model.version, check.length, model.start_clock,
+                                      blocks), None)
+        self.window.workspaces.switch("Lab")
+        self.document.set_playhead(at)
+        self.update_title()
+        return True
 
     def _write(self, path: Path) -> bool:
         path = Path(path)

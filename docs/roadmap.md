@@ -62,13 +62,12 @@ These were left out of earlier designs on purpose and are expected to come back.
 
 1. More Lab systems: blood pressure, sleep, hunger. Each needs a model file, not new engine or
    screen code. Linking systems (for example cortisol raising blood pressure) is a later design.
-2. Quiz questions on the Lab and on routes.
-3. Opening `.mnemolab` files from the file manager.
-4. Translating the texts, which are already prepared for it.
-5. A light theme, which the design system leaves room for.
-6. Code signing of the Windows installer, for example through the SignPath Foundation programme.
-7. Automatic updates and package managers (winget, Flathub).
-8. The Mac build (decision 86) is on the Download page with a notice that it waits for a first
+2. Opening `.mnemolab` files from the file manager.
+3. Translating the texts, which are already prepared for it.
+4. A light theme, which the design system leaves room for.
+5. Code signing of the Windows installer, for example through the SignPath Foundation programme.
+6. Automatic updates and package managers (winget, Flathub).
+7. The Mac build (decision 86) is on the Download page with a notice that it waits for a first
    hands on check (`docs/mac-check.md`). An Apple signature would remove the
    first open warning.
 

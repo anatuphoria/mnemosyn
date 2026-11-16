@@ -86,7 +86,8 @@ def test_extremes_from_a_normal_day_stay_finite(sim, values):
 OFFERED = ["water_load", "stop_drinking", "hypertonic_saline", "desmopressin", "central_di",
            "nephrogenic_di", "siadh", "primary_polydipsia"]
 CHECKS = {"normal_day", "water_load", "deprivation_normal", "central_di_tests",
-          "nephrogenic_di_tests", "polydipsia_tests", "siadh_sodium", "saline_vasopressin"}
+          "nephrogenic_di_tests", "polydipsia_tests", "siadh_sodium", "saline_vasopressin",
+          "central_di_values", "nephrogenic_di_values", "polydipsia_values"}
 
 
 def test_the_water_experiments_and_tests_are_offered():

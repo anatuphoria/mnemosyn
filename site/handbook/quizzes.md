@@ -1,7 +1,7 @@
 # Quizzes
 
-Questions built from the atlas itself, scheduled so you review each structure just before you would
-forget it.
+Questions built from the atlas, the routes and the Lab, scheduled so you review each one just
+before you would forget it.
 { .lede }
 
 <div class="grid-three" markdown>
@@ -33,8 +33,16 @@ A highlighted structure to name, or a name to find, and a Progress window that s
    *Flashcards* show a structure's name, then its description when you ask for it, and you rate
    how well you knew it. They use reviewed descriptions only. None are reviewed yet, so this mode
    stays empty for now and fills in as descriptions are reviewed.
-2. **A level.** Single structures, bigger groups, or the white matter tracts.
-3. **How much.** The whole atlas or one part of it, such as the brainstem.
+2. **A level.** Single structures, bigger groups, or the white matter tracts. Two more levels ask
+   about how things work rather than where they are, always with choices:
+   *Routes: what comes next* names a route and one of its stations, lights that station, and asks
+   which station follows; after you answer, the next station lights up too.
+   *Lab: what happens* states a change, such as removing the pituitary, and asks whether a value
+   is higher than normal, lower or about normal some time later. Every answer comes from a check
+   the model must pass, so the quiz cannot disagree with the Lab. After answering, **End quiz and
+   open in the Lab** sets up that experiment at that moment, so you can see why.
+3. **How much.** The whole atlas or one part of it, such as the brainstem; for routes, one group
+   of routes; for the Lab, one system.
 4. **Due or practice.** A due round asks what the schedule says you need today. A practice round
    leaves your schedule alone.
 
@@ -55,7 +63,8 @@ file called `progress.sqlite` in your user data folder (on Linux,
 
 **Progress** (**Study, Progress**) shows what is due today and this week and how many items you
 know, then each mode by level: a bar of known, learning and new items, and your weakest items with
-how likely you are to recall each one.
+how likely you are to recall each one. Once you have answered route or Lab questions, a second
+panel shows the same bar for each of them.
 
 ![The Progress window](shots/progress.png){ .shot }
 <p class="caption">Progress for Find it: structures being learned, how many are due, and the weakest items with their chance of recall.</p>
@@ -76,6 +85,8 @@ view, not just reciting a name.
    the weakest list shows exactly what to review next.
 3. Try the **Tracts** level: while a tract is asked, the grey matter around it dims so the tract
    stands out.
+4. Run **Lab: what happens** on the stress axis before reading the stress axis page, then open a
+   question you missed in the Lab and step through its Why chain.
 
 ## Your progress file
 
@@ -89,7 +100,7 @@ in the data folder (**Help**, then **Open data folder**), so you can put it back
 | Key | Action |
 |---|---|
 | `Q` | Start a quiz |
-| `1` to `4` | Choose an answer in Name it with choices, or rate a flashcard |
+| `1` to `4` | Choose an answer, or rate a flashcard |
 | `Enter` | Submit a typed answer, or go on to the next question |
 | `H` / `E` | After a right answer: mark it hard or easy |
 | `Space` | Show a flashcard's description |

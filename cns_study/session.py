@@ -28,7 +28,7 @@ def new_scheduler(fuzzing: bool = True) -> Scheduler:
 class QuizChoice:
     mode: str
     level: str
-    scope: int | None
+    scope: int | str | None
     practice: bool
 
 
