@@ -1,8 +1,12 @@
+import numpy as np
 import pytest
 from PySide6.QtWidgets import QMessageBox
 
+from cns_atlas.lesions import Lesion, pack_mask
+
 from cns_desktop.app import open_file
-from cns_desktop.window_lessons import KEPT, NO_ROUTE, NOT_HERE, NOTHING_TO_ASK
+from cns_desktop.window_lessons import (KEPT, NO_ROUTE, NOT_HERE, NOTHING_TO_ASK,
+                                        OTHER_IMAGES)
 from cns_study.lessons import Lesson, Step, read, write
 from pathway_helpers import open_window
 
@@ -145,6 +149,49 @@ def test_a_place_that_cannot_be_a_step_says_where_to_go(window):
     window.workspaces.switch("Lesion")
     lesson.add_view.click()
     assert lesson.report.text() == NOT_HERE and lesson.lesson.steps == ()
+
+
+def a_lesion(window):
+    atlas = window.state.atlas
+    lesion = Lesion.empty(atlas)
+    name, mask = next(iter(lesion.masks.items()))
+    mask = mask.copy()
+    mask[tuple(n // 2 for n in mask.shape)] = True
+    mask[0, 0, 0] = True
+    return lesion.with_mask(name, mask)
+
+
+def test_a_lesion_step_brings_back_the_lesion_and_can_be_undone(window, tmp_path):
+    window.workspaces.switch("Lesion")
+    made = a_lesion(window)
+    document = window.lesion.document
+    document.set_lesion(made, "Brush")
+    step = window.capture_step()
+    assert step.kind == "lesion" and step.title.startswith("Lesion")
+    path = tmp_path / "case.mnemolesson"
+    write(path, Lesson("Case", steps=(step,)))
+    step = read(path).steps[0]
+    document.clear()
+    window.workspaces.switch("Explore")
+    assert window.show_step(step) == []
+    assert window.workspaces.current == "Lesion"
+    for name, mask in made.masks.items():
+        assert np.array_equal(document.lesion.masks[name], mask), name
+    document.undo.undo()
+    assert document.lesion.is_empty
+
+
+def test_a_lesion_made_on_other_images_is_reported_and_not_shown(window):
+    window.workspaces.switch("Lesion")
+    window.lesion.document.set_lesion(a_lesion(window), "Brush")
+    step = window.capture_step()
+    name = next(iter(step.data["masks"]))
+    other = {**step.data, "masks": {name: pack_mask(np.ones((2, 2, 2), dtype=bool))}}
+    window.lesion.document.clear()
+    assert window.show_step(Step("lesion", "Lesion", data=other)) == [OTHER_IMAGES]
+    damaged = {**step.data, "masks": {name: {**step.data["masks"][name], "bits": "AAAA"}}}
+    assert window.show_step(Step("lesion", "Lesion", data=damaged)) == [OTHER_IMAGES]
+    assert window.lesion.document.lesion.is_empty
 
 
 def test_questions_are_added_from_the_quiz_setup(window):

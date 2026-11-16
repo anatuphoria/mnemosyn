@@ -30,7 +30,8 @@ Choose **File, New lesson**. A Lesson window opens beside the app and stays ther
    **Add this view**. What is saved depends on where you are:
    in Explore or Slices, the selection, what is hidden, the camera and the slice;
    with a route open in Pathways, the route, its side and the station;
-   in the Lab, the system, its changes, any edited values and the playhead.
+   in the Lab, the system, its changes, any edited values and the playhead;
+   in Lesion, the lesion you placed and the camera, so the class sees the damage and its deficits.
 2. **Add questions.** **Add questions** opens the same choices as **Study, Start quiz**. The step
    becomes a practice round on that level and scope, for example routes in one group or the Lab
    questions on one system.
@@ -39,7 +40,7 @@ Choose **File, New lesson**. A Lesson window opens beside the app and stays ther
    see it again.
 5. **Save.** The lesson is a `.mnemolesson` file you can send to the class like any other file.
 
-A lesson cannot hold a Lesion view or flashcards yet.
+A lesson cannot hold flashcards.
 
 ## Using a lesson
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 FORMAT = 1
 EXTENSION = ".mnemolesson"
-KINDS = ("view", "route", "lab", "quiz")
+KINDS = ("view", "route", "lab", "quiz", "lesion")
 WORKSPACES = ("Explore", "Slices")
 AXES = ("axial", "coronal", "sagittal")
 SIDES = ("left", "right")
@@ -18,6 +18,10 @@ MAX_STEPS = 200
 MAX_TITLE = 200
 MAX_NOTE = 4000
 MAX_IDS = 20_000
+MAX_MASKS = 8
+MAX_SIDE = 2048
+MAX_VOXELS = 64_000_000
+MAX_BITS = 1_500_000
 NOT_A_LESSON = "This file cannot be read as a lesson."
 NEWER = "This lesson was made with a newer version of Mnemosyn."
 
@@ -137,7 +141,28 @@ def _quiz(data: dict) -> dict:
             "mode": _one_of(data.get("mode"), MODES, "the quiz mode"), "scope": scope}
 
 
-CHECKS = {"view": _view, "route": _route, "lab": _lab, "quiz": _quiz}
+def _mask(row) -> dict:
+    if not isinstance(row, dict):
+        raise _fail("a lesion image is not an object")
+    shape = row.get("shape")
+    if not isinstance(shape, list) or len(shape) != 3:
+        raise _fail("a lesion image does not have three sides")
+    shape = [_whole(n, "a lesion image side", 1) for n in shape]
+    if max(shape) > MAX_SIDE or shape[0] * shape[1] * shape[2] > MAX_VOXELS:
+        raise _fail("a lesion image is too large")
+    return {"shape": shape, "bits": _text(row.get("bits"), MAX_BITS, "a lesion image")}
+
+
+def _lesion(data: dict) -> dict:
+    masks = data.get("masks")
+    if not isinstance(masks, dict) or not masks or len(masks) > MAX_MASKS:
+        raise _fail("the lesion has no images")
+    return {"masks": {_text(name, MAX_TITLE, "a lesion image name"): _mask(row)
+                      for name, row in masks.items()},
+            "camera": _camera(data.get("camera"))}
+
+
+CHECKS = {"view": _view, "route": _route, "lab": _lab, "quiz": _quiz, "lesion": _lesion}
 
 
 def _step(row) -> Step:

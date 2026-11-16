@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import base64
 import re
+import zlib
 from dataclasses import dataclass, field
 from weakref import WeakKeyDictionary
 
@@ -30,6 +32,28 @@ class Lesion:
     @property
     def is_empty(self) -> bool:
         return not any(mask.any() for mask in self.masks.values())
+
+
+def pack_mask(mask: np.ndarray) -> dict:
+    mask = np.asarray(mask, dtype=bool)
+    bits = zlib.compress(np.packbits(mask.ravel()).tobytes(), 9)
+    return {"shape": [int(n) for n in mask.shape], "bits": base64.b64encode(bits).decode("ascii")}
+
+
+def unpack_mask(row: dict) -> np.ndarray:
+    shape = tuple(int(n) for n in row["shape"])
+    count = int(np.prod(shape))
+    size = (count + 7) // 8
+    try:
+        packed = base64.b64decode(row["bits"], validate=True)
+        reader = zlib.decompressobj()
+        raw = reader.decompress(packed, size + 1)
+    except (ValueError, zlib.error) as exc:
+        raise ValueError("the lesion cannot be read") from exc
+    if len(raw) != size or reader.unconsumed_tail or not reader.eof:
+        raise ValueError("the lesion does not fit its images")
+    bits = np.unpackbits(np.frombuffer(raw, dtype=np.uint8), count=count)
+    return bits.astype(bool).reshape(shape)
 
 
 @dataclass(frozen=True)

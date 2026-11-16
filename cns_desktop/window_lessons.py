@@ -5,6 +5,7 @@ from pathlib import Path
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QFileDialog
 
+from cns_atlas.lesions import Lesion, pack_mask, signs_of, unpack_mask
 from cns_lab.files import FileError
 from cns_lab.files import dumps as experiment_text
 from cns_lab.files import loads as experiment_from
@@ -15,7 +16,9 @@ from cns_study.session import QuizChoice
 from .views.lesson_window import LessonWindow
 
 FILTER = f"Lessons (*{EXTENSION})"
-NOT_HERE = "Go to Explore, Slices, an open route or the Lab to add a step."
+NOT_HERE = "Go to Explore, Slices, an open route, the Lab or a placed lesion to add a step."
+NO_LESION = "This atlas has no Lesion workspace, so this lesion cannot be shown."
+OTHER_IMAGES = "This lesion was made on images this atlas does not have."
 NO_ROUTE = "This route is not in this atlas."
 NO_LAB = "This atlas has no Lab, so this experiment cannot be shown."
 KEPT = "Your unsaved experiment was kept, so this step was not shown."
@@ -63,19 +66,53 @@ class LessonMode:
             return Step("route", f"{panel.pathway.name}, step {panel.index + 1}",
                         data={"key": panel.pathway.key, "side": panel.side,
                               "index": int(panel.index)})
+        if current == "Lesion" and self.lesion is not None:
+            return self._capture_lesion()
         if current not in WORKSPACES:
             return None
         hidden, selected, axis, mm, volume = self._snapshot()
-        camera = [[float(v) for v in row] for row in self.view.camera_position.to_list()]
+        camera = self._camera_rows()
         title = self.state.atlas.get(selected).name if selected is not None else current
         return Step("view", title, data={
             "workspace": current, "selected": selected, "hidden": [int(i) for i in hidden],
             "camera": camera, "axis": axis, "mm": float(mm), "volume": volume or ""})
 
+    def _camera_rows(self) -> list[list[float]]:
+        return [[float(v) for v in row] for row in self.view.camera_position.to_list()]
+
+    def _capture_lesion(self) -> Step | None:
+        document = self.lesion.document
+        if document.lesion.is_empty:
+            return None
+        signs = signs_of(document.report)
+        title = f"Lesion: {signs[0]}" if signs else "Lesion"
+        masks = {name: pack_mask(mask) for name, mask in document.lesion.masks.items()
+                 if mask.any()}
+        return Step("lesion", title[:200], data={"masks": masks, "camera": self._camera_rows()})
+
     def show_step(self, step: Step) -> list[str]:
         self._calm()
         return {"view": self._show_view, "route": self._show_route, "lab": self._show_lab,
-                "quiz": self._show_quiz}[step.kind](step.data)
+                "quiz": self._show_quiz, "lesion": self._show_lesion}[step.kind](step.data)
+
+    def _show_lesion(self, data: dict) -> list[str]:
+        if self.lesion is None:
+            return [NO_LESION]
+        lesion = Lesion.empty(self.state.atlas)
+        shapes = {name: mask.shape for name, mask in lesion.masks.items()}
+        for name, row in data["masks"].items():
+            if shapes.get(name) != tuple(row["shape"]):
+                return [OTHER_IMAGES]
+            try:
+                lesion = lesion.with_mask(name, unpack_mask(row))
+            except ValueError:
+                return [OTHER_IMAGES]
+        self.workspaces.switch("Lesion")
+        self.lesion.document.set_lesion(lesion, "Lesson step")
+        if data["camera"] is not None:
+            self._put_camera([tuple(row) for row in data["camera"]])
+            self.view.render()
+        return []
 
     def _show_view(self, data: dict) -> list[str]:
         self.workspaces.switch(data["workspace"])

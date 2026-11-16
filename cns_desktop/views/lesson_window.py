@@ -11,7 +11,8 @@ from cns_study.lessons import MAX_NOTE, MAX_STEPS, MAX_TITLE, MODES, Lesson, Les
 from ..design.theme import set_role
 from ..design.tokens import GAP
 
-KIND_NAMES = {"view": "View", "route": "Route", "lab": "Lab", "quiz": "Questions"}
+KIND_NAMES = {"view": "View", "route": "Route", "lab": "Lab", "quiz": "Questions",
+              "lesion": "Lesion"}
 QUIZ_NAMES = {"structures": "structures", "groups": "groups", "tracts": "tracts",
               "routes": "routes", "lab": "the Lab"}
 SIZE = (380, 560)

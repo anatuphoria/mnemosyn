@@ -84,3 +84,38 @@ def test_unknown_extra_fields_are_dropped_not_kept():
     text = step_with(0, script="rm -rf", workspace="Slices")
     step = loads(text).steps[0]
     assert "script" not in step.data and step.data["workspace"] == "Slices"
+
+
+LESION = {"masks": {"brain": {"shape": [4, 5, 6], "bits": "eJxjYAAAAAEAAQ=="}}, "camera": None}
+
+
+def test_a_lesion_step_is_kept_and_its_images_are_checked():
+    lesson = Lesson("Case", steps=(Step("lesion", "Lesion", "Find it.", LESION),))
+    assert loads(dumps(lesson)) == lesson
+    for bad in ({"masks": {}}, {"masks": {"brain": {"shape": [4, 5], "bits": ""}}},
+                {"masks": {"brain": {"shape": [4000, 5, 6], "bits": ""}}},
+                {"masks": {"brain": {"shape": [2000, 2000, 2000], "bits": ""}}},
+                {"masks": {"brain": {"shape": [4, 5, 6], "bits": 7}}},
+                {"masks": {"brain": "all of it"}}):
+        text = json.dumps({"mnemosyn": "lesson", "format": FORMAT,
+                           "steps": [{"kind": "lesion", "data": bad}]})
+        with pytest.raises(LessonError):
+            loads(text)
+
+
+def test_a_packed_mask_unpacks_to_itself_and_a_swollen_one_is_refused():
+    import base64
+    import zlib
+
+    import numpy as np
+
+    from cns_atlas.lesions import pack_mask, unpack_mask
+
+    mask = np.zeros((7, 5, 3), dtype=bool)
+    mask[1, 2, 0] = mask[6, 4, 2] = True
+    packed = pack_mask(mask)
+    assert packed["shape"] == [7, 5, 3] and np.array_equal(unpack_mask(packed), mask)
+    bomb = base64.b64encode(zlib.compress(bytes(10_000_000))).decode()
+    for bits in (bomb, "not base64 !", base64.b64encode(b"plain").decode()):
+        with pytest.raises(ValueError):
+            unpack_mask({"shape": [7, 5, 3], "bits": bits})
