@@ -1,7 +1,7 @@
 # Packaging Mnemosyn
 
 `python -m tools.package` packages the app for the system it runs on: a Windows installer on
-Windows, an AppImage on Linux. It bundles Python, Qt, VTK, the code and the atlas in
+Windows, an AppImage on Linux, a disk image on an Apple Silicon Mac. It bundles Python, Qt, VTK, the code and the atlas in
 `atlases/cns`, so the result needs nothing else. The files appear in `dist/`.
 
 There are two kinds of package:
@@ -93,12 +93,29 @@ other than 3.14, Inno Setup not installed, or a source file with a different nam
    git push origin v0.2.0
    ```
 
-3. GitHub Actions builds the shareable package on Windows and Linux, opens each once to check it
-   starts, and publishes a pre-release with both files and `SHA256SUMS.txt`. The tag must match
+3. GitHub Actions builds the shareable package on Windows, Linux and macOS, opens each once to
+   check it starts, and publishes a pre-release with the three files and `SHA256SUMS.txt`. The tag must match
    the version in `pyproject.toml`, or the workflow stops.
 4. When the release is published, set `version = "0.2.0"` in `site/download.toml`, commit and push
    `main`. The website's Download buttons then point at the new files. They never point at a
    version before its files exist.
+
+## The Mac package
+
+The Mac package is `Mnemosyn-<version>-macOS-arm64.dmg`: a disk image holding `Mnemosyn.app` and a
+link to the Applications folder. It runs on Apple Silicon Macs with macOS 14 or later (the
+lowest version the bundled Qt and NumPy accept). It is built by GitHub Actions
+on a Mac machine, because a Mac app can only be made on a Mac, and the owner has none.
+
+The app is not signed with an Apple certificate (that needs a paid Apple Developer account). It
+carries only the local signature that Apple Silicon requires to run anything, so macOS blocks it on
+first open until the user chooses Open Anyway in System Settings, Privacy & Security.
+
+Every release includes the Mac file, but the Download page offers it only when `site/download.toml`
+says `mac = true`. Set that after someone with a Mac has gone through `docs/mac-check.md` for a
+release, and then also name macOS in the README, the handbook front page and the platforms badge
+(`tools/brand`). To try a build before a release, run the Release workflow by hand and take the
+`package-macOS` artifact.
 
 ## Library versions in a release
 

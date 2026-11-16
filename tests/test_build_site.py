@@ -111,10 +111,23 @@ def test_the_review_pages_are_in_the_navigation():
     assert "Download: download.md" in nav and "install.md" not in nav
 
 
-def download_settings(tmp_path, version):
+def download_settings(tmp_path, version, mac=False):
     repo = review_settings(tmp_path)
-    (repo / "site/download.toml").write_text(f'version = "{version}"\n')
+    (repo / "site/download.toml").write_text(
+        f'version = "{version}"\nmac = {str(mac).lower()}\n')
     return repo
+
+
+def test_the_mac_download_is_offered_only_once_it_is_switched_on(tmp_path):
+    build_site(download_settings(tmp_path / "off", "0.6.0"), tmp_path / "off/out")
+    page = (tmp_path / "off/out/download.md").read_text()
+    assert ".dmg" not in page and "Mac" not in page
+    build_site(download_settings(tmp_path / "on", "0.6.0", mac=True), tmp_path / "on/out")
+    page = (tmp_path / "on/out/download.md").read_text()
+    base = "https://github.com/anatuphoria/mnemosyn/releases/download/v0.6.0/"
+    assert f"]({base}Mnemosyn-0.6.0-macOS-arm64.dmg)" in page
+    assert "Apple Silicon" in page and "macOS 14" in page and "Open Anyway" in page and "shasum -a 256" in page
+    assert page.count(".md-button--primary") == 3
 
 
 def test_the_download_page_links_the_published_versions_files(tmp_path):

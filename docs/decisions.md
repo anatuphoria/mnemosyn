@@ -62,7 +62,7 @@ entry replaces it and the old one says so.
 | 54 | 2026-10-19 | The review booklet PDF is published on the website | in force |
 | 55 | 2026-10-19 | Access to the review form is by request and the owner's reply | in force |
 | 56 | 2026-10-19 | Reviewers are credited on the website only with their consent | in force |
-| 57 | 2026-10-19 | Downloads for Windows and Linux only | in force |
+| 57 | 2026-10-19 | Downloads for Windows and Linux only | replaced by 86 |
 | 58 | 2026-10-19 | Test releases are not signed | in force |
 | 59 | 2026-10-19 | Local-only data may be packaged for the owner's own machines, never shared | in force |
 | 60 | 2026-10-19 | Releases come from version tags, as pre-releases below 1.0 | in force |
@@ -91,6 +91,7 @@ entry replaces it and the old one says so.
 | 83 | 2026-11-02 | Pathways uses the same frame as the rest of the app | in force |
 | 84 | 2026-11-02 | A route stays open until it is closed, and closing gives everything back | in force |
 | 85 | 2026-11-15 | The app stays offline and keeps its errors, progress and settings on the computer | in force |
+| 86 | 2026-11-16 | A Mac download for Apple Silicon, unsigned, offered once a Mac user has checked it | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -886,3 +887,13 @@ progress can be backed up to a file and reset; a reset keeps the old file beside
 Release builds install the library versions pinned in `tools/package/requirements-release.txt`.
 Why: an installed app showed nothing and kept nothing when it failed, so a user could not say what
 went wrong, and being offline is a promise the website makes.
+
+## 86. A Mac download for Apple Silicon, unsigned, offered once a Mac user has checked it
+
+2026-11-16. Mnemosyn is also packaged for Macs with Apple Silicon, as a disk image built by GitHub
+Actions. There is no Intel Mac build. The app is not signed with an Apple certificate, so the user
+allows it once in System Settings, Privacy & Security. Every release carries the Mac file, but the
+Download page offers it only after someone with a Mac has gone through `docs/mac-check.md`, because
+the owner has no Mac to try it on. This replaces decision 57.
+Why: the owner wants Mac users to be able to use the app, the Windows and Linux test versions are
+unsigned too, and every Mac sold since 2020 has Apple Silicon.

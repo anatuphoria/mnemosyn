@@ -63,7 +63,10 @@ These were left out of earlier designs on purpose and are expected to come back.
 4. Translating the texts, which are already prepared for it.
 5. A light theme, which the design system leaves room for.
 6. Code signing of the Windows installer, for example through the SignPath Foundation programme.
-7. macOS, automatic updates, and package managers (winget, Flathub).
+7. Automatic updates and package managers (winget, Flathub).
+8. The Mac build (decision 86) is made with every release but waits for a first hands on check
+   (`docs/mac-check.md`) before the Download page offers it. An Apple signature would remove the
+   first open warning.
 
 ## Handbook (done)
 
@@ -91,8 +94,7 @@ Ranked by how much they would add to the vision. None of them has a design yet.
    a way to report a mistake from inside the app.
 2. Lessons. A teacher saves a set of views, a route, a Lab experiment and questions as one file and
    shares it with a class.
-3. Reach. A macOS build first; a browser version much later, only once the content is clearly
-   ahead.
+3. Reach. A browser version much later, only once the content is clearly ahead.
 4. A Settings window. The owner asked to keep one in mind. The Lab timeline already names its
    display options (`compare_on`, `show_guides`, `show_hover`, `show_overview`) so a window can
    offer them; nothing is stored yet.

@@ -114,13 +114,27 @@ def _review_page(settings: dict) -> str:
 RELEASES = "https://github.com/anatuphoria/mnemosyn/releases"
 
 
-def _download_page(version: str, quickstart: str) -> str:
+MAC_NEEDS = "\n- Mac: a Mac with Apple Silicon (M1 or later) and macOS 14 or later."
+MAC_OPENING = """
+
+**Mac.** Open the disk image and drag Mnemosyn onto the Applications folder beside it. This test
+version is not signed with an Apple certificate, so the first time you open it macOS says it could
+not check the app. Close that message, open **System Settings**, then **Privacy & Security**,
+scroll down to the line about Mnemosyn and choose **Open Anyway**. You only do this once. On a Mac
+managed by a school or an employer this choice may be switched off."""
+
+
+def _download_page(version: str, quickstart: str, mac: bool = False) -> str:
     base = f"{RELEASES}/download/v{version}"
+    mac = mac and bool(version)
     if version:
         buttons = (f"[:material-microsoft-windows: Windows installer]("
                    f"{base}/Mnemosyn-{version}-Setup.exe){{ .md-button .md-button--primary }} "
                    f"[:material-linux: Linux AppImage]({base}/Mnemosyn-{version}-x86_64.AppImage)"
                    "{ .md-button .md-button--primary }")
+        if mac:
+            buttons += (f" [:material-apple: Mac disk image]({base}/Mnemosyn-{version}"
+                        "-macOS-arm64.dmg){ .md-button .md-button--primary }")
         details = (f"Version {version}, a test version. Sizes and the `SHA256SUMS.txt` checksum "
                    f"file are on the [release page]({RELEASES}/tag/v{version}).")
     else:
@@ -137,7 +151,7 @@ from sources that have not yet allowed sharing, so they are not included.
 
 - Windows: 64-bit Windows 10 or later.
 - Linux: a 64-bit distribution from 2022 or later with a desktop, such as Ubuntu 22.04, Debian 12
-  or Fedora 36.
+  or Fedora 36.{MAC_NEEDS if mac else ""}
 - Graphics that support OpenGL 3.2, which almost every computer from the last ten years has.
 
 ## Opening it the first time
@@ -152,7 +166,7 @@ may also flag an unsigned app; that is a false alarm.
 ```bash
 chmod +x Mnemosyn-{version}-x86_64.AppImage
 ./Mnemosyn-{version}-x86_64.AppImage
-```
+```{MAC_OPENING if mac else ""}
 
 Your quiz progress is kept in your user folder, so it survives updates.
 
@@ -165,7 +179,7 @@ then **Open data folder** shows where they are. Mnemosyn does not look for updat
 **Help**, then **Check for a newer version** opens this page in your browser.
 
 To check a download, compare it with `SHA256SUMS.txt` on the release page: `sha256sum` on Linux,
-or `Get-FileHash` in PowerShell on Windows.
+{"`shasum -a 256` on a Mac, " if mac else ""}or `Get-FileHash` in PowerShell on Windows.
 
 ## Build from source
 {quickstart}"""
@@ -207,11 +221,13 @@ def build_site(repo: Path, out: Path) -> None:
     (out / "review.toml").unlink()
     (out / "review.md").write_text(_review_page(review))
     (out / "reviewers.md").write_text(_reviewers_page(review))
-    published = tomllib.loads((out / "download.toml").read_text()).get("version", "")
+    download = tomllib.loads((out / "download.toml").read_text())
+    published = download.get("version", "")
     (out / "download.toml").unlink()
     from_source = (out / "build-from-source.md").read_text()
     (out / "build-from-source.md").unlink()
-    (out / "download.md").write_text(_download_page(published, from_source))
+    (out / "download.md").write_text(_download_page(published, from_source,
+                                                     download.get("mac", False)))
     (out / "atlas/structures.md").write_text(_structures_page(structures, local))
     (out / "atlas/sources.md").write_text(_sources_page(sources, local))
     (out / "decisions.md").write_text(decisions.replace("](specs/", "](design/"))

@@ -21,6 +21,6 @@ if mac:
     version = Path(os.environ["MNEMOSYN_VERSION_FILE"]).read_text(encoding="utf-8").strip()
     BUNDLE(collected, name="Mnemosyn.app", icon=icon, bundle_identifier="cool.saeed.mnemosyn",
            version=version,
-           info_plist={"NSHighResolutionCapable": True, "LSMinimumSystemVersion": "12.0",
+           info_plist={"NSHighResolutionCapable": True, "LSMinimumSystemVersion": "14.0",
                        "LSApplicationCategoryType": "public.app-category.education",
                        "NSHumanReadableCopyright": "GNU General Public License 3.0"})
