@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import codecs
+import datetime
 import re
 import tomllib
 from dataclasses import dataclass, fields, replace
@@ -70,12 +71,42 @@ REFERENCE_FIELDS = {f.name for f in fields(Reference)} - {"key"}
 
 
 @dataclass(frozen=True)
+class Reviewer:
+    key: str
+    name: str = ""
+    speciality: str = ""
+    institution: str = ""
+
+    def label(self) -> str:
+        if not self.name:
+            return f"a specialist in {self.speciality}" if self.speciality else "a specialist"
+        return ", ".join(part for part in (self.name, self.speciality, self.institution) if part)
+
+
+REVIEWER_FIELDS = {f.name for f in fields(Reviewer)} - {"key"}
+
+
+@dataclass(frozen=True)
 class Entry:
     target: int | str
     status: str
     sections: dict[str, str]
     citations: tuple[str, ...]
     references: tuple[Reference, ...] = ()
+    reviewed_on: str = ""
+    reviewed_by: tuple[str, ...] = ()
+    reviewers: tuple[Reviewer, ...] = ()
+
+    def review_line(self) -> str:
+        if self.status != "reviewed":
+            return "not yet reviewed"
+        who = " and ".join(r.label() for r in self.reviewers)
+        when = ""
+        if self.reviewed_on:
+            day = datetime.date.fromisoformat(self.reviewed_on)
+            when = f"{day.day} {day.strftime('%B %Y')}"
+        return " ".join(part for part in (f"by {who}" if who else "", f"on {when}" if when else "")
+                        if part)
 
     def numbered(self, text: str) -> str:
         order = {key: n for n, key in enumerate(self.citations, 1)}
@@ -106,6 +137,16 @@ def parse_entry(text: str, origin: str) -> Entry:
     status = header.get("status", "draft")
     if status not in STATUSES:
         raise KnowledgeError(f"{origin}: status must be one of {STATUSES}")
+    reviewed_on = header.get("reviewed_on", "")
+    if isinstance(reviewed_on, datetime.date):
+        reviewed_on = reviewed_on.isoformat()
+    try:
+        datetime.date.fromisoformat(reviewed_on or "2000-01-01")
+    except (TypeError, ValueError) as exc:
+        raise KnowledgeError(f"{origin}: 'reviewed_on' must be a date like 2026-11-20") from exc
+    reviewed_by = header.get("reviewed_by", [])
+    if not isinstance(reviewed_by, list) or not all(isinstance(k, str) for k in reviewed_by):
+        raise KnowledgeError(f"{origin}: 'reviewed_by' must be a list of reviewer keys")
     sections: dict[str, str] = {}
     current = None
     for line in text[end + 5:].split("\n"):
@@ -122,7 +163,32 @@ def parse_entry(text: str, origin: str) -> Entry:
             raise KnowledgeError(f"{origin}: text before the first section")
     sections = {name: body.strip() for name, body in sections.items()}
     citations = tuple(dict.fromkeys(CITATION.findall("\n".join(sections.values()))))
-    return Entry(target=target, status=status, sections=sections, citations=citations)
+    return Entry(target=target, status=status, sections=sections, citations=citations,
+                 reviewed_on=reviewed_on, reviewed_by=tuple(reviewed_by))
+
+
+def load_reviewers(path: Path) -> dict[str, Reviewer]:
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as exc:
+        raise KnowledgeError(f"{path}: {exc}") from exc
+    reviewers = {}
+    for key, values in data.items():
+        unknown = set(values) - REVIEWER_FIELDS
+        if unknown:
+            raise KnowledgeError(f"{path}: [{key}] unknown fields {sorted(unknown)}")
+        reviewers[key] = Reviewer(key=key, **{k: str(v) for k, v in values.items()})
+    return reviewers
+
+
+def review_problems(entry: Entry, reviewers: dict[str, Reviewer], origin: str) -> list[str]:
+    problems = [f"{origin}: unknown reviewer [{key}]" for key in entry.reviewed_by
+                if key not in reviewers]
+    if entry.status == "reviewed" and not (entry.reviewed_by and entry.reviewed_on):
+        problems.append(f"{origin}: a reviewed text needs 'reviewed_by' and 'reviewed_on'")
+    if entry.status == "draft" and (entry.reviewed_by or entry.reviewed_on):
+        problems.append(f"{origin}: a draft cannot name a reviewer or a review date")
+    return problems
 
 
 def load_references(path: Path) -> dict[str, Reference]:
@@ -143,6 +209,8 @@ def load_references(path: Path) -> dict[str, Reference]:
     return references
 
 
-def resolve(entry: Entry, references: dict[str, Reference]) -> Entry:
+def resolve(entry: Entry, references: dict[str, Reference],
+            reviewers: dict[str, Reviewer] | None = None) -> Entry:
     found = tuple(references[key] for key in entry.citations if key in references)
-    return replace(entry, references=found)
+    people = tuple(reviewers[key] for key in entry.reviewed_by if key in reviewers) if reviewers else ()
+    return replace(entry, references=found, reviewers=people)

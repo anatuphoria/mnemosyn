@@ -9,6 +9,7 @@ from cns_atlas import DISCLAIMER, Entry, Structure
 from cns_atlas.knowledge import SECTIONS
 
 from ..design import rich
+from ..report import mistake_link, status_html
 from ..state import AppState
 
 
@@ -26,8 +27,7 @@ def entry_html(entry: Entry | None) -> list[str]:
     if entry is None:
         return [rich.secondary("No description yet.")]
     parts = []
-    if entry.status == "draft":
-        parts.append(rich.secondary(f"{rich.chip('Draft', 'edited')} · not yet reviewed"))
+    parts.append(rich.secondary(status_html(entry.status, entry.review_line())))
     for name in SECTIONS:
         if name in entry.sections:
             body = escape(entry.numbered(entry.sections[name]))
@@ -66,8 +66,12 @@ class InfoPanel(QTextBrowser):
                  f"{escape(s.name)}</h2>"]
         if s.side in ("left", "right") and f"({s.side})" not in s.name:
             parts.append(rich.secondary(s.side))
-        parts += entry_html(self.state.atlas.knowledge(structure_id))
+        entry = self.state.atlas.knowledge(structure_id)
+        parts += entry_html(entry)
         parts += self._sources_html(s)
+        if entry is not None:
+            parts.append(mistake_link(f"{s.name} (structure {s.id})", self.state.atlas,
+                                      entry.status))
         parts.append("<p></p>" + rich.card(escape(DISCLAIMER)))
         return "".join(parts)
 

@@ -11,7 +11,7 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-from cns_atlas.knowledge import KnowledgeError, load_references
+from cns_atlas.knowledge import KnowledgeError, load_references, load_reviewers
 from cns_atlas.meshes import LODS, MeshData
 from cns_atlas.model import Structure
 
@@ -167,6 +167,8 @@ def _inputs(src: Path) -> Inputs:
         raise BuildError([f"{references_path}: file is missing"])
     try:
         references = load_references(references_path)
+        reviewers_path = src / "knowledge" / "reviewers.toml"
+        reviewers = load_reviewers(reviewers_path) if reviewers_path.exists() else {}
     except KnowledgeError as exc:
         raise BuildError([str(exc)]) from exc
     timelines = load_timelines(src / "timelines", pathways, references)
@@ -175,7 +177,7 @@ def _inputs(src: Path) -> Inputs:
     problems = check_hierarchy(raws) + check_ids(raws, lock) + check_sources(raws, recipe, src)
     problems += check_templates(recipe, src)
     problems += check_knowledge(src / "knowledge", references, {r.id: r.concept for r in raws},
-                                {f"pathway-{p.key}" for p in pathways})
+                                {f"pathway-{p.key}" for p in pathways}, reviewers)
     problems += check_pathway_texts(src / "knowledge", pathways,
                                     [n for r in raws for n in (r.name, *r.synonyms)])
     _stop_on(problems)

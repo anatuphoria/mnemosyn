@@ -179,7 +179,8 @@ def test_switching_pathways_keeps_the_first_saved_state(window):
     enter(window, "loop")
     panel = enter(window, "short", "right")
     assert state.focus == {112} and state.emphasis == (112,)
-    assert panel.draft.isHidden()
+    assert "Reviewed" in panel.draft.text()
+    assert "by Dr T. Doc, neurology, Toy University on 20 November 2026" in panel.draft.text()
     panel.leave()
     assert state.selected == 132 and state.focus is None and hidden_ids(state) == hidden
 

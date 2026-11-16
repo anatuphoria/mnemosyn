@@ -232,6 +232,12 @@ group = "Sensory and motor"
 steps = [{ structures = [110] }]
 """
 
+TOY_REVIEWERS = """\
+[toydoc]
+name = "Dr T. Doc"
+speciality = "neurology"
+institution = "Toy University"
+"""
 TOY_PATHWAY_TEXTS = {
     "pathway-loop": """\
 +++
@@ -269,6 +275,8 @@ Lesion: Loss on both sides.
 +++
 key = "pathway-short"
 status = "reviewed"
+reviewed_by = ["toydoc"]
+reviewed_on = 2026-11-20
 +++
 ## Overview
 One station.
@@ -743,6 +751,7 @@ def write_extended_source_tree(root: Path, tracts: bool, pathways: bool = False,
     (src / "structures.toml").write_text(structures)
     if pathways:
         (src / "pathways.toml").write_text(TOY_PATHWAYS)
+        (src / "knowledge" / "reviewers.toml").write_text(TOY_REVIEWERS)
         for key, text in TOY_PATHWAY_TEXTS.items():
             (src / "knowledge" / "en" / f"{key}.md").write_text(text)
     if behaviour:

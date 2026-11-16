@@ -93,6 +93,7 @@ entry replaces it and the old one says so.
 | 85 | 2026-11-15 | The app stays offline and keeps its errors, progress and settings on the computer | in force |
 | 86 | 2026-11-16 | A Mac download for Apple Silicon, unsigned, offered with a notice until a Mac user has checked it | in force |
 | 87 | 2026-11-16 | Quiz questions on routes and the Lab, answered by choice and drawn from data the app already checks | in force |
+| 88 | 2026-11-16 | A reviewed text names its reviewer and date, and every text can be reported from where it is read | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -913,3 +914,18 @@ questions that did not change. Questions on what a lesion at a station causes ar
 those texts are reviewed.
 Why: route order and the direction of a hormone change are what students most often get wrong, and
 both were already in the app, tested, but could not be practised.
+
+## 88. A reviewed text names its reviewer and date, and every text can be reported from where it is read
+
+2026-11-16. A description or route text marked `status = "reviewed"` must also carry
+`reviewed_by` (keys from `atlas_src/knowledge/reviewers.toml`) and `reviewed_on`; the build refuses
+a reviewed text without them, a draft that has them, and a reviewer key that is not in the file. A
+reviewer entry holds a name, a speciality and an institution, all optional: a reviewer who did not
+choose to be credited is entered without a name and shown as "a specialist in" their speciality.
+The Info panel and the route pages show the status under the title, Draft or Reviewed with who and
+when, and About counts the reviewed texts. Under each text, "Report a mistake in this text" opens a
+GitHub report with the place, the versions and the status filled in. The app still sends nothing
+itself.
+Why: a student could not tell a checked text from an unchecked one beyond the word Draft, a
+reviewer's work had nowhere to show, and reporting a mistake meant finding the project page and
+describing where the text was.

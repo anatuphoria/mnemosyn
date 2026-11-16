@@ -151,6 +151,7 @@ class StepsPage(QWidget):
         self.start.setWordWrap(True)
         set_role(self.start, "secondary")
         self.draft = QLabel(f"{rich.chip('Draft', 'edited')} · not yet reviewed")
+        self.draft.setWordWrap(True)
         set_role(self.draft, "secondary")
         self.close_button = QPushButton("Close route")
         self.close_button.setToolTip("Close route  Esc")

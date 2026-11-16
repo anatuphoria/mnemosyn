@@ -7,7 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
-from .knowledge import Entry, KnowledgeError, Reference, load_references, parse_entry, resolve
+from .knowledge import (Entry, KnowledgeError, Reference, Reviewer, load_references,
+                        load_reviewers, parse_entry, resolve)
 from .meshes import LODS, MeshData, MeshLod
 from .models import LabModel
 from .model import FORMAT_VERSION, Collection, Pathway, Source, Structure
@@ -117,6 +118,7 @@ class Atlas:
                 raise AtlasError(f"{root / record['file']}: {exc}") from exc
             break
         self._references: dict[str, Reference] | None = None
+        self._reviewers: dict[str, Reviewer] | None = None
         self._entries: dict[tuple[str, int | str], Entry | None] = {}
         self._search_rows = []
         for s in structures:
@@ -227,6 +229,24 @@ class Atlas:
                 raise AtlasError(str(exc)) from exc
         return self._references
 
+    @property
+    def reviewers(self) -> dict[str, Reviewer]:
+        if self._reviewers is None:
+            path = self.root / "knowledge" / "reviewers.toml"
+            try:
+                self._reviewers = load_reviewers(path) if path.exists() else {}
+            except KnowledgeError as exc:
+                raise AtlasError(str(exc)) from exc
+        return self._reviewers
+
+    def review_counts(self, lang: str = "en") -> tuple[int, int]:
+        reviewed = total = 0
+        for path in sorted((self.root / "knowledge" / lang).glob("*.md")):
+            head = path.read_text(encoding="utf-8").split("\n+++\n", 1)[0]
+            total += 1
+            reviewed += 'status = "reviewed"' in head
+        return reviewed, total
+
     def knowledge(self, target: int | str, lang: str = "en") -> Entry | None:
         if isinstance(target, int):
             if target not in self._position:
@@ -249,7 +269,7 @@ class Atlas:
                     parsed = parse_entry(path.read_text(encoding="utf-8"), str(path))
                 except KnowledgeError as exc:
                     raise AtlasError(str(exc)) from exc
-                entry = resolve(parsed, self.references)
+                entry = resolve(parsed, self.references, self.reviewers)
             self._entries[key] = entry
         return self._entries[key]
 

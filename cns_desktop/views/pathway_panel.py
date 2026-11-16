@@ -15,6 +15,7 @@ from ..design.theme import set_role
 from ..design.tokens import SIZE, color
 from ..design.widgets import SegmentedControl, button_icon
 from ..state import AppState
+from ..report import mistake_link, status_html
 from .info_panel import references_html
 from .pathway_pages import KEY_ROLE, STATE_ROLE, RoutesPage, StepsPage
 from .step_panel import StepPanel
@@ -199,7 +200,9 @@ class PathwayPanel(QWidget):
         self.text = atlas.pathway_text(self.pathway.key, side)
         self.start.setText(f"Start: {side} {self.pathway.start}" if self.pathway.sides == "one"
                            else f"Start: {self.pathway.start}")
-        self.draft.setVisible(self.text is not None and self.text.status == "draft")
+        self.draft.setVisible(self.text is not None)
+        if self.text is not None:
+            self.draft.setText(status_html(self.text.status, self.text.review))
         with QSignalBlocker(self.steps):
             self.steps.clear()
             for n, step in enumerate(self.pathway.steps, 1):
@@ -310,6 +313,8 @@ class PathwayPanel(QWidget):
                 parts.append(f"<p><b>Drugs</b>: {escape(step.drugs)}</p>")
         parts.append(f"{rich.heading('Overview')}<p>{escape(self.text.overview)}</p>")
         parts += references_html(self.text.references)
+        where = f"{self.pathway.name}, step {self.index + 1} (route {self.pathway.key})"
+        parts.append(mistake_link(where, self.state.atlas, self.text.status))
         return "".join(parts)
 
     @property

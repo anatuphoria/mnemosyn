@@ -30,6 +30,7 @@ class PathwayText:
     overview: str
     steps: tuple[StepText, ...]
     references: tuple[Reference, ...]
+    review: str = ""
 
 
 def other_side(side: str) -> str:
@@ -120,4 +121,4 @@ def text_for(entry: Entry, count: int, side: str, sides: str = "one") -> Pathway
                            show(t.sign), t.sides)
                   for t in parsed)
     return PathwayText(entry.status, show(entry.sections.get("Overview", "")), steps,
-                       entry.references)
+                       entry.references, entry.review_line())

@@ -250,6 +250,9 @@ class AboutDialog(QDialog):
         name = str(atlas.metadata.get("name", ""))
         package = f"{name} {atlas.metadata.get('version', '')}".strip()
         self.facts = {"Atlas package": package, "Sources": str(len(atlas.sources))}
+        reviewed, texts = atlas.review_counts()
+        if texts:
+            self.facts["Texts reviewed"] = f"{reviewed} of {texts}"
         if atlas.metadata.get("licence"):
             self.facts["Licence"] = str(atlas.metadata["licence"])
         facts = QGridLayout()

@@ -32,10 +32,23 @@ the design documents linked from there.
 
 ## The specialist review
 
-Mnemosyn was not built by a neuroanatomy specialist. Its texts are marked **Draft** until a
-specialist checks them, and specialists are invited to review the atlas through the
-[Review](../review.md) page. Until that review is done, treat everything here as a careful
-student's notes: good for understanding, not a final authority.
+Mnemosyn was not built by a neuroanatomy specialist, and specialists are invited to review the
+atlas through the [Review](../review.md) page. Every description and every route says where it
+stands, right under its title:
+
+1. **Draft, not yet reviewed.** Written from the cited sources, but no specialist has checked it.
+   Treat it as a careful student's notes: good for understanding, not a final authority.
+2. **Reviewed**, with who checked it and when. A reviewer is named only if they chose to be;
+   otherwise the line gives their speciality.
+
+**Help, About Mnemosyn** counts how many texts are reviewed so far.
+
+## Reporting a mistake
+
+Under every description and every route step is **Report a mistake in this text**. It opens a
+report in your browser with the structure or step, your version and the text's status already
+filled in; you add what is wrong and, if you have one, a source. The report is public on GitHub and
+needs a free GitHub account. Mnemosyn sends nothing by itself: the link only opens the page.
 
 ## The limits
 
@@ -46,6 +59,6 @@ student's notes: good for understanding, not a final authority.
    modelled.
 5. The public download has no spinal cord until its authors allow sharing.
 
-Mnemosyn is for studying. It is not for diagnosis or treatment. If you find a mistake, please say
-so in the [Discussions](https://github.com/anatuphoria/mnemosyn/discussions); corrections are
-welcome.
+Mnemosyn is for studying. It is not for diagnosis or treatment. If you find a mistake, report it
+from the app as described above, or say so in the
+[Discussions](https://github.com/anatuphoria/mnemosyn/discussions); corrections are welcome.

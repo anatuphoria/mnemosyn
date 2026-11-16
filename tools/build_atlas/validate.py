@@ -4,7 +4,8 @@ from pathlib import Path
 
 import numpy as np
 
-from cns_atlas.knowledge import KnowledgeError, Reference, parse_entry
+from cns_atlas.knowledge import (KnowledgeError, Reference, Reviewer, parse_entry,
+                                 review_problems)
 from cns_atlas.model import KINDS, SIDES
 
 from .hierarchy import PALETTES, PlannedStructure, RawStructure
@@ -234,7 +235,8 @@ def check_sources(raws: list[RawStructure], recipe: Recipe, src: Path) -> list[s
 
 
 def check_knowledge(knowledge_dir: Path, references: dict[str, Reference],
-                    concepts: dict[int, int | None], keys: set[str]) -> list[str]:
+                    concepts: dict[int, int | None], keys: set[str],
+                    reviewers: dict[str, Reviewer] | None = None) -> list[str]:
     problems = [f"reference [{r.key}] has none of doi, url, isbn"
                 for r in references.values() if not r.has_locator]
     for path in sorted(knowledge_dir.glob("*/*.md")):
@@ -255,6 +257,7 @@ def check_knowledge(knowledge_dir: Path, references: dict[str, Reference],
             problems.append(f"{path}: file name must be {target}.md")
         problems += [f"{path}: cites missing reference [{key}]"
                      for key in entry.citations if key not in references]
+        problems += review_problems(entry, reviewers or {}, str(path))
     return problems
 
 

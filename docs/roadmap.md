@@ -93,12 +93,10 @@ so a change to the model can never leave a page wrong without a failing test.
 
 Ranked by how much they would add to the vision. None of them has a design yet.
 
-1. Visible trust. A review status on each structure (checked by a named specialist, or not yet) and
-   a way to report a mistake from inside the app.
-2. Lessons. A teacher saves a set of views, a route, a Lab experiment and questions as one file and
+1. Lessons. A teacher saves a set of views, a route, a Lab experiment and questions as one file and
    shares it with a class.
-3. Reach. A browser version much later, only once the content is clearly ahead.
-4. A Settings window. The owner asked to keep one in mind. The Lab timeline already names its
+2. Reach. A browser version much later, only once the content is clearly ahead.
+3. A Settings window. The owner asked to keep one in mind. The Lab timeline already names its
    display options (`compare_on`, `show_guides`, `show_hover`, `show_overview`) so a window can
    offer them; nothing is stored yet.
 
