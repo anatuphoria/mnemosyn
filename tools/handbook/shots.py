@@ -116,6 +116,13 @@ def lab_pressure(window):
     window.lab.document.set_playhead(2.5)
 
 
+def lab_volume(window):
+    _lab(window, "volume")
+    window.lab.document.set_length(4 * 24 * HOUR)
+    window.lab.document.add_block("stenosis", 12 * HOUR)
+    window.lab.document.set_playhead(3 * 24 * HOUR)
+
+
 def lesion(window):
     _workspace(window, "Lesion")
 
@@ -161,6 +168,7 @@ SHOTS: dict[str, Callable] = {
     "lab-stress": lab_stress,
     "lab-water": lab_water,
     "lab-pressure": lab_pressure,
+    "lab-volume": lab_volume,
     "lessons": lessons,
     "lesion": lesion,
     "lesion-territory": lesion_territory,

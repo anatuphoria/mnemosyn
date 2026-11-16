@@ -1,0 +1,696 @@
+key = "volume"
+version = 1
+start_clock = "08:00"
+settle_speedup = 10
+settle_days = 6
+max_step = "15 min"
+why_threshold = 0.02
+why_unchanged = 0.003
+
+[[values]]
+key = "map"
+unit = "mmHg"
+start = 93.0
+display_scale = 1.0
+display_unit = "mmHg"
+normal = [70, 105]
+lane = 1
+refs = ["hall2021"]
+
+[[values]]
+key = "ecf"
+unit = "L"
+start = 14.0
+display_scale = 1.0
+display_unit = "L"
+normal = [13, 15]
+lane = 2
+refs = ["hall2021"]
+
+[[values]]
+key = "excretion"
+unit = "mmol/min"
+start = 0.104167
+display_scale = 1440.0
+display_unit = "mmol/day"
+lane = 3
+refs = ["hall2021"]
+
+[[values]]
+key = "renin"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+lane = 4
+refs = ["hall2021"]
+
+[[values]]
+key = "ang"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+lane = 5
+refs = ["hall1986"]
+
+[[values]]
+key = "aldo"
+unit = "times normal"
+start = 1.0
+display_scale = 1.0
+display_unit = "times normal"
+relative = true
+lane = 6
+refs = ["hall2021"]
+
+[[parameters]]
+key = "set_point"
+value = 93
+unit = "mmHg"
+low = 70
+high = 130
+refs = ["hall2021"]
+group = "kidney"
+control = "curve"
+
+[[parameters]]
+key = "nat"
+value = 6
+unit = "number"
+low = 2
+high = 12
+refs = ["guyton1972"]
+group = "kidney"
+control = "curve"
+
+[[parameters]]
+key = "salt_normal"
+value = 0.104167
+unit = "mmol/min"
+low = 0.05
+high = 0.2
+refs = ["hall2021"]
+group = "body"
+
+[[parameters]]
+key = "ecf_normal"
+value = 14
+unit = "L"
+low = 11
+high = 17
+refs = ["hall2021"]
+group = "body"
+
+[[parameters]]
+key = "sodium"
+value = 140
+unit = "mmol/L"
+low = 135
+high = 145
+refs = ["hall2021"]
+group = "body"
+
+[[parameters]]
+key = "vol_gain"
+value = 2
+unit = "number"
+low = 0.5
+high = 4
+refs = ["guyton1972"]
+group = "body"
+
+[[parameters]]
+key = "ang_press"
+value = 0.12
+unit = "number"
+low = 0
+high = 0.3
+refs = ["hall2021"]
+group = "hormones"
+
+[[parameters]]
+key = "ang_ret"
+value = 0.5
+unit = "number"
+low = 0
+high = 0.8
+refs = ["hall1986"]
+group = "hormones"
+
+[[parameters]]
+key = "aldo_ret"
+value = 0.8
+unit = "number"
+low = 0
+high = 0.95
+refs = ["hall2021"]
+group = "hormones"
+
+[[parameters]]
+key = "renin_pressure"
+value = 8
+unit = "number"
+low = 2
+high = 12
+refs = ["hall2021"]
+group = "kidney"
+
+[[parameters]]
+key = "renin_salt"
+value = 1
+unit = "number"
+low = 0
+high = 2
+refs = ["hall2021"]
+group = "kidney"
+
+[[parameters]]
+key = "short"
+value = 0.3
+unit = "number"
+low = 0
+high = 0.6
+refs = ["hall2021"]
+group = "hormones"
+
+[[parameters]]
+key = "renin_max"
+value = 12
+unit = "times normal"
+low = 4
+high = 20
+group = "kidney"
+
+[[parameters]]
+key = "k_map"
+value = 0.05
+unit = "/min"
+low = 0.02
+high = 0.1
+group = "body"
+control = "rate"
+
+[[parameters]]
+key = "k_exc"
+value = 0.05
+unit = "/min"
+low = 0.02
+high = 0.1
+group = "kidney"
+control = "rate"
+
+[[parameters]]
+key = "k_renin"
+value = 0.03
+unit = "/min"
+low = 0.01
+high = 0.06
+refs = ["hall2021"]
+group = "hormones"
+control = "rate"
+
+[[parameters]]
+key = "k_ang"
+value = 0.05
+unit = "/min"
+low = 0.02
+high = 0.1
+group = "hormones"
+control = "rate"
+
+[[parameters]]
+key = "k_aldo"
+value = 0.02
+unit = "/min"
+low = 0.005
+high = 0.05
+refs = ["hall2021"]
+group = "hormones"
+control = "rate"
+
+[[parameters]]
+key = "kidney"
+value = 1
+unit = "fraction"
+low = 0.2
+high = 1
+group = "kidney"
+control = "switch"
+stops = [{ key = "normal", value = 1 }, { key = "half", value = 0.5 }, { key = "low", value = 0.3 }]
+
+[[parameters]]
+key = "salt"
+value = 1
+unit = "times normal"
+low = 0.05
+high = 5
+panel = false
+
+[[parameters]]
+key = "stenosis"
+value = 0
+unit = "mmHg"
+low = 0
+high = 50
+panel = false
+
+[[parameters]]
+key = "ace"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+panel = false
+
+[[parameters]]
+key = "at1"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+panel = false
+
+[[parameters]]
+key = "mr"
+value = 1
+unit = "fraction"
+low = 0
+high = 1
+panel = false
+
+[[parameters]]
+key = "aldo_auto"
+value = 0
+unit = "times normal"
+low = 0
+high = 10
+panel = false
+
+[[parameters]]
+key = "diuretic"
+value = 1
+unit = "number"
+low = 1
+high = 3
+panel = false
+
+[[parameters]]
+key = "resist"
+value = 1
+unit = "number"
+low = 0.7
+high = 1.5
+panel = false
+
+[[curves]]
+key = "natriuresis"
+parameters = ["set_point", "nat"]
+x_low = 40
+x_high = 160
+expr = "kidney * pos(1 + nat * (x / set_point - 1))"
+matches = "filtered"
+input = "renal_pressure"
+
+[[effects]]
+key = "seen"
+expr = "ang * at1"
+kind = "drives"
+arrow = ["lungs", "vessels"]
+
+[[effects]]
+key = "renal_pressure"
+expr = "map - stenosis"
+kind = "drives"
+arrow = ["vessels", "kidney"]
+
+[[effects]]
+key = "filtered"
+expr = "kidney * pos(1 + nat * (renal_pressure / set_point - 1))"
+kind = "drives"
+
+[[effects]]
+key = "delivery"
+expr = "filtered / (1 + ang_ret * (3 * seen / (2 + seen) - 1))"
+kind = "holds back"
+arrow = ["lungs", "kidney"]
+
+[[effects]]
+key = "renin_target"
+expr = "min(renin_max, (set_point / max(renal_pressure, 20)) ** renin_pressure * (1 / max(delivery, 0.02)) ** renin_salt / (1 + short * (2 * seen / (1 + seen) - 1)))"
+kind = "holds back"
+
+[[effects]]
+key = "ang_target"
+expr = "renin * ace"
+kind = "drives"
+arrow = ["kidney", "lungs"]
+
+[[effects]]
+key = "aldo_target"
+expr = "6 * seen / (5 + seen) + aldo_auto"
+kind = "drives"
+arrow = ["lungs", "adrenal"]
+
+[[effects]]
+key = "map_target"
+expr = "set_point * (1 + vol_gain * (ecf / ecf_normal - 1)) * (1 + ang_press * (2 * seen / (1 + seen) - 1)) * resist"
+kind = "drives"
+arrow = ["fluid", "vessels"]
+
+[[effects]]
+key = "excretion_target"
+expr = "salt_normal * delivery * diuretic / (1 + aldo_ret * (6 * aldo * mr / (5 + aldo * mr) - 1))"
+kind = "holds back"
+arrow = ["adrenal", "kidney"]
+
+[[terms]]
+key = "fill_arteries"
+value = "map"
+sign = 1
+expr = "k_map * map_target"
+kind = "drives"
+
+[[terms]]
+key = "run_off"
+value = "map"
+sign = -1
+expr = "k_map * map"
+kind = "clears"
+
+[[terms]]
+key = "salt_in"
+value = "ecf"
+sign = 1
+expr = "salt_normal * salt / sodium"
+kind = "absorbs"
+
+[[terms]]
+key = "salt_out"
+value = "ecf"
+sign = -1
+expr = "excretion / sodium"
+kind = "clears"
+
+[[terms]]
+key = "excrete"
+value = "excretion"
+sign = 1
+expr = "k_exc * excretion_target"
+kind = "drives"
+
+[[terms]]
+key = "settle_excretion"
+value = "excretion"
+sign = -1
+expr = "k_exc * excretion"
+kind = "clears"
+
+[[terms]]
+key = "release_renin"
+value = "renin"
+sign = 1
+expr = "k_renin * renin_target"
+kind = "drives"
+
+[[terms]]
+key = "clear_renin"
+value = "renin"
+sign = -1
+expr = "k_renin * renin"
+kind = "clears"
+
+[[terms]]
+key = "make_ang"
+value = "ang"
+sign = 1
+expr = "k_ang * ang_target"
+kind = "drives"
+
+[[terms]]
+key = "clear_ang"
+value = "ang"
+sign = -1
+expr = "k_ang * ang"
+kind = "clears"
+
+[[terms]]
+key = "release_aldo"
+value = "aldo"
+sign = 1
+expr = "k_aldo * aldo_target"
+kind = "drives"
+
+[[terms]]
+key = "clear_aldo"
+value = "aldo"
+sign = -1
+expr = "k_aldo * aldo"
+kind = "clears"
+
+[[parts]]
+key = "vessels"
+x = 0
+y = 0
+values = ["map"]
+
+[[parts]]
+key = "kidney"
+x = 1
+y = 0
+values = ["excretion", "renin"]
+
+[[parts]]
+key = "lungs"
+x = 2
+y = 0
+values = ["ang"]
+
+[[parts]]
+key = "adrenal"
+x = 3
+y = 0
+values = ["aldo"]
+
+[[parts]]
+key = "fluid"
+x = 1
+y = 1
+values = ["ecf"]
+
+[[normal]]
+key = "steady"
+from = "00:00"
+to = "00:00"
+
+[[experiments]]
+key = "high_salt"
+icon = "calendar-days"
+group = "Salt and fluid"
+edits = [{ op = "set", target = "salt", expr = "3" }]
+
+[[experiments]]
+key = "low_salt"
+icon = "calendar-days"
+group = "Salt and fluid"
+edits = [{ op = "set", target = "salt", expr = "0.13" }]
+
+[[experiments]]
+key = "saline"
+icon = "droplet"
+group = "Salt and fluid"
+options = [{ key = "volume", unit = "L", default = 1, low = 0.5, high = 3 }]
+edits = [{ op = "dose", target = "ecf", expr = "volume" }]
+
+[[experiments]]
+key = "fluid_loss"
+icon = "droplet"
+group = "Salt and fluid"
+options = [{ key = "volume", unit = "L", default = 1.5, low = 0.5, high = 3 }]
+edits = [{ op = "dose", target = "ecf", expr = "-volume" }]
+
+[[experiments]]
+key = "diuretic"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "diuretic", expr = "1.8" }]
+
+[[experiments]]
+key = "ace_inhibitor"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "ace", expr = "0.1" }]
+
+[[experiments]]
+key = "arb"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "at1", expr = "0.1" }]
+
+[[experiments]]
+key = "spironolactone"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "mr", expr = "0.2" }]
+
+[[experiments]]
+key = "vasoconstrictor"
+icon = "pill"
+group = "Drugs"
+edits = [{ op = "set", target = "resist", expr = "1.2" }]
+
+[[experiments]]
+key = "stenosis"
+icon = "heart-pulse"
+group = "Conditions"
+edits = [{ op = "set", target = "stenosis", expr = "25" }]
+
+[[experiments]]
+key = "aldosteronism"
+icon = "heart-pulse"
+group = "Conditions"
+edits = [{ op = "set", target = "aldo_auto", expr = "6" }]
+
+[[experiments]]
+key = "kidney_loss"
+icon = "heart-pulse"
+group = "Conditions"
+mode = "present"
+edits = [{ op = "set", target = "kidney", expr = "0.4" }]
+
+[[checks]]
+key = "rest"
+length = "2 d"
+asserts = [
+  { kind = "within", value = "map", at = "day 2 08:00", low = 85, high = 100 },
+  { kind = "within", value = "ecf", at = "day 2 08:00", low = 13, high = 15 },
+]
+
+[[checks]]
+key = "salt_loaded"
+length = "8 d"
+blocks = [{ experiment = "high_salt", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "excretion", at = "day 7 12:00", rises = 2 },
+  { kind = "vs_normal", value = "renin", at = "day 7 12:00", falls = 0.6 },
+  { kind = "vs_normal", value = "aldo", at = "day 7 12:00", falls = 0.7 },
+  { kind = "vs_normal", value = "ecf", at = "day 7 12:00", rises = 1.03 },
+  { kind = "vs_normal", value = "map", at = "day 7 12:00", rises = 1.02 },
+]
+
+[[checks]]
+key = "salt_restricted"
+length = "8 d"
+blocks = [{ experiment = "low_salt", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "excretion", at = "day 7 12:00", falls = 0.5 },
+  { kind = "vs_normal", value = "renin", at = "day 7 12:00", rises = 2 },
+  { kind = "vs_normal", value = "aldo", at = "day 7 12:00", rises = 1.5 },
+  { kind = "vs_normal", value = "map", at = "day 7 12:00", falls = 0.97 },
+]
+
+[[checks]]
+key = "tightened"
+length = "8 d"
+blocks = [{ experiment = "vasoconstrictor", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 1 14:00", rises = 1.03 },
+  { kind = "back_to_normal", value = "map", by = "day 7 12:00", tolerance = 0.02 },
+  { kind = "vs_normal", value = "ecf", at = "day 7 12:00", falls = 0.97 },
+]
+
+[[checks]]
+key = "narrowed_artery"
+length = "8 d"
+blocks = [{ experiment = "stenosis", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "renin", at = "day 1 18:00", rises = 2 },
+  { kind = "vs_normal", value = "map", at = "day 7 12:00", rises = 1.15 },
+  { kind = "back_to_normal", value = "renin", by = "day 7 12:00", tolerance = 0.15 },
+]
+
+[[checks]]
+key = "excess_aldosterone"
+length = "8 d"
+blocks = [{ experiment = "aldosteronism", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 7 12:00", rises = 1.06 },
+  { kind = "vs_normal", value = "renin", at = "day 7 12:00", falls = 0.5 },
+  { kind = "vs_normal", value = "ecf", at = "day 7 12:00", rises = 1.05 },
+  { kind = "back_to_normal", value = "excretion", by = "day 7 12:00", tolerance = 0.05 },
+]
+
+[[checks]]
+key = "ace_blocked"
+length = "8 d"
+blocks = [{ experiment = "ace_inhibitor", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 7 12:00", falls = 0.95 },
+  { kind = "vs_normal", value = "renin", at = "day 7 12:00", rises = 2 },
+  { kind = "vs_normal", value = "ang", at = "day 7 12:00", falls = 0.6 },
+  { kind = "vs_normal", value = "aldo", at = "day 7 12:00", falls = 0.7 },
+]
+
+[[checks]]
+key = "receptor_blocked"
+length = "8 d"
+blocks = [{ experiment = "arb", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 7 12:00", falls = 0.95 },
+  { kind = "vs_normal", value = "renin", at = "day 7 12:00", rises = 2 },
+  { kind = "vs_normal", value = "ang", at = "day 7 12:00", rises = 2 },
+  { kind = "vs_normal", value = "aldo", at = "day 7 12:00", falls = 0.7 },
+]
+
+[[checks]]
+key = "diuretic_given"
+length = "8 d"
+blocks = [{ experiment = "diuretic", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "excretion", at = "day 1 13:00", rises = 1.2 },
+  { kind = "vs_normal", value = "ecf", at = "day 7 12:00", falls = 0.98 },
+  { kind = "vs_normal", value = "renin", at = "day 7 12:00", rises = 1.2 },
+  { kind = "back_to_normal", value = "excretion", by = "day 7 12:00", tolerance = 0.05 },
+]
+
+[[checks]]
+key = "aldosterone_blocked"
+length = "8 d"
+blocks = [{ experiment = "spironolactone", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "aldo", at = "day 7 12:00", rises = 1.3 },
+  { kind = "vs_normal", value = "renin", at = "day 7 12:00", rises = 1.5 },
+  { kind = "vs_normal", value = "ecf", at = "day 7 12:00", falls = 0.97 },
+]
+
+[[checks]]
+key = "kidney_and_salt"
+length = "8 d"
+blocks = [{ experiment = "kidney_loss" }, { experiment = "high_salt", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "map", at = "day 7 12:00", rises = 1.1 },
+  { kind = "vs_normal", value = "renin", at = "day 7 12:00", falls = 0.5 },
+]
+
+[[checks]]
+key = "fluid_lost"
+length = "8 d"
+blocks = [{ experiment = "fluid_loss", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "renin", at = "day 1 18:00", rises = 1.5 },
+  { kind = "vs_normal", value = "excretion", at = "day 1 18:00", falls = 0.6 },
+  { kind = "vs_normal", value = "map", at = "day 1 18:00", falls = 0.97 },
+  { kind = "back_to_normal", value = "ecf", by = "day 7 12:00", tolerance = 0.02 },
+]
+
+[[checks]]
+key = "saline_given"
+length = "8 d"
+blocks = [{ experiment = "saline", start = "day 1 12:00" }]
+asserts = [
+  { kind = "vs_normal", value = "excretion", at = "day 1 18:00", rises = 1.3 },
+  { kind = "vs_normal", value = "renin", at = "day 1 18:00", falls = 0.8 },
+  { kind = "back_to_normal", value = "ecf", by = "day 7 12:00", tolerance = 0.02 },
+]

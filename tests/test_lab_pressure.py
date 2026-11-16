@@ -44,7 +44,7 @@ def run(sim, *blocks, length=10.0):
 
 
 def test_the_slow_systems_stay_first_and_the_reflex_runs_in_minutes(model):
-    assert [m.key for m in load_all()] == ["stress", "water", "pressure"]
+    assert [m.key for m in load_all()] == ["stress", "volume", "water", "pressure"]
     assert model.name == "Blood pressure reflex" and model.route is None
     assert model.scale == "minutes" and model.period == 10.0
     lanes = sorted((v for v in model.values if v.lane is not None), key=lambda v: v.lane)

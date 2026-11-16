@@ -72,7 +72,8 @@ The quiz level **Lab: what happens** asks about all of these.
 ## What the model leaves out
 
 It covers the first seconds to minutes only. It leaves out the kidneys, renin, angiotensin,
-aldosterone and vasopressin, which set pressure over hours to days; the slow resetting of the
+aldosterone and vasopressin, which set pressure over hours to days (see
+[blood pressure over days](lab-volume.md)); the slow resetting of the
 sensors to a new pressure; breathing; the low pressure sensors of the heart and lungs; and the
 difference between systolic and diastolic pressure. With the sensor nerves cut, real pressure
 becomes very variable while its average drifts back towards normal over days; the model shows only

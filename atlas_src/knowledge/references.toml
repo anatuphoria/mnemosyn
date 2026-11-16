@@ -372,3 +372,30 @@ journal = "Clinical Autonomic Research"
 volume = "21"
 pages = "69-72"
 doi = "10.1007/s10286-011-0119-5"
+
+[guyton1972]
+authors = "Guyton AC, Coleman TG, Granger HJ"
+title = "Circulation: overall regulation"
+year = 1972
+journal = "Annual Review of Physiology"
+volume = "34"
+pages = "13-44"
+doi = "10.1146/annurev.ph.34.030172.000305"
+
+[hall1986]
+authors = "Hall JE"
+title = "Control of sodium excretion by angiotensin II: intrarenal mechanisms and blood pressure regulation"
+year = 1986
+journal = "American Journal of Physiology. Regulatory, Integrative and Comparative Physiology"
+volume = "250"
+pages = "R960-R972"
+doi = "10.1152/ajpregu.1986.250.6.R960"
+
+[goldblatt1934]
+authors = "Goldblatt H, Lynch J, Hanzal RF, Summerville WW"
+title = "Studies on experimental hypertension: I. The production of persistent elevation of systolic blood pressure by means of renal ischemia"
+year = 1934
+journal = "Journal of Experimental Medicine"
+volume = "59"
+pages = "347-379"
+doi = "10.1084/jem.59.3.347"
