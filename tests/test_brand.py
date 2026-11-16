@@ -14,6 +14,7 @@ OUTPUTS = [*(f"brand/logo-{kind}-{theme}.svg" for kind in LOCKUPS for theme in (
            "brand/badge-website.svg", "brand/badge-review.svg",
            "cns_desktop/resources/mark.png", "cns_desktop/resources/logo.svg",
            "tools/package/mnemosyn.png", "tools/package/mnemosyn.ico",
+           "tools/package/mnemosyn.icns",
            "site/assets/mark.svg", "site/assets/favicon.png", "site/assets/logo-seal-dark.svg",
            "site/assets/logo-seal-light.svg"]
 GONE = ["brand/wordmark-dark.svg", "brand/wordmark-light.svg", "brand/divider.svg",
@@ -72,6 +73,17 @@ def test_the_icon_holds_every_windows_size(made):
     count = struct.unpack("<HHH", data[:6])[2]
     sizes = {data[6 + 16 * i] or 256 for i in range(count)}
     assert sizes == {16, 32, 48, 256}
+
+
+def test_the_mac_icon_holds_every_size_up_to_1024(made):
+    from io import BytesIO
+
+    from PIL import Image
+
+    data = (made / "tools/package/mnemosyn.icns").read_bytes()
+    assert data[:4] == b"icns" and struct.unpack(">I", data[4:8])[0] == len(data)
+    sizes = {size[0] * size[2] for size in Image.open(BytesIO(data)).info["sizes"]}
+    assert sizes == {16, 32, 64, 128, 256, 512, 1024}
 
 
 README = brand.ROOT / "README.md"

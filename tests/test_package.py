@@ -16,6 +16,33 @@ def test_file_names_say_the_system_and_whether_they_may_be_shared():
             == "Mnemosyn-0.1.0-local-not-for-sharing-x86_64.AppImage")
     assert (package.file_name("0.1.0", "windows", True)
             == "Mnemosyn-0.1.0-local-not-for-sharing-Setup.exe")
+    assert package.file_name("0.1.0", "macos", False) == "Mnemosyn-0.1.0-macOS-arm64.dmg"
+    assert (package.file_name("0.1.0", "macos", True)
+            == "Mnemosyn-0.1.0-local-not-for-sharing-macOS-arm64.dmg")
+
+
+def test_the_mac_package_is_made_only_on_apple_silicon(monkeypatch):
+    monkeypatch.setattr(package.sys, "platform", "darwin")
+    monkeypatch.setattr(package.platform, "machine", lambda: "arm64")
+    assert package.system_name() == "macos"
+    monkeypatch.setattr(package.platform, "machine", lambda: "x86_64")
+    with pytest.raises(package.PackageError, match="Apple Silicon"):
+        package.system_name()
+
+
+def test_the_mac_disk_image_holds_the_signed_app_and_a_link_to_applications(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(package, "_run", lambda name, command, **_: calls.append((name, command)))
+    app = tmp_path / "dist" / "Mnemosyn.app"
+    (app / "Contents").mkdir(parents=True)
+    target = tmp_path / "Mnemosyn.dmg"
+    package.wrap_macos(app, target, lambda *_: None)
+    stage = tmp_path / "dist" / "disk"
+    assert (stage / "Mnemosyn.app" / "Contents").is_dir() and not app.exists()
+    assert os.readlink(stage / "Applications") == "/Applications"
+    assert [name for name, _ in calls] == ["codesign", "hdiutil"]
+    assert calls[0][1][-3:] == ["--sign", "-", str(app)]
+    assert calls[1][1][-1] == str(target) and str(stage) in calls[1][1]
 
 
 def test_the_version_comes_from_the_project_file():

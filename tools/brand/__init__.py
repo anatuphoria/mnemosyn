@@ -348,6 +348,16 @@ def ico(images: dict[int, bytes]) -> bytes:
     return header + entries + data
 
 
+ICNS_SIZES = {b"icp4": 16, b"icp5": 32, b"ic11": 32, b"ic12": 64, b"ic07": 128, b"ic13": 256,
+              b"ic08": 256, b"ic14": 512, b"ic09": 512, b"ic10": 1024}
+
+
+def icns(images: dict[int, bytes]) -> bytes:
+    data = b"".join(kind + struct.pack(">I", 8 + len(images[size])) + images[size]
+                    for kind, size in ICNS_SIZES.items())
+    return b"icns" + struct.pack(">I", 8 + len(data)) + data
+
+
 def raster(svg_text: str, size: int) -> bytes:
     from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt
     from PySide6.QtGui import QImage, QPainter
@@ -391,7 +401,9 @@ def write_all(root: Path, version: str) -> list[Path]:
     binaries = {"cns_desktop/resources/mark.png": raster(icon, 256),
                 "tools/package/mnemosyn.png": raster(icon, 256),
                 "site/assets/favicon.png": raster(icon, 64),
-                "tools/package/mnemosyn.ico": ico({s: raster(icon, s) for s in (16, 32, 48, 256)})}
+                "tools/package/mnemosyn.ico": ico({s: raster(icon, s) for s in (16, 32, 48, 256)}),
+                "tools/package/mnemosyn.icns": icns({s: raster(icon, s)
+                                                     for s in set(ICNS_SIZES.values())})}
     written = []
     for name, text in files.items():
         (root / name).parent.mkdir(parents=True, exist_ok=True)

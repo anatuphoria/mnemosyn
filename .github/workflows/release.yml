@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-latest]
+        os: [ubuntu-22.04, windows-latest, macos-15]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -79,12 +79,23 @@ jobs:
           Write-Output "Mnemosyn ran for $seconds s and exited with $($process.ExitCode)"
           if ($process.ExitCode -ne 0) { throw "Mnemosyn exited with $($process.ExitCode)" }
           if ($seconds -lt 1) { throw "Mnemosyn closed too early to have drawn a frame" }
+      - name: Smoke test on macOS
+        if: runner.os == 'macOS'
+        run: |
+          hdiutil attach dist/Mnemosyn-*-macOS-arm64.dmg -mountpoint /Volumes/Mnemosyn -nobrowse
+          test -L /Volumes/Mnemosyn/Applications
+          cp -R /Volumes/Mnemosyn/Mnemosyn.app "$RUNNER_TEMP/Mnemosyn.app"
+          hdiutil detach /Volumes/Mnemosyn
+          codesign --verify --deep --strict "$RUNNER_TEMP/Mnemosyn.app"
+          "$RUNNER_TEMP/Mnemosyn.app/Contents/MacOS/Mnemosyn" --first-frame | tee first-frame.txt
+          grep -q "first frame:" first-frame.txt
       - uses: actions/upload-artifact@v7
         with:
           name: package-${{ runner.os }}
           path: |
             dist/*.AppImage
             dist/*-Setup.exe
+            dist/*.dmg
           if-no-files-found: error
 
   release:
@@ -107,4 +118,4 @@ jobs:
         run: >
           gh release create "$GITHUB_REF_NAME" files/* --repo "$GITHUB_REPOSITORY" --prerelease
           --title "Mnemosyn $GITHUB_REF_NAME (test version)"
-          --notes "Test version for Windows and Linux with the shareable atlas. See https://mnemo.saeed.cool/download/ for how to open it the first time."
+          --notes "Test version for Windows, Linux and macOS (Apple Silicon) with the shareable atlas. See https://mnemo.saeed.cool/download/ for how to open it the first time."

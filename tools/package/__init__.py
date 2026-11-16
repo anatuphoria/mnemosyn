@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import platform
 import shutil
 import stat
 import subprocess
@@ -37,13 +38,20 @@ def system_name() -> str:
         return "windows"
     if sys.platform.startswith("linux"):
         return "linux"
-    raise PackageError(f"packages are made on Windows or Linux, not on {sys.platform}")
+    if sys.platform == "darwin":
+        if platform.machine() != "arm64":
+            raise PackageError("the Mac package is made on an Apple Silicon Mac, not on "
+                               f"{platform.machine()}")
+        return "macos"
+    raise PackageError(f"packages are made on Windows, Linux or macOS, not on {sys.platform}")
 
 
 def file_name(version: str, system: str, local: bool) -> str:
     tag = f"-{LOCAL_TAG}" if local else ""
     if system == "windows":
         return f"Mnemosyn-{version}{tag}-Setup.exe"
+    if system == "macos":
+        return f"Mnemosyn-{version}{tag}-macOS-arm64.dmg"
     return f"Mnemosyn-{version}{tag}-x86_64.AppImage"
 
 
@@ -98,7 +106,7 @@ def bundle(atlas: Path, work: Path, version: str, log) -> Path:
     PyInstaller.__main__.run([str(HERE / "mnemosyn.spec"), "--noconfirm", "--log-level", "WARN",
                               "--distpath", str(work / "dist"), "--workpath",
                               str(work / "build")])
-    return work / "dist" / "Mnemosyn"
+    return work / "dist" / ("Mnemosyn.app" if sys.platform == "darwin" else "Mnemosyn")
 
 
 def _download_appimagetool(log) -> Path:
@@ -144,6 +152,20 @@ def wrap_windows(folder: Path, target: Path, version: str, log) -> Path:
     return target
 
 
+def wrap_macos(app: Path, target: Path, log) -> Path:
+    log("signing the app for this Mac only (no Apple certificate)")
+    _run("codesign", ["codesign", "--force", "--deep", "--sign", "-", str(app)])
+    stage = app.parent / "disk"
+    shutil.rmtree(stage, ignore_errors=True)
+    stage.mkdir()
+    shutil.move(str(app), str(stage / app.name))
+    (stage / "Applications").symlink_to("/Applications")
+    log("making the disk image")
+    _run("hdiutil", ["hdiutil", "create", "-volname", "Mnemosyn", "-srcfolder", str(stage),
+                     "-ov", "-format", "UDZO", str(target)])
+    return target
+
+
 def package(atlas: Path, out: Path, local: bool, log=print, wrap: bool = True) -> Path:
     system = system_name()
     check(atlas, local)
@@ -159,6 +181,8 @@ def package(atlas: Path, out: Path, local: bool, log=print, wrap: bool = True) -
     target.unlink(missing_ok=True)
     if system == "windows":
         wrap_windows(folder, target, version, log)
+    elif system == "macos":
+        wrap_macos(folder, target, log)
     else:
         wrap_linux(folder, target, log)
     shutil.rmtree(work, ignore_errors=True)
