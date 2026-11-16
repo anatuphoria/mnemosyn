@@ -80,7 +80,7 @@ def test_menus_are_file_edit_view_study_experiment_window_help(window):
     assert view == ["Hide", "Isolate", "Show all", "Tracts", "Reset view", "Frame selection",
                     "Centre slice"]
     help_items = [a.text() for a in window.topbar.menu("Help").actions() if a.text()]
-    assert help_items == ["About Mnemosyn", "Handbook on the website",
+    assert help_items == ["About Mnemosyn", "Welcome tour", "Handbook on the website",
                           "Check for a newer version", "Report a problem", "Open data folder"]
     study = [a.text() for a in window.topbar.menu("Study").actions() if a.text()]
     assert study == ["Start quiz", "Progress", "Back up progress…", "Reset progress…"]

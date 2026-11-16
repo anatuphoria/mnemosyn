@@ -14,6 +14,10 @@ Ten minutes with the tour below is enough to find your way around.
 
 ## Your first ten minutes
 
+The first time Mnemosyn opens, a short welcome tour walks through the five workspaces and switches
+to each one as it describes it. **Help**, then **Welcome tour** shows it again at any time. The
+rest of this section is the same walk in more detail.
+
 When Mnemosyn opens you see the brain in 3D, the list of structures on the left and the Info panel
 on the right. The switch at the top right of the window moves between five workspaces. Each one is
 a different way into the same anatomy, so a structure you learn in one is the same structure in all

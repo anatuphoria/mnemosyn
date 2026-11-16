@@ -11,6 +11,7 @@ from cns_atlas import DISCLAIMER
 
 from .design import widgets
 from .views.about_dialog import AboutDialog
+from .views.welcome import SEEN_KEY, WelcomeTour
 
 HANDBOOK_URL = "https://mnemo.saeed.cool/handbook/"
 DOWNLOAD_URL = "https://mnemo.saeed.cool/download/"
@@ -96,6 +97,8 @@ class WindowMenus:
         self.addAction(about)
         help_menu.addAction(about)
         self.shortcuts["About"] = about
+        self.welcome_action = QAction("Welcome tour", self, triggered=self.show_welcome)
+        help_menu.addAction(self.welcome_action)
         for text, target in (("Handbook on the website", HANDBOOK_URL),
                              ("Check for a newer version", DOWNLOAD_URL),
                              ("Report a problem", PROBLEM_URL)):
@@ -104,6 +107,21 @@ class WindowMenus:
         help_menu.addSeparator()
         help_menu.addAction(QAction("Open data folder", self, triggered=self.open_data_folder))
         self.help_menu = help_menu
+
+    def show_welcome(self) -> WelcomeTour | None:
+        if self.quiz_active or self.workspaces.locked:
+            return None
+        if self.pathway_active:
+            self.pathways.leave()
+        if self.settings is not None:
+            self.settings.setValue(SEEN_KEY, True)
+        self.welcome = WelcomeTour(self)
+        self.welcome.show()
+        return self.welcome
+
+    def welcome_if_new(self) -> None:
+        if self.settings is not None and not self.settings.value(SEEN_KEY, False, type=bool):
+            self.show_welcome()
 
     def open_url(self, url: QUrl) -> None:
         QDesktopServices.openUrl(url)

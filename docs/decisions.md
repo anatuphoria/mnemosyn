@@ -94,6 +94,7 @@ entry replaces it and the old one says so.
 | 86 | 2026-11-16 | A Mac download for Apple Silicon, unsigned, offered with a notice until a Mac user has checked it | in force |
 | 87 | 2026-11-16 | Quiz questions on routes and the Lab, answered by choice and drawn from data the app already checks | in force |
 | 88 | 2026-11-16 | A reviewed text names its reviewer and date, and every text can be reported from where it is read | in force |
+| 89 | 2026-11-16 | A welcome tour on the first start, which switches the workspaces as it describes them | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -929,3 +930,14 @@ itself.
 Why: a student could not tell a checked text from an unchecked one beyond the word Draft, a
 reviewer's work had nowhere to show, and reporting a mistake meant finding the project page and
 describing where the text was.
+
+## 89. A welcome tour on the first start, which switches the workspaces as it describes them
+
+2026-11-16. The first time the app starts with saved settings, after the first start notice, a
+small window that does not block the app walks through seven short pages: a welcome, the five
+workspaces, and quizzes with review status. Each page switches the app to the workspace it
+describes, so the user sees it behind the text. It can be skipped, is remembered as seen once
+shown, and Help, Welcome tour opens it again. Workspaces an atlas does not have are left out, and
+the tour is not offered during a quiz.
+Why: a new user landed on a brain with no hint that four other workspaces, the Lab or the quizzes
+existed.

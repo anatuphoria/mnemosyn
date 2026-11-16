@@ -129,6 +129,7 @@ class QuizMode:
         docks = (self.tree_dock, self.pathway_dock, self.info_dock, self.chart_dock,
                  self.step_group)
         return [*(self.shortcuts[name] for name in QUIZ_LOCKED), self.reset_action,
+                self.welcome_action,
                 *(dock.toggleViewAction() for dock in docks)]
 
     def enter_quiz(self) -> None:

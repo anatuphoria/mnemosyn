@@ -40,6 +40,13 @@ def offer_disclaimer(window, settings):
     return box
 
 
+def offer_welcome(window, box=None) -> None:
+    if box is None:
+        window.welcome_if_new()
+    else:
+        box.finished.connect(lambda _result: window.welcome_if_new())
+
+
 def report_errors(window, folder: Path | None = None):
     from PySide6.QtWidgets import QMessageBox
 
@@ -161,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     migrate_progress()
     reporter = report_errors(window)
-    offer_disclaimer(window, settings)
+    offer_welcome(window, offer_disclaimer(window, settings))
     try:
         return app.exec()
     finally:

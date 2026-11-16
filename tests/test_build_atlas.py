@@ -70,7 +70,12 @@ def test_build_writes_id_lock(toy_src, tmp_path):
 def test_build_is_deterministic(toy_src, tmp_path):
     a = build(toy_src, tmp_path / "a", cache=tmp_path / "cache", log=lambda *_: None)
     b = build(toy_src, tmp_path / "b", cache=tmp_path / "cache", log=lambda *_: None)
-    assert files_of(a) == files_of(b)
+    first, second = files_of(a), files_of(b)
+    for files in (first, second):
+        report = files["build-report.md"].decode().splitlines()
+        files["build-report.md"] = [line for line in report
+                                    if not line.startswith(("- build time", "- peak build memory"))]
+    assert first == second
 
 
 def test_failed_build_keeps_previous_package(toy_src, tmp_path):
