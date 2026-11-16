@@ -29,8 +29,8 @@ scoring, the brain framed around a Name it target, room for the slices on a narr
 names in the structure tree and named Lab cards. Version 0.5.2 (2026-11-16) adds support and
 safety work (decision 85: an error log, Help items for a newer version, reporting a problem and the
 data folder, backing up and resetting quiz progress, pinned release libraries) and the first Mac
-build for Apple Silicon (decision 86), which the Download page does not offer until a Mac user has
-checked it (`docs/mac-check.md`). Version 0.3.1 was checked on Windows by the owner
+build for Apple Silicon (decision 86), which the Download page offers with a notice until a Mac
+user has checked it (`docs/mac-check.md`). Version 0.3.1 was checked on Windows by the owner
 on 2026-10-30; 0.5.1 and 0.5.2 still wait for that check (`docs/windows-check.md`). Since 2026-11-03 the
 website has a handbook in place of the single guide page (see below). The first public forum post went out on 2026-10-30; there are no outside users or
 feedback yet.
@@ -68,8 +68,8 @@ These were left out of earlier designs on purpose and are expected to come back.
 5. A light theme, which the design system leaves room for.
 6. Code signing of the Windows installer, for example through the SignPath Foundation programme.
 7. Automatic updates and package managers (winget, Flathub).
-8. The Mac build (decision 86) is made with every release but waits for a first hands on check
-   (`docs/mac-check.md`) before the Download page offers it. An Apple signature would remove the
+8. The Mac build (decision 86) is on the Download page with a notice that it waits for a first
+   hands on check (`docs/mac-check.md`). An Apple signature would remove the
    first open warning.
 
 ## Handbook (done)

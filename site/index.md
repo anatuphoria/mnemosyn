@@ -136,7 +136,7 @@ breaks as the deficits that follow. [How it works](handbook/lesion.md)
 
 <div class="start" markdown>
 
-[:material-download: **Download**<br>Get the app for Windows or Linux](download.md)
+[:material-download: **Download**<br>Get the app for Windows, Linux or Mac](download.md)
 
 [:material-mouse: **Handbook**<br>Every workspace, why it helps, and experiments to try](handbook/index.md)
 

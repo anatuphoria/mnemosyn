@@ -91,7 +91,7 @@ entry replaces it and the old one says so.
 | 83 | 2026-11-02 | Pathways uses the same frame as the rest of the app | in force |
 | 84 | 2026-11-02 | A route stays open until it is closed, and closing gives everything back | in force |
 | 85 | 2026-11-15 | The app stays offline and keeps its errors, progress and settings on the computer | in force |
-| 86 | 2026-11-16 | A Mac download for Apple Silicon, unsigned, offered once a Mac user has checked it | in force |
+| 86 | 2026-11-16 | A Mac download for Apple Silicon, unsigned, offered with a notice until a Mac user has checked it | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -888,12 +888,13 @@ Release builds install the library versions pinned in `tools/package/requirement
 Why: an installed app showed nothing and kept nothing when it failed, so a user could not say what
 went wrong, and being offline is a promise the website makes.
 
-## 86. A Mac download for Apple Silicon, unsigned, offered once a Mac user has checked it
+## 86. A Mac download for Apple Silicon, unsigned, offered with a notice until a Mac user has checked it
 
 2026-11-16. Mnemosyn is also packaged for Macs with Apple Silicon, as a disk image built by GitHub
 Actions. There is no Intel Mac build. The app is not signed with an Apple certificate, so the user
-allows it once in System Settings, Privacy & Security. Every release carries the Mac file, but the
-Download page offers it only after someone with a Mac has gone through `docs/mac-check.md`, because
-the owner has no Mac to try it on. This replaces decision 57.
+allows it once in System Settings, Privacy & Security. The owner has no Mac to try it on, so the Download
+page offers the Mac file with a notice that it has not yet been checked on a real Mac; the notice
+goes when someone with a Mac has gone through `docs/mac-check.md`. `mac = false` in
+`site/download.toml` takes the Mac file off the page. This replaces decision 57.
 Why: the owner wants Mac users to be able to use the app, the Windows and Linux test versions are
 unsigned too, and every Mac sold since 2020 has Apple Silicon.

@@ -320,7 +320,7 @@ def mark(background: bool) -> str:
 def badges(version: str) -> dict[str, tuple[str, str]]:
     release = f"{version} test" if version.split(".")[0] == "0" else version
     return {"release": ("RELEASE", release), "licence": ("LICENCE", "GPL 3.0"),
-            "platforms": ("FOR", "Windows · Linux"), "website": ("WEBSITE", "mnemo.saeed.cool"),
+            "platforms": ("FOR", "Windows · Linux · Mac"), "website": ("WEBSITE", "mnemo.saeed.cool"),
             "review": ("REVIEW", "open to specialists")}
 
 

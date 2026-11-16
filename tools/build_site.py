@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import re
 import shutil
+import textwrap
 import tomllib
 from pathlib import Path
 
@@ -56,16 +57,18 @@ def _sources_page(sources: list[dict], local: set[str]) -> str:
     lines = ["# Data sources\n", intro]
     for s in sources:
         lines.append(f"## {s.get('provides', s['title'])} {{ #{s['id']} }}\n")
+        lines.append('<div class="source" markdown>\n')
         if s["id"] in local:
-            lines.append('!!! note "Local builds only"\n    No licence for sharing yet; the authors '
-                         "have been asked for permission.\n")
+            lines.append('<span class="chip gold">Local builds only</span> No licence for sharing '
+                         "yet; the authors have been asked for permission.\n")
         cite = f"{s.get('authors', '')} ({s.get('year', '')}). *{s['title']}*."
         if s.get("doi"):
             cite += f" [doi:{s['doi']}](https://doi.org/{s['doi']})"
-        lines += [cite + "\n", f"- **Licence:** {s.get('licence', 'none stated')}"]
+        lines += [cite + "\n", '<div class="meta" markdown>\n',
+                  f"- **Licence** {s.get('licence', 'none stated')}"]
         if s.get("url"):
-            lines.append(f"- **Page:** <{s['url']}>")
-        lines.append(f"- **Id:** `{s['id']}`\n")
+            lines.append(f"- **Page** <{s['url']}>")
+        lines.append(f"- **Id** `{s['id']}`\n\n</div>\n\n</div>\n")
     return "\n".join(lines)
 
 
@@ -114,59 +117,92 @@ def _review_page(settings: dict) -> str:
 RELEASES = "https://github.com/anatuphoria/mnemosyn/releases"
 
 
-MAC_NEEDS = "\n- Mac: a Mac with Apple Silicon (M1 or later) and macOS 14 or later."
-MAC_OPENING = """
-
-**Mac.** Open the disk image and drag Mnemosyn onto the Applications folder beside it. This test
-version is not signed with an Apple certificate, so the first time you open it macOS says it could
-not check the app. Close that message, open **System Settings**, then **Privacy & Security**,
-scroll down to the line about Mnemosyn and choose **Open Anyway**. You only do this once. On a Mac
-managed by a school or an employer this choice may be switched off."""
-
-
-def _download_page(version: str, quickstart: str, mac: bool = False) -> str:
-    base = f"{RELEASES}/download/v{version}"
-    mac = mac and bool(version)
-    if version:
-        buttons = (f"[:material-microsoft-windows: Windows installer]("
-                   f"{base}/Mnemosyn-{version}-Setup.exe){{ .md-button .md-button--primary }} "
-                   f"[:material-linux: Linux AppImage]({base}/Mnemosyn-{version}-x86_64.AppImage)"
-                   "{ .md-button .md-button--primary }")
-        if mac:
-            buttons += (f" [:material-apple: Mac disk image]({base}/Mnemosyn-{version}"
-                        "-macOS-arm64.dmg){ .md-button .md-button--primary }")
-        details = (f"Version {version}, a test version. Sizes and the `SHA256SUMS.txt` checksum "
-                   f"file are on the [release page]({RELEASES}/tag/v{version}).")
-    else:
-        buttons = "The first test version is coming soon."
-        details = "When it is out, it will appear here."
-    return f"""# Download
-
-{buttons}
-
-{details} The download contains the shareable atlas: the spinal cord, the glands and the brainstem bodies come
-from sources that have not yet allowed sharing, so they are not included.
-
-## Requirements
-
-- Windows: 64-bit Windows 10 or later.
-- Linux: a 64-bit distribution from 2022 or later with a desktop, such as Ubuntu 22.04, Debian 12
-  or Fedora 36.{MAC_NEEDS if mac else ""}
-- Graphics that support OpenGL 3.2, which almost every computer from the last ten years has.
-
-## Opening it the first time
-
-**Windows.** Run the installer. This test version is not signed yet, so Windows may show
+PLATFORMS = (
+    ("windows", ":material-microsoft-windows:", "Windows", "Setup.exe", "Installer",
+     "64-bit Windows 10 or later."),
+    ("linux", ":material-linux:", "Linux", "x86_64.AppImage", "AppImage",
+     "A 64-bit distribution from 2022 or later with a desktop, such as Ubuntu 22.04, Debian 12 "
+     "or Fedora 36."),
+    ("mac", ":material-apple:", "Mac", "macOS-arm64.dmg", "Disk image",
+     "Apple Silicon (M1 or later) with macOS 14 or later. Intel Macs are not supported."),
+)
+MAC_NOTE = '<span class="chip gold">New, not yet checked on a real Mac</span>'
+OPENING = {
+    "windows": """Run the installer. This test version is not signed yet, so Windows may show
 "Windows protected your PC": choose **More info**, then **Run anyway**. Mnemosyn installs for your
 account only, without administrator rights, and appears in the Start menu. Some antivirus programs
-may also flag an unsigned app; that is a false alarm.
-
-**Linux.** Make the file runnable, then open it:
+may also flag an unsigned app; that is a false alarm.""",
+    "linux": """Make the file runnable, then open it:
 
 ```bash
 chmod +x Mnemosyn-{version}-x86_64.AppImage
 ./Mnemosyn-{version}-x86_64.AppImage
-```{MAC_OPENING if mac else ""}
+```""",
+    "mac": """Open the disk image and drag Mnemosyn onto the Applications folder beside it. This
+test version is not signed with an Apple certificate, so the first time you open it macOS says it
+could not check the app. Close that message, open **System Settings**, then
+**Privacy & Security**, scroll down to the line about Mnemosyn and choose **Open Anyway**. You
+only do this once. On a Mac managed by a school or an employer this choice may be switched off.
+
+The Mac version is new and has so far only been started on a build machine. If something looks
+wrong, **Help**, then **Report a problem** tells us. Use Cmd wherever the handbook says Ctrl.""",
+}
+
+
+def _platform_card(platform: tuple, version: str, base: str) -> str:
+    key, icon, name, suffix, kind, needs = platform
+    note = f'\n\n{MAC_NOTE}\n{{ .platform-note }}' if key == "mac" else ""
+    if version:
+        file = f"Mnemosyn-{version}-{suffix}"
+        action = (f"[:material-download: {kind}]({base}/{file}){{ .md-button .md-button--primary }}"
+                  f"\n\n{file}\n{{ .platform-file }}")
+    else:
+        action = "Coming soon\n{ .platform-file }"
+    return (f'<div class="platform" markdown>\n\n{icon}\n{{ .platform-icon }}\n\n{name}\n'
+            f"{{ .platform-name }}\n\n{needs}\n{{ .platform-needs }}{note}\n\n{action}\n\n</div>")
+
+
+def _tabs(parts: dict[str, str]) -> str:
+    return "\n\n".join(f'=== "{name}"\n\n' + textwrap.indent(text, "    ")
+                        for name, text in parts.items())
+
+
+def _download_page(version: str, quickstart: str, mac: bool = False) -> str:
+    base = f"{RELEASES}/download/v{version}"
+    platforms = [p for p in PLATFORMS if mac or p[0] != "mac"]
+    cards = "\n\n".join(_platform_card(p, version, base) for p in platforms)
+    if version:
+        details = (f"Version {version}, a test version. Sizes and the `SHA256SUMS.txt` checksum "
+                   f"file are on the [release page]({RELEASES}/tag/v{version}).")
+    else:
+        details = "The first test version is coming soon. When it is out, it will appear here."
+    opening = _tabs({p[2]: OPENING[p[0]].replace("{version}", version) for p in platforms})
+    checks = {"Windows": "```powershell\nGet-FileHash Mnemosyn-*-Setup.exe\n```",
+              "Linux": "```bash\nsha256sum Mnemosyn-*\n```"}
+    if mac:
+        checks["Mac"] = "```bash\nshasum -a 256 Mnemosyn-*.dmg\n```"
+    return f"""# Download
+
+Free, for study, and it works without an internet connection.
+{{ .lede }}
+
+<div class="platforms" markdown>
+
+{cards}
+
+</div>
+
+{details} The download contains the shareable atlas: the spinal cord, the glands and the brainstem bodies come
+from sources that have not yet allowed sharing, so they are not included.
+{{ .release-line }}
+
+Every system needs graphics that support OpenGL 3.2, which almost every computer from the last ten
+years has.
+{{ .release-line }}
+
+## Opening it the first time
+
+{opening}
 
 Your quiz progress is kept in your user folder, so it survives updates.
 
@@ -178,8 +214,12 @@ as the window layout) and a log of errors, which you can attach if you report a 
 then **Open data folder** shows where they are. Mnemosyn does not look for updates by itself;
 **Help**, then **Check for a newer version** opens this page in your browser.
 
-To check a download, compare it with `SHA256SUMS.txt` on the release page: `sha256sum` on Linux,
-{"`shasum -a 256` on a Mac, " if mac else ""}or `Get-FileHash` in PowerShell on Windows.
+## Check your download
+
+To make sure a file arrived whole and unchanged, compare its checksum with `SHA256SUMS.txt` on the
+release page.
+
+{_tabs(checks)}
 
 ## Build from source
 {quickstart}"""
@@ -230,7 +270,9 @@ def build_site(repo: Path, out: Path) -> None:
                                                      download.get("mac", False)))
     (out / "atlas/structures.md").write_text(_structures_page(structures, local))
     (out / "atlas/sources.md").write_text(_sources_page(sources, local))
-    (out / "decisions.md").write_text(decisions.replace("](specs/", "](design/"))
+    dated = re.sub(r"^(\| \d+ \| )(\d{4}-\d\d-\d\d)( \|)", r'\1<span class="when">\2</span>\3',
+                   decisions, flags=re.MULTILINE)
+    (out / "decisions.md").write_text(dated.replace("](specs/", "](design/"))
     index = ["# Design documents\n", "The full design behind each part of Mnemosyn, oldest first.\n"]
     for spec in sorted((repo / "docs/specs").glob("*.md")):
         shutil.copy(spec, out / "design" / spec.name)

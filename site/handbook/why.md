@@ -51,7 +51,7 @@ Be clear about these before you rely on Mnemosyn:
    drafts until a reviewer checks them. See [Sources and review](trust.md).
 2. **The shapes come from MRI atlases.** They are true to measured brains but less detailed and
    less polished than the hand made models in paid anatomy apps.
-3. **Desktop only.** It runs on Windows and Linux computers, not on phones or tablets.
+3. **Desktop only.** It runs on Windows, Linux and Mac computers, not on phones or tablets.
 4. **No cranial nerve nuclei.** The cranial nerves are there, but the nuclei in the brainstem that
    they come from are not, so syndromes of the medulla are not modelled.
 5. **No spinal cord in the public download.** The spinal cord comes from an atlas whose authors

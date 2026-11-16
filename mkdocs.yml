@@ -20,7 +20,9 @@ theme:
   logo: assets/mark.svg
   favicon: assets/favicon.png
   features: [navigation.tabs, navigation.sections, navigation.top, navigation.instant, search.highlight, content.code.copy, toc.follow]
+copyright: Free software under the GNU General Public License 3.0. A study project, not for diagnosis or treatment.
 extra:
+  generator: false
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/saeeedhany
@@ -41,6 +43,8 @@ markdown_extensions:
   - toc: {permalink: true}
   - pymdownx.superfences
   - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg

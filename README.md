@@ -13,7 +13,7 @@ for the body's control systems. Made for students; every shape and sentence cite
 <p align="center">
   <a href="https://github.com/anatuphoria/mnemosyn/releases"><img src="brand/badge-release.svg" alt="Release" height="28"></a>
   <a href="LICENSE"><img src="brand/badge-licence.svg" alt="Licence: GPL 3.0" height="28"></a>
-  <a href="https://mnemo.saeed.cool/download/"><img src="brand/badge-platforms.svg" alt="For Windows and Linux" height="28"></a>
+  <a href="https://mnemo.saeed.cool/download/"><img src="brand/badge-platforms.svg" alt="For Windows, Linux and Mac" height="28"></a>
   <a href="https://mnemo.saeed.cool/"><img src="brand/badge-website.svg" alt="Website" height="28"></a>
   <a href="https://mnemo.saeed.cool/review/"><img src="brand/badge-review.svg" alt="Review: open to specialists" height="28"></a>
 </p>
@@ -141,7 +141,7 @@ the [handbook](https://mnemo.saeed.cool/handbook/) lists them all.
 
 ## Get it
 
-Download the test version for Windows or Linux from the [Download
+Download the test version for Windows, Linux or Mac from the [Download
 page](https://mnemo.saeed.cool/download/). It carries the shareable atlas; sources whose authors
 have not yet allowed sharing stay in local builds.
 

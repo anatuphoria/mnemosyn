@@ -1,7 +1,7 @@
 # Mac check
 
 A hands on check of the Mac build by someone with a Mac. The owner has no Mac, so the Download page
-does not offer the Mac file until this check has passed once. It takes about 30 minutes. Note
+marks the Mac file as not yet checked until this check has passed once. It takes about 30 minutes. Note
 anything that looks wrong with a screenshot and the step number, and send the notes back.
 
 On a Mac, use Cmd wherever the app's menus or these steps say Ctrl.

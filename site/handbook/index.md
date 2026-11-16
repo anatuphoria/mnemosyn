@@ -1,7 +1,7 @@
 # Start here
 
 Mnemosyn is a free 3D atlas of the human brain and spinal cord, with a lab where you change the
-body and watch it answer. It runs on Windows and Linux without an internet connection, and every
+body and watch it answer. It runs on Windows, Linux and Mac without an internet connection, and every
 shape, number and sentence in it names its source.
 { .lede }
 
@@ -80,6 +80,12 @@ header. Each workspace remembers its own arrangement. If you close a panel, the 
 brings it back, and **Window, Reset layout** restores the arrangement the workspace started with.
 In a narrow window the default arrangements fold the right hand panels into the left one and the
 menus into one menu button; an arrangement you made yourself is never changed.
+
+## On a Mac
+
+Use Cmd wherever this handbook says Ctrl. The Mac version is new and has so far only been started
+on a build machine, so if something looks or behaves wrong, **Help**, then **Report a problem**
+tells us.
 
 ## If something goes wrong
 

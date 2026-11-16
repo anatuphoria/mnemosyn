@@ -111,10 +111,10 @@ The app is not signed with an Apple certificate (that needs a paid Apple Develop
 carries only the local signature that Apple Silicon requires to run anything, so macOS blocks it on
 first open until the user chooses Open Anyway in System Settings, Privacy & Security.
 
-Every release includes the Mac file, but the Download page offers it only when `site/download.toml`
-says `mac = true`. Set that after someone with a Mac has gone through `docs/mac-check.md` for a
-release, and then also name macOS in the README, the handbook front page and the platforms badge
-(`tools/brand`). To try a build before a release, run the Release workflow by hand and take the
+Every release includes the Mac file, and the Download page offers it while `site/download.toml`
+says `mac = true`. Until someone with a Mac has gone through `docs/mac-check.md`, the Mac card
+carries a notice that it has not been checked on a real Mac (`MAC_NOTE` in `tools/build_site.py`);
+remove the notice when the check has passed. To try a build before a release, run the Release workflow by hand and take the
 `package-macOS` artifact.
 
 ## Library versions in a release
