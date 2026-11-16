@@ -2,7 +2,7 @@
 
 Where Mnemosyn stands, what is unfinished, and what may come next. Unlike `decisions.md`, nothing
 here is decided: an idea becomes a decision only when the owner approves its design. Last reviewed
-2026-11-12, after version 0.5.1.
+2026-11-16, after version 0.5.2.
 
 ## Vision
 
@@ -26,8 +26,12 @@ same frame as the rest of the app), and About and Progress windows rebuilt on th
 Version 0.5.1 (2026-11-12) is a fix and content release on 0.5.0: a draft description for every
 structure, group, tract, territory and spinal segment, quiz fixes (wrapped answers, first try
 scoring, the brain framed around a Name it target, room for the slices on a narrow window), shorter
-names in the structure tree and named Lab cards. Version 0.3.1 was checked on Windows by the owner
-on 2026-10-30; 0.5.1 still waits for that check (`docs/windows-check.md`). Since 2026-11-03 the
+names in the structure tree and named Lab cards. Version 0.5.2 (2026-11-16) adds support and
+safety work (decision 85: an error log, Help items for a newer version, reporting a problem and the
+data folder, backing up and resetting quiz progress, pinned release libraries) and the first Mac
+build for Apple Silicon (decision 86), which the Download page does not offer until a Mac user has
+checked it (`docs/mac-check.md`). Version 0.3.1 was checked on Windows by the owner
+on 2026-10-30; 0.5.1 and 0.5.2 still wait for that check (`docs/windows-check.md`). Since 2026-11-03 the
 website has a handbook in place of the single guide page (see below). The first public forum post went out on 2026-10-30; there are no outside users or
 feedback yet.
 
