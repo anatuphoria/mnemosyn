@@ -17,6 +17,7 @@ from cns_study.progress import ProgressStore
 from cns_study.questions import pool_for
 from cns_study.session import QuizChoice, Session, utc_now
 
+from .design import dialogs
 from .design.tokens import SIZE
 from .views.progress_dialog import ProgressDialog
 from .views.quiz_setup import QuizSetup
@@ -43,9 +44,8 @@ class QuizMode:
             self._store = ProgressStore(self.progress_path, name)
             if self._store.recovered_from is not None:
                 title, text = RECOVERED[self._store.recovery_reason]
-                self.recovery_box = QMessageBox(
-                    QMessageBox.Icon.Warning, title, text.format(path=self._store.recovered_from),
-                    QMessageBox.StandardButton.Ok, self)
+                self.recovery_box = dialogs.message_box(
+                    self, "warning", title, text.format(path=self._store.recovered_from))
                 self.recovery_box.open()
         return self._store
 
@@ -78,7 +78,7 @@ class QuizMode:
         if not chosen:
             return
         text = BACKUP_DONE if self.backup_progress(Path(chosen)) else BACKUP_FAILED
-        QMessageBox.information(self, "Back up progress", text.format(path=chosen))
+        dialogs.inform(self, "Back up progress", text.format(path=chosen))
 
     def reset_progress(self) -> Path | None:
         if self.quiz_active:
@@ -88,7 +88,7 @@ class QuizMode:
     def ask_reset(self) -> None:
         if self.quiz_active:
             return
-        answer = QMessageBox.question(
+        answer = dialogs.ask(
             self, "Reset progress", RESET_QUESTION,
             QMessageBox.StandardButton.Reset | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel)
@@ -96,7 +96,7 @@ class QuizMode:
             return
         kept = self.reset_progress()
         if kept is not None:
-            QMessageBox.information(self, "Reset progress", RESET_DONE.format(path=kept))
+            dialogs.inform(self, "Reset progress", RESET_DONE.format(path=kept))
 
     def show_progress(self) -> ProgressDialog:
         dialog = ProgressDialog(self.state.atlas, self.progress_store(), self)

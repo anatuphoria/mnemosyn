@@ -63,12 +63,11 @@ These were left out of earlier designs on purpose and are expected to come back.
 1. More Lab systems: the long term control of blood pressure (kidney, renin and salt; the reflex
    is decision 90), sleep, hunger. Each needs a model file, not new engine or
    screen code. Linking systems (for example cortisol raising blood pressure) is a later design.
-2. Opening `.mnemolab` files from the file manager.
-3. Translating the texts, which are already prepared for it.
-4. A light theme, which the design system leaves room for.
-5. Code signing of the Windows installer, for example through the SignPath Foundation programme.
-6. Automatic updates and package managers (winget, Flathub).
-7. The Mac build (decision 86) is on the Download page with a notice that it waits for a first
+2. Translating the texts, which are already prepared for it.
+3. A light theme, which the design system leaves room for.
+4. Code signing of the Windows installer, for example through the SignPath Foundation programme.
+5. Automatic updates and package managers (winget, Flathub).
+6. The Mac build (decision 86) is on the Download page with a notice that it waits for a first
    hands on check (`docs/mac-check.md`). An Apple signature would remove the
    first open warning.
 

@@ -16,7 +16,7 @@ from cns_atlas.lesions import prepare as prepare_lesions
 from cns_study.answers import AnswerIndex
 from cns_study.progress import ProgressStore
 
-from .design import widgets
+from .design import dialogs, widgets
 from .design.panels import PanelGroup
 from .design.theme import set_role
 from .design.tokens import GAP, SIZE
@@ -159,8 +159,8 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, QMainWindow):
         self.workspaces.capture_defaults({"Explore": self._arrange_explore,
                                           "Slices": self._arrange_slices,
                                           "Pathways": self._arrange_pathways}, narrow)
-        self.ask = lambda title, text, buttons: QMessageBox.question(self, title, text, buttons)
-        self.inform = lambda title, text: QMessageBox.information(self, title, text)
+        self.ask = lambda title, text, buttons: dialogs.ask(self, title, text, buttons)
+        self.inform = lambda title, text: dialogs.inform(self, title, text)
         self.pick_open = lambda: QFileDialog.getOpenFileName(
             self, "Open experiment", "", "Lab experiments (*.mnemolab)")[0]
         self.pick_save = lambda: QFileDialog.getSaveFileName(

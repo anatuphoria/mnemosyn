@@ -15,6 +15,7 @@ def default_atlas() -> Path:
         return Path(sys._MEIPASS) / "atlases" / "cns"
     return DEFAULT_ATLAS
 DISCLAIMER_KEY = "disclaimer_hidden"
+LAB_SUFFIX = ".mnemolab"
 
 
 def apply_identity(app) -> None:
@@ -47,16 +48,37 @@ def offer_welcome(window, box=None) -> None:
         box.finished.connect(lambda _result: window.welcome_if_new())
 
 
-def report_errors(window, folder: Path | None = None):
-    from PySide6.QtWidgets import QMessageBox
+def open_file(window, path) -> bool:
+    path = Path(path)
+    if window.lab is None or path.suffix.lower() != LAB_SUFFIX:
+        return False
+    if window.quiz_active:
+        window.quiz.stop()
+    window.lab.open(path)
+    return True
 
+
+def watch_file_opens(app, window):
+    from PySide6.QtCore import QEvent, QObject
+
+    class Opener(QObject):
+        def eventFilter(self, _watched, event) -> bool:
+            if event.type() == QEvent.Type.FileOpen and event.file():
+                return open_file(window, event.file())
+            return False
+
+    opener = Opener(app)
+    app.installEventFilter(opener)
+    return opener
+
+
+def report_errors(window, folder: Path | None = None):
+    from .design import dialogs
     from .errors import Reporter
     from .views.about_dialog import app_version
 
     def show(text: str) -> None:
-        window.error_box = QMessageBox(QMessageBox.Icon.Warning, "Something went wrong", text,
-                                       QMessageBox.StandardButton.Ok, window)
-        window.error_box.open()
+        window.error_box = dialogs.warn(window, "Something went wrong", text)
 
     reporter = Reporter(folder or window.progress_path.parent, app_version(), show)
     reporter.install()
@@ -111,6 +133,8 @@ def main(argv: list[str] | None = None) -> int:
         description="Mnemosyn: a 3D atlas of the central nervous system")
     parser.add_argument("--atlas", type=Path, default=default_atlas(),
                         help="atlas package directory")
+    parser.add_argument("file", nargs="?", type=Path,
+                        help="a Lab experiment (.mnemolab) to open")
     parser.add_argument("--bench", action="store_true", help="measure on-screen fps, then exit")
     parser.add_argument("--first-frame", action="store_true",
                         help="print the time to the first frame, then exit")
@@ -168,7 +192,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     migrate_progress()
     reporter = report_errors(window)
-    offer_welcome(window, offer_disclaimer(window, settings))
+    watch_file_opens(app, window)
+    box = offer_disclaimer(window, settings)
+    if args.file is None or not open_file(window, args.file):
+        offer_welcome(window, box)
     try:
         return app.exec()
     finally:

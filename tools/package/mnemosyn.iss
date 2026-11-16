@@ -17,6 +17,7 @@ SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 LicenseFile=..\..\LICENSE
+ChangesAssociations=yes
 
 [InstallDelete]
 Type: filesandordirs; Name: "{app}\_internal"
@@ -27,6 +28,12 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdi
 [Icons]
 Name: "{group}\Mnemosyn"; Filename: "{app}\Mnemosyn.exe"
 Name: "{group}\Uninstall Mnemosyn"; Filename: "{uninstallexe}"
+
+[Registry]
+Root: HKCU; Subkey: "Software\Classes\.mnemolab"; ValueType: string; ValueName: ""; ValueData: "Mnemosyn.Experiment"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Experiment"; ValueType: string; ValueName: ""; ValueData: "Mnemosyn Lab experiment"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Experiment\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\Mnemosyn.exe,0"
+Root: HKCU; Subkey: "Software\Classes\Mnemosyn.Experiment\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\Mnemosyn.exe"" ""%1"""
 
 [Run]
 Filename: "{app}\Mnemosyn.exe"; Description: "Open Mnemosyn"; Flags: nowait postinstall skipifsilent

@@ -87,3 +87,19 @@ def test_an_error_in_the_running_app_is_saved_and_shown(window, tmp_path, monkey
         window.error_box.close()
     finally:
         reporter.remove()
+
+
+def test_message_boxes_use_the_apps_own_icons(qapp):
+    from PySide6.QtWidgets import QMessageBox
+
+    from cns_desktop.design import dialogs
+
+    for kind in dialogs.KINDS:
+        box = dialogs.message_box(None, kind, "Title", "Text")
+        picture = box.iconPixmap()
+        assert not picture.isNull() and box.icon() == QMessageBox.Icon.NoIcon
+        assert picture.width() / picture.devicePixelRatio() == dialogs.ICON_SIZE
+        assert box.windowTitle() == "Title" and box.text() == "Text"
+    buttons = QMessageBox.StandardButton.Reset | QMessageBox.StandardButton.Cancel
+    box = dialogs.message_box(None, "question", "T", "t", buttons, QMessageBox.StandardButton.Cancel)
+    assert box.defaultButton() is box.button(QMessageBox.StandardButton.Cancel)

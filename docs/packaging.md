@@ -117,6 +117,13 @@ carries a notice that it has not been checked on a real Mac (`MAC_NOTE` in `tool
 remove the notice when the check has passed. To try a build before a release, run the Release workflow by hand and take the
 `package-macOS` artifact.
 
+## Lab experiment files
+
+Every package registers `.mnemolab` files so a double click opens them in Mnemosyn: the Windows
+installer writes the association for the current user, the AppImage's desktop entry names the file
+type (a desktop integration tool is needed for the system to use it), and the Mac app declares the
+type in its `Info.plist`. The app takes the file as its one argument, `Mnemosyn file.mnemolab`.
+
 ## Library versions in a release
 
 The release build installs the exact library versions listed in

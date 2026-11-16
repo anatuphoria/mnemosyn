@@ -29,5 +29,7 @@ would make a page wrong fails the tests.
 
 ## Opening a Lab experiment
 
-Each Lab experiment comes as a small `.mnemolab` file. Download it, then in Mnemosyn switch to the
-**Lab** and choose **File, Open** (`Ctrl+O`). The experiment opens in the system it was made for.
+Each Lab experiment comes as a small `.mnemolab` file. Download it and double click it: once
+Mnemosyn is installed, these files open in it. If your system does not offer Mnemosyn for the file,
+switch to the **Lab** in Mnemosyn and choose **File, Open** (`Ctrl+O`). Either way the experiment
+opens in the system it was made for.

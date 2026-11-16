@@ -23,4 +23,15 @@ if mac:
            version=version,
            info_plist={"NSHighResolutionCapable": True, "LSMinimumSystemVersion": "14.0",
                        "LSApplicationCategoryType": "public.app-category.education",
-                       "NSHumanReadableCopyright": "GNU General Public License 3.0"})
+                       "NSHumanReadableCopyright": "GNU General Public License 3.0",
+                       "CFBundleDocumentTypes": [{
+                           "CFBundleTypeName": "Mnemosyn Lab experiment",
+                           "CFBundleTypeRole": "Editor",
+                           "LSHandlerRank": "Owner",
+                           "LSItemContentTypes": ["cool.saeed.mnemosyn.mnemolab"]}],
+                       "UTExportedTypeDeclarations": [{
+                           "UTTypeIdentifier": "cool.saeed.mnemosyn.mnemolab",
+                           "UTTypeDescription": "Mnemosyn Lab experiment",
+                           "UTTypeConformsTo": ["public.data"],
+                           "UTTypeTagSpecification": {
+                               "public.filename-extension": ["mnemolab"]}}]})

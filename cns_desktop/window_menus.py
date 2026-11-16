@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QCheckBox,
 
 from cns_atlas import DISCLAIMER
 
-from .design import widgets
+from .design import dialogs, widgets
 from .views.about_dialog import AboutDialog
 from .views.welcome import SEEN_KEY, WelcomeTour
 
@@ -138,8 +138,7 @@ class WindowMenus:
         AboutDialog(self.state.atlas, self).exec()
 
     def show_disclaimer(self) -> QMessageBox:
-        box = QMessageBox(QMessageBox.Icon.Information, "Before you start", DISCLAIMER,
-                          QMessageBox.StandardButton.Ok, self)
+        box = dialogs.message_box(self, "info", "Before you start", DISCLAIMER)
         box.setCheckBox(QCheckBox("Don't show this again", box))
         box.open()
         return box

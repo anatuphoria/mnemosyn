@@ -2,7 +2,8 @@
 Type=Application
 Name=Mnemosyn
 Comment=A 3D atlas of the human central nervous system for students
-Exec=Mnemosyn
+Exec=Mnemosyn %f
+MimeType=application/x-mnemolab;
 Icon=mnemosyn
 Categories=Education;Science;MedicalSoftware;
 Terminal=false
