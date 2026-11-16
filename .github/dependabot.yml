@@ -8,6 +8,4 @@ updates:
     directory: /tools/package
     schedule:
       interval: monthly
-    groups:
-      release-libraries:
-        patterns: ["*"]
+    open-pull-requests-limit: 0

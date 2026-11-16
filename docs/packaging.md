@@ -104,8 +104,10 @@ other than 3.14, Inno Setup not installed, or a source file with a different nam
 
 The release build installs the exact library versions listed in
 `tools/package/requirements-release.txt`, so two builds of the same tag use the same libraries and a
-new library version cannot enter a release unseen. Dependabot proposes updates to that file as pull
-requests. To refresh it by hand:
+new library version cannot enter a release unseen. The versions in that file fit each other as a
+set, so one line must not be changed alone. Dependabot only proposes a change to it when a library
+has a known security problem, and such a pull request needs the build check below before merging.
+To refresh the whole set by hand:
 
 ```bash
 pip install uv
