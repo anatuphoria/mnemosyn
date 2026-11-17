@@ -130,7 +130,7 @@ class LessonWindow(QDialog):
             widget.setVisible(editing)
         self.step_title.setVisible(editing and step is not None)
         self.note.setVisible(editing and step is not None)
-        self.shown_note.setVisible(not editing)
+        self.shown_note.setVisible(not editing or step is None)
         self.edit_button.setVisible(not editing)
         self.up.setEnabled(step is not None and self.index > 0)
         self.down.setEnabled(step is not None and self.index < count - 1)

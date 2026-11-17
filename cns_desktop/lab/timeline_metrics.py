@@ -7,7 +7,7 @@ from cns_desktop.design.tokens import DATA_PALETTE, SIZE, color
 from .timescale import coarse_text
 
 
-LABEL_WIDTH = 150
+LABEL_WIDTH = 164
 RULER_HEIGHT = 24
 OVERVIEW_HEIGHT = SIZE["overview"]
 RIGHT_MARGIN = 8

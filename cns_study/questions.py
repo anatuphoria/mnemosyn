@@ -113,7 +113,7 @@ def lab_items(atlas: Atlas) -> list[Item]:
                 if outcome is None:
                     continue
                 answer, at, measure = outcome
-                value = model.value(row["value"]).name
+                value = _in_sentence(model.value(row["value"]).name)
                 when = _when(at, start, end, model.start_clock, model.scale == "minutes")
                 found.append(Item(
                     stable_id(f"lab:{model.key}:{check.key}:{row['value']}:{at:g}"), "lab",
@@ -123,6 +123,12 @@ def lab_items(atlas: Atlas) -> list[Item]:
                     note=f"In the model, {value} is {measure}.", scope=model.key,
                     source=(model.key, check.key, float(at))))
     return found
+
+
+def _in_sentence(name: str) -> str:
+    if len(name) > 1 and name[1].isupper():
+        return name
+    return name[:1].lower() + name[1:]
 
 
 def question_items(atlas: Atlas, level: str, scope: str | None = None) -> list[Item]:

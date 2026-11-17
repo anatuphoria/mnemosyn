@@ -9,9 +9,10 @@ from cns_atlas.timelines import note_parts
 from cns_lab.why import chain, normal_note, phrase
 
 from ..design import rich
+from ..report import status_html
 from ..views.info_panel import references_html
 
-DRAFT = "Draft: not yet reviewed."
+DRAFT = status_html("draft", "")
 SEPARATOR = "\x1f"
 INTERVAL_MS = 100
 
@@ -116,7 +117,7 @@ class WhyPanel(QTextBrowser):
     def html(self) -> str:
         doc = self.document
         if doc.error:
-            return f"<p>{escape(doc.error)}</p><p><i>{DRAFT}</i></p>"
+            return f"<p>{escape(doc.error)}</p>" + rich.secondary(DRAFT)
         t = doc.playhead
         parts = [f"<h3>{escape(time_heading(doc, t))}</h3>"]
         items: list[str] = []
@@ -156,5 +157,5 @@ class WhyPanel(QTextBrowser):
             parts.append(rich.secondary(f"{rich.chip('edited', 'edited')} "
                                         + " ".join(escape(e) for e in edited)))
         parts += references_html(references)
-        parts.append(f"<p><i>{DRAFT}</i></p>")
+        parts.append(rich.secondary(DRAFT))
         return "".join(parts)

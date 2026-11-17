@@ -21,7 +21,7 @@ def test_the_chain_appears_numbered_with_sources(doc):
     assert "Remove the gland" in text and "Takes the gland away." in text
     assert "Y holds back the making of X [1]." in text and "Y falls to 0% of normal." in text
     assert "References" in text and "Author A" in text
-    assert text.rstrip().endswith("Draft: not yet reviewed.")
+    assert text.rstrip().endswith("Draft · not yet reviewed")
 
 
 def test_no_changes_shows_the_normal_note(doc):
