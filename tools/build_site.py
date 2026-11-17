@@ -199,6 +199,17 @@ def _tabs(parts: dict[str, str]) -> str:
                         for name, text in parts.items())
 
 
+def _home_download(version: str, mac: bool) -> dict[str, str]:
+    if not version:
+        return {"download_files": "", "download_note": ""}
+    base = f"{RELEASES}/download/v{version}"
+    files = " ".join(f'data-{p[0]}="{base}/{_file_name(p, version)}"'
+                     for p in PLATFORMS if mac or p[0] != "mac")
+    note = (f"Version {version}. [Other systems, and how to open it the first time]"
+            "(download.md)\n{ .get-app-note }")
+    return {"download_files": files, "download_note": note}
+
+
 def _download_page(version: str, quickstart: str, mac: bool = False) -> str:
     base = f"{RELEASES}/download/v{version}"
     platforms = [p for p in PLATFORMS if mac or p[0] != "mac"]
@@ -294,6 +305,8 @@ def build_site(repo: Path, out: Path) -> None:
                               ["pathways"]),
               "decisions": len(re.findall(r"^\| \d+ \|", decisions, re.MULTILINE))}
     home = (out / "index.md").read_text()
+    offered = tomllib.loads((out / "download.toml").read_text())
+    counts.update(_home_download(offered.get("version", ""), offered.get("mac", False)))
     for key, value in counts.items():
         home = home.replace(f"@{key}@", str(value))
     (out / "index.md").write_text(home)

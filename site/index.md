@@ -14,7 +14,9 @@ Turn it, slice it, follow a pathway through it, test yourself on it, and change 
 see what follows. Made for students; every shape and sentence cites its source. The spinal cord
 is in [local builds](building-the-atlas.md) only, until its authors allow sharing.
 
-[Download](download.md){ .md-button .md-button--primary } [What is inside](atlas/structures.md){ .md-button }
+[Download](download.md){ .md-button .md-button--primary .get-app @download_files@ } [What is inside](atlas/structures.md){ .md-button }
+
+@download_note@
 
 </div>
 

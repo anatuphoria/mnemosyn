@@ -186,9 +186,14 @@ html { scrollbar-color: var(--mn-line-strong) transparent; }
 .md-typeset .file .file-name { display: block; margin-top: .15rem; font-size: .6rem; color: var(--mn-text3); overflow-wrap: anywhere; }
 .md-typeset .file .file-action { font-size: .66rem; color: var(--mn-text3); }
 .md-typeset .file .file-action .md-button { margin: 0; font-size: .66rem; padding: .45em 1em; white-space: nowrap; }
-.file.is-yours { box-shadow: inset 2px 0 var(--mn-blue); background: var(--mn-tint); }
-.md-typeset .file.is-yours .file-icon { color: var(--mn-link); }
-.md-typeset .file.is-yours .file-system::after { content: "Your system"; display: block; margin-top: .1rem; font-size: .6rem; font-weight: 500; color: var(--mn-link); }
+.file { position: relative; overflow: hidden; }
+.file.is-yours::before { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(110, 150, 240, .12) 42%, rgba(195, 215, 255, .42) 50%, rgba(110, 150, 240, .12) 58%, transparent 70%); transform: translateX(-100%); animation: mn-sweep 2.6s cubic-bezier(.45, 0, .2, 1) .4s infinite; pointer-events: none; }
+[data-md-color-scheme="default"] .file.is-yours::before { background: linear-gradient(100deg, transparent 30%, rgba(61, 111, 214, .08) 42%, rgba(61, 111, 214, .28) 50%, rgba(61, 111, 214, .08) 58%, transparent 70%); }
+@keyframes mn-sweep { 0% { transform: translateX(-100%); } 32%, 100% { transform: translateX(100%); } }
+.md-typeset .file.is-yours .file-system::after { content: "Your system"; display: block; margin-top: .1rem; font-size: .6rem; font-weight: 500; color: var(--mn-text3); }
+.md-typeset .hero .get-app-note { display: none; margin: -.4rem auto 0; font-size: .68rem; color: var(--mn-text3); }
+.md-typeset .hero .get-app-note.is-shown { display: block; }
+@media (prefers-reduced-motion: reduce) { .file.is-yours::before { animation: none; transform: none; background: var(--mn-tint); } }
 .md-typeset .release-line { font-size: .72rem; color: var(--mn-text2); }
 
 .md-typeset .source { margin: 0 0 .4rem; }

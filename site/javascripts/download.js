@@ -47,12 +47,33 @@
     });
   }
 
+  const NAMES = { windows: "Windows", linux: "Linux", mac: "Mac" };
+
+  function offer(button, key) {
+    if (!button.dataset.page) {
+      button.dataset.page = button.getAttribute("href");
+      button.dataset.text = button.textContent;
+    }
+    const file = key && button.dataset[key];
+    const note = document.querySelector(".get-app-note");
+    button.setAttribute("href", file || button.dataset.page);
+    button.textContent = file ? "Download for " + NAMES[key] : button.dataset.text;
+    if (note) note.classList.toggle("is-shown", Boolean(file));
+  }
+
   function choose() {
-    if (!document.querySelector(".get[data-os]")) return;
+    const button = document.querySelector("a.get-app");
+    const page = document.querySelector(".get[data-os]");
+    if (!button && !page) return;
     const key = system();
-    show(key);
-    if (key === "mac" && document.querySelector('.get[data-os="mac-intel"]')) {
-      intelMac().then(function (intel) { if (intel) show("mac-intel"); });
+    if (page) show(key);
+    if (button) offer(button, key);
+    if (key === "mac") {
+      intelMac().then(function (intel) {
+        if (!intel) return;
+        if (page) show("mac-intel");
+        if (button) offer(button, null);
+      });
     }
   }
 
