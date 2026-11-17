@@ -29,9 +29,10 @@ scoring, the brain framed around a Name it target, room for the slices on a narr
 names in the structure tree and named Lab cards. Version 0.5.2 (2026-11-16) adds support and
 safety work (decision 85: an error log, Help items for a newer version, reporting a problem and the
 data folder, backing up and resetting quiz progress, pinned release libraries) and the first Mac
-build for Apple Silicon (decision 86), which the Download page offers with a notice until a Mac
-user has checked it (`docs/mac-check.md`). Version 0.3.1 was checked on Windows by the owner
-on 2026-10-30; 0.5.1, 0.5.2 and 0.6.0 still wait for that check (`docs/windows-check.md`).
+build for Apple Silicon (decision 86), which the Download page offered with a notice until it was
+checked. The owner checked 0.6.0 by hand on a Windows machine and on an Apple Silicon Mac on
+2026-11-17 and found it working well, so the notice is gone; 0.5.1 and 0.5.2 were never checked on
+Windows.
 Version 0.6.0 (2026-11-17) is a feature release (decisions 87 to 94): quiz questions on route order
 and Lab outcomes, the review status and a report link on every text, a welcome tour, two more Lab
 systems (the blood pressure reflex in minutes and blood pressure over days), opening experiment
@@ -71,9 +72,7 @@ These were left out of earlier designs on purpose and are expected to come back.
 3. Switching the theme without a restart (the light theme itself is decision 94).
 4. Code signing of the Windows installer, for example through the SignPath Foundation programme.
 5. Automatic updates and package managers (winget, Flathub).
-6. The Mac build (decision 86) is on the Download page with a notice that it waits for a first
-   hands on check (`docs/mac-check.md`). An Apple signature would remove the
-   first open warning.
+6. An Apple signature for the Mac build (decision 86) would remove the first open warning.
 
 ## Handbook (done)
 
