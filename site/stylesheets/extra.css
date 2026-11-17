@@ -163,16 +163,32 @@ html { scrollbar-color: var(--mn-line-strong) transparent; }
 .chip.gold { color: var(--mn-gold-text); border-color: rgba(217, 164, 65, .45); background: var(--mn-gold-tint); }
 .chip.blue { color: var(--mn-link); border-color: rgba(61, 111, 214, .45); background: var(--mn-tint); }
 
-.platforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .8rem; margin: 0 0 1.2rem; }
-.platform { display: flex; flex-direction: column; padding: 1.1rem 1.1rem 1rem; border: 1px solid var(--mn-line); border-radius: var(--mn-radius-large); background: var(--mn-surface); }
-.md-typeset .platform p { margin: 0; }
-.md-typeset .platform .platform-icon { font-size: 1.5rem; line-height: 1; color: var(--mn-text); margin-bottom: .7rem; }
-.md-typeset .platform .platform-name { font-size: .92rem; font-weight: 600; }
-.md-typeset .platform .platform-needs { font-size: .68rem; line-height: 1.5; color: var(--mn-text2); margin: .25rem 0 .9rem; flex: 1; }
-.md-typeset .platform .platform-note { margin: -.3rem 0 .9rem; }
-.md-typeset .platform .platform-note .chip { white-space: normal; line-height: 1.35; border-radius: .25rem; padding: .35em .6em; }
-.md-typeset .platform .md-button { display: block; text-align: center; padding: .6em .6em; }
-.md-typeset .platform .platform-file { font-size: .6rem; line-height: 1.5; min-height: 3em; color: var(--mn-text3); margin-top: .55rem; overflow-wrap: anywhere; }
+.get { position: relative; overflow: hidden; display: grid; grid-template-columns: 3.4rem 1fr; align-items: start; margin: 0 0 2.2rem; padding: 1.7rem 1.9rem 1.5rem; border: 1px solid var(--mn-line); border-radius: var(--mn-radius-large); background: var(--mn-surface); }
+.get[hidden] { display: none; }
+.get::after { content: ""; position: absolute; right: -3.6rem; top: 50%; width: 12rem; height: 12rem; transform: translateY(-50%); background: url("../assets/mark.svg") center / contain no-repeat; opacity: .05; pointer-events: none; }
+.md-typeset .get > p { grid-column: 2; margin: 0; position: relative; z-index: 1; }
+.md-typeset .get > .get-icon { grid-column: 1; grid-row: 1 / span 4; font-size: 2.3rem; line-height: 1; color: var(--mn-text); padding-top: .2rem; }
+.md-typeset .get-elsewhere > .get-icon { color: var(--mn-text3); }
+.md-typeset .get-elsewhere .get-needs { margin-bottom: 0; }
+.md-typeset .get .get-name { font-family: var(--mn-serif); font-size: 1.6rem; line-height: 1.15; color: var(--mn-text); }
+.md-typeset .get .get-needs { max-width: 30rem; margin: .4rem 0 1.2rem; font-size: .72rem; line-height: 1.6; color: var(--mn-text2); }
+.md-typeset .get .get-action { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.md-typeset .get .get-action .md-button { margin: 0; font-size: .78rem; padding: .7em 1.6em; }
+.md-typeset .get .get-file { font-size: .64rem; color: var(--mn-text3); overflow-wrap: anywhere; }
+.md-typeset .get .get-other { margin-top: 1.1rem; font-size: .66rem; color: var(--mn-text3); }
+
+.files { margin: 0 0 1.4rem; border-top: 1px solid var(--mn-line); }
+.file { display: grid; grid-template-columns: 1.6rem 5.5rem 1fr auto; column-gap: .9rem; align-items: center; padding: .9rem .3rem; border-bottom: 1px solid var(--mn-line); }
+.md-typeset .file p { margin: 0; }
+.md-typeset .file .file-icon { font-size: 1.15rem; line-height: 1; color: var(--mn-text2); }
+.md-typeset .file .file-system { font-size: .78rem; font-weight: 600; color: var(--mn-text); }
+.md-typeset .file .file-needs { font-size: .66rem; line-height: 1.55; color: var(--mn-text2); }
+.md-typeset .file .file-name { display: block; margin-top: .15rem; font-size: .6rem; color: var(--mn-text3); overflow-wrap: anywhere; }
+.md-typeset .file .file-action { font-size: .66rem; color: var(--mn-text3); }
+.md-typeset .file .file-action .md-button { margin: 0; font-size: .66rem; padding: .45em 1em; white-space: nowrap; }
+.file.is-yours { box-shadow: inset 2px 0 var(--mn-blue); background: var(--mn-tint); }
+.md-typeset .file.is-yours .file-icon { color: var(--mn-link); }
+.md-typeset .file.is-yours .file-system::after { content: "Your system"; display: block; margin-top: .1rem; font-size: .6rem; font-weight: 500; color: var(--mn-link); }
 .md-typeset .release-line { font-size: .72rem; color: var(--mn-text2); }
 
 .md-typeset .source { margin: 0 0 .4rem; }
@@ -232,3 +248,13 @@ html { scrollbar-color: var(--mn-line-strong) transparent; }
 @media (max-width: 45em) { .grid-three { grid-template-columns: 1fr; } }
 @media (max-width: 30em) { .features, .closer { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+@media screen and (max-width: 44em) {
+  .get { grid-template-columns: 2.6rem 1fr; padding: 1.3rem 1.1rem 1.2rem; }
+  .get::after { width: 8rem; height: 8rem; right: -3rem; }
+  .md-typeset .get > .get-icon { font-size: 1.8rem; }
+  .md-typeset .get .get-name { font-size: 1.3rem; }
+  .file { grid-template-columns: 1.6rem 1fr auto; row-gap: .35rem; }
+  .md-typeset .file .file-needs { grid-column: 2 / span 2; grid-row: 2; }
+}
+

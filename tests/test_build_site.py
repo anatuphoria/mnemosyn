@@ -130,6 +130,28 @@ def test_the_mac_download_is_offered_only_once_it_is_switched_on(tmp_path):
     assert page.count(".md-button--primary") == 3
 
 
+def test_the_download_page_offers_one_panel_per_system_for_the_script_to_choose(tmp_path):
+    build_site(download_settings(tmp_path, "0.6.0", mac=True), tmp_path / "out")
+    page = (tmp_path / "out/download.md").read_text()
+    for key in ("windows", "linux", "mac", "mobile", "mac-intel"):
+        assert '<div class="get' in page and f'data-os="{key}" hidden markdown>' in page, key
+    for key in ("windows", "linux", "mac"):
+        assert f'<div class="file" data-os="{key}" markdown>' in page, key
+    assert "Download for Windows" in page and "Download for Mac" in page
+    assert "## All downloads" in page and "](#all-downloads)" in page
+    assert "not yet checked" not in page and "build machine" not in page
+    script = (tmp_path / "out/javascripts/download.js").read_text()
+    assert "userAgentData" in script and "mac-intel" in script and "document$" in script
+    config = (Path(__file__).resolve().parent.parent / "mkdocs.yml").read_text()
+    assert "javascripts/download.js" in config
+
+
+def test_without_the_mac_no_panel_mentions_it(tmp_path):
+    build_site(download_settings(tmp_path, "0.6.0"), tmp_path / "out")
+    page = (tmp_path / "out/download.md").read_text()
+    assert 'data-os="mac' not in page and "Windows and Linux, with a 3D view" in page
+
+
 def test_the_download_page_links_the_published_versions_files(tmp_path):
     build_site(download_settings(tmp_path, "0.4.2"), tmp_path / "out")
     page = (tmp_path / "out/download.md").read_text()

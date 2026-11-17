@@ -1017,3 +1017,18 @@ background in both themes.
 Why: the owner asked for a Settings window, there was no place for preferences, and a dark only
 app is hard to use in a bright room or on a projector.
 
+## 95. The Download page offers the file for the visitor's system first
+
+2026-11-17. The three equal cards are replaced. A large panel at the top names the visitor's system
+and offers its file with one button; below it, every file is listed as a row with its system, what
+it needs, its file name and a download button, and the visitor's row is marked. A small script
+reads the browser's platform (the client hints where the browser gives them, the user agent
+otherwise) and shows one of the panels the page already holds. On a Mac it also asks for the
+processor where the browser can tell, and an Intel Mac gets a panel saying the Mac version needs
+Apple Silicon. A phone or tablet gets a panel saying Mnemosyn runs on a computer. If the script
+cannot tell, or scripts are off, no panel shows and the list alone remains, so nothing depends on
+the guess. Nothing is sent anywhere. The Mac file lost its "not yet checked" notice after the
+owner's check of 0.6.0.
+Why: the owner found the cards plain, and most visitors need exactly one file; picking it for them
+removes a choice without hiding the others.
+

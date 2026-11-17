@@ -126,7 +126,6 @@ PLATFORMS = (
     ("mac", ":material-apple:", "Mac", "macOS-arm64.dmg", "Disk image",
      "Apple Silicon (M1 or later) with macOS 14 or later. Intel Macs are not supported."),
 )
-MAC_NOTE = '<span class="chip gold">New, not yet checked on a real Mac</span>'
 OPENING = {
     "windows": """Run the installer. This test version is not signed yet, so Windows may show
 "Windows protected your PC": choose **More info**, then **Run anyway**. Mnemosyn installs for your
@@ -144,22 +143,55 @@ could not check the app. Close that message, open **System Settings**, then
 **Privacy & Security**, scroll down to the line about Mnemosyn and choose **Open Anyway**. You
 only do this once. On a Mac managed by a school or an employer this choice may be switched off.
 
-The Mac version is new and has so far only been started on a build machine. If something looks
-wrong, **Help**, then **Report a problem** tells us. Use Cmd wherever the handbook says Ctrl.""",
+Use Cmd wherever the handbook says Ctrl.""",
 }
 
 
-def _platform_card(platform: tuple, version: str, base: str) -> str:
-    key, icon, name, suffix, kind, needs = platform
-    note = f'\n\n{MAC_NOTE}\n{{ .platform-note }}' if key == "mac" else ""
+ELSEWHERE = {
+    "mobile": (":material-monitor:", "Mnemosyn runs on a computer",
+               "It is a desktop app for {systems}, with a 3D view that needs a "
+               "keyboard and a mouse or trackpad. Open this page on a computer, or send yourself "
+               "the link."),
+    "mac-intel": (":material-apple:", "This Mac needs Apple Silicon",
+                  "The Mac version runs on M1 or later. This Mac seems to have an Intel "
+                  "processor, so it cannot run it yet."),
+}
+
+
+def _file_name(platform: tuple, version: str) -> str:
+    return f"Mnemosyn-{version}-{platform[3]}"
+
+
+def _get_panel(platform: tuple, version: str, base: str) -> str:
+    key, icon, name, _suffix, _kind, needs = platform
+    file = _file_name(platform, version)
+    return (f'<div class="get" data-os="{key}" hidden markdown>\n\n{icon}\n{{ .get-icon }}\n\n'
+            f"Mnemosyn for {name}\n{{ .get-name }}\n\nVersion {version}. {needs}\n"
+            f"{{ .get-needs }}\n\n[:material-download: Download for {name}]({base}/{file})"
+            f"{{ .md-button .md-button--primary }} <span class=\"get-file\">{file}</span>\n"
+            f"{{ .get-action }}\n\nNot on {name}? [All downloads](#all-downloads) are listed "
+            "below.\n{ .get-other }\n\n</div>")
+
+
+def _elsewhere_panel(key: str, systems: str) -> str:
+    icon, title, text = ELSEWHERE[key]
+    text = text.replace("{systems}", systems)
+    return (f'<div class="get get-elsewhere" data-os="{key}" hidden markdown>\n\n{icon}\n'
+            f"{{ .get-icon }}\n\n{title}\n{{ .get-name }}\n\n{text}\n{{ .get-needs }}\n\n"
+            "[All downloads](#all-downloads) are listed below.\n{ .get-other }\n\n</div>")
+
+
+def _file_row(platform: tuple, version: str, base: str) -> str:
+    key, icon, name, _suffix, kind, needs = platform
     if version:
-        file = f"Mnemosyn-{version}-{suffix}"
-        action = (f"[:material-download: {kind}]({base}/{file}){{ .md-button .md-button--primary }}"
-                  f"\n\n{file}\n{{ .platform-file }}")
+        file = _file_name(platform, version)
+        action = f"[:material-download: {kind}]({base}/{file}){{ .md-button }}"
+        detail = f"{needs} <span class=\"file-name\">{file}</span>"
     else:
-        action = "Coming soon\n{ .platform-file }"
-    return (f'<div class="platform" markdown>\n\n{icon}\n{{ .platform-icon }}\n\n{name}\n'
-            f"{{ .platform-name }}\n\n{needs}\n{{ .platform-needs }}{note}\n\n{action}\n\n</div>")
+        action, detail = "Coming soon", needs
+    return (f'<div class="file" data-os="{key}" markdown>\n\n{icon}\n{{ .file-icon }}\n\n'
+            f"{name}\n{{ .file-system }}\n\n{detail}\n{{ .file-needs }}\n\n{action}\n"
+            "{ .file-action }\n\n</div>")
 
 
 def _tabs(parts: dict[str, str]) -> str:
@@ -170,8 +202,14 @@ def _tabs(parts: dict[str, str]) -> str:
 def _download_page(version: str, quickstart: str, mac: bool = False) -> str:
     base = f"{RELEASES}/download/v{version}"
     platforms = [p for p in PLATFORMS if mac or p[0] != "mac"]
-    cards = "\n\n".join(_platform_card(p, version, base) for p in platforms)
+    rows = "\n\n".join(_file_row(p, version, base) for p in platforms)
+    panels = ""
     if version:
+        found = [_get_panel(p, version, base) for p in platforms]
+        names = [p[2] for p in platforms]
+        systems = ", ".join(names[:-1]) + " and " + names[-1]
+        found += [_elsewhere_panel(k, systems) for k in ELSEWHERE if mac or k != "mac-intel"]
+        panels = "\n\n".join(found) + "\n\n"
         details = (f"Version {version}, a test version. Sizes and the `SHA256SUMS.txt` checksum "
                    f"file are on the [release page]({RELEASES}/tag/v{version}).")
     else:
@@ -186,9 +224,11 @@ def _download_page(version: str, quickstart: str, mac: bool = False) -> str:
 Free, for study, and it works without an internet connection.
 {{ .lede }}
 
-<div class="platforms" markdown>
+{panels}## All downloads
 
-{cards}
+<div class="files" markdown>
+
+{rows}
 
 </div>
 
