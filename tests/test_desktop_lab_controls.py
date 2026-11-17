@@ -142,6 +142,8 @@ def test_the_model_tab_fits_the_narrowest_panel(doc, qapp):
     for p in doc.model.parameters:
         if p.panel:
             for widget in (panel.control(p.key), panel.spin(p.key), panel.reset_button(p.key)):
+                if not widget.isVisibleTo(panel):
+                    continue
                 right = widget.mapTo(panel, widget.rect().topRight()).x()
                 assert widget.width() > 0 and right <= SIZE["panel_min"], (p.key, right)
     panel.close()

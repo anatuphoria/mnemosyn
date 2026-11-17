@@ -61,6 +61,14 @@ class TimelineInput:
             self._press = {"kind": "scrub"}
             self.document.set_playhead(self.t_of(pos.x()))
             return
+        if pos.x() < LABEL_WIDTH:
+            lane = next((key for key in self.lane_keys()
+                         if self.lane_rect(key).top() <= pos.y() < self.lane_rect(key).bottom()),
+                        None)
+            if lane is not None:
+                self._press = None
+                self.document.select(("value", lane))
+                return
         index = self._block_at(pos)
         if index is not None:
             block = self.document.experiment.blocks[index]

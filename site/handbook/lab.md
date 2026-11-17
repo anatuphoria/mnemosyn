@@ -63,8 +63,14 @@ arrows thicken and thin with each signal.
 chain of causes, each marked with what it does (drives, holds back, grows) and with its sources.
 With no changes it explains the normal day.
 
-**Go deeper.** **Model** shows every value of the model for experts, with its normal value, range
-and source; edited values are marked in gold. **What this model includes** says what the model
+**Go deeper.** **Model** holds every setting of the model, grouped and folded the way you leave
+them. Each shows its value and unit, and a slider marked at the normal value; click a name to read
+what it means and where the number comes from. Edited settings turn gold, gain a reset button and
+say in plain words what the change does. **Find a setting** searches the names and meanings, and
+**Changed** keeps only what you edited. Click a lane name on the timeline, a part or an arrow, and
+the settings that act on it directly move to the top under **Shapes**, read from the model's own
+formulas. With nothing selected, the top lists your changes and the values that moved most at the
+playhead. **What this model includes** says what the model
 covers and what it leaves out. **Take snapshot** keeps a copy of the current run to compare against.
 
 **Save and share.** **File, Save** writes the experiment as a small `.mnemolab` file that you can

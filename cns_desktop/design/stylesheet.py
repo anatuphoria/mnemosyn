@@ -66,6 +66,9 @@ QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabl
     color: $text3; border-color: $line; }
 *[edited="true"] { border: 1px solid $edited; }
 QSpinBox, QDoubleSpinBox { padding-right: 20px; min-height: ${spin}px; max-height: ${spin}px; }
+QDoubleSpinBox[compact="true"] { padding-right: 8px; }
+QDoubleSpinBox[compact="true"]::up-button, QDoubleSpinBox[compact="true"]::down-button { width: 0px; }
+QDoubleSpinBox[compact="true"]::up-arrow, QDoubleSpinBox[compact="true"]::down-arrow { image: none; width: 0px; }
 QSpinBox::up-button, QDoubleSpinBox::up-button, QSpinBox::down-button,
 QDoubleSpinBox::down-button { width: 18px; border: none; background: transparent; }
 QSpinBox::up-arrow, QDoubleSpinBox::up-arrow { image: $up; width: 10px; height: 10px; }

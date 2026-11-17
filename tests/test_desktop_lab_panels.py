@@ -44,7 +44,7 @@ def test_model_values_cannot_leave_their_range(doc):
     panel = ModelPanel(doc)
     spin = panel.spin("k")
     assert (spin.minimum(), spin.maximum(), spin.value()) == (0.1, 10.0, 1.0)
-    assert spin.suffix() == " model units"
+    assert panel.row("k").unit.text() == "model units" and spin.text() == "1"
     spin.setValue(99.0)
     spin.editingFinished.emit()
     assert doc.experiment.value_map == {"k": 10.0}
@@ -82,6 +82,9 @@ def test_rows_show_name_and_source(doc):
 
 
 def test_every_setting_shows_in_a_narrow_panel(doc, qapp):
+    for parameter in doc.model.parameters:
+        if parameter.panel and parameter.control != "clock":
+            doc.set_value(parameter.key, parameter.high)
     panel = ModelPanel(doc)
     panel.resize(200, 600)
     panel.show()

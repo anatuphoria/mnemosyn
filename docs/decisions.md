@@ -1032,3 +1032,21 @@ owner's check of 0.6.0.
 Why: the owner found the cards plain, and most visitors need exactly one file; picking it for them
 removes a choice without hiding the others.
 
+## 96. The Model tab is rebuilt around context, one row design and search
+
+2026-11-17. The Lab's Model tab was one long list of identical blocks, each with a full number box
+in raw units ("0.5000 times normal", "1.000 fraction"), and switches showed a number box and a
+switch for the same thing. Now every setting is one row: a fold arrow, its name with the unit
+underneath, a value box of one width for the whole tab, a reset button only when changed, and the
+slider or switch below; a changed setting also says in words what the change does. Numbers show up
+to four significant figures, fractions as percentages, and no "number" unit. Groups fold, show how
+many settings in them are changed, and stay folded per system for the session. A search box and a
+**Changed** filter sit on top with **Reset all**. Above the groups a context section answers what
+the student is looking at: select a lane name (newly clickable), a part or an arrow and it lists
+the settings that act on it directly, found by reading the names in the model's formulas through
+its effects but not through other values; with nothing selected and something changed, it lists
+the changes and the three values that moved most from healthy at the playhead. The formula reading
+lives in `cns_lab/relations.py`; rows and groups are their own widgets.
+Why: the owner asked for a Model tab that is more consistent, more useful and aware of what is
+going on, and approved this design.
+
