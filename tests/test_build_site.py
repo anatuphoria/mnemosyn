@@ -146,6 +146,19 @@ def test_the_download_page_offers_one_panel_per_system_for_the_script_to_choose(
     assert "javascripts/download.js" in config
 
 
+def test_the_home_button_carries_each_systems_file_for_the_script(tmp_path):
+    build_site(download_settings(tmp_path / "on", "0.6.0", mac=True), tmp_path / "on/out")
+    home = (tmp_path / "on/out/index.md").read_text()
+    base = "https://github.com/anatuphoria/mnemosyn/releases/download/v0.6.0/"
+    assert "[Download](download.md){ .md-button .md-button--primary .get-app " in home
+    assert f'data-windows="{base}Mnemosyn-0.6.0-Setup.exe"' in home
+    assert f'data-mac="{base}Mnemosyn-0.6.0-macOS-arm64.dmg"' in home
+    assert "{ .get-app-note }" in home and "@download" not in home
+    build_site(download_settings(tmp_path / "soon", ""), tmp_path / "soon/out")
+    home = (tmp_path / "soon/out/index.md").read_text()
+    assert "data-windows" not in home and "get-app-note" not in home and "@download" not in home
+
+
 def test_without_the_mac_no_panel_mentions_it(tmp_path):
     build_site(download_settings(tmp_path, "0.6.0"), tmp_path / "out")
     page = (tmp_path / "out/download.md").read_text()
