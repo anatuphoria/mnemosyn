@@ -101,7 +101,7 @@ def test_the_home_page_invites_specialists_without_changing_its_layout(tmp_path)
     home = (tmp_path / "out/index.md").read_text()
     assert "Help us review it](review.md)" in home
     assert home.count('<div class="start" markdown>') == 1
-    assert home.count("](download.md)") == 2 and "](handbook/index.md)" in home
+    assert home.count("](download.md)") == 3 and "](handbook/index.md)" in home
     assert "install.md" not in home and "[Download](download.md)" in home
 
 
