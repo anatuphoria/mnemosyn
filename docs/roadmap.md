@@ -2,7 +2,7 @@
 
 Where Mnemosyn stands, what is unfinished, and what may come next. Unlike `decisions.md`, nothing
 here is decided: an idea becomes a decision only when the owner approves its design. Last reviewed
-2026-11-16, after version 0.5.2.
+2026-11-17, at version 0.6.0.
 
 ## Vision
 
@@ -31,7 +31,12 @@ safety work (decision 85: an error log, Help items for a newer version, reportin
 data folder, backing up and resetting quiz progress, pinned release libraries) and the first Mac
 build for Apple Silicon (decision 86), which the Download page offers with a notice until a Mac
 user has checked it (`docs/mac-check.md`). Version 0.3.1 was checked on Windows by the owner
-on 2026-10-30; 0.5.1 and 0.5.2 still wait for that check (`docs/windows-check.md`). Since 2026-11-03 the
+on 2026-10-30; 0.5.1, 0.5.2 and 0.6.0 still wait for that check (`docs/windows-check.md`).
+Version 0.6.0 (2026-11-17) is a feature release (decisions 87 to 94): quiz questions on route order
+and Lab outcomes, the review status and a report link on every text, a welcome tour, two more Lab
+systems (the blood pressure reflex in minutes and blood pressure over days), opening experiment
+and lesson files by double click, lessons that a teacher can save and send, a Settings window and
+a light theme. None of it has been used by anyone but the owner yet. Since 2026-11-03 the
 website has a handbook in place of the single guide page (see below). The first public forum post went out on 2026-10-30; there are no outside users or
 feedback yet.
 

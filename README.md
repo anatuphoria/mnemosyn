@@ -79,7 +79,7 @@ three of them play a schematic hormone timeline beside it.
 
 ### Run experiments in the Lab
 
-The Lab runs computed models of two body systems: the stress axis (hypothalamus, pituitary,
+The Lab runs computed models of four body systems. Two came first: the stress axis (hypothalamus, pituitary,
 adrenal cortex and cortisol) after Karin and colleagues (2020), and water balance (plasma sodium,
 vasopressin, the kidney and thirst) after the classic measurements of Robertson and colleagues.
 Drag a change onto the timeline. In the stress axis: remove the pituitary or the adrenal glands,
@@ -89,7 +89,11 @@ the overnight 1 mg and 8 mg dexamethasone tests and the ACTH stimulation test. I
 drink water, stop drinking, give a salty infusion or desmopressin, switch on central or
 nephrogenic diabetes insipidus, SIADH or primary polydipsia, or run the water deprivation and
 desmopressin tests. The model computes every value in real units over hours to weeks, next to the
-untouched normal day. Eight ready made experiments, with their answers, are in the
+untouched normal day. The blood pressure reflex runs in seconds and minutes: stand up, lose blood,
+block a receptor or cut the sensor nerves, and watch pressure, heart rate and both sets of
+autonomic nerves answer. Blood pressure over days shows what sets pressure in the long run: change
+the salt in the diet, give a diuretic or an ACE inhibitor, narrow a renal artery, and follow the
+kidney, renin, angiotensin and aldosterone. Eight ready made experiments, with their answers, are in the
 [handbook](https://mnemo.saeed.cool/handbook/experiments/).
 
 <details><summary>See the Lab after an experiment</summary>
@@ -129,7 +133,21 @@ turn it around: read a patient's signs, place the lesion you think explains them
 typos count) or picked from four. *Find it* names one and you click it in 3D or in a slice.
 *Flashcards* show reviewed descriptions. Choose single structures, groups or tracts, the whole atlas
 or one part of it. Reviews are scheduled with FSRS, the spaced repetition method Anki uses, and your
-progress stays on your computer.
+progress stays on your computer. Two more levels ask for understanding: *What comes next?* walks
+the routes station by station, and *What happens to it?* asks whether a value rises, falls or stays
+normal after a change in the Lab, with the answer drawn from the model's own checks.
+
+### Teach with lessons
+
+A lesson is a saved path through the app: a view, a step of a route, a Lab experiment, a placed
+lesion or a round of questions, each with a note from the teacher. Make one in the Lesson window,
+save it as a small `.mnemolesson` file and send it to a class; it opens by double click and plays
+with Back and Next.
+
+### Know what to trust
+
+Every description and route step says whether a specialist has reviewed it, by whom and when, and
+has a link to report a mistake. Texts not yet reviewed are marked as drafts.
 
 ### One interface for all of it
 
