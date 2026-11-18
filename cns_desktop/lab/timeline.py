@@ -37,6 +37,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._cache: QPixmap | None = None
         self._cache_key = None
         self._length = document.experiment.length
+        self._changes_offset = 0
         self.scroll = QScrollBar(Qt.Orientation.Vertical, self)
         self.scroll.hide()
         self.scroll.valueChanged.connect(lambda _v: self.update())
@@ -46,6 +47,16 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         document.model_changed.connect(self._on_model)
         document.playhead_moved.connect(lambda _t: self.update())
         document.selection_changed.connect(lambda _s: self.update())
+
+    @property
+    def changes_offset(self) -> int:
+        return min(self._changes_offset, self.changes_room())
+
+    def scroll_changes(self, pixels: int) -> None:
+        offset = min(max(self.changes_offset + pixels, 0), self.changes_room())
+        if offset != self._changes_offset:
+            self._changes_offset = offset
+            self.update()
 
     @property
     def show_overview(self) -> bool:
@@ -88,6 +99,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._cache = None
         self._hover_pos = None
         self.scroll.setValue(0)
+        self._changes_offset = 0
         self._fit_height()
         self._sync_scroll()
 
@@ -101,6 +113,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
             self.span = (0.0, length)
             self.scroll.setValue(0)
             self._hover_pos = None
+        self._changes_offset = self.changes_offset
         self._sync_scroll()
         self.update()
 

@@ -314,6 +314,7 @@ def test_the_header_stays_while_the_body_scrolls(timeline):
 
 def test_scrolled_away_changes_cannot_be_grabbed_through_the_header(timeline):
     crowd(timeline)
+    timeline.resize(1000, 160)
     timeline.scroll.setValue(timeline.scroll.maximum())
     assert timeline.block_rect(0).top() < timeline.body_top()
     y = round(timeline.ruler_rect().center().y())
@@ -652,3 +653,43 @@ def test_the_later_of_two_doses_at_one_moment_is_picked(timeline):
     doc.add_block("pill", 300.0)
     doc.add_block("pill", 300.0)
     assert timeline._block_at(timeline.block_rect(1).center()) == 1
+
+
+def crowd_bars(doc):
+    for start in (60.0, 70.0, 80.0, 90.0, 100.0):
+        doc.add_block("stress", start)
+
+
+def test_many_changes_never_push_the_lanes_down(timeline):
+    keys = timeline.lane_keys()
+    top = timeline.lane_rect(keys[0]).top()
+    crowd_bars(timeline.document)
+    assert timeline.changes_view_height() == 3 * SIZE["control"]
+    assert timeline.lane_rect(keys[0]).top() == top + 2 * SIZE["control"]
+
+
+def test_the_changes_area_scrolls_on_its_own(timeline):
+    crowd_bars(timeline.document)
+    keys = timeline.lane_keys()
+    lane = timeline.lane_rect(keys[0]).top()
+    hidden = timeline.block_rect(4)
+    assert hidden.top() >= timeline.changes_rect().bottom()
+    timeline.scroll_changes(10_000)
+    assert timeline.changes_offset == 2 * SIZE["control"]
+    assert timeline.changes_rect().contains(timeline.block_rect(4).center())
+    assert timeline.lane_rect(keys[0]).top() == lane
+
+
+def test_hidden_changes_cannot_be_grabbed_through_the_lanes(timeline):
+    crowd_bars(timeline.document)
+    rect = timeline.block_rect(4)
+    assert timeline._block_at(rect.center()) is None
+
+
+def test_removing_changes_pulls_the_changes_scroll_back(timeline):
+    doc = timeline.document
+    crowd_bars(doc)
+    timeline.scroll_changes(10_000)
+    for _ in range(4):
+        doc.delete_block(0)
+    assert timeline.changes_offset == 0

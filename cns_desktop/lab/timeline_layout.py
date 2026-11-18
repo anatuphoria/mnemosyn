@@ -12,7 +12,7 @@ from .experiments_panel import icon_for
 from .labels import plain
 from .lane_values import lane_scale, mark_text, tone
 from .timeline_metrics import (BADGE_INSET, BADGE_PAD, BAR_GAP, BAR_INSET, BLOCK_ROW, DOSE_ROW,
-                               GRAB, MARKER,
+                               GRAB, MARKER, MAX_BAR_ROWS,
                                LABEL_WIDTH, LANE_HEIGHT,
                                MIN_BLOCK_WIDTH, NAME_ROW,
                                OVERVIEW_HEIGHT, PAD, RIGHT_MARGIN,
@@ -49,7 +49,7 @@ class TimelineLayout:
         return self.ruler_rect().bottom()
 
     def _body_height(self) -> float:
-        return self.changes_height() + len(self.lane_keys()) * LANE_HEIGHT
+        return self.changes_view_height() + len(self.lane_keys()) * LANE_HEIGHT
 
     def wanted_height(self) -> int:
         return math.ceil(self.body_top() + self._body_height())
@@ -133,17 +133,33 @@ class TimelineLayout:
         return self._dose_height() + BLOCK_ROW * self._bar_rows()
 
     def _bars_top(self) -> float:
-        return self._changes_top() + self._dose_height()
+        return self._changes_top() + self._dose_height() - self.changes_offset
+
+    def changes_view_height(self) -> float:
+        return min(self.changes_height(), self._dose_height() + MAX_BAR_ROWS * BLOCK_ROW)
+
+    def changes_room(self) -> int:
+        return max(round(self.changes_height() - self.changes_view_height()), 0)
+
+    def changes_rect(self) -> QRectF:
+        return QRectF(0, self._changes_top(), self.width(), self.changes_view_height())
+
+    def bars_rect(self) -> QRectF:
+        return self.changes_rect().adjusted(0, self._dose_height(), 0, 0)
+
+    def doses_rect(self) -> QRectF:
+        area = self.changes_rect()
+        return QRectF(area.left(), area.top(), area.width(), self._dose_height())
 
     def _changes_top(self) -> float:
         return self.body_top() - self.scroll.value()
 
     def _lanes_top(self) -> float:
-        return self._changes_top() + self.changes_height()
+        return self._changes_top() + self.changes_view_height()
 
     def _lane_height(self) -> float:
         count = max(len(self.lane_keys()), 1)
-        room = self.height() - self.body_top() - self.changes_height()
+        room = self.height() - self.body_top() - self.changes_view_height()
         return max(LANE_HEIGHT, room / count)
 
     def x_of(self, t: float) -> float:
@@ -194,8 +210,10 @@ class TimelineLayout:
         blocks = self.document.experiment.blocks
         newest_first = list(reversed(range(len(blocks))))
         order = [i for i in newest_first if not blocks[i].present]
+        bars, doses = self.bars_rect(), self.doses_rect()
         for index in order + [i for i in newest_first if blocks[i].present]:
-            if self.block_rect(index).contains(pos):
+            area = doses if self.block_kind(index) == "dose" else bars
+            if area.contains(pos) and self.block_rect(index).contains(pos):
                 return index
         return None
 

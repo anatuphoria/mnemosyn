@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor, QFontMetricsF, QPainter, QPainterPath, QPen, Q
 
 from cns_desktop.design import icons
 from cns_desktop.design.fonts import font
-from cns_desktop.design.tokens import RADIUS, SIZE, color
+from cns_desktop.design.tokens import GAP, RADIUS, SIZE, color
 
 from .lane_values import lane_scale
 from .timeline_metrics import (BACKGROUND, BADGE_INSET, BADGE_PAD, BAR, BAR_INSET, BLOCK,
@@ -20,7 +20,8 @@ class TimelinePaint:
     def _background(self) -> QPixmap:
         doc = self.document
         key = (self.size().toTuple(), self.span, self.compare_on, frozenset(self.hidden),
-               self.changes_height(), self.scroll.value(), self.scroll.isHidden(),
+               self.changes_height(), self.changes_view_height(), self.changes_offset,
+               self.scroll.value(), self.scroll.isHidden(),
                self.show_overview, self.highlighted, id(doc.run), id(doc.normal),
                id(doc.snapshot))
         if self._cache is None or key != self._cache_key:
@@ -98,7 +99,7 @@ class TimelinePaint:
             painter.drawText(rect, Qt.AlignmentFlag.AlignBottom, text)
 
     def _paint_changes_row(self, painter: QPainter) -> None:
-        top, changes = self._changes_top(), self.changes_height()
+        top, changes = self._changes_top(), self.changes_view_height()
         painter.setFont(font("label"))
         painter.setPen(INK)
         painter.drawText(QRectF(PAD, top, LABEL_WIDTH - PAD, changes),
@@ -110,8 +111,12 @@ class TimelinePaint:
     def _paint_blocks(self, painter: QPainter) -> None:
         doc = self.document
         blocks = doc.experiment.blocks
+        plot = painter.clipBoundingRect()
+        bars = self.bars_rect().intersected(plot)
+        doses = self.doses_rect().intersected(plot)
         for index in sorted(range(len(blocks)), key=lambda i: not blocks[i].present):
             block = blocks[index]
+            painter.setClipRect(doses if self.block_kind(index) == "dose" else bars)
             preview = self._preview_of(index)
             rect = self.block_rect(index, preview)
             label = self.block_label_rect(index, preview)
@@ -134,6 +139,22 @@ class TimelinePaint:
                                                     Qt.TextElideMode.ElideRight,
                                                     max(int(text_rect.width()), 0))
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter, name)
+        painter.setClipRect(plot)
+        self._paint_changes_scroll(painter)
+
+    def _paint_changes_scroll(self, painter: QPainter) -> None:
+        room = self.changes_room()
+        if not room:
+            return
+        area = self.bars_rect()
+        share = area.height() / (area.height() + room)
+        height = max(area.height() * share, GAP["small"])
+        top = area.top() + (area.height() - height) * self.changes_offset / room
+        width = GAP["tight"]
+        left = LABEL_WIDTH + self._plot_width() - width - GAP["tight"] / 2
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(MUTED)
+        painter.drawRoundedRect(QRectF(left, top, width, height), width / 2, width / 2)
 
     def _paint_hover(self, painter: QPainter) -> None:
         values = self.hover_values()
