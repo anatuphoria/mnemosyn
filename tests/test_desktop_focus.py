@@ -185,3 +185,19 @@ def test_a_click_leaves_a_whole_frame_behind_not_the_pickers(window):
     lit = (settled.sum(axis=1) > 30).sum()
     assert (after.sum(axis=1) > 30).sum() >= 0.9 * lit
     assert before.shape == after.shape
+
+
+def test_a_lesion_or_answer_body_is_never_covered_by_the_front_layer(window):
+    import pyvista as pv
+
+    view = window.view
+    window.state.set_focus(ROUTE)
+    assert view.front.shown
+    view.set_lesion_body(pv.Sphere())
+    assert view.front.shown == frozenset()
+    view.set_lesion_body(None)
+    assert view.front.shown == drawn_in_focus(view, ROUTE)
+    view.set_answer_body(pv.Sphere())
+    assert view.front.shown == frozenset()
+    view.set_answer_body(None)
+    assert view.front.shown == drawn_in_focus(view, ROUTE)

@@ -81,6 +81,8 @@ class BrainView(QtInteractor):
             self.renderer.AddActor(actor)
         self.chunks.apply_focus(state.focus, FAINT)
         self._grey = 1.0
+        self.lesion_actor = None
+        self.answer_actor = None
         self.front = FrontLayer(self.ren_win, self.renderer, 1)
         self.outline = OutlineLayer(self.ren_win, self.renderer, 2)
         self._sync_front()
@@ -106,8 +108,6 @@ class BrainView(QtInteractor):
         self.overlay_ids: list[int] = []
         self._left_over: set[int] = set()
         self._plane_key = None
-        self.lesion_actor = None
-        self.answer_actor = None
         self.plane = self.add_mesh(pv.Plane(), color="white", opacity=PLANE_OPACITY,
                                    pickable=False, reset_camera=False, lighting=False)
 
@@ -216,7 +216,9 @@ class BrainView(QtInteractor):
 
     def _sync_front(self) -> None:
         focus = self.state.focus
-        ids = [] if focus is None or self._grey < 1.0 else [
+        covered = any(actor is not None and actor.GetVisibility()
+                      for actor in (self.lesion_actor, self.answer_actor))
+        ids = [] if focus is None or self._grey < 1.0 or covered else [
             i for i in focus if self.chunks.has(i) and self.chunks.is_visible(i)]
         self.front.show(ids, self.blocks, {i: self.chunks.color_of(i) for i in ids})
 
@@ -260,6 +262,7 @@ class BrainView(QtInteractor):
         elif not empty:
             actor.GetMapper().SetInputData(mesh)
         actor.SetVisibility(not empty)
+        self._sync_front()
         self._render_soon.start()
 
     def set_grey_opacity(self, opacity: float) -> None:
