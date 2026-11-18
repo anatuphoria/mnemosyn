@@ -181,3 +181,12 @@ def test_duplicating_copies_the_block_right_after_it(doc):
     assert copy.experiment == "stress" and copy.option_map == {"strength": 3.0}
     assert copy.length == 90.0 and copy.start == 190.0
     assert doc.selection == ("block", 1)
+
+
+def test_resizing_a_block_is_one_undo_step(doc):
+    doc.add_block("stress", 300.0)
+    doc.resize_block(0, 240.0, 120.0)
+    assert (doc.experiment.blocks[0].start, doc.experiment.blocks[0].length) == (240.0, 120.0)
+    assert doc.undo.count() == 2
+    doc.resize_block(0, 240.0, 120.0)
+    assert doc.undo.count() == 2

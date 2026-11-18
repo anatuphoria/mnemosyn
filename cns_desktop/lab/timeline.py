@@ -17,6 +17,7 @@ __all__ = ["BLOCK", "CHANGES_HEIGHT", "LABEL_WIDTH", "LANE_COLORS", "LANE_HEIGHT
 
 class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
     edit_requested = Signal(int)
+    hint_changed = Signal(str)
 
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
@@ -34,6 +35,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
         self._press = None
+        self.hint = ""
         self._cache: QPixmap | None = None
         self._cache_key = None
         self._length = document.experiment.length

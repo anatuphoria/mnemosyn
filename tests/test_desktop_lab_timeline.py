@@ -735,3 +735,64 @@ def test_ctrl_wins_over_the_lane_names(timeline):
     point = QPointF(LABEL_WIDTH / 2, timeline.lane_rect(timeline.lane_keys()[0]).center().y())
     wheel(timeline, point, 1, Qt.KeyboardModifier.ControlModifier)
     assert timeline.span[1] - timeline.span[0] < DAY
+
+
+def test_the_left_grip_moves_the_start_and_keeps_the_end(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    rect = timeline.block_rect(0)
+    grip = QPoint(round(rect.left()) + 2, round(rect.center().y()))
+    drag(timeline, grip, grip - QPoint(round(timeline.x_of(60.0) - timeline.x_of(0.0)), 0))
+    block = doc.experiment.blocks[0]
+    assert block.start == pytest.approx(240.0, abs=2.0)
+    assert block.start + block.length == pytest.approx(360.0, abs=2.0)
+    assert doc.undo.count() == 2
+
+
+def test_the_left_grip_stops_at_the_least_length(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    rect = timeline.block_rect(0)
+    grip = QPoint(round(rect.left()) + 2, round(rect.center().y()))
+    drag(timeline, grip, QPoint(timeline.width() - 20, grip.y()))
+    block = doc.experiment.blocks[0]
+    assert block.length == doc.scale.least
+    assert block.start + block.length == pytest.approx(360.0, abs=2.0)
+
+
+def test_only_lasting_changes_have_grips(timeline):
+    doc = timeline.document
+    doc.add_block("hold_test", 100.0)
+    doc.add_block("stress", 600.0)
+    test, bar = timeline.block_rect(0), timeline.block_rect(1)
+    assert timeline.grip_at(0, QPointF(test.right() - 2, test.center().y())) is None
+    assert timeline.grip_at(1, QPointF(bar.right() - 2, bar.center().y())) == "end"
+    assert timeline.grip_at(1, QPointF(bar.left() + 2, bar.center().y())) == "start"
+    assert timeline.grip_at(1, bar.center()) is None
+
+
+def test_hovering_a_grip_explains_it(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 600.0)
+    seen = []
+    timeline.hint_changed.connect(seen.append)
+    rect = timeline.block_rect(0)
+    mouse(timeline, QMouseEvent.Type.MouseMove,
+          QPoint(round(rect.right()) - 2, round(rect.center().y())), Qt.MouseButton.NoButton)
+    assert timeline.hint == "drag an edge to change how long it lasts" and seen
+    mouse(timeline, QMouseEvent.Type.MouseMove, rect.center().toPoint(), Qt.MouseButton.NoButton)
+    assert timeline.hint == "drag to move it"
+    mouse(timeline, QMouseEvent.Type.MouseMove, QPoint(round(timeline.x_of(100.0)), round(rect.center().y())),
+          Qt.MouseButton.NoButton)
+    assert timeline.hint == ""
+
+
+def test_a_drag_says_where_the_change_starts_and_how_long_it_lasts(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 180.0)
+    middle = timeline.block_rect(0).center().toPoint()
+    mouse(timeline, QMouseEvent.Type.MouseButtonPress, middle)
+    mouse(timeline, QMouseEvent.Type.MouseMove, middle)
+    assert timeline.drag_label() == "starts 3 h, lasts 1 h"
+    mouse(timeline, QMouseEvent.Type.MouseButtonRelease, middle)
+    assert timeline.drag_label() == ""

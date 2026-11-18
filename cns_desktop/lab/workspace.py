@@ -105,6 +105,7 @@ class LabWorkspace:
         self.brain.on_show_on_timeline = self.show_on_timeline
         self.brain.on_show_in_atlas = self.show_part_in_atlas
         self.timeline.edit_requested.connect(self._edit_block)
+        self.timeline.hint_changed.connect(lambda _text: window._update_status())
         self._saved = None
         self._set_enabled(False)
         window.workspaces.register_lab(self.docks, self.enter, self.leave, self._arrange,
@@ -412,7 +413,8 @@ class LabWorkspace:
         doc = self.document
         changes = _count(len(doc.experiment.blocks), "change", "changes")
         values = _count(len(doc.experiment.values), "value edited", "values edited")
-        return f"{doc.model.name} · healthy adult   │   {changes} · {values}   │   {STATUS_HINT}"
+        hint = self.timeline.hint or STATUS_HINT
+        return f"{doc.model.name} · healthy adult   │   {changes} · {values}   │   {hint}"
 
     def _build_file_menu(self) -> None:
         window = self.window

@@ -12,7 +12,7 @@ from .experiments_panel import icon_for
 from .labels import plain
 from .lane_values import lane_scale, mark_text, tone
 from .timeline_metrics import (BADGE_INSET, BADGE_PAD, BAR_GAP, BAR_INSET, BLOCK_ROW, DOSE_ROW,
-                               GRAB, MARKER, MAX_BAR_ROWS,
+                               GRAB, GRIP, MARKER, MAX_BAR_ROWS,
                                LABEL_WIDTH, LANE_HEIGHT,
                                MIN_BLOCK_WIDTH, NAME_ROW,
                                OVERVIEW_HEIGHT, PAD, RIGHT_MARGIN,
@@ -203,6 +203,27 @@ class TimelineLayout:
         x1 = max(self.x_of(right), x0 + MIN_BLOCK_WIDTH)
         top = self._bars_top() + self.block_rows()[index] * BLOCK_ROW
         return QRectF(x0, top + BAR_GAP, x1 - x0, BLOCK_ROW - 2 * BAR_GAP)
+
+    def grip_at(self, index: int, pos: QPointF) -> str | None:
+        if self.block_kind(index) != "lasting":
+            return None
+        rect = self.block_rect(index)
+        if not rect.contains(pos):
+            return None
+        if pos.x() >= rect.right() - GRIP:
+            return "end"
+        if rect.width() >= 3 * GRIP and pos.x() <= rect.left() + GRIP:
+            return "start"
+        return None
+
+    def drag_label(self) -> str:
+        press = self._press
+        if not press or press.get("kind") not in ("move", "start", "end") or "preview" not in press:
+            return ""
+        start, length = press["preview"]
+        scale = self.document.scale
+        text = f"starts {scale.text(start)}"
+        return f"{text}, lasts {scale.text(length)}" if length is not None else text
 
     def _block_at(self, pos: QPointF) -> int | None:
         if pos.x() < LABEL_WIDTH or pos.y() < self.body_top():

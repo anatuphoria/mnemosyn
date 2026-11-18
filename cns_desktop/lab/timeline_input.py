@@ -5,8 +5,8 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu
 
 from .experiments_panel import MIME
-from .timeline_metrics import (BLOCK_ROW, EDGE, FINE_STEPS, GRAB, LABEL_WIDTH, LANE_HEIGHT,
-                               SWIPE)
+from .timeline_metrics import (BLOCK_ROW, FINE_STEPS, GRAB, HINT_EDGE, HINT_MOVE, LABEL_WIDTH,
+                               LANE_HEIGHT, SWIPE)
 
 
 class TimelineInput:
@@ -45,8 +45,14 @@ class TimelineInput:
             self._hover_pos = pos
             self.update()
 
+    def _set_hint(self, text: str) -> None:
+        if text != self.hint:
+            self.hint = text
+            self.hint_changed.emit(text)
+
     def leaveEvent(self, event) -> None:
         self._set_hover(None)
+        self._set_hint("")
         super().leaveEvent(event)
 
     def mousePressEvent(self, event) -> None:
@@ -77,9 +83,7 @@ class TimelineInput:
             if block.present:
                 self._press = None
                 return
-            rect = self.block_rect(index)
-            stretch = block.length is not None and pos.x() >= rect.right() - EDGE
-            self._press = {"kind": "stretch" if stretch else "move", "block": index,
+            self._press = {"kind": self.grip_at(index, pos) or "move", "block": index,
                            "x": pos.x(), "start": block.start, "length": block.length}
             return
         self._press = {"kind": "pan", "x": pos.x()}
@@ -117,14 +121,20 @@ class TimelineInput:
             start, length = self._limits(self._snap(press["start"] + minutes), press["length"])
             if length is not None and start + length > self.document.experiment.length:
                 start = self.document.experiment.length - length
-        else:
+        elif press["kind"] == "end":
             start, length = self._limits(press["start"],
                                          self._snap(press["length"] + minutes))
+        else:
+            end = press["start"] + press["length"]
+            start = min(max(self._snap(press["start"] + minutes), 0.0),
+                        end - self.document.scale.least)
+            length = end - start
         press["preview"] = (start, length)
         self.update()
 
     def _show_cursor(self, pos: QPointF) -> None:
         index = self._block_at(pos)
+        hint = ""
         window = self.overview_window()
         if pos.y() < self.ruler_rect().top():
             edge = min(abs(pos.x() - window.left()), abs(pos.x() - window.right())) <= GRAB
@@ -134,12 +144,13 @@ class TimelineInput:
         elif self._on_playhead(pos) or self.ruler_rect().contains(pos):
             shape = Qt.CursorShape.SizeHorCursor
         elif index is not None and not self.document.experiment.blocks[index].present:
-            block = self.document.experiment.blocks[index]
-            edge = block.length is not None and pos.x() >= self.block_rect(index).right() - EDGE
+            edge = self.grip_at(index, pos) is not None
             shape = Qt.CursorShape.SizeHorCursor if edge else Qt.CursorShape.OpenHandCursor
+            hint = HINT_EDGE if edge else HINT_MOVE
         else:
             shape = Qt.CursorShape.ArrowCursor
         self.setCursor(shape)
+        self._set_hint(hint)
 
     def mouseDoubleClickEvent(self, event) -> None:
         if event.position().y() < self.body_top():
@@ -156,8 +167,10 @@ class TimelineInput:
         index = press["block"]
         if press["kind"] == "move" and start != press["start"]:
             self.document.move_block(index, start)
-        elif press["kind"] == "stretch" and length != press["length"]:
+        elif press["kind"] == "end" and length != press["length"]:
             self.document.stretch_block(index, length)
+        elif press["kind"] == "start":
+            self.document.resize_block(index, start, length)
         self.update()
 
     def wheelEvent(self, event) -> None:
