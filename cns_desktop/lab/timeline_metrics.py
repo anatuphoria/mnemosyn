@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 
-from cns_desktop.design.tokens import DATA_PALETTE, SIZE, color
+from cns_desktop.design.tokens import DATA_PALETTE, GAP, SIZE, color
 
 from .timescale import coarse_text
 
@@ -11,7 +11,12 @@ LABEL_WIDTH = 164
 RULER_HEIGHT = 24
 OVERVIEW_HEIGHT = SIZE["overview"]
 RIGHT_MARGIN = 8
-CHANGES_HEIGHT = SIZE["lane"]
+BLOCK_ROW = SIZE["control"]
+DOSE_ROW = SIZE["status"]
+MARKER = SIZE["handle"]
+BAR_GAP = GAP["tight"]
+CHANGES_HEIGHT = BLOCK_ROW
+KINDS = ("present", "dose", "lasting", "to_end", "test")
 LANE_HEIGHT = SIZE["lane"]
 PAD = SIZE["panel_pad"]
 EDGE = 6

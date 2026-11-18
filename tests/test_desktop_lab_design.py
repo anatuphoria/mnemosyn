@@ -54,7 +54,7 @@ def test_timeline_lanes_name_their_unit(doc, qapp):
     from cns_desktop.lab import timeline as module
 
     assert module.LABEL_WIDTH == 164 and module.LANE_HEIGHT == SIZE["lane"]
-    assert module.CHANGES_HEIGHT == SIZE["lane"] and module.RULER_HEIGHT == 24
+    assert module.CHANGES_HEIGHT == SIZE["control"] and module.RULER_HEIGHT == 24
     assert module.LANE_COLORS == DATA_PALETTE
     assert module.BLOCK.name() == COLOURS["edited"]
     lanes = module.Timeline(doc)

@@ -5,6 +5,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
+from cns_desktop.design.tokens import SIZE
 from lab_helpers import wait_until
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import MIME
@@ -159,7 +160,7 @@ def test_hidden_lanes_are_skipped(timeline):
 def test_a_zoomed_block_stays_out_of_the_name_column(timeline):
     doc = timeline.document
     blank = timeline.grab().toImage()
-    doc.add_block("pill", 120.0)
+    doc.add_block("course", 120.0)
     timeline.zoom(0.25, 720.0)
     assert timeline.x_of(120.0) < LABEL_WIDTH
     y = round(timeline.block_rect(0).center().y())
@@ -191,7 +192,7 @@ def test_the_playhead_wins_over_a_block_under_it(timeline):
 
 def test_overlapping_changes_stack_in_rows(timeline):
     doc = timeline.document
-    doc.add_block("pill", 300.0)
+    doc.add_block("course", 300.0)
     doc.add_block("stress", 600.0)
     doc.add_block("stress", 100.0)
     first, second, third = (timeline.block_rect(i) for i in range(3))
@@ -292,7 +293,7 @@ def test_a_long_name_never_meets_its_value(timeline):
 
 def crowd(timeline):
     for start in (100.0, 110.0, 120.0, 130.0):
-        timeline.document.add_block("pill", start)
+        timeline.document.add_block("course", start)
     timeline.resize(1000, 260)
 
 
@@ -447,7 +448,7 @@ def test_keys_move_the_playhead(timeline):
 
 
 def test_a_zoomed_change_keeps_its_name_in_view(timeline):
-    timeline.document.add_block("pill", 120.0)
+    timeline.document.add_block("course", 120.0)
     timeline.zoom(0.25, 720.0)
     assert timeline.block_rect(0).left() < LABEL_WIDTH
     assert timeline.block_label_rect(0).left() >= LABEL_WIDTH
@@ -610,3 +611,44 @@ def test_a_tiny_lane_value_leaves_its_unit_whole(timeline):
         _name, unit, _value = timeline.name_layout(key)
         words = doc.simulator.values[key].display_unit
         assert unit.width() >= QFontMetricsF(font("label")).horizontalAdvance(words)
+
+
+def test_each_change_knows_its_kind(timeline):
+    doc = timeline.document
+    for key in ("remove_b", "pill", "stress", "course", "pill_test"):
+        doc.add_block(key, 120.0)
+    assert [timeline.block_kind(i) for i in range(5)] == [
+        "present", "dose", "lasting", "lasting", "test"]
+
+
+def test_a_change_to_the_end_is_its_own_kind(qapp):
+    from cns_desktop.app import DEFAULT_ATLAS
+
+    doc = LabDocument(Atlas.open(DEFAULT_ATLAS), "stress", compute=False)
+    widget = Timeline(doc)
+    doc.add_block("stalk_cut", 120.0)
+    assert widget.block_kind(0) == "to_end"
+
+
+def test_doses_sit_on_their_own_row_and_take_no_bar_row(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 300.0)
+    doc.add_block("pill", 310.0)
+    doc.add_block("stress", 300.0)
+    dose, bar = timeline.block_rect(0), timeline.block_rect(2)
+    assert dose.width() == SIZE["handle"] and dose.bottom() <= bar.top()
+    assert timeline.changes_height() == SIZE["status"] + SIZE["control"]
+
+
+def test_a_dose_at_the_end_of_the_run_stays_inside_the_plot(timeline):
+    timeline.document.add_block("pill", DAY - 1.0)
+    rect = timeline.block_rect(0)
+    assert rect.right() <= LABEL_WIDTH + timeline._plot_width()
+    assert timeline._block_at(rect.center()) == 0
+
+
+def test_the_later_of_two_doses_at_one_moment_is_picked(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 300.0)
+    doc.add_block("pill", 300.0)
+    assert timeline._block_at(timeline.block_rect(1).center()) == 1

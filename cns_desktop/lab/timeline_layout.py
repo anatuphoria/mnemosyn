@@ -11,7 +11,8 @@ from cns_desktop.design.fonts import font
 from .experiments_panel import icon_for
 from .labels import plain
 from .lane_values import lane_scale, mark_text, tone
-from .timeline_metrics import (BADGE_INSET, BADGE_PAD, BAR_INSET, CHANGES_HEIGHT, GRAB,
+from .timeline_metrics import (BADGE_INSET, BADGE_PAD, BAR_GAP, BAR_INSET, BLOCK_ROW, DOSE_ROW,
+                               GRAB, MARKER,
                                LABEL_WIDTH, LANE_HEIGHT,
                                MIN_BLOCK_WIDTH, NAME_ROW,
                                OVERVIEW_HEIGHT, PAD, RIGHT_MARGIN,
@@ -67,11 +68,32 @@ class TimelineLayout:
     def _body_area(self) -> QRectF:
         return QRectF(0, self.body_top(), self.width(), self.height() - self.body_top())
 
+    def block_kind(self, index: int) -> str:
+        block = self.document.experiment.blocks[index]
+        if block.present:
+            return "present"
+        model = self.document.model
+        if any(t.key == block.experiment for t in model.tests):
+            return "test"
+        if block.length is not None:
+            return "lasting"
+        experiment = next((e for e in model.experiments if e.key == block.experiment), None)
+        edits = experiment.edits if experiment is not None else ()
+        if edits and all(e.op == "dose" and not e.daily for e in edits):
+            return "dose"
+        return "to_end"
+
+    def has_doses(self) -> bool:
+        return any(self.block_kind(i) == "dose"
+                   for i in range(len(self.document.experiment.blocks)))
+
     def _block_span(self, index: int) -> tuple[float, float]:
         block = self.document.experiment.blocks[index]
         length = self.document.experiment.length
         if block.present:
             return 0.0, length
+        if self.block_kind(index) == "dose":
+            return block.start, block.start
         size = self._block_length(block)
         return block.start, block.start + size if size is not None else length
 
@@ -88,6 +110,8 @@ class TimelineLayout:
         ends: list[float] = []
         rows = [0] * len(blocks)
         for index in order:
+            if self.block_kind(index) == "dose":
+                continue
             start, end = self._block_span(index)
             row = next((r for r, last in enumerate(ends) if last <= start), len(ends))
             if row == len(ends):
@@ -97,8 +121,19 @@ class TimelineLayout:
             rows[index] = row
         return rows
 
+    def _dose_height(self) -> float:
+        return DOSE_ROW if self.has_doses() else 0.0
+
+    def _bar_rows(self) -> int:
+        rows = self.block_rows()
+        bars = [rows[i] for i in range(len(rows)) if self.block_kind(i) != "dose"]
+        return max(bars, default=0) + 1
+
     def changes_height(self) -> float:
-        return CHANGES_HEIGHT * max(max(self.block_rows(), default=0) + 1, 1)
+        return self._dose_height() + BLOCK_ROW * self._bar_rows()
+
+    def _bars_top(self) -> float:
+        return self._changes_top() + self._dose_height()
 
     def _changes_top(self) -> float:
         return self.body_top() - self.scroll.value()
@@ -127,7 +162,18 @@ class TimelineLayout:
         height = self._lane_height()
         return QRectF(LABEL_WIDTH, self._lanes_top() + index * height, self._plot_width(), height)
 
+    def dose_rect(self, index: int, preview: tuple[float, float | None] | None = None) -> QRectF:
+        block = self.document.experiment.blocks[index]
+        start = preview[0] if preview is not None else block.start
+        half = MARKER / 2
+        run = self.document.experiment.length
+        x = min(max(self.x_of(start), self.x_of(0.0) + half), self.x_of(run) - half)
+        y = self._changes_top() + DOSE_ROW / 2
+        return QRectF(x - half, y - half, MARKER, MARKER)
+
     def block_rect(self, index: int, preview: tuple[float, float | None] | None = None) -> QRectF:
+        if self.block_kind(index) == "dose":
+            return self.dose_rect(index, preview)
         block = self.document.experiment.blocks[index]
         length = self.document.experiment.length
         start, size = preview if preview is not None else (block.start, block.length)
@@ -139,8 +185,8 @@ class TimelineLayout:
             right = start + size if size is not None else length
         x0 = self.x_of(left)
         x1 = max(self.x_of(right), x0 + MIN_BLOCK_WIDTH)
-        top = self._changes_top() + self.block_rows()[index] * CHANGES_HEIGHT
-        return QRectF(x0, top + 4, x1 - x0, CHANGES_HEIGHT - 8)
+        top = self._bars_top() + self.block_rows()[index] * BLOCK_ROW
+        return QRectF(x0, top + BAR_GAP, x1 - x0, BLOCK_ROW - 2 * BAR_GAP)
 
     def _block_at(self, pos: QPointF) -> int | None:
         if pos.x() < LABEL_WIDTH or pos.y() < self.body_top():
