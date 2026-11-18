@@ -216,6 +216,15 @@ class TimelineLayout:
             return "start"
         return None
 
+    def block_caption(self, index: int) -> str:
+        if self.block_kind(index) not in ("lasting", "test"):
+            return ""
+        preview = self._preview_of(index)
+        block = self.document.experiment.blocks[index]
+        size = preview[1] if preview is not None and preview[1] is not None else None
+        size = self._block_length(block) if size is None else size
+        return self.document.scale.text(size) if size is not None else ""
+
     def drag_label(self) -> str:
         press = self._press
         if not press or press.get("kind") not in ("move", "start", "end") or "preview" not in press:

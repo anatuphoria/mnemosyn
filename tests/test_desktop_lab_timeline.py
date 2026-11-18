@@ -796,3 +796,32 @@ def test_a_drag_says_where_the_change_starts_and_how_long_it_lasts(timeline):
     assert timeline.drag_label() == "starts 3 h, lasts 1 h"
     mouse(timeline, QMouseEvent.Type.MouseButtonRelease, middle)
     assert timeline.drag_label() == ""
+
+
+def test_bars_with_a_length_say_it(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    doc.add_block("pill", 600.0)
+    doc.add_block("course", 0.0)
+    doc.add_block("hold_test", 900.0)
+    assert [timeline.block_caption(i) for i in range(4)] == ["1 h", "", "1 d", "2 h"]
+
+
+def test_every_kind_paints_without_error(timeline, qapp):
+    doc = timeline.document
+    for key in ("remove_b", "pill", "stress", "course", "pill_test"):
+        doc.add_block(key, 120.0)
+    doc.select(("block", 2))
+    assert not timeline.grab().isNull()
+
+
+def test_a_dose_is_drawn_as_a_marker_not_a_bar(timeline):
+    doc = timeline.document
+    blank = timeline.grab().toImage()
+    doc.add_block("pill", 300.0)
+    image = timeline.grab().toImage()
+    rect = timeline.block_rect(0)
+    y = round(rect.center().y())
+    assert image.pixel(round(rect.center().x()), y) != blank.pixel(round(rect.center().x()), y)
+    far = round(timeline.x_of(900.0))
+    assert image.pixel(far, y) == blank.pixel(far, y)
