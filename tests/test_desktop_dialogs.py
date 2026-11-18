@@ -5,7 +5,7 @@ from fsrs import Card, Rating, Scheduler
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QEnterEvent
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from atlas_package import tetra, tiny_structures, write_package
 from cns_atlas import DISCLAIMER, Atlas, Source
@@ -98,6 +98,32 @@ def test_local_ids_without_a_source_are_still_named(qapp, tmp_path):
     assert "ghost-source" in dialog.notes[1].text()
 
 
+def test_about_shows_both_licences_and_opens_its_links_through_the_window(local_atlas):
+    opened = []
+
+    class Window(QWidget):
+        def open_url(self, url):
+            opened.append(url.toString())
+
+    window = Window()
+    dialog = AboutDialog(local_atlas, window)
+    assert dialog.app_facts["Licence"] == "GPL 3.0 or later"
+    assert [b.text() for b in dialog.links] == ["Website", "Handbook", "Source code"]
+    for button in dialog.links:
+        button.click()
+    assert opened == ["https://mnemo.saeed.cool/", "https://mnemo.saeed.cool/handbook/",
+                      "https://github.com/anatuphoria/mnemosyn"]
+
+
+def test_the_sources_count_shows_only_on_the_sources_page(local_atlas):
+    dialog = AboutDialog(local_atlas)
+    dialog.show()
+    assert not dialog.summary.isVisible()
+    dialog.switch.set_current("sources")
+    assert dialog.summary.isVisible() and dialog.pages.currentIndex() == 1
+    dialog.close()
+
+
 def test_data_sources_is_a_table_with_short_tags(local_atlas):
     dialog = AboutDialog(local_atlas)
     rows = [(r.provides.text(), r.authors.text(), r.tag.text()) for r in dialog.rows]
@@ -110,7 +136,7 @@ def test_data_sources_is_a_table_with_short_tags(local_atlas):
 def test_clicking_a_source_opens_its_citation_in_place_and_again_closes_it(local_atlas, qapp):
     dialog = AboutDialog(local_atlas)
     dialog.show()
-    dialog.tabs.setCurrentIndex(1)
+    dialog.switch.set_current("sources")
     qapp.processEvents()
     row = dialog.rows[1]
     assert not row.detail.isVisible()
@@ -129,7 +155,7 @@ def test_clicking_a_source_opens_its_citation_in_place_and_again_closes_it(local
 def test_a_source_opens_from_the_keyboard(local_atlas, qapp):
     dialog = AboutDialog(local_atlas)
     dialog.show()
-    dialog.tabs.setCurrentIndex(1)
+    dialog.switch.set_current("sources")
     row = dialog.rows[0]
     row.setFocus()
     QTest.keyClick(row, Qt.Key.Key_Space)
@@ -146,7 +172,7 @@ def test_source_rows_never_overlap_or_scroll_sideways_even_when_hovered(qapp):
         pytest.skip("no built atlas")
     dialog = AboutDialog(Atlas.open(path))
     dialog.show()
-    dialog.tabs.setCurrentIndex(1)
+    dialog.switch.set_current("sources")
     qapp.processEvents()
     assert dialog.scroll.horizontalScrollBar().maximum() == 0
     before = [r.geometry() for r in dialog.rows]

@@ -111,3 +111,77 @@ def test_a_new_selection_outside_the_focus_is_outlined(window):
     window.state.set_focus([101, 112])
     window.state.select(102)
     assert window.view.overlay_ids == [102]
+
+
+def drawn_in_focus(view, ids):
+    return frozenset(i for i in ids if view.chunks.has(i))
+
+
+def test_focused_parts_are_drawn_again_above_the_faded_ones(window):
+    view = window.view
+    window.state.set_focus(ROUTE)
+    assert view.front.shown == drawn_in_focus(view, ROUTE) and view.front.shown
+    assert view.front.renderer.GetLayer() < view.outline.renderer.GetLayer()
+    window.state.set_focus(None)
+    assert view.front.shown == frozenset()
+
+
+def test_the_front_copies_follow_lab_colours_and_hiding(window):
+    view = window.view
+    window.state.set_focus(ROUTE)
+    target = min(drawn_in_focus(view, ROUTE))
+    view.set_lab_colors({target: (1.0, 0.0, 0.0)})
+    assert view.front.color_of(target) == pytest.approx((1.0, 0.0, 0.0))
+    view.set_lab_colors({target: None})
+    assert view.front.color_of(target) == pytest.approx(view.chunks.color_of(target))
+    window.state.set_hidden([target], True)
+    assert target not in view.front.shown
+    window.state.set_hidden([target], False)
+    assert target in view.front.shown
+
+
+def test_the_front_layer_steps_aside_when_the_grey_is_dimmed(window):
+    view = window.view
+    window.state.set_focus(ROUTE)
+    view.set_grey_opacity(0.15)
+    assert view.front.shown == frozenset()
+    view.set_grey_opacity(1.0)
+    assert view.front.shown == drawn_in_focus(view, ROUTE)
+
+
+def shown_image(view):
+    import numpy as np
+    from vtkmodules.util.numpy_support import vtk_to_numpy
+    from vtkmodules.vtkRenderingCore import vtkWindowToImageFilter
+
+    grab = vtkWindowToImageFilter()
+    grab.SetInput(view.ren_win)
+    grab.ShouldRerenderOff()
+    grab.ReadFrontBufferOff()
+    grab.Update()
+    image = grab.GetOutput()
+    return np.asarray(vtk_to_numpy(image.GetPointData().GetScalars()), dtype=int)
+
+
+def screen_point(view, structure_id):
+    low, high = view.blocks[structure_id].GetBounds()[::2], view.blocks[structure_id].GetBounds()[1::2]
+    view.renderer.SetWorldPoint(*[(a + b) / 2 for a, b in zip(low, high)], 1.0)
+    view.renderer.WorldToDisplay()
+    x, y, _ = view.renderer.GetDisplayPoint()
+    return int(x), int(y)
+
+
+def test_a_click_leaves_a_whole_frame_behind_not_the_pickers(window):
+    view = window.view
+    target = next(i for i in sorted(view.blocks) if view.chunks.has(i)
+                  and view.structure_at(*screen_point(view, i)) == i)
+    view.render()
+    before = shown_image(view)
+    view.pick_at(*screen_point(view, target))
+    after = shown_image(view)
+    view.render()
+    settled = shown_image(view)
+    assert window.state.selected == target
+    lit = (settled.sum(axis=1) > 30).sum()
+    assert (after.sum(axis=1) > 30).sum() >= 0.9 * lit
+    assert before.shape == after.shape

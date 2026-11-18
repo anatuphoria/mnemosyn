@@ -100,6 +100,9 @@ class Chunks:
                     self._blocks[structure_id],
                     self._colors[structure_id] if color is None else color)
 
+    def color_of(self, structure_id: int) -> tuple:
+        return self._overrides.get(structure_id, self._colors[structure_id])
+
     def is_visible(self, structure_id: int) -> bool:
         chunk = self._where[structure_id][0]
         return structure_id not in self._hidden[chunk]

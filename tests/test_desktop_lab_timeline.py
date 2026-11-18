@@ -5,6 +5,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from cns_atlas import Atlas
+from cns_desktop.design.tokens import SIZE
 from lab_helpers import wait_until
 from cns_desktop.lab.document import LabDocument
 from cns_desktop.lab.experiments_panel import MIME
@@ -111,7 +112,7 @@ def test_the_wheel_zooms_around_the_pointer(timeline):
     x = timeline.x_of(720.0)
     event = QWheelEvent(QPointF(x, 100), QPointF(timeline.mapToGlobal(QPoint(round(x), 100))),
                         QPoint(0, 0), QPoint(0, 120), Qt.MouseButton.NoButton,
-                        Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.NoScrollPhase, False)
+                        Qt.KeyboardModifier.ControlModifier, Qt.ScrollPhase.NoScrollPhase, False)
     timeline.wheelEvent(event)
     start, end = timeline.span
     assert end - start < DAY and start < 720.0 < end
@@ -159,7 +160,7 @@ def test_hidden_lanes_are_skipped(timeline):
 def test_a_zoomed_block_stays_out_of_the_name_column(timeline):
     doc = timeline.document
     blank = timeline.grab().toImage()
-    doc.add_block("pill", 120.0)
+    doc.add_block("course", 120.0)
     timeline.zoom(0.25, 720.0)
     assert timeline.x_of(120.0) < LABEL_WIDTH
     y = round(timeline.block_rect(0).center().y())
@@ -191,7 +192,7 @@ def test_the_playhead_wins_over_a_block_under_it(timeline):
 
 def test_overlapping_changes_stack_in_rows(timeline):
     doc = timeline.document
-    doc.add_block("pill", 300.0)
+    doc.add_block("course", 300.0)
     doc.add_block("stress", 600.0)
     doc.add_block("stress", 100.0)
     first, second, third = (timeline.block_rect(i) for i in range(3))
@@ -292,7 +293,7 @@ def test_a_long_name_never_meets_its_value(timeline):
 
 def crowd(timeline):
     for start in (100.0, 110.0, 120.0, 130.0):
-        timeline.document.add_block("pill", start)
+        timeline.document.add_block("course", start)
     timeline.resize(1000, 260)
 
 
@@ -313,6 +314,7 @@ def test_the_header_stays_while_the_body_scrolls(timeline):
 
 def test_scrolled_away_changes_cannot_be_grabbed_through_the_header(timeline):
     crowd(timeline)
+    timeline.resize(1000, 160)
     timeline.scroll.setValue(timeline.scroll.maximum())
     assert timeline.block_rect(0).top() < timeline.body_top()
     y = round(timeline.ruler_rect().center().y())
@@ -447,7 +449,7 @@ def test_keys_move_the_playhead(timeline):
 
 
 def test_a_zoomed_change_keeps_its_name_in_view(timeline):
-    timeline.document.add_block("pill", 120.0)
+    timeline.document.add_block("course", 120.0)
     timeline.zoom(0.25, 720.0)
     assert timeline.block_rect(0).left() < LABEL_WIDTH
     assert timeline.block_label_rect(0).left() >= LABEL_WIDTH
@@ -610,3 +612,323 @@ def test_a_tiny_lane_value_leaves_its_unit_whole(timeline):
         _name, unit, _value = timeline.name_layout(key)
         words = doc.simulator.values[key].display_unit
         assert unit.width() >= QFontMetricsF(font("label")).horizontalAdvance(words)
+
+
+def test_each_change_knows_its_kind(timeline):
+    doc = timeline.document
+    for key in ("remove_b", "pill", "stress", "course", "pill_test"):
+        doc.add_block(key, 120.0)
+    assert [timeline.block_kind(i) for i in range(5)] == [
+        "present", "dose", "lasting", "lasting", "test"]
+
+
+def test_a_change_to_the_end_is_its_own_kind(qapp):
+    from cns_desktop.app import DEFAULT_ATLAS
+
+    doc = LabDocument(Atlas.open(DEFAULT_ATLAS), "stress", compute=False)
+    widget = Timeline(doc)
+    doc.add_block("stalk_cut", 120.0)
+    assert widget.block_kind(0) == "to_end"
+
+
+def test_doses_sit_on_their_own_row_and_take_no_bar_row(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 300.0)
+    doc.add_block("pill", 310.0)
+    doc.add_block("stress", 300.0)
+    dose, bar = timeline.block_rect(0), timeline.block_rect(2)
+    assert dose.width() == SIZE["handle"] and dose.bottom() <= bar.top()
+    assert timeline.changes_height() == SIZE["status"] + SIZE["control"]
+
+
+def test_a_dose_at_the_end_of_the_run_stays_inside_the_plot(timeline):
+    timeline.document.add_block("pill", DAY - 1.0)
+    rect = timeline.block_rect(0)
+    assert rect.right() <= LABEL_WIDTH + timeline._plot_width()
+    assert timeline._block_at(rect.center()) == 0
+
+
+def test_the_later_of_two_doses_at_one_moment_is_picked(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 300.0)
+    doc.add_block("pill", 300.0)
+    assert timeline._block_at(timeline.block_rect(1).center()) == 1
+
+
+def crowd_bars(doc):
+    for start in (60.0, 70.0, 80.0, 90.0, 100.0):
+        doc.add_block("stress", start)
+
+
+def test_many_changes_never_push_the_lanes_down(timeline):
+    keys = timeline.lane_keys()
+    top = timeline.lane_rect(keys[0]).top()
+    crowd_bars(timeline.document)
+    assert timeline.changes_view_height() == 3 * SIZE["control"]
+    assert timeline.lane_rect(keys[0]).top() == top + 2 * SIZE["control"]
+
+
+def test_the_changes_area_scrolls_on_its_own(timeline):
+    crowd_bars(timeline.document)
+    keys = timeline.lane_keys()
+    lane = timeline.lane_rect(keys[0]).top()
+    timeline.scroll_changes(-10_000)
+    hidden = timeline.block_rect(4)
+    assert hidden.top() >= timeline.changes_rect().bottom()
+    timeline.scroll_changes(10_000)
+    assert timeline.changes_offset == 2 * SIZE["control"]
+    assert timeline.changes_rect().contains(timeline.block_rect(4).center())
+    assert timeline.lane_rect(keys[0]).top() == lane
+
+
+def test_hidden_changes_cannot_be_grabbed_through_the_lanes(timeline):
+    crowd_bars(timeline.document)
+    timeline.scroll_changes(-10_000)
+    rect = timeline.block_rect(4)
+    assert timeline._block_at(rect.center()) is None
+
+
+def test_removing_changes_pulls_the_changes_scroll_back(timeline):
+    doc = timeline.document
+    crowd_bars(doc)
+    timeline.scroll_changes(10_000)
+    for _ in range(4):
+        doc.delete_block(0)
+    assert timeline.changes_offset == 0
+
+
+def wheel(widget, pos, notches=1, modifiers=Qt.KeyboardModifier.NoModifier):
+    event = QWheelEvent(QPointF(pos), QPointF(widget.mapToGlobal(pos.toPoint())), QPoint(0, 0),
+                        QPoint(0, 120 * notches), Qt.MouseButton.NoButton, modifiers,
+                        Qt.ScrollPhase.NoScrollPhase, False)
+    widget.wheelEvent(event)
+    return event
+
+
+def test_ctrl_and_the_wheel_zoom_around_the_pointer(timeline):
+    x = timeline.x_of(720.0)
+    wheel(timeline, QPointF(x, 100), 1, Qt.KeyboardModifier.ControlModifier)
+    start, end = timeline.span
+    assert end - start < DAY and timeline.x_of(720.0) == pytest.approx(x, abs=1.0)
+
+
+def test_the_plain_wheel_scrolls_and_leaves_time_alone(timeline):
+    timeline.resize(1000, 140)
+    keys = timeline.lane_keys()
+    point = QPointF(timeline.x_of(720.0), timeline.lane_rect(keys[0]).center().y())
+    wheel(timeline, point, -1)
+    assert timeline.span == (0.0, DAY) and timeline.scroll.value() > 0
+
+
+def test_the_plain_wheel_over_changes_scrolls_the_changes(timeline):
+    crowd_bars(timeline.document)
+    wheel(timeline, timeline.bars_rect().center(), -1)
+    assert timeline.changes_offset > 0 and timeline.span == (0.0, DAY)
+
+
+def test_shift_and_the_wheel_pan(timeline):
+    timeline.zoom(0.25, 720.0)
+    before = timeline.span
+    wheel(timeline, QPointF(timeline.x_of(720.0), 100), -1, Qt.KeyboardModifier.ShiftModifier)
+    assert timeline.span[0] > before[0]
+
+
+def test_ctrl_wins_over_the_lane_names(timeline):
+    point = QPointF(LABEL_WIDTH / 2, timeline.lane_rect(timeline.lane_keys()[0]).center().y())
+    wheel(timeline, point, 1, Qt.KeyboardModifier.ControlModifier)
+    assert timeline.span[1] - timeline.span[0] < DAY
+
+
+def test_the_left_grip_moves_the_start_and_keeps_the_end(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    rect = timeline.block_rect(0)
+    grip = QPoint(round(rect.left()) + 2, round(rect.center().y()))
+    drag(timeline, grip, grip - QPoint(round(timeline.x_of(60.0) - timeline.x_of(0.0)), 0))
+    block = doc.experiment.blocks[0]
+    assert block.start == pytest.approx(240.0, abs=2.0)
+    assert block.start + block.length == pytest.approx(360.0, abs=2.0)
+    assert doc.undo.count() == 2
+
+
+def test_the_left_grip_stops_at_the_least_length(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    rect = timeline.block_rect(0)
+    grip = QPoint(round(rect.left()) + 2, round(rect.center().y()))
+    drag(timeline, grip, QPoint(timeline.width() - 20, grip.y()))
+    block = doc.experiment.blocks[0]
+    assert block.length == doc.scale.least
+    assert block.start + block.length == pytest.approx(360.0, abs=2.0)
+
+
+def test_only_lasting_changes_have_grips(timeline):
+    doc = timeline.document
+    doc.add_block("hold_test", 100.0)
+    doc.add_block("stress", 600.0)
+    test, bar = timeline.block_rect(0), timeline.block_rect(1)
+    assert timeline.grip_at(0, QPointF(test.right() - 2, test.center().y())) is None
+    assert timeline.grip_at(1, QPointF(bar.right() - 2, bar.center().y())) == "end"
+    assert timeline.grip_at(1, QPointF(bar.left() + 2, bar.center().y())) == "start"
+    assert timeline.grip_at(1, bar.center()) is None
+
+
+def test_hovering_a_grip_explains_it(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 600.0)
+    seen = []
+    timeline.hint_changed.connect(seen.append)
+    rect = timeline.block_rect(0)
+    mouse(timeline, QMouseEvent.Type.MouseMove,
+          QPoint(round(rect.right()) - 2, round(rect.center().y())), Qt.MouseButton.NoButton)
+    assert timeline.hint == "drag an edge to change how long it lasts" and seen
+    mouse(timeline, QMouseEvent.Type.MouseMove, rect.center().toPoint(), Qt.MouseButton.NoButton)
+    assert timeline.hint == "drag to move it"
+    mouse(timeline, QMouseEvent.Type.MouseMove, QPoint(round(timeline.x_of(100.0)), round(rect.center().y())),
+          Qt.MouseButton.NoButton)
+    assert timeline.hint == ""
+
+
+def test_a_drag_says_where_the_change_starts_and_how_long_it_lasts(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 180.0)
+    middle = timeline.block_rect(0).center().toPoint()
+    mouse(timeline, QMouseEvent.Type.MouseButtonPress, middle)
+    mouse(timeline, QMouseEvent.Type.MouseMove, middle)
+    assert timeline.drag_label() == "starts 3 h, lasts 1 h"
+    mouse(timeline, QMouseEvent.Type.MouseButtonRelease, middle)
+    assert timeline.drag_label() == ""
+
+
+def test_bars_with_a_length_say_it(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    doc.add_block("pill", 600.0)
+    doc.add_block("course", 0.0)
+    doc.add_block("hold_test", 900.0)
+    assert [timeline.block_caption(i) for i in range(4)] == ["1 h", "", "1 d", "2 h"]
+
+
+def test_every_kind_paints_without_error(timeline, qapp):
+    doc = timeline.document
+    for key in ("remove_b", "pill", "stress", "course", "pill_test"):
+        doc.add_block(key, 120.0)
+    doc.select(("block", 2))
+    assert not timeline.grab().isNull()
+
+
+def test_a_dose_is_drawn_as_a_marker_not_a_bar(timeline):
+    doc = timeline.document
+    blank = timeline.grab().toImage()
+    doc.add_block("pill", 300.0)
+    image = timeline.grab().toImage()
+    rect = timeline.block_rect(0)
+    y = round(rect.center().y())
+    assert image.pixel(round(rect.center().x()), y) != blank.pixel(round(rect.center().x()), y)
+    far = round(timeline.x_of(900.0))
+    assert image.pixel(far, y) == blank.pixel(far, y)
+
+
+def test_a_test_without_a_set_length_ends_at_its_last_reading(timeline):
+    doc = timeline.document
+    doc.add_block("pill_test", 300.0)
+    rect = timeline.block_rect(0)
+    assert rect.right() == pytest.approx(timeline.x_of(300.0 + 60.0), abs=1.0)
+    assert timeline.block_caption(0) == "1 h"
+
+
+def test_a_selected_change_in_a_hidden_row_is_scrolled_into_view(timeline):
+    doc = timeline.document
+    crowd_bars(doc)
+    assert timeline.bars_rect().contains(timeline.block_rect(4).center())
+    doc.select(("block", 0))
+    assert timeline.bars_rect().contains(timeline.block_rect(0).center())
+    doc.select(("block", 4))
+    assert timeline.bars_rect().contains(timeline.block_rect(4).center())
+
+
+def test_two_doses_at_one_moment_sit_side_by_side_with_one_label(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 300.0)
+    doc.add_block("pill", 300.0)
+    first, second = timeline.block_rect(0), timeline.block_rect(1)
+    assert not first.intersects(second)
+    assert timeline._block_at(first.center()) == 0 and timeline._block_at(second.center()) == 1
+    name = doc.name_of("pill")
+    assert timeline.dose_label(0) == "" and timeline.dose_label(1) == f"{name}, {name}"
+
+
+def test_a_short_bar_shows_its_length_before_its_name(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    _icon, _name, caption = timeline.bar_parts(0)
+    assert caption is not None and caption.right() <= timeline.block_rect(0).right()
+
+
+def test_a_narrow_bar_draws_only_the_grip_that_works(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    doc.stretch_block(0, 15.0)
+    rect = timeline.block_rect(0)
+    assert rect.width() < 24
+    assert len(timeline.grip_xs(0)) == 1
+    doc.stretch_block(0, 120.0)
+    assert len(timeline.grip_xs(0)) == 2
+
+
+def test_the_layout_works_out_each_kind_once_per_edit(timeline, monkeypatch):
+    doc = timeline.document
+    for start in range(0, 1200, 40):
+        doc.add_block("stress", float(start))
+    doc.add_block("pill", 600.0)
+    calls = []
+    original = type(timeline)._kind_of
+    monkeypatch.setattr(type(timeline), "_kind_of",
+                        lambda self, index: calls.append(index) or original(self, index))
+    doc.add_block("pill", 610.0)
+    timeline.grab()
+    assert len(calls) <= len(doc.experiment.blocks)
+
+
+def test_the_wheel_over_the_dose_row_scrolls_the_changes(timeline):
+    doc = timeline.document
+    crowd_bars(doc)
+    doc.add_block("pill", 600.0)
+    timeline.scroll_changes(-10_000)
+    wheel(timeline, timeline.doses_rect().center(), -1)
+    assert timeline.changes_offset > 0 and timeline.scroll.value() == 0
+
+
+def test_a_dose_at_the_end_of_the_run_puts_its_name_on_the_left(timeline):
+    timeline.document.add_block("pill", DAY - 1.0)
+    label = timeline.dose_label_rect(0)
+    assert label.width() > 20 and label.right() <= timeline.block_rect(0).left()
+
+
+def test_dragging_a_test_says_how_long_it_lasts(timeline):
+    doc = timeline.document
+    doc.add_block("hold_test", 300.0)
+    middle = timeline.block_rect(0).center().toPoint()
+    mouse(timeline, QMouseEvent.Type.MouseButtonPress, middle)
+    mouse(timeline, QMouseEvent.Type.MouseMove, middle)
+    assert timeline.drag_label() == "starts 5 h, lasts 2 h"
+    mouse(timeline, QMouseEvent.Type.MouseButtonRelease, middle)
+
+
+def test_a_test_whose_edits_last_to_the_end_is_drawn_to_the_end(timeline):
+    from dataclasses import replace
+
+    doc = timeline.document
+    tests = tuple(replace(t, length=None) if t.key == "hold_test" else t for t in doc.model.tests)
+    doc.model = replace(doc.model, tests=tests)
+    doc.add_block("hold_test", 300.0)
+    assert timeline.block_rect(0).right() == pytest.approx(timeline.x_of(DAY), abs=1.0)
+
+
+def test_the_changes_scroll_marker_keeps_clear_of_the_bar_ends(timeline):
+    crowd_bars(timeline.document)
+    marker = timeline.changes_scroll_rect()
+    assert marker is not None
+    from cns_desktop.lab.timeline_metrics import GRIP
+
+    assert marker.right() <= LABEL_WIDTH + timeline._plot_width() - GRIP

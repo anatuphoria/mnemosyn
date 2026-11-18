@@ -10,12 +10,10 @@ from PySide6.QtWidgets import (QCheckBox,
 from cns_atlas import DISCLAIMER
 
 from .design import dialogs, widgets
-from .views.about_dialog import AboutDialog
+from .views.about_dialog import DOWNLOAD_URL, HANDBOOK_URL, PROBLEM_URL, AboutDialog
 from .views.welcome import SEEN_KEY, WelcomeTour
 
-HANDBOOK_URL = "https://mnemo.saeed.cool/handbook/"
-DOWNLOAD_URL = "https://mnemo.saeed.cool/download/"
-PROBLEM_URL = "https://github.com/anatuphoria/mnemosyn/issues/new"
+__all__ = ["DOWNLOAD_URL", "HANDBOOK_URL", "PROBLEM_URL", "WindowMenus"]
 
 
 class WindowMenus:

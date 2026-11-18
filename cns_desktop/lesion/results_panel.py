@@ -104,7 +104,7 @@ class DeficitsPanel(QTextBrowser):
 
     @staticmethod
     def _notice() -> str:
-        return f"<p><i>{escape(DISCLAIMER)}</i></p>"
+        return "<p></p>" + rich.card(escape(DISCLAIMER))
 
 
 class HitPanel(QListWidget):

@@ -42,8 +42,13 @@ experiment opens in the system it was made in.
 **Add changes.** The **Experiments** list holds what you can do to the body: remove or cut a gland,
 give a drug, switch on a disease, add a stressor, or run a clinical test. The search field above
 it, **Find an experiment**, finds one by name. Drag one onto the **Timeline**, or double click it
-to add it at the playhead. Drag a change to move it and drag its right edge to make it last
-longer. Select it to set its dose, time or strength in the **Inspector**. Long standing conditions,
+to add it at the playhead. A single dose shows as a small diamond on its own row, a change that
+lasts a set time shows as a bar with its length written on it, and a change that lasts to the end of
+the run fades out to the right. Drag a change to move it, and drag either end of a change that
+lasts a set time to set when it starts or how long it lasts. A clinical test keeps the length the
+test needs. When there are more than three rows of changes,
+that area scrolls on its own so the lanes stay in view. Select a change to set its dose, time or
+strength in the **Inspector**. Long standing conditions,
 such as diabetes insipidus or Addison's disease, are present from the start of a run unless you
 give them a start time; SIADH starts where you place it.
 
@@ -51,8 +56,10 @@ give them a start time; SIADH starts where you place it.
 lane names its value and unit and gives its level at the playhead, coloured when it is above or
 below normal. A dashed line drops from every change so you can see where each curve reacts. Move
 the playhead with the mouse or the arrow keys (`Shift` for bigger steps), and point at a lane to
-read every value at that moment. The strip at the top shows the whole run: drag its window to move
-and its edges to zoom, and double click the strip or the ruler to see the whole run again.
+read every value at that moment. The wheel scrolls, `Ctrl` with the wheel zooms around the pointer,
+and `Shift` with the wheel moves along the run. The strip at the top shows the whole run: drag its
+window to move and its edges to zoom, and double click the strip or the ruler to see the whole run
+again.
 
 **Look at the body.** The centre shows the brain with the parts of the model coloured by how far
 they are from normal and labelled with their level. Parts outside the brain, such as the adrenal
@@ -63,8 +70,14 @@ arrows thicken and thin with each signal.
 chain of causes, each marked with what it does (drives, holds back, grows) and with its sources.
 With no changes it explains the normal day.
 
-**Go deeper.** **Model** shows every value of the model for experts, with its normal value, range
-and source; edited values are marked in gold. **What this model includes** says what the model
+**Go deeper.** **Model** holds every setting of the model, grouped and folded the way you leave
+them. Each shows its value and unit, and a slider marked at the normal value; click a name to read
+what it means and where the number comes from. Edited settings turn gold, gain a reset button and
+say in plain words what the change does. **Find a setting** searches the names and meanings, and
+**Changed** keeps only what you edited. Click a lane name on the timeline, a part or an arrow, and
+the settings that act on it directly move to the top under **Shapes**, read from the model's own
+formulas. With nothing selected, the top lists your changes and the values that moved most at the
+playhead. **What this model includes** says what the model
 covers and what it leaves out. **Take snapshot** keeps a copy of the current run to compare against.
 
 **Save and share.** **File, Save** writes the experiment as a small `.mnemolab` file that you can

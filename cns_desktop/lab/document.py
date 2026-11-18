@@ -160,6 +160,13 @@ class LabDocument(QObject):
         self._edit_block(index, f"Stretch {self.name_of(block.experiment)}",
                          length=float(length))
 
+    def resize_block(self, index: int, start: float, length: float) -> None:
+        block = self.experiment.blocks[index]
+        if block.length is None or (block.start == start and block.length == length):
+            return
+        self._edit_block(index, f"Stretch {self.name_of(block.experiment)}",
+                         start=float(start), length=float(length))
+
     def set_option(self, index: int, key: str, value: float) -> None:
         block = self.experiment.blocks[index]
         option = next(o for o in self._experiments[block.experiment].options if o.key == key)

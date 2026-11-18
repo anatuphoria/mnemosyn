@@ -274,7 +274,7 @@ class QuizPanel(QWidget):
         if self.mode == "find":
             self._select(None)
             self.find_target.emit(frozenset(item.geometry))
-            self.prompt.setText(f"<b>Find:</b> {escape(item.name)}<br>"
+            self.prompt.setText(f"<b>Where is {escape(item.name)}?</b><br>"
                                 "<small>Click it in the 3D view or in the slice.</small>")
             self.hint.setText("Click a structure")
             return

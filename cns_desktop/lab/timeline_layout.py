@@ -7,11 +7,13 @@ from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtGui import QFontMetricsF
 
 from cns_desktop.design.fonts import font
+from cns_desktop.design.tokens import GAP, SIZE
 
 from .experiments_panel import icon_for
 from .labels import plain
 from .lane_values import lane_scale, mark_text, tone
-from .timeline_metrics import (BADGE_INSET, BADGE_PAD, BAR_INSET, CHANGES_HEIGHT, GRAB,
+from .timeline_metrics import (BADGE_INSET, BADGE_PAD, BAR_GAP, BAR_INSET, BLOCK_ROW, DOSE_ROW,
+                               GRAB, GRIP, MARKER, MAX_BAR_ROWS,
                                LABEL_WIDTH, LANE_HEIGHT,
                                MIN_BLOCK_WIDTH, NAME_ROW,
                                OVERVIEW_HEIGHT, PAD, RIGHT_MARGIN,
@@ -48,7 +50,7 @@ class TimelineLayout:
         return self.ruler_rect().bottom()
 
     def _body_height(self) -> float:
-        return self.changes_height() + len(self.lane_keys()) * LANE_HEIGHT
+        return self.changes_view_height() + len(self.lane_keys()) * LANE_HEIGHT
 
     def wanted_height(self) -> int:
         return math.ceil(self.body_top() + self._body_height())
@@ -67,11 +69,42 @@ class TimelineLayout:
     def _body_area(self) -> QRectF:
         return QRectF(0, self.body_top(), self.width(), self.height() - self.body_top())
 
+    def _layout(self) -> tuple[tuple[str, ...], tuple[int, ...]]:
+        doc = self.document
+        if self._layout_for is not doc.experiment or self._layout_model is not doc.model:
+            self._layout_for, self._layout_model = doc.experiment, doc.model
+            self._kinds = tuple(self._kind_of(i) for i in range(len(doc.experiment.blocks)))
+            self._rows = tuple(self._rows_of())
+        return self._kinds, self._rows
+
+    def block_kind(self, index: int) -> str:
+        return self._layout()[0][index]
+
+    def _kind_of(self, index: int) -> str:
+        block = self.document.experiment.blocks[index]
+        if block.present:
+            return "present"
+        model = self.document.model
+        if any(t.key == block.experiment for t in model.tests):
+            return "test"
+        if block.length is not None:
+            return "lasting"
+        experiment = next((e for e in model.experiments if e.key == block.experiment), None)
+        edits = experiment.edits if experiment is not None else ()
+        if edits and all(e.op == "dose" and not e.daily for e in edits):
+            return "dose"
+        return "to_end"
+
+    def has_doses(self) -> bool:
+        return "dose" in self._layout()[0]
+
     def _block_span(self, index: int) -> tuple[float, float]:
         block = self.document.experiment.blocks[index]
         length = self.document.experiment.length
         if block.present:
             return 0.0, length
+        if self.block_kind(index) == "dose":
+            return block.start, block.start
         size = self._block_length(block)
         return block.start, block.start + size if size is not None else length
 
@@ -79,15 +112,26 @@ class TimelineLayout:
         if block.length is not None:
             return block.length
         test = next((t for t in self.document.model.tests if t.key == block.experiment), None)
-        return test.length if test is not None else None
+        if test is None:
+            return None
+        if test.length is not None:
+            return test.length
+        if test.edits:
+            return None
+        return max((r.after for r in test.readings), default=None)
 
     def block_rows(self) -> list[int]:
+        return list(self._layout()[1])
+
+    def _rows_of(self) -> list[int]:
         blocks = self.document.experiment.blocks
         order = sorted(range(len(blocks)),
                        key=lambda i: (not blocks[i].present, self._block_span(i)[0], i))
         ends: list[float] = []
         rows = [0] * len(blocks)
         for index in order:
+            if self.block_kind(index) == "dose":
+                continue
             start, end = self._block_span(index)
             row = next((r for r, last in enumerate(ends) if last <= start), len(ends))
             if row == len(ends):
@@ -97,18 +141,45 @@ class TimelineLayout:
             rows[index] = row
         return rows
 
+    def _dose_height(self) -> float:
+        return DOSE_ROW if self.has_doses() else 0.0
+
+    def _bar_rows(self) -> int:
+        rows = self.block_rows()
+        bars = [rows[i] for i in range(len(rows)) if self.block_kind(i) != "dose"]
+        return max(bars, default=0) + 1
+
     def changes_height(self) -> float:
-        return CHANGES_HEIGHT * max(max(self.block_rows(), default=0) + 1, 1)
+        return self._dose_height() + BLOCK_ROW * self._bar_rows()
+
+    def _bars_top(self) -> float:
+        return self._changes_top() + self._dose_height() - self.changes_offset
+
+    def changes_view_height(self) -> float:
+        return min(self.changes_height(), self._dose_height() + MAX_BAR_ROWS * BLOCK_ROW)
+
+    def changes_room(self) -> int:
+        return max(round(self.changes_height() - self.changes_view_height()), 0)
+
+    def changes_rect(self) -> QRectF:
+        return QRectF(0, self._changes_top(), self.width(), self.changes_view_height())
+
+    def bars_rect(self) -> QRectF:
+        return self.changes_rect().adjusted(0, self._dose_height(), 0, 0)
+
+    def doses_rect(self) -> QRectF:
+        area = self.changes_rect()
+        return QRectF(area.left(), area.top(), area.width(), self._dose_height())
 
     def _changes_top(self) -> float:
         return self.body_top() - self.scroll.value()
 
     def _lanes_top(self) -> float:
-        return self._changes_top() + self.changes_height()
+        return self._changes_top() + self.changes_view_height()
 
     def _lane_height(self) -> float:
         count = max(len(self.lane_keys()), 1)
-        room = self.height() - self.body_top() - self.changes_height()
+        room = self.height() - self.body_top() - self.changes_view_height()
         return max(LANE_HEIGHT, room / count)
 
     def x_of(self, t: float) -> float:
@@ -127,7 +198,47 @@ class TimelineLayout:
         height = self._lane_height()
         return QRectF(LABEL_WIDTH, self._lanes_top() + index * height, self._plot_width(), height)
 
+    def _dose_slots(self) -> dict[int, tuple[float, tuple[int, ...]]]:
+        blocks = self.document.experiment.blocks
+        doses = sorted((i for i in range(len(blocks)) if self.block_kind(i) == "dose"),
+                       key=lambda i: (blocks[i].start, i))
+        step = MARKER + BAR_GAP
+        groups: list[tuple[float, list[int]]] = []
+        for index in doses:
+            x = self.x_of(blocks[index].start)
+            if groups and x < groups[-1][0] + len(groups[-1][1]) * step:
+                groups[-1][1].append(index)
+            else:
+                groups.append((x, [index]))
+        half = MARKER / 2
+        low, high = self.x_of(0.0) + half, self.x_of(self.document.experiment.length) - half
+        slots = {}
+        for base, members in groups:
+            base = max(min(base, high - (len(members) - 1) * step), low)
+            for place, index in enumerate(members):
+                slots[index] = (base + place * step, tuple(members))
+        return slots
+
+    def dose_rect(self, index: int, preview: tuple[float, float | None] | None = None) -> QRectF:
+        half = MARKER / 2
+        if preview is not None:
+            run = self.document.experiment.length
+            x = min(max(self.x_of(preview[0]), self.x_of(0.0) + half), self.x_of(run) - half)
+        else:
+            x = self._dose_slots()[index][0]
+        y = self._changes_top() + DOSE_ROW / 2
+        return QRectF(x - half, y - half, MARKER, MARKER)
+
+    def dose_label(self, index: int) -> str:
+        members = self._dose_slots().get(index, (0.0, ()))[1]
+        if not members or members[-1] != index:
+            return ""
+        blocks = self.document.experiment.blocks
+        return ", ".join(self.document.name_of(blocks[i].experiment) for i in members)
+
     def block_rect(self, index: int, preview: tuple[float, float | None] | None = None) -> QRectF:
+        if self.block_kind(index) == "dose":
+            return self.dose_rect(index, preview)
         block = self.document.experiment.blocks[index]
         length = self.document.experiment.length
         start, size = preview if preview is not None else (block.start, block.length)
@@ -139,8 +250,106 @@ class TimelineLayout:
             right = start + size if size is not None else length
         x0 = self.x_of(left)
         x1 = max(self.x_of(right), x0 + MIN_BLOCK_WIDTH)
-        top = self._changes_top() + self.block_rows()[index] * CHANGES_HEIGHT
-        return QRectF(x0, top + 4, x1 - x0, CHANGES_HEIGHT - 8)
+        top = self._bars_top() + self.block_rows()[index] * BLOCK_ROW
+        return QRectF(x0, top + BAR_GAP, x1 - x0, BLOCK_ROW - 2 * BAR_GAP)
+
+    def grip_at(self, index: int, pos: QPointF) -> str | None:
+        if self.block_kind(index) != "lasting":
+            return None
+        rect = self.block_rect(index)
+        if not rect.contains(pos):
+            return None
+        if pos.x() >= rect.right() - GRIP:
+            return "end"
+        if rect.width() >= 3 * GRIP and pos.x() <= rect.left() + GRIP:
+            return "start"
+        return None
+
+    def block_caption(self, index: int) -> str:
+        if self.block_kind(index) not in ("lasting", "test"):
+            return ""
+        preview = self._preview_of(index)
+        block = self.document.experiment.blocks[index]
+        size = preview[1] if preview is not None and preview[1] is not None else None
+        size = self._block_length(block) if size is None else size
+        return self.document.scale.text(size) if size is not None else ""
+
+    def dose_label_rect(self, index: int) -> QRectF | None:
+        doc = self.document
+        preview = self._preview_of(index)
+        text = (self.dose_label(index) if preview is None
+                else doc.name_of(doc.experiment.blocks[index].experiment))
+        if not text:
+            return None
+        rect = self.block_rect(index, preview)
+        gap = GAP["tight"]
+        others = [self.block_rect(i) for i in range(len(doc.experiment.blocks))
+                  if i != index and self.block_kind(i) == "dose"]
+        left = rect.right() + gap
+        right = min([r.left() for r in others if r.left() > rect.right()]
+                    + [LABEL_WIDTH + self._plot_width()]) - gap
+        width = QFontMetricsF(font("secondary")).horizontalAdvance(text)
+        if right - left < min(width, 3 * GAP["wide"]) and not any(r.left() > rect.right() for r in others):
+            right = rect.left() - gap
+            left = max([r.right() for r in others if r.right() < rect.left()]
+                       + [LABEL_WIDTH], default=LABEL_WIDTH) + gap
+            left = max(left, right - math.ceil(width) - 1)
+        return QRectF(left, rect.top() - gap, max(right - left, 0.0), rect.height() + 2 * gap)
+
+    def changes_scroll_rect(self) -> QRectF | None:
+        room = self.changes_room()
+        if not room:
+            return None
+        area = self.bars_rect()
+        height = max(area.height() * area.height() / (area.height() + room), GAP["small"])
+        top = area.top() + (area.height() - height) * self.changes_offset / room
+        width = GAP["tight"]
+        return QRectF(LABEL_WIDTH + self._plot_width() - GRIP - width, top, width, height)
+
+    def grip_xs(self, index: int, preview: tuple[float, float | None] | None = None) -> list[float]:
+        if self.block_kind(index) != "lasting":
+            return []
+        rect = self.block_rect(index, preview)
+        ends = [rect.right() - GAP["tight"]]
+        if rect.width() >= 3 * GRIP:
+            ends.insert(0, rect.left() + GAP["tight"])
+        return ends
+
+    def bar_parts(self, index: int, preview: tuple[float, float | None] | None = None
+                  ) -> tuple[QRectF | None, QRectF | None, QRectF | None]:
+        rect = self.block_rect(index, preview)
+        label = self.block_label_rect(index, preview)
+        kind = self.block_kind(index)
+        gap = GAP["tight"]
+        left = label.left() + gap + 2
+        right = label.right() - (GRIP if kind == "lasting" else gap)
+        if kind == "to_end":
+            right = min(right, rect.right() - 4 * GRIP)
+        caption = None
+        text = self.block_caption(index)
+        if text:
+            width = QFontMetricsF(font("data")).horizontalAdvance(text)
+            if right - left >= width:
+                caption = QRectF(right - width, rect.top(), width, rect.height())
+                right = caption.left() - GAP["small"]
+        icon = None
+        size = SIZE["icon_header"]
+        if right - left >= size:
+            icon = QRectF(left, rect.center().y() - size / 2, size, size)
+            left += size + gap
+        name = QRectF(left, rect.top(), right - left, rect.height()) if right - left >= 2 * GAP["small"] else None
+        return icon, name, caption
+
+    def drag_label(self) -> str:
+        press = self._press
+        if not press or press.get("kind") not in ("move", "start", "end") or "preview" not in press:
+            return ""
+        start, length = press["preview"]
+        if length is None:
+            length = self._block_length(self.document.experiment.blocks[press["block"]])
+        scale = self.document.scale
+        text = f"starts {scale.text(start)}"
+        return f"{text}, lasts {scale.text(length)}" if length is not None else text
 
     def _block_at(self, pos: QPointF) -> int | None:
         if pos.x() < LABEL_WIDTH or pos.y() < self.body_top():
@@ -148,8 +357,10 @@ class TimelineLayout:
         blocks = self.document.experiment.blocks
         newest_first = list(reversed(range(len(blocks))))
         order = [i for i in newest_first if not blocks[i].present]
+        bars, doses = self.bars_rect(), self.doses_rect()
         for index in order + [i for i in newest_first if blocks[i].present]:
-            if self.block_rect(index).contains(pos):
+            area = doses if self.block_kind(index) == "dose" else bars
+            if area.contains(pos) and self.block_rect(index).contains(pos):
                 return index
         return None
 

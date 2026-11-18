@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFontMetricsF, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import (QBrush, QColor, QFontMetricsF, QLinearGradient, QPainter,
+                           QPainterPath, QPen, QPixmap)
 
 from cns_desktop.design import icons
 from cns_desktop.design.fonts import font
-from cns_desktop.design.tokens import RADIUS, SIZE, color
+from cns_desktop.design.tokens import GAP, RADIUS, SIZE, color
 
 from .lane_values import lane_scale
 from .timeline_metrics import (BACKGROUND, BADGE_INSET, BADGE_PAD, BAR, BAR_INSET, BLOCK,
-                               GUIDE_ALPHA, INK, LABEL_WIDTH,
+                               GRIP, GUIDE_ALPHA, INK, LABEL_WIDTH,
                                LANE_COLORS, LINE, MARK_BACKING,
                                MARK_INSET, MUTED, NORMAL, PAD,
                                PLAYHEAD, TAG_PAD, WINDOW)
@@ -20,7 +21,8 @@ class TimelinePaint:
     def _background(self) -> QPixmap:
         doc = self.document
         key = (self.size().toTuple(), self.span, self.compare_on, frozenset(self.hidden),
-               self.changes_height(), self.scroll.value(), self.scroll.isHidden(),
+               self.changes_height(), self.changes_view_height(), self.changes_offset,
+               self.scroll.value(), self.scroll.isHidden(),
                self.show_overview, self.highlighted, id(doc.run), id(doc.normal),
                id(doc.snapshot))
         if self._cache is None or key != self._cache_key:
@@ -98,7 +100,7 @@ class TimelinePaint:
             painter.drawText(rect, Qt.AlignmentFlag.AlignBottom, text)
 
     def _paint_changes_row(self, painter: QPainter) -> None:
-        top, changes = self._changes_top(), self.changes_height()
+        top, changes = self._changes_top(), self.changes_view_height()
         painter.setFont(font("label"))
         painter.setPen(INK)
         painter.drawText(QRectF(PAD, top, LABEL_WIDTH - PAD, changes),
@@ -108,32 +110,143 @@ class TimelinePaint:
         painter.drawLine(QPointF(LABEL_WIDTH, top), QPointF(LABEL_WIDTH, self.height()))
 
     def _paint_blocks(self, painter: QPainter) -> None:
-        doc = self.document
-        blocks = doc.experiment.blocks
+        blocks = self.document.experiment.blocks
+        plot = painter.clipBoundingRect()
+        bars = self.bars_rect().intersected(plot)
+        doses = self.doses_rect().intersected(plot)
+        hovered = self._block_at(self._hover_pos) if self._hover_pos is not None else None
         for index in sorted(range(len(blocks)), key=lambda i: not blocks[i].present):
-            block = blocks[index]
-            preview = self._preview_of(index)
-            rect = self.block_rect(index, preview)
-            label = self.block_label_rect(index, preview)
-            fill = QColor(BLOCK)
-            fill.setAlpha(40 if block.present else 64)
+            kind = self.block_kind(index)
+            if kind == "dose":
+                painter.setClipRect(doses)
+                self._paint_dose(painter, index)
+            else:
+                painter.setClipRect(bars)
+                self._paint_bar(painter, index, kind, hovered == index)
+        painter.setClipRect(plot)
+        self._paint_changes_scroll(painter)
+        self._paint_drag_label(painter)
+
+    def _paint_bar(self, painter: QPainter, index: int, kind: str, hovered: bool) -> None:
+        doc = self.document
+        block = doc.experiment.blocks[index]
+        preview = self._preview_of(index)
+        rect = self.block_rect(index, preview)
+        selected = doc.selection == ("block", index)
+        fill = QColor(BLOCK)
+        fill.setAlpha(40 if block.present else 64)
+        edge = QColor(PLAYHEAD if selected else BLOCK)
+        if kind == "to_end":
+            fade = QLinearGradient(rect.right() - 4 * GRIP, 0, rect.right(), 0)
+            fade.setColorAt(0, fill)
+            fade.setColorAt(1, QColor(fill.red(), fill.green(), fill.blue(), 0))
+            painter.setBrush(fade)
+            line = QLinearGradient(rect.right() - 4 * GRIP, 0, rect.right(), 0)
+            line.setColorAt(0, edge)
+            line.setColorAt(1, QColor(edge.red(), edge.green(), edge.blue(), 0))
+            painter.setPen(QPen(QBrush(line), 2 if selected else 1))
+        else:
             painter.setBrush(fill)
-            selected = doc.selection == ("block", index)
-            painter.setPen(QPen(PLAYHEAD if selected else BLOCK, 2 if selected else 1))
-            painter.drawRoundedRect(rect, RADIUS["small"], RADIUS["small"])
-            text_rect = label.adjusted(6, 0, -4, 0)
-            if label.width() > 40:
-                size = SIZE["icon_header"]
-                top = rect.center().y() - size / 2
-                painter.drawPixmap(QPointF(label.left() + 6, top),
-                                   icons.pixmap(self.block_icon(index), "edited", size))
-                text_rect = label.adjusted(10 + size, 0, -4, 0)
+            painter.setPen(QPen(edge, 2 if selected else 1))
+        painter.drawRoundedRect(rect, RADIUS["small"], RADIUS["small"])
+        if kind == "to_end" and rect.right() >= LABEL_WIDTH + self._plot_width() - 1:
+            self._paint_arrow(painter, rect)
+        icon, name_rect, caption_rect = self.bar_parts(index, preview)
+        if icon is not None:
+            size = SIZE["icon_header"]
+            painter.drawPixmap(icon.topLeft(), icons.pixmap(self.block_icon(index), "edited", size))
+        if caption_rect is not None:
+            painter.setFont(font("data"))
+            painter.setPen(INK if selected else MUTED)
+            painter.drawText(caption_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                             self.block_caption(index))
+        if name_rect is not None:
             painter.setFont(font("secondary"))
             painter.setPen(INK if selected else BLOCK)
             name = painter.fontMetrics().elidedText(doc.name_of(block.experiment),
                                                     Qt.TextElideMode.ElideRight,
-                                                    max(int(text_rect.width()), 0))
-            painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter, name)
+                                                    max(int(name_rect.width()), 0))
+            painter.drawText(name_rect, Qt.AlignmentFlag.AlignVCenter, name)
+        grips = kind == "lasting" and (selected or hovered)
+        if grips:
+            self._paint_grips(painter, index, preview, rect, selected)
+
+    @staticmethod
+    def _round_pen(colour: QColor, width: float) -> QPen:
+        pen = QPen(colour, width)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        return pen
+
+    def _paint_grips(self, painter: QPainter, index: int, preview, rect: QRectF,
+                     selected: bool) -> None:
+        painter.setPen(self._round_pen(INK if selected else BLOCK, 2))
+        reach = rect.height() / 4
+        middle = rect.center().y()
+        for x in self.grip_xs(index, preview):
+            painter.drawLine(QPointF(x, middle - reach), QPointF(x, middle + reach))
+
+    def _paint_arrow(self, painter: QPainter, rect: QRectF) -> None:
+        tip = LABEL_WIDTH + self._plot_width() - GAP["tight"]
+        reach = rect.height() / 5
+        middle = rect.center().y()
+        painter.setPen(self._round_pen(BLOCK, 1.5))
+        painter.drawLine(QPointF(tip - reach, middle - reach), QPointF(tip, middle))
+        painter.drawLine(QPointF(tip - reach, middle + reach), QPointF(tip, middle))
+
+    def _paint_dose(self, painter: QPainter, index: int) -> None:
+        doc = self.document
+        rect = self.block_rect(index, self._preview_of(index))
+        selected = doc.selection == ("block", index)
+        middle = rect.center()
+        half = rect.width() / 2
+        diamond = QPainterPath()
+        diamond.moveTo(middle.x(), middle.y() - half)
+        diamond.lineTo(middle.x() + half, middle.y())
+        diamond.lineTo(middle.x(), middle.y() + half)
+        diamond.lineTo(middle.x() - half, middle.y())
+        diamond.closeSubpath()
+        painter.setBrush(BLOCK)
+        painter.setPen(QPen(PLAYHEAD if selected else BLOCK, 2 if selected else 1))
+        painter.drawPath(diamond)
+        label = self.dose_label_rect(index)
+        if label is None:
+            return
+        text = (self.dose_label(index) if self._preview_of(index) is None
+                else doc.name_of(doc.experiment.blocks[index].experiment))
+        painter.setFont(font("secondary"))
+        painter.setPen(INK if selected else BLOCK)
+        name = painter.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight,
+                                                max(int(label.width()), 0))
+        side = Qt.AlignmentFlag.AlignRight if label.right() <= rect.left() else Qt.AlignmentFlag.AlignLeft
+        painter.drawText(label, Qt.AlignmentFlag.AlignVCenter | side, name)
+
+    def _paint_drag_label(self, painter: QPainter) -> None:
+        text = self.drag_label()
+        if not text:
+            return
+        rect = self.block_rect(self._press["block"], self._press["preview"])
+        painter.setFont(font("data"))
+        metrics = painter.fontMetrics()
+        width = metrics.horizontalAdvance(text) + 2 * BADGE_PAD
+        height = metrics.height() + GAP["tight"]
+        top = rect.top() - height - GAP["tight"]
+        if top < self.changes_rect().top():
+            top = rect.bottom() + GAP["tight"]
+        left = min(max(rect.left(), LABEL_WIDTH), LABEL_WIDTH + self._plot_width() - width)
+        box = QRectF(left, top, width, height)
+        painter.setPen(QPen(LINE, 1))
+        painter.setBrush(BACKGROUND)
+        painter.drawRoundedRect(box, RADIUS["small"], RADIUS["small"])
+        painter.setPen(INK)
+        painter.drawText(box, Qt.AlignmentFlag.AlignCenter, text)
+
+    def _paint_changes_scroll(self, painter: QPainter) -> None:
+        marker = self.changes_scroll_rect()
+        if marker is None:
+            return
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(MUTED)
+        painter.drawRoundedRect(marker, marker.width() / 2, marker.width() / 2)
 
     def _paint_hover(self, painter: QPainter) -> None:
         values = self.hover_values()

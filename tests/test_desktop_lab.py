@@ -103,6 +103,15 @@ def test_the_status_bar_counts_changes_and_edited_values(window):
                                     "   │   drag a change to move it")
 
 
+def test_the_status_bar_explains_a_grip_while_it_is_hovered(window):
+    window.workspaces.switch("Lab")
+    timeline = window.lab.timeline
+    timeline._set_hint("drag an edge to change how long it lasts")
+    assert window.status.text().endswith("drag an edge to change how long it lasts")
+    timeline._set_hint("")
+    assert window.status.text().endswith("drag a change to move it")
+
+
 def test_open_in_the_lab_from_the_route(window):
     panel = window.pathways
     panel.open("mood")

@@ -14,14 +14,15 @@ def doc(qapp, toy_lab_atlas):
     return LabDocument(Atlas.open(toy_lab_atlas), "toy")
 
 
-def drag(slider, to_fraction):
-    track = slider.track_rect()
+def drag(bar, to_fraction):
+    track = bar.track_rect()
     y = track.center().y()
-    start = QPoint(int(track.left() + slider.scale.fraction(slider.value) * track.width()), y)
-    end = QPoint(int(track.left() + to_fraction * track.width()), y)
-    QTest.mousePress(slider, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start)
-    QTest.mouseMove(slider, end)
-    QTest.mouseRelease(slider, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, end)
+    start = QPoint(track.center().x(), y)
+    moved = (to_fraction - bar.scale.fraction(bar.value)) * track.width()
+    end = QPoint(round(start.x() + moved), y)
+    QTest.mousePress(bar, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start)
+    QTest.mouseMove(bar, end)
+    QTest.mouseRelease(bar, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, end)
 
 
 def test_settings_appear_under_their_groups(doc):
@@ -142,6 +143,8 @@ def test_the_model_tab_fits_the_narrowest_panel(doc, qapp):
     for p in doc.model.parameters:
         if p.panel:
             for widget in (panel.control(p.key), panel.spin(p.key), panel.reset_button(p.key)):
+                if not widget.isVisibleTo(panel):
+                    continue
                 right = widget.mapTo(panel, widget.rect().topRight()).x()
                 assert widget.width() > 0 and right <= SIZE["panel_min"], (p.key, right)
     panel.close()
@@ -176,20 +179,49 @@ def test_scrolling_over_a_curve_scrolls_the_tab_until_it_is_clicked(qapp):
     panel.close()
 
 
-def test_clicking_a_handle_without_moving_keeps_the_exact_value(doc):
+def test_clicking_a_bar_without_moving_keeps_the_value_and_opens_its_field(doc, qapp):
     panel = ModelPanel(doc)
     panel.resize(SIZE["panel_left"], 900)
     panel.show()
     doc.set_value("w", 0.05)
     steps = doc.undo.count()
-    slider = panel.control("w")
-    track = slider.track_rect()
-    here = QPoint(int(track.left() + slider.scale.fraction(0.05) * track.width()) + 2,
-                  track.center().y())
-    QTest.mousePress(slider, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, here)
-    QTest.mouseRelease(slider, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, here)
+    bar = panel.control("w")
+    here = bar.track_rect().center()
+    QTest.mousePress(bar, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, here)
+    QTest.mouseRelease(bar, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, here)
+    qapp.processEvents()
     assert doc.experiment.value_map == {"w": 0.05} and doc.undo.count() == steps
+    field = panel.spin("w").geometry()
+    assert bar.editing() and field.width() == bar.width()
+    assert abs((field.top() - bar.rect().top()) - (bar.rect().bottom() - field.bottom())) <= 1
     panel.close()
+
+
+def test_typing_in_an_opened_bar_commits_and_escape_cancels(doc, qapp):
+    panel = ModelPanel(doc)
+    panel.resize(SIZE["panel_left"], 900)
+    panel.show()
+    bar = panel.control("w")
+    bar.open_editor()
+    spin = panel.spin("w")
+    spin.lineEdit().setText("0.2")
+    QTest.keyClick(spin, Qt.Key.Key_Return)
+    qapp.processEvents()
+    assert doc.experiment.value_map == {"w": pytest.approx(0.2)}
+    steps = doc.undo.count()
+    bar.open_editor()
+    spin.lineEdit().setText("0.4")
+    QTest.keyClick(spin.lineEdit(), Qt.Key.Key_Escape)
+    qapp.processEvents()
+    assert not bar.editing() and doc.undo.count() == steps
+    assert doc.experiment.value_map == {"w": pytest.approx(0.2)}
+    panel.close()
+
+
+def test_a_bar_leaves_the_wheel_to_the_panel_scroll(doc):
+    panel = ModelPanel(doc)
+    assert wheel(panel.control("w"), -1).isAccepted() is False
+    assert doc.experiment.values == ()
 
 
 def test_a_dragged_value_matches_its_field_so_leaving_the_field_adds_nothing(doc):
@@ -212,25 +244,14 @@ def test_an_edited_rate_keeps_its_field_readable_at_the_narrowest_width(doc, qap
     panel.resize(SIZE["panel_min"], 900)
     panel.show()
     qapp.processEvents()
+    bar = panel.control("w")
+    bar.open_editor()
     spin = panel.spin("w")
     edit = spin.lineEdit()
     assert edit.width() >= edit.fontMetrics().horizontalAdvance(spin.text())
     assert panel.badge("w").mapTo(panel, panel.badge("w").rect().topLeft()).y() > \
-        spin.mapTo(panel, spin.rect().bottomLeft()).y()
+        bar.mapTo(panel, bar.rect().bottomLeft()).y()
     panel.close()
-
-
-def test_slider_labels_never_overlap(qapp):
-    from cns_desktop.lab.controls import ScaleSlider
-    from cns_desktop.lab.scales import LinearScale, LogScale
-
-    for scale, normal in ((LinearScale(1.5, 10.0, 2.0), 2.0), (LinearScale(5.0, 500.0, 35.0), 35.0),
-                          (LogScale(0.0005, 0.005, 0.00167), 0.00167)):
-        slider = ScaleSlider(scale, normal, normal)
-        slider.resize(SIZE["panel_min"] - 2 * SIZE["panel_pad"], SIZE["slider"])
-        rects = [rect for rect, _label in slider.label_rects()]
-        assert "normal" in [label for _rect, label in slider.label_rects()]
-        assert all(not a.intersects(b) for i, a in enumerate(rects) for b in rects[i + 1:])
 
 
 def test_dragging_a_curve_moves_its_halfway_point(doc):
@@ -268,3 +289,31 @@ def test_scrolling_a_clicked_curve_settles_into_one_step(qapp):
     QTest.qWait(600)
     assert doc.experiment.value_map["n_u"] < 4.0 and doc.undo.count() == steps + 1
     panel.close()
+
+
+def test_building_setting_rows_never_opens_a_window_of_its_own(doc, qapp):
+    from PySide6.QtCore import QEvent, QObject
+
+    opened = []
+
+    class Spy(QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QEvent.Type.Show and obj.isWidgetType() and obj.isWindow():
+                opened.append(type(obj).__name__)
+            return False
+
+    panel = ModelPanel(doc)
+    panel.show()
+    spy = Spy()
+    qapp.installEventFilter(spy)
+    try:
+        for key in [p.key for p in doc.model.parameters if p.panel]:
+            doc.set_value(key, doc.model.parameter(key).high)
+        for value in doc.model.values:
+            doc.select(("value", value.key))
+        for part in doc.model.parts:
+            doc.select(("part", part.key))
+    finally:
+        qapp.removeEventFilter(spy)
+        panel.close()
+    assert opened == []

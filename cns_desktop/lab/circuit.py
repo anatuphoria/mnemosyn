@@ -114,11 +114,25 @@ class CircuitView(QGraphicsView):
         return "\n".join(metrics.elidedText(line, Qt.TextElideMode.ElideRight, room)
                          for line in lines)
 
+    def _wrapped(self, name: str, rows: int) -> list[str]:
+        metrics = QFontMetricsF(font("label"))
+        room = BOX_W - 24
+        lines: list[str] = []
+        for word in name.split():
+            joined = f"{lines[-1]} {word}" if lines else word
+            if lines and metrics.horizontalAdvance(joined) <= room:
+                lines[-1] = joined
+            elif len(lines) < rows:
+                lines.append(word)
+            else:
+                lines[-1] = f"{lines[-1]} {word}"
+        return lines or [name]
+
     def _label(self, part, removed: set[str]) -> str:
         if part.key in removed:
-            return self._fit(part.name, "removed")
+            return self._fit(*self._wrapped(part.name, 2), "removed")
         if not part.values:
-            return self._fit(part.name)
+            return self._fit(*self._wrapped(part.name, 2))
         name, reading = self._value_text(part.values[0])
         whole = f"{name} {reading}".strip()
         if QFontMetricsF(font("label")).horizontalAdvance(whole) <= BOX_W - 24:

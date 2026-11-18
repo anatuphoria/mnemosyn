@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections import Counter
+
 from PySide6.QtCore import QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QScrollBar, QWidget
 
-from .timeline_metrics import (BLOCK, CHANGES_HEIGHT, HIGHLIGHT_MS, LABEL_WIDTH, LANE_COLORS,
+from .timeline_metrics import (BAR_GAP, BLOCK, CHANGES_HEIGHT, HIGHLIGHT_MS, LABEL_WIDTH, LANE_COLORS,
                                LANE_HEIGHT, MIN_SPAN, RULER_HEIGHT,
                                time_text)
 from .timeline_input import TimelineInput
@@ -17,6 +19,7 @@ __all__ = ["BLOCK", "CHANGES_HEIGHT", "LABEL_WIDTH", "LANE_COLORS", "LANE_HEIGHT
 
 class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
     edit_requested = Signal(int)
+    hint_changed = Signal(str)
 
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
@@ -34,9 +37,16 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
         self._press = None
+        self.hint = ""
         self._cache: QPixmap | None = None
         self._cache_key = None
         self._length = document.experiment.length
+        self._changes_offset = 0
+        self._layout_for = None
+        self._layout_model = None
+        self._kinds: tuple[str, ...] = ()
+        self._rows: tuple[int, ...] = ()
+        self._known = tuple(document.experiment.blocks)
         self.scroll = QScrollBar(Qt.Orientation.Vertical, self)
         self.scroll.hide()
         self.scroll.valueChanged.connect(lambda _v: self.update())
@@ -45,7 +55,17 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._sync_scroll()
         document.model_changed.connect(self._on_model)
         document.playhead_moved.connect(lambda _t: self.update())
-        document.selection_changed.connect(lambda _s: self.update())
+        document.selection_changed.connect(self._on_selection)
+
+    @property
+    def changes_offset(self) -> int:
+        return min(self._changes_offset, self.changes_room())
+
+    def scroll_changes(self, pixels: int) -> None:
+        offset = min(max(self.changes_offset + pixels, 0), self.changes_room())
+        if offset != self._changes_offset:
+            self._changes_offset = offset
+            self.update()
 
     @property
     def show_overview(self) -> bool:
@@ -88,6 +108,12 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._cache = None
         self._hover_pos = None
         self.scroll.setValue(0)
+        self._changes_offset = 0
+        self._layout_for = None
+        self._layout_model = None
+        self._kinds: tuple[str, ...] = ()
+        self._rows: tuple[int, ...] = ()
+        self._known = tuple(self.document.experiment.blocks)
         self._fit_height()
         self._sync_scroll()
 
@@ -101,8 +127,28 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
             self.span = (0.0, length)
             self.scroll.setValue(0)
             self._hover_pos = None
+        self._changes_offset = self.changes_offset
+        blocks = tuple(self.document.experiment.blocks)
+        added = Counter(blocks) - Counter(self._known)
+        self._known = blocks
+        if sum(added.values()) == 1:
+            self.reveal(blocks.index(next(iter(added))))
         self._sync_scroll()
         self.update()
+
+    def _on_selection(self, selection) -> None:
+        if selection and selection[0] == "block":
+            self.reveal(selection[1])
+        self.update()
+
+    def reveal(self, index: int) -> None:
+        if index >= len(self.document.experiment.blocks) or self.block_kind(index) == "dose":
+            return
+        rect, area = self.block_rect(index), self.bars_rect()
+        if rect.top() < area.top():
+            self.scroll_changes(round(rect.top() - area.top()) - BAR_GAP)
+        elif rect.bottom() > area.bottom():
+            self.scroll_changes(round(rect.bottom() - area.bottom()) + BAR_GAP)
 
     def _set_span(self, start: float, end: float) -> None:
         length = self.document.experiment.length

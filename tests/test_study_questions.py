@@ -4,8 +4,8 @@ from types import SimpleNamespace
 from atlas_package import tetra, write_package
 from cns_atlas import Atlas, Crossing, Pathway, Station
 from cns_study.questions import (HIGHER, LAB_MODE, NORMAL, OUTCOMES, QUESTION_MODES, ROUTE_MODE,
-                                 lab_items, offered, pool_for, route_items, scopes, span_text,
-                                 stable_id)
+                                 _in_sentence, lab_items, offered, pool_for, route_items, scopes,
+                                 span_text, stable_id)
 from lab_helpers import toy_model
 from study_atlas import study_structures
 
@@ -66,7 +66,7 @@ def lab_atlas(tmp_path):
 def test_lab_questions_come_from_the_checks_that_compare_with_normal(tmp_path):
     atlas, model = lab_atlas(tmp_path)
     removal, stressed = lab_items(atlas)
-    name = model.value("x").name
+    name = _in_sentence(model.value("x").name)
     assert removal.answer == HIGHER and removal.level == "lab" and removal.scope == "toy"
     assert removal.prompt == (f"{model.name}. {model.experiment('remove_b').name}. "
                               f"On day 1 at 12:00, {name} is:")
@@ -90,3 +90,9 @@ def test_pools_and_scopes_follow_the_level(tmp_path):
     assert pool_for(atlas, "routes", "Elsewhere") == []
     assert pool_for(atlas, "lab") == []
     assert {item.level for item in pool_for(atlas, "structures")} == {"structures"}
+
+
+def test_value_names_read_in_lower_case_mid_sentence_but_keep_acronyms():
+    assert _in_sentence("Renin") == "renin"
+    assert _in_sentence("Mean arterial pressure") == "mean arterial pressure"
+    assert _in_sentence("ACTH") == "ACTH" and _in_sentence("CRH") == "CRH"
