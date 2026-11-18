@@ -416,6 +416,7 @@ class BrainView(QtInteractor):
         structure_id = self.structure_at(x, y)
         if structure_id is not None:
             self.state.select(structure_id)
+        self.render()
 
     def _refresh_overlay(self) -> None:
         self.overlay_ids = [i for i in self.highlighted
