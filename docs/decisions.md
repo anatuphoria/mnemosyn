@@ -1050,3 +1050,17 @@ lives in `cns_lab/relations.py`; rows and groups are their own widgets.
 Why: the owner asked for a Model tab that is more consistent, more useful and aware of what is
 going on, and approved this design.
 
+## 97. A Lab change shows its kind on the timeline, and lasting ones are sized from either end
+
+2026-11-18. Every change on the Lab timeline used to be the same bar, single doses ran to the end
+of the run, a change could only be lengthened from a hidden strip on its right edge, and a few
+overlapping changes pushed the value lanes off screen while the wheel zoomed instead of scrolling.
+Now a single dose is a diamond on a thin row of its own, and doses at one moment sit side by side
+under one label; a change with a length is a bar with its length written on it and a grip on each
+end (the left one moves the start and keeps the end); a change that lasts to the end fades out to
+the right; a test keeps its own length, up to its last reading when it sets none. The Changes area
+shows at most three rows and scrolls on its own, a new or selected change is scrolled into view,
+and the wheel scrolls, with Ctrl to zoom and Shift to pan. The status bar explains a grip under the
+pointer, and a label gives the start and length while dragging.
+Why: the owner could not find how to set how long a change lasts and lost the lanes under many
+changes, and chose this over one row per kind of change.

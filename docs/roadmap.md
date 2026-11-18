@@ -2,7 +2,7 @@
 
 Where Mnemosyn stands, what is unfinished, and what may come next. Unlike `decisions.md`, nothing
 here is decided: an idea becomes a decision only when the owner approves its design. Last reviewed
-2026-11-17, at version 0.6.0.
+2026-11-18, at version 0.6.1.
 
 ## Vision
 
@@ -37,7 +37,13 @@ Version 0.6.0 (2026-11-17) is a feature release (decisions 87 to 94): quiz quest
 and Lab outcomes, the review status and a report link on every text, a welcome tour, two more Lab
 systems (the blood pressure reflex in minutes and blood pressure over days), opening experiment
 and lesson files by double click, lessons that a teacher can save and send, a Settings window and
-a light theme. None of it has been used by anyone but the owner yet. Since 2026-11-03 the
+a light theme. None of it has been used by anyone but the owner yet.
+Version 0.6.1 (2026-11-18) is a polish and fix release on 0.6.0 (decisions 96 and 97): the Lab's
+Model tab rebuilt around context with one value bar per setting, a rebuilt About box, a Lab
+timeline whose changes show their kind and can be sized from either end, and three fixes to the
+3D view: a stray window that flashed over half the screen when some parts were selected, the
+picker's half drawn frame after a click, and faded parts streaking across a part in focus.
+Since 2026-11-03 the
 website has a handbook in place of the single guide page (see below). The first public forum post went out on 2026-10-30; there are no outside users or
 feedback yet.
 
