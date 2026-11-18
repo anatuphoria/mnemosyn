@@ -825,3 +825,11 @@ def test_a_dose_is_drawn_as_a_marker_not_a_bar(timeline):
     assert image.pixel(round(rect.center().x()), y) != blank.pixel(round(rect.center().x()), y)
     far = round(timeline.x_of(900.0))
     assert image.pixel(far, y) == blank.pixel(far, y)
+
+
+def test_a_test_without_a_set_length_ends_at_its_last_reading(timeline):
+    doc = timeline.document
+    doc.add_block("pill_test", 300.0)
+    rect = timeline.block_rect(0)
+    assert rect.right() == pytest.approx(timeline.x_of(300.0 + 60.0), abs=1.0)
+    assert timeline.block_caption(0) == "1 h"

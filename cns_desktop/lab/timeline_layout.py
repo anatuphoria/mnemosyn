@@ -101,7 +101,11 @@ class TimelineLayout:
         if block.length is not None:
             return block.length
         test = next((t for t in self.document.model.tests if t.key == block.experiment), None)
-        return test.length if test is not None else None
+        if test is None:
+            return None
+        if test.length is not None:
+            return test.length
+        return max((r.after for r in test.readings), default=None)
 
     def block_rows(self) -> list[int]:
         blocks = self.document.experiment.blocks
