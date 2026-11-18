@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections import Counter
+
 from PySide6.QtCore import QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QScrollBar, QWidget
 
-from .timeline_metrics import (BLOCK, CHANGES_HEIGHT, HIGHLIGHT_MS, LABEL_WIDTH, LANE_COLORS,
+from .timeline_metrics import (BAR_GAP, BLOCK, CHANGES_HEIGHT, HIGHLIGHT_MS, LABEL_WIDTH, LANE_COLORS,
                                LANE_HEIGHT, MIN_SPAN, RULER_HEIGHT,
                                time_text)
 from .timeline_input import TimelineInput
@@ -40,6 +42,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._cache_key = None
         self._length = document.experiment.length
         self._changes_offset = 0
+        self._known = tuple(document.experiment.blocks)
         self.scroll = QScrollBar(Qt.Orientation.Vertical, self)
         self.scroll.hide()
         self.scroll.valueChanged.connect(lambda _v: self.update())
@@ -48,7 +51,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._sync_scroll()
         document.model_changed.connect(self._on_model)
         document.playhead_moved.connect(lambda _t: self.update())
-        document.selection_changed.connect(lambda _s: self.update())
+        document.selection_changed.connect(self._on_selection)
 
     @property
     def changes_offset(self) -> int:
@@ -102,6 +105,7 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._hover_pos = None
         self.scroll.setValue(0)
         self._changes_offset = 0
+        self._known = tuple(self.document.experiment.blocks)
         self._fit_height()
         self._sync_scroll()
 
@@ -116,8 +120,27 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
             self.scroll.setValue(0)
             self._hover_pos = None
         self._changes_offset = self.changes_offset
+        blocks = tuple(self.document.experiment.blocks)
+        added = Counter(blocks) - Counter(self._known)
+        self._known = blocks
+        if sum(added.values()) == 1:
+            self.reveal(blocks.index(next(iter(added))))
         self._sync_scroll()
         self.update()
+
+    def _on_selection(self, selection) -> None:
+        if selection and selection[0] == "block":
+            self.reveal(selection[1])
+        self.update()
+
+    def reveal(self, index: int) -> None:
+        if index >= len(self.document.experiment.blocks) or self.block_kind(index) == "dose":
+            return
+        rect, area = self.block_rect(index), self.bars_rect()
+        if rect.top() < area.top():
+            self.scroll_changes(round(rect.top() - area.top()) - BAR_GAP)
+        elif rect.bottom() > area.bottom():
+            self.scroll_changes(round(rect.bottom() - area.bottom()) + BAR_GAP)
 
     def _set_span(self, start: float, end: float) -> None:
         length = self.document.experiment.length

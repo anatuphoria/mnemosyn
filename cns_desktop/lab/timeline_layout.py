@@ -7,6 +7,7 @@ from PySide6.QtCore import QPointF, QRectF
 from PySide6.QtGui import QFontMetricsF
 
 from cns_desktop.design.fonts import font
+from cns_desktop.design.tokens import GAP, SIZE
 
 from .experiments_panel import icon_for
 from .labels import plain
@@ -182,14 +183,43 @@ class TimelineLayout:
         height = self._lane_height()
         return QRectF(LABEL_WIDTH, self._lanes_top() + index * height, self._plot_width(), height)
 
-    def dose_rect(self, index: int, preview: tuple[float, float | None] | None = None) -> QRectF:
-        block = self.document.experiment.blocks[index]
-        start = preview[0] if preview is not None else block.start
+    def _dose_slots(self) -> dict[int, tuple[float, tuple[int, ...]]]:
+        blocks = self.document.experiment.blocks
+        doses = sorted((i for i in range(len(blocks)) if self.block_kind(i) == "dose"),
+                       key=lambda i: (blocks[i].start, i))
+        step = MARKER + BAR_GAP
+        groups: list[tuple[float, list[int]]] = []
+        for index in doses:
+            x = self.x_of(blocks[index].start)
+            if groups and x < groups[-1][0] + len(groups[-1][1]) * step:
+                groups[-1][1].append(index)
+            else:
+                groups.append((x, [index]))
         half = MARKER / 2
-        run = self.document.experiment.length
-        x = min(max(self.x_of(start), self.x_of(0.0) + half), self.x_of(run) - half)
+        low, high = self.x_of(0.0) + half, self.x_of(self.document.experiment.length) - half
+        slots = {}
+        for base, members in groups:
+            base = max(min(base, high - (len(members) - 1) * step), low)
+            for place, index in enumerate(members):
+                slots[index] = (base + place * step, tuple(members))
+        return slots
+
+    def dose_rect(self, index: int, preview: tuple[float, float | None] | None = None) -> QRectF:
+        half = MARKER / 2
+        if preview is not None:
+            run = self.document.experiment.length
+            x = min(max(self.x_of(preview[0]), self.x_of(0.0) + half), self.x_of(run) - half)
+        else:
+            x = self._dose_slots()[index][0]
         y = self._changes_top() + DOSE_ROW / 2
         return QRectF(x - half, y - half, MARKER, MARKER)
+
+    def dose_label(self, index: int) -> str:
+        members = self._dose_slots().get(index, (0.0, ()))[1]
+        if not members or members[-1] != index:
+            return ""
+        blocks = self.document.experiment.blocks
+        return ", ".join(self.document.name_of(blocks[i].experiment) for i in members)
 
     def block_rect(self, index: int, preview: tuple[float, float | None] | None = None) -> QRectF:
         if self.block_kind(index) == "dose":
@@ -228,6 +258,40 @@ class TimelineLayout:
         size = preview[1] if preview is not None and preview[1] is not None else None
         size = self._block_length(block) if size is None else size
         return self.document.scale.text(size) if size is not None else ""
+
+    def grip_xs(self, index: int, preview: tuple[float, float | None] | None = None) -> list[float]:
+        if self.block_kind(index) != "lasting":
+            return []
+        rect = self.block_rect(index, preview)
+        ends = [rect.right() - GAP["tight"]]
+        if rect.width() >= 3 * GRIP:
+            ends.insert(0, rect.left() + GAP["tight"])
+        return ends
+
+    def bar_parts(self, index: int, preview: tuple[float, float | None] | None = None
+                  ) -> tuple[QRectF | None, QRectF | None, QRectF | None]:
+        rect = self.block_rect(index, preview)
+        label = self.block_label_rect(index, preview)
+        kind = self.block_kind(index)
+        gap = GAP["tight"]
+        left = label.left() + gap + 2
+        right = label.right() - (GRIP if kind == "lasting" else gap)
+        if kind == "to_end":
+            right = min(right, rect.right() - 4 * GRIP)
+        caption = None
+        text = self.block_caption(index)
+        if text:
+            width = QFontMetricsF(font("data")).horizontalAdvance(text)
+            if right - left >= width:
+                caption = QRectF(right - width, rect.top(), width, rect.height())
+                right = caption.left() - GAP["small"]
+        icon = None
+        size = SIZE["icon_header"]
+        if right - left >= size:
+            icon = QRectF(left, rect.center().y() - size / 2, size, size)
+            left += size + gap
+        name = QRectF(left, rect.top(), right - left, rect.height()) if right - left >= 2 * GAP["small"] else None
+        return icon, name, caption
 
     def drag_label(self) -> str:
         press = self._press

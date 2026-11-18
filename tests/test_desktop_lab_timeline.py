@@ -672,6 +672,7 @@ def test_the_changes_area_scrolls_on_its_own(timeline):
     crowd_bars(timeline.document)
     keys = timeline.lane_keys()
     lane = timeline.lane_rect(keys[0]).top()
+    timeline.scroll_changes(-10_000)
     hidden = timeline.block_rect(4)
     assert hidden.top() >= timeline.changes_rect().bottom()
     timeline.scroll_changes(10_000)
@@ -682,6 +683,7 @@ def test_the_changes_area_scrolls_on_its_own(timeline):
 
 def test_hidden_changes_cannot_be_grabbed_through_the_lanes(timeline):
     crowd_bars(timeline.document)
+    timeline.scroll_changes(-10_000)
     rect = timeline.block_rect(4)
     assert timeline._block_at(rect.center()) is None
 
@@ -833,3 +835,42 @@ def test_a_test_without_a_set_length_ends_at_its_last_reading(timeline):
     rect = timeline.block_rect(0)
     assert rect.right() == pytest.approx(timeline.x_of(300.0 + 60.0), abs=1.0)
     assert timeline.block_caption(0) == "1 h"
+
+
+def test_a_selected_change_in_a_hidden_row_is_scrolled_into_view(timeline):
+    doc = timeline.document
+    crowd_bars(doc)
+    assert timeline.bars_rect().contains(timeline.block_rect(4).center())
+    doc.select(("block", 0))
+    assert timeline.bars_rect().contains(timeline.block_rect(0).center())
+    doc.select(("block", 4))
+    assert timeline.bars_rect().contains(timeline.block_rect(4).center())
+
+
+def test_two_doses_at_one_moment_sit_side_by_side_with_one_label(timeline):
+    doc = timeline.document
+    doc.add_block("pill", 300.0)
+    doc.add_block("pill", 300.0)
+    first, second = timeline.block_rect(0), timeline.block_rect(1)
+    assert not first.intersects(second)
+    assert timeline._block_at(first.center()) == 0 and timeline._block_at(second.center()) == 1
+    name = doc.name_of("pill")
+    assert timeline.dose_label(0) == "" and timeline.dose_label(1) == f"{name}, {name}"
+
+
+def test_a_short_bar_shows_its_length_before_its_name(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    _icon, _name, caption = timeline.bar_parts(0)
+    assert caption is not None and caption.right() <= timeline.block_rect(0).right()
+
+
+def test_a_narrow_bar_draws_only_the_grip_that_works(timeline):
+    doc = timeline.document
+    doc.add_block("stress", 300.0)
+    doc.stretch_block(0, 15.0)
+    rect = timeline.block_rect(0)
+    assert rect.width() < 24
+    assert len(timeline.grip_xs(0)) == 1
+    doc.stretch_block(0, 120.0)
+    assert len(timeline.grip_xs(0)) == 2

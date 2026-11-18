@@ -132,7 +132,6 @@ class TimelinePaint:
         block = doc.experiment.blocks[index]
         preview = self._preview_of(index)
         rect = self.block_rect(index, preview)
-        label = self.block_label_rect(index, preview)
         selected = doc.selection == ("block", index)
         fill = QColor(BLOCK)
         fill.setAlpha(40 if block.present else 64)
@@ -152,36 +151,25 @@ class TimelinePaint:
         painter.drawRoundedRect(rect, RADIUS["small"], RADIUS["small"])
         if kind == "to_end" and rect.right() >= LABEL_WIDTH + self._plot_width() - 1:
             self._paint_arrow(painter, rect)
-        gap = GAP["tight"]
-        text_rect = label.adjusted(gap + 2, 0, -gap, 0)
-        size = SIZE["icon_header"]
-        if label.width() > 40:
-            top = rect.center().y() - size / 2
-            painter.drawPixmap(QPointF(label.left() + gap + 2, top),
-                               icons.pixmap(self.block_icon(index), "edited", size))
-            text_rect = label.adjusted(GAP["small"] + 2 + size, 0, -gap, 0)
-        if kind == "to_end":
-            text_rect.setRight(min(text_rect.right(), rect.right() - 4 * GRIP))
-        caption = self.block_caption(index)
-        painter.setFont(font("data"))
-        width = painter.fontMetrics().horizontalAdvance(caption) if caption else 0
+        icon, name_rect, caption_rect = self.bar_parts(index, preview)
+        if icon is not None:
+            size = SIZE["icon_header"]
+            painter.drawPixmap(icon.topLeft(), icons.pixmap(self.block_icon(index), "edited", size))
+        if caption_rect is not None:
+            painter.setFont(font("data"))
+            painter.setPen(INK if selected else MUTED)
+            painter.drawText(caption_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                             self.block_caption(index))
+        if name_rect is not None:
+            painter.setFont(font("secondary"))
+            painter.setPen(INK if selected else BLOCK)
+            name = painter.fontMetrics().elidedText(doc.name_of(block.experiment),
+                                                    Qt.TextElideMode.ElideRight,
+                                                    max(int(name_rect.width()), 0))
+            painter.drawText(name_rect, Qt.AlignmentFlag.AlignVCenter, name)
         grips = kind == "lasting" and (selected or hovered)
-        inset = GRIP if grips else gap
-        if caption and text_rect.width() > width + inset + 3 * GAP["small"]:
-            painter.setPen(MUTED if not selected else INK)
-            spot = QRectF(text_rect.left(), rect.top(), text_rect.right() - inset - text_rect.left(),
-                          rect.height())
-            painter.drawText(spot, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
-                             caption)
-            text_rect.setRight(spot.right() - width - GAP["small"])
-        painter.setFont(font("secondary"))
-        painter.setPen(INK if selected else BLOCK)
-        name = painter.fontMetrics().elidedText(doc.name_of(block.experiment),
-                                                Qt.TextElideMode.ElideRight,
-                                                max(int(text_rect.width()), 0))
-        painter.drawText(text_rect, Qt.AlignmentFlag.AlignVCenter, name)
         if grips:
-            self._paint_grips(painter, rect, selected)
+            self._paint_grips(painter, index, preview, rect, selected)
 
     @staticmethod
     def _round_pen(colour: QColor, width: float) -> QPen:
@@ -189,11 +177,12 @@ class TimelinePaint:
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         return pen
 
-    def _paint_grips(self, painter: QPainter, rect: QRectF, selected: bool) -> None:
+    def _paint_grips(self, painter: QPainter, index: int, preview, rect: QRectF,
+                     selected: bool) -> None:
         painter.setPen(self._round_pen(INK if selected else BLOCK, 2))
         reach = rect.height() / 4
         middle = rect.center().y()
-        for x in (rect.left() + GAP["tight"], rect.right() - GAP["tight"]):
+        for x in self.grip_xs(index, preview):
             painter.drawLine(QPointF(x, middle - reach), QPointF(x, middle + reach))
 
     def _paint_arrow(self, painter: QPainter, rect: QRectF) -> None:
@@ -219,15 +208,17 @@ class TimelinePaint:
         painter.setBrush(BLOCK)
         painter.setPen(QPen(PLAYHEAD if selected else BLOCK, 2 if selected else 1))
         painter.drawPath(diamond)
+        text = self.dose_label(index) if self._preview_of(index) is None else self.document.name_of(
+            doc.experiment.blocks[index].experiment)
+        if not text:
+            return
         left = rect.right() + GAP["tight"]
         later = [self.block_rect(i).left() for i in range(len(doc.experiment.blocks))
-                 if i != index and self.block_kind(i) == "dose"
-                 and self.block_rect(i).left() > rect.left()]
+                 if self.block_kind(i) == "dose" and self.block_rect(i).left() > rect.right()]
         right = min([*later, LABEL_WIDTH + self._plot_width()]) - GAP["tight"]
         painter.setFont(font("secondary"))
         painter.setPen(INK if selected else BLOCK)
-        name = painter.fontMetrics().elidedText(doc.name_of(doc.experiment.blocks[index].experiment),
-                                                Qt.TextElideMode.ElideRight,
+        name = painter.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight,
                                                 max(int(right - left), 0))
         painter.drawText(QRectF(left, rect.top() - GAP["tight"], max(right - left, 0.0),
                                 rect.height() + 2 * GAP["tight"]),
