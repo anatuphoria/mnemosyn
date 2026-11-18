@@ -183,7 +183,7 @@ class TimelineInput:
             self._pan(-steps * SWIPE * (self.span[1] - self.span[0]))
         elif sideways:
             self._pan(-sideways * SWIPE * (self.span[1] - self.span[0]))
-        elif steps and self.bars_rect().contains(pos) and self.changes_room():
+        elif steps and self.changes_rect().contains(pos) and self.changes_room():
             self.scroll_changes(-round(steps * BLOCK_ROW))
         elif steps:
             self.scroll.setValue(self.scroll.value() - round(steps * LANE_HEIGHT / 2))

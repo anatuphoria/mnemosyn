@@ -42,6 +42,10 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._cache_key = None
         self._length = document.experiment.length
         self._changes_offset = 0
+        self._layout_for = None
+        self._layout_model = None
+        self._kinds: tuple[str, ...] = ()
+        self._rows: tuple[int, ...] = ()
         self._known = tuple(document.experiment.blocks)
         self.scroll = QScrollBar(Qt.Orientation.Vertical, self)
         self.scroll.hide()
@@ -105,6 +109,10 @@ class Timeline(TimelineInput, TimelinePaint, TimelineLayout, QWidget):
         self._hover_pos = None
         self.scroll.setValue(0)
         self._changes_offset = 0
+        self._layout_for = None
+        self._layout_model = None
+        self._kinds: tuple[str, ...] = ()
+        self._rows: tuple[int, ...] = ()
         self._known = tuple(self.document.experiment.blocks)
         self._fit_height()
         self._sync_scroll()

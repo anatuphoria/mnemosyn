@@ -17,7 +17,6 @@ MARKER = SIZE["handle"]
 BAR_GAP = GAP["tight"]
 CHANGES_HEIGHT = BLOCK_ROW
 MAX_BAR_ROWS = 3
-KINDS = ("present", "dose", "lasting", "to_end", "test")
 LANE_HEIGHT = SIZE["lane"]
 PAD = SIZE["panel_pad"]
 GRIP = 8

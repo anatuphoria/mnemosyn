@@ -874,3 +874,61 @@ def test_a_narrow_bar_draws_only_the_grip_that_works(timeline):
     assert len(timeline.grip_xs(0)) == 1
     doc.stretch_block(0, 120.0)
     assert len(timeline.grip_xs(0)) == 2
+
+
+def test_the_layout_works_out_each_kind_once_per_edit(timeline, monkeypatch):
+    doc = timeline.document
+    for start in range(0, 1200, 40):
+        doc.add_block("stress", float(start))
+    doc.add_block("pill", 600.0)
+    calls = []
+    original = type(timeline)._kind_of
+    monkeypatch.setattr(type(timeline), "_kind_of",
+                        lambda self, index: calls.append(index) or original(self, index))
+    doc.add_block("pill", 610.0)
+    timeline.grab()
+    assert len(calls) <= len(doc.experiment.blocks)
+
+
+def test_the_wheel_over_the_dose_row_scrolls_the_changes(timeline):
+    doc = timeline.document
+    crowd_bars(doc)
+    doc.add_block("pill", 600.0)
+    timeline.scroll_changes(-10_000)
+    wheel(timeline, timeline.doses_rect().center(), -1)
+    assert timeline.changes_offset > 0 and timeline.scroll.value() == 0
+
+
+def test_a_dose_at_the_end_of_the_run_puts_its_name_on_the_left(timeline):
+    timeline.document.add_block("pill", DAY - 1.0)
+    label = timeline.dose_label_rect(0)
+    assert label.width() > 20 and label.right() <= timeline.block_rect(0).left()
+
+
+def test_dragging_a_test_says_how_long_it_lasts(timeline):
+    doc = timeline.document
+    doc.add_block("hold_test", 300.0)
+    middle = timeline.block_rect(0).center().toPoint()
+    mouse(timeline, QMouseEvent.Type.MouseButtonPress, middle)
+    mouse(timeline, QMouseEvent.Type.MouseMove, middle)
+    assert timeline.drag_label() == "starts 5 h, lasts 2 h"
+    mouse(timeline, QMouseEvent.Type.MouseButtonRelease, middle)
+
+
+def test_a_test_whose_edits_last_to_the_end_is_drawn_to_the_end(timeline):
+    from dataclasses import replace
+
+    doc = timeline.document
+    tests = tuple(replace(t, length=None) if t.key == "hold_test" else t for t in doc.model.tests)
+    doc.model = replace(doc.model, tests=tests)
+    doc.add_block("hold_test", 300.0)
+    assert timeline.block_rect(0).right() == pytest.approx(timeline.x_of(DAY), abs=1.0)
+
+
+def test_the_changes_scroll_marker_keeps_clear_of_the_bar_ends(timeline):
+    crowd_bars(timeline.document)
+    marker = timeline.changes_scroll_rect()
+    assert marker is not None
+    from cns_desktop.lab.timeline_metrics import GRIP
+
+    assert marker.right() <= LABEL_WIDTH + timeline._plot_width() - GRIP

@@ -208,21 +208,17 @@ class TimelinePaint:
         painter.setBrush(BLOCK)
         painter.setPen(QPen(PLAYHEAD if selected else BLOCK, 2 if selected else 1))
         painter.drawPath(diamond)
-        text = self.dose_label(index) if self._preview_of(index) is None else self.document.name_of(
-            doc.experiment.blocks[index].experiment)
-        if not text:
+        label = self.dose_label_rect(index)
+        if label is None:
             return
-        left = rect.right() + GAP["tight"]
-        later = [self.block_rect(i).left() for i in range(len(doc.experiment.blocks))
-                 if self.block_kind(i) == "dose" and self.block_rect(i).left() > rect.right()]
-        right = min([*later, LABEL_WIDTH + self._plot_width()]) - GAP["tight"]
+        text = (self.dose_label(index) if self._preview_of(index) is None
+                else doc.name_of(doc.experiment.blocks[index].experiment))
         painter.setFont(font("secondary"))
         painter.setPen(INK if selected else BLOCK)
         name = painter.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight,
-                                                max(int(right - left), 0))
-        painter.drawText(QRectF(left, rect.top() - GAP["tight"], max(right - left, 0.0),
-                                rect.height() + 2 * GAP["tight"]),
-                         Qt.AlignmentFlag.AlignVCenter, name)
+                                                max(int(label.width()), 0))
+        side = Qt.AlignmentFlag.AlignRight if label.right() <= rect.left() else Qt.AlignmentFlag.AlignLeft
+        painter.drawText(label, Qt.AlignmentFlag.AlignVCenter | side, name)
 
     def _paint_drag_label(self, painter: QPainter) -> None:
         text = self.drag_label()
@@ -245,18 +241,12 @@ class TimelinePaint:
         painter.drawText(box, Qt.AlignmentFlag.AlignCenter, text)
 
     def _paint_changes_scroll(self, painter: QPainter) -> None:
-        room = self.changes_room()
-        if not room:
+        marker = self.changes_scroll_rect()
+        if marker is None:
             return
-        area = self.bars_rect()
-        share = area.height() / (area.height() + room)
-        height = max(area.height() * share, GAP["small"])
-        top = area.top() + (area.height() - height) * self.changes_offset / room
-        width = GAP["tight"]
-        left = LABEL_WIDTH + self._plot_width() - width - GAP["tight"] / 2
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(MUTED)
-        painter.drawRoundedRect(QRectF(left, top, width, height), width / 2, width / 2)
+        painter.drawRoundedRect(marker, marker.width() / 2, marker.width() / 2)
 
     def _paint_hover(self, painter: QPainter) -> None:
         values = self.hover_values()

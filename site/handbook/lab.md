@@ -44,8 +44,9 @@ give a drug, switch on a disease, add a stressor, or run a clinical test. The se
 it, **Find an experiment**, finds one by name. Drag one onto the **Timeline**, or double click it
 to add it at the playhead. A single dose shows as a small diamond on its own row, a change that
 lasts a set time shows as a bar with its length written on it, and a change that lasts to the end of
-the run fades out to the right. Drag a change to move it, and drag either end of a bar that has a
-length to set when it starts or how long it lasts. When there are more than three rows of changes,
+the run fades out to the right. Drag a change to move it, and drag either end of a change that
+lasts a set time to set when it starts or how long it lasts. A clinical test keeps the length the
+test needs. When there are more than three rows of changes,
 that area scrolls on its own so the lanes stay in view. Select a change to set its dose, time or
 strength in the **Inspector**. Long standing conditions,
 such as diabetes insipidus or Addison's disease, are present from the start of a run unless you

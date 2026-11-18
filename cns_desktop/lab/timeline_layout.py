@@ -69,7 +69,18 @@ class TimelineLayout:
     def _body_area(self) -> QRectF:
         return QRectF(0, self.body_top(), self.width(), self.height() - self.body_top())
 
+    def _layout(self) -> tuple[tuple[str, ...], tuple[int, ...]]:
+        doc = self.document
+        if self._layout_for is not doc.experiment or self._layout_model is not doc.model:
+            self._layout_for, self._layout_model = doc.experiment, doc.model
+            self._kinds = tuple(self._kind_of(i) for i in range(len(doc.experiment.blocks)))
+            self._rows = tuple(self._rows_of())
+        return self._kinds, self._rows
+
     def block_kind(self, index: int) -> str:
+        return self._layout()[0][index]
+
+    def _kind_of(self, index: int) -> str:
         block = self.document.experiment.blocks[index]
         if block.present:
             return "present"
@@ -85,8 +96,7 @@ class TimelineLayout:
         return "to_end"
 
     def has_doses(self) -> bool:
-        return any(self.block_kind(i) == "dose"
-                   for i in range(len(self.document.experiment.blocks)))
+        return "dose" in self._layout()[0]
 
     def _block_span(self, index: int) -> tuple[float, float]:
         block = self.document.experiment.blocks[index]
@@ -106,9 +116,14 @@ class TimelineLayout:
             return None
         if test.length is not None:
             return test.length
+        if test.edits:
+            return None
         return max((r.after for r in test.readings), default=None)
 
     def block_rows(self) -> list[int]:
+        return list(self._layout()[1])
+
+    def _rows_of(self) -> list[int]:
         blocks = self.document.experiment.blocks
         order = sorted(range(len(blocks)),
                        key=lambda i: (not blocks[i].present, self._block_span(i)[0], i))
@@ -259,6 +274,38 @@ class TimelineLayout:
         size = self._block_length(block) if size is None else size
         return self.document.scale.text(size) if size is not None else ""
 
+    def dose_label_rect(self, index: int) -> QRectF | None:
+        doc = self.document
+        preview = self._preview_of(index)
+        text = (self.dose_label(index) if preview is None
+                else doc.name_of(doc.experiment.blocks[index].experiment))
+        if not text:
+            return None
+        rect = self.block_rect(index, preview)
+        gap = GAP["tight"]
+        others = [self.block_rect(i) for i in range(len(doc.experiment.blocks))
+                  if i != index and self.block_kind(i) == "dose"]
+        left = rect.right() + gap
+        right = min([r.left() for r in others if r.left() > rect.right()]
+                    + [LABEL_WIDTH + self._plot_width()]) - gap
+        width = QFontMetricsF(font("secondary")).horizontalAdvance(text)
+        if right - left < min(width, 3 * GAP["wide"]) and not any(r.left() > rect.right() for r in others):
+            right = rect.left() - gap
+            left = max([r.right() for r in others if r.right() < rect.left()]
+                       + [LABEL_WIDTH], default=LABEL_WIDTH) + gap
+            left = max(left, right - math.ceil(width) - 1)
+        return QRectF(left, rect.top() - gap, max(right - left, 0.0), rect.height() + 2 * gap)
+
+    def changes_scroll_rect(self) -> QRectF | None:
+        room = self.changes_room()
+        if not room:
+            return None
+        area = self.bars_rect()
+        height = max(area.height() * area.height() / (area.height() + room), GAP["small"])
+        top = area.top() + (area.height() - height) * self.changes_offset / room
+        width = GAP["tight"]
+        return QRectF(LABEL_WIDTH + self._plot_width() - GRIP - width, top, width, height)
+
     def grip_xs(self, index: int, preview: tuple[float, float | None] | None = None) -> list[float]:
         if self.block_kind(index) != "lasting":
             return []
@@ -298,6 +345,8 @@ class TimelineLayout:
         if not press or press.get("kind") not in ("move", "start", "end") or "preview" not in press:
             return ""
         start, length = press["preview"]
+        if length is None:
+            length = self._block_length(self.document.experiment.blocks[press["block"]])
         scale = self.document.scale
         text = f"starts {scale.text(start)}"
         return f"{text}, lasts {scale.text(length)}" if length is not None else text
