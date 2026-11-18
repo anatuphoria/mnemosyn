@@ -5,7 +5,8 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu
 
 from .experiments_panel import MIME
-from .timeline_metrics import EDGE, FINE_STEPS, GRAB, LABEL_WIDTH, LANE_HEIGHT, SWIPE
+from .timeline_metrics import (BLOCK_ROW, EDGE, FINE_STEPS, GRAB, LABEL_WIDTH, LANE_HEIGHT,
+                               SWIPE)
 
 
 class TimelineInput:
@@ -161,16 +162,18 @@ class TimelineInput:
 
     def wheelEvent(self, event) -> None:
         sideways, steps = event.angleDelta().x() / 120, event.angleDelta().y() / 120
-        if event.position().x() < LABEL_WIDTH and not sideways and steps:
-            self.scroll.setValue(self.scroll.value() - round(steps * LANE_HEIGHT))
-            event.accept()
-            return
-        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier and not sideways:
-            sideways, steps = steps, 0.0
-        if sideways:
+        modifiers = event.modifiers()
+        pos = event.position()
+        if modifiers & Qt.KeyboardModifier.ControlModifier and steps:
+            self.zoom(0.8 ** steps, self.t_of(max(pos.x(), LABEL_WIDTH)))
+        elif modifiers & Qt.KeyboardModifier.ShiftModifier and steps and not sideways:
+            self._pan(-steps * SWIPE * (self.span[1] - self.span[0]))
+        elif sideways:
             self._pan(-sideways * SWIPE * (self.span[1] - self.span[0]))
+        elif steps and self.bars_rect().contains(pos) and self.changes_room():
+            self.scroll_changes(-round(steps * BLOCK_ROW))
         elif steps:
-            self.zoom(0.8 ** steps, self.t_of(event.position().x()))
+            self.scroll.setValue(self.scroll.value() - round(steps * LANE_HEIGHT / 2))
         else:
             return
         event.accept()

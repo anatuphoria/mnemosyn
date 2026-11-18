@@ -112,7 +112,7 @@ def test_the_wheel_zooms_around_the_pointer(timeline):
     x = timeline.x_of(720.0)
     event = QWheelEvent(QPointF(x, 100), QPointF(timeline.mapToGlobal(QPoint(round(x), 100))),
                         QPoint(0, 0), QPoint(0, 120), Qt.MouseButton.NoButton,
-                        Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.NoScrollPhase, False)
+                        Qt.KeyboardModifier.ControlModifier, Qt.ScrollPhase.NoScrollPhase, False)
     timeline.wheelEvent(event)
     start, end = timeline.span
     assert end - start < DAY and start < 720.0 < end
@@ -693,3 +693,45 @@ def test_removing_changes_pulls_the_changes_scroll_back(timeline):
     for _ in range(4):
         doc.delete_block(0)
     assert timeline.changes_offset == 0
+
+
+def wheel(widget, pos, notches=1, modifiers=Qt.KeyboardModifier.NoModifier):
+    event = QWheelEvent(QPointF(pos), QPointF(widget.mapToGlobal(pos.toPoint())), QPoint(0, 0),
+                        QPoint(0, 120 * notches), Qt.MouseButton.NoButton, modifiers,
+                        Qt.ScrollPhase.NoScrollPhase, False)
+    widget.wheelEvent(event)
+    return event
+
+
+def test_ctrl_and_the_wheel_zoom_around_the_pointer(timeline):
+    x = timeline.x_of(720.0)
+    wheel(timeline, QPointF(x, 100), 1, Qt.KeyboardModifier.ControlModifier)
+    start, end = timeline.span
+    assert end - start < DAY and timeline.x_of(720.0) == pytest.approx(x, abs=1.0)
+
+
+def test_the_plain_wheel_scrolls_and_leaves_time_alone(timeline):
+    timeline.resize(1000, 140)
+    keys = timeline.lane_keys()
+    point = QPointF(timeline.x_of(720.0), timeline.lane_rect(keys[0]).center().y())
+    wheel(timeline, point, -1)
+    assert timeline.span == (0.0, DAY) and timeline.scroll.value() > 0
+
+
+def test_the_plain_wheel_over_changes_scrolls_the_changes(timeline):
+    crowd_bars(timeline.document)
+    wheel(timeline, timeline.bars_rect().center(), -1)
+    assert timeline.changes_offset > 0 and timeline.span == (0.0, DAY)
+
+
+def test_shift_and_the_wheel_pan(timeline):
+    timeline.zoom(0.25, 720.0)
+    before = timeline.span
+    wheel(timeline, QPointF(timeline.x_of(720.0), 100), -1, Qt.KeyboardModifier.ShiftModifier)
+    assert timeline.span[0] > before[0]
+
+
+def test_ctrl_wins_over_the_lane_names(timeline):
+    point = QPointF(LABEL_WIDTH / 2, timeline.lane_rect(timeline.lane_keys()[0]).center().y())
+    wheel(timeline, point, 1, Qt.KeyboardModifier.ControlModifier)
+    assert timeline.span[1] - timeline.span[0] < DAY
