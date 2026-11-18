@@ -10,12 +10,12 @@ GLOW_INTENSITY = 4.0
 
 
 class OutlineLayer:
-    def __init__(self, render_window, renderer) -> None:
+    def __init__(self, render_window, renderer, layer: int = 1) -> None:
         self.renderer = vtkRenderer()
-        self.renderer.SetLayer(1)
+        self.renderer.SetLayer(layer)
         self.renderer.InteractiveOff()
         self.renderer.SetActiveCamera(renderer.GetActiveCamera())
-        render_window.SetNumberOfLayers(max(2, render_window.GetNumberOfLayers()))
+        render_window.SetNumberOfLayers(max(layer + 1, render_window.GetNumberOfLayers()))
         render_window.AddRenderer(self.renderer)
         self._steps = vtkRenderStepsPass()
         self._glow = vtkOutlineGlowPass()

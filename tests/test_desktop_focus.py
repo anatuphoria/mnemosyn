@@ -111,3 +111,39 @@ def test_a_new_selection_outside_the_focus_is_outlined(window):
     window.state.set_focus([101, 112])
     window.state.select(102)
     assert window.view.overlay_ids == [102]
+
+
+def drawn_in_focus(view, ids):
+    return frozenset(i for i in ids if view.chunks.has(i))
+
+
+def test_focused_parts_are_drawn_again_above_the_faded_ones(window):
+    view = window.view
+    window.state.set_focus(ROUTE)
+    assert view.front.shown == drawn_in_focus(view, ROUTE) and view.front.shown
+    assert view.front.renderer.GetLayer() < view.outline.renderer.GetLayer()
+    window.state.set_focus(None)
+    assert view.front.shown == frozenset()
+
+
+def test_the_front_copies_follow_lab_colours_and_hiding(window):
+    view = window.view
+    window.state.set_focus(ROUTE)
+    target = min(drawn_in_focus(view, ROUTE))
+    view.set_lab_colors({target: (1.0, 0.0, 0.0)})
+    assert view.front.color_of(target) == pytest.approx((1.0, 0.0, 0.0))
+    view.set_lab_colors({target: None})
+    assert view.front.color_of(target) == pytest.approx(view.chunks.color_of(target))
+    window.state.set_hidden([target], True)
+    assert target not in view.front.shown
+    window.state.set_hidden([target], False)
+    assert target in view.front.shown
+
+
+def test_the_front_layer_steps_aside_when_the_grey_is_dimmed(window):
+    view = window.view
+    window.state.set_focus(ROUTE)
+    view.set_grey_opacity(0.15)
+    assert view.front.shown == frozenset()
+    view.set_grey_opacity(1.0)
+    assert view.front.shown == drawn_in_focus(view, ROUTE)

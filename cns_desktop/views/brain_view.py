@@ -17,6 +17,7 @@ from ..slices import AXIS_INDEX
 from ..state import AppState
 from .chunks import Chunks
 from .navigation import install_navigation
+from .front import FrontLayer
 from .outline import OutlineLayer
 
 BACKGROUND = COLOURS["s0"]
@@ -79,7 +80,10 @@ class BrainView(QtInteractor):
         for actor in self.chunks.actors:
             self.renderer.AddActor(actor)
         self.chunks.apply_focus(state.focus, FAINT)
-        self.outline = OutlineLayer(self.ren_win, self.renderer)
+        self._grey = 1.0
+        self.front = FrontLayer(self.ren_win, self.renderer, 1)
+        self.outline = OutlineLayer(self.ren_win, self.renderer, 2)
+        self._sync_front()
         self.outline.add_blocks(self.ids, [self.blocks[i] for i in self.ids])
         self.shell_actors: dict[int, vtkActor] = {}
         self._shell_of: dict[vtkActor, int] = {}
@@ -210,8 +214,15 @@ class BrainView(QtInteractor):
         return (structure_id in self.blocks and structure_id not in self._tract_set
                 and self.chunks.is_visible(structure_id))
 
+    def _sync_front(self) -> None:
+        focus = self.state.focus
+        ids = [] if focus is None or self._grey < 1.0 else [
+            i for i in focus if self.chunks.has(i) and self.chunks.is_visible(i)]
+        self.front.show(ids, self.blocks, {i: self.chunks.color_of(i) for i in ids})
+
     def set_lab_colors(self, colors: dict) -> None:
         self.chunks.set_colors(colors)
+        self._sync_front()
         for structure_id, color in colors.items():
             actor = self.shell_actors.get(structure_id) or self.tract_actors.get(structure_id)
             if actor is not None:
@@ -253,6 +264,8 @@ class BrainView(QtInteractor):
 
     def set_grey_opacity(self, opacity: float) -> None:
         self.chunks.set_opacity(opacity)
+        self._grey = opacity
+        self._sync_front()
         self._request_render()
 
     def _style_tract(self, structure_id: int) -> None:
@@ -304,6 +317,7 @@ class BrainView(QtInteractor):
 
     def _on_focus_changed(self, _focus) -> None:
         self.chunks.apply_focus(self.state.focus, FAINT)
+        self._sync_front()
         for structure_id in self.tract_actors:
             self._style_tract(structure_id)
         for structure_id in self.shell_actors:
@@ -465,6 +479,7 @@ class BrainView(QtInteractor):
             elif structure_id in self.blocks and structure_id not in self._tract_set:
                 grey[structure_id] = self.state.is_hidden(structure_id)
         self.chunks.set_hidden(grey)
+        self._sync_front()
         if any(i in ids for i in self.highlighted):
             self._refresh_overlay()
         if self.cover_ids:
