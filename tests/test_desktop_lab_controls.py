@@ -289,3 +289,31 @@ def test_scrolling_a_clicked_curve_settles_into_one_step(qapp):
     QTest.qWait(600)
     assert doc.experiment.value_map["n_u"] < 4.0 and doc.undo.count() == steps + 1
     panel.close()
+
+
+def test_building_setting_rows_never_opens_a_window_of_its_own(doc, qapp):
+    from PySide6.QtCore import QEvent, QObject
+
+    opened = []
+
+    class Spy(QObject):
+        def eventFilter(self, obj, event):
+            if event.type() == QEvent.Type.Show and obj.isWidgetType() and obj.isWindow():
+                opened.append(type(obj).__name__)
+            return False
+
+    panel = ModelPanel(doc)
+    panel.show()
+    spy = Spy()
+    qapp.installEventFilter(spy)
+    try:
+        for key in [p.key for p in doc.model.parameters if p.panel]:
+            doc.set_value(key, doc.model.parameter(key).high)
+        for value in doc.model.values:
+            doc.select(("value", value.key))
+        for part in doc.model.parts:
+            doc.select(("part", part.key))
+    finally:
+        qapp.removeEventFilter(spy)
+        panel.close()
+    assert opened == []
