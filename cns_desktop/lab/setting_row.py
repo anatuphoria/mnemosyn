@@ -12,7 +12,7 @@ from cns_desktop.design.icons import icon
 from cns_desktop.design.theme import set_flag, set_role, set_tone
 from cns_desktop.design.tokens import GAP, SIZE
 
-from .controls import ClockSpinBox, ScaleSlider, StopSwitch
+from .controls import ClockSpinBox, StopSwitch, ValueBar
 from .scales import scale_for
 
 FIGURES = 4
@@ -150,12 +150,13 @@ class SettingRow(QWidget):
         self.label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.label.clicked.connect(lambda: self.set_expanded(not self.expanded))
+        self.inline = parameter.control == "switch" and with_control
         self.unit = QLabel(unit_text(parameter.unit) if parameter.control != "clock" else "time of day")
         self.unit.setWordWrap(True)
         self.unit.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         set_role(self.unit, "secondary")
         set_tone(self.unit, "text3")
-        self.unit.setVisible(bool(self.unit.text()))
+        self.unit.setVisible(self.inline and bool(self.unit.text()))
         self.field = clock_box(parameter) if parameter.control == "clock" else ValueBox(parameter)
         self.field.setToolTip(self.meaning)
         self.field.editingFinished.connect(lambda: self.committed.emit(self.key, self.field.value()))
@@ -164,14 +165,19 @@ class SettingRow(QWidget):
         self.reset.setIconSize(QSize(SIZE["icon_header"], SIZE["icon_header"]))
         self.reset.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.reset.setAutoRaise(True)
+        self.reset.setFixedSize(SIZE["icon"] + GAP["tight"], SIZE["icon"] + GAP["tight"])
         normal = (self.field.textFromValue(parameter.value) if parameter.control == "clock"
                   else value_text(parameter.value, parameter.unit))
         self.reset.setToolTip(f"Back to the normal value, {normal}")
         self.reset.clicked.connect(lambda: self.reset_requested.emit(self.key))
         self.reset.hide()
+        self.badge = QLabel()
+        set_role(self.badge, "data")
+        set_tone(self.badge, "edited")
+        self.badge.hide()
         column = QVBoxLayout(self)
         column.setContentsMargins(SIZE["panel_pad"] - GAP["tight"], GAP["small"], GAP["small"],
-                                  GAP["small"])
+                                  GAP["tight"])
         column.setSpacing(GAP["tight"])
         head = QHBoxLayout()
         column.addLayout(head)
@@ -185,18 +191,17 @@ class SettingRow(QWidget):
         names.addWidget(self.label)
         names.addWidget(self.unit)
         head.addWidget(self.reset, 0, Qt.AlignmentFlag.AlignTop)
-        head.addWidget(self.field, 0, Qt.AlignmentFlag.AlignTop)
         self.control: QWidget | None = None
-        if with_control and parameter.control == "switch":
+        if self.inline:
+            head.addWidget(self.field, 0, Qt.AlignmentFlag.AlignTop)
             self.control = StopSwitch(parameter)
             self.control.committed.connect(lambda v: self.committed.emit(self.key, v))
-        elif with_control:
-            self.control = ScaleSlider(self.scale, parameter.value, parameter.value)
+        else:
+            unit = "" if parameter.control == "clock" else unit_text(parameter.unit)
+            self.control = ValueBar(self.scale, parameter.value, parameter.value, self.field, unit)
+            self.control.setToolTip(self._hint())
             self.control.previewed.connect(self._previewed)
             self.control.committed.connect(lambda v: self.committed.emit(self.key, v))
-        self.badge = QLabel()
-        set_role(self.badge, "data")
-        set_tone(self.badge, "edited")
         self.note = QLabel()
         self.note.setWordWrap(True)
         set_role(self.note, "secondary")
@@ -209,8 +214,7 @@ class SettingRow(QWidget):
         column.addLayout(body)
         body.setContentsMargins(self.toggle.width() + GAP["tight"], 0, 0, 0)
         body.setSpacing(GAP["tight"])
-        if self.control is not None:
-            body.addWidget(self.control)
+        body.addWidget(self.control)
         notes = QHBoxLayout()
         body.addLayout(notes)
         notes.setContentsMargins(0, 0, 0, 0)
@@ -220,6 +224,10 @@ class SettingRow(QWidget):
         body.addWidget(self.details)
         self._sync_toggle()
         self._describe(parameter.value)
+
+    def _hint(self) -> str:
+        normal = self.field.textFromValue(self.parameter.value)
+        return f"Drag to change, click to type. Normal is {normal}."
 
     def _details(self) -> str:
         parts = [self.meaning] if self.meaning else []
@@ -265,7 +273,7 @@ class SettingRow(QWidget):
         set_flag(self.field, "edited", edited)
         set_tone(self.label, "edited" if edited else "")
         self.reset.setVisible(edited)
-        if isinstance(self.control, ScaleSlider):
+        if isinstance(self.control, ValueBar):
             self.control.set_value(value, edited)
         elif isinstance(self.control, StopSwitch):
             self.control.set_value(value)

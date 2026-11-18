@@ -6,10 +6,11 @@ from html import escape
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QFrame, QGridLayout, QHBoxLayout,
-                               QLabel, QScrollArea, QStyle, QTabWidget, QVBoxLayout,
-                               QWidget)
+                               QLabel, QPushButton, QScrollArea, QStackedWidget, QStyle,
+                               QVBoxLayout, QWidget)
 
 from cns_atlas import DISCLAIMER, Atlas
 from cns_atlas.model import Source
@@ -18,9 +19,19 @@ from ..design import icons
 from ..design.brand import KeyMark
 from ..design.theme import set_flag, set_role, set_tone
 from ..design.tokens import GAP, SIZE
-from ..design.widgets import Card, ElidedLabel, chip
+from ..design.widgets import Card, ElidedLabel, SegmentedControl, button_icon, chip
 
 APP_NAME = "Mnemosyn"
+TAGLINE = "A 3D atlas of the central nervous system, with a lab for the body's control loops"
+APP_LICENCE = "GPL 3.0 or later"
+SITE_URL = "https://mnemo.saeed.cool/"
+HANDBOOK_URL = "https://mnemo.saeed.cool/handbook/"
+DOWNLOAD_URL = "https://mnemo.saeed.cool/download/"
+SOURCE_URL = "https://github.com/anatuphoria/mnemosyn"
+PROBLEM_URL = "https://github.com/anatuphoria/mnemosyn/issues/new"
+LINKS = (("Website", "globe", SITE_URL), ("Handbook", "book-open", HANDBOOK_URL),
+         ("Source code", "code-xml", SOURCE_URL))
+PAGES = (("about", "About"), ("sources", "Data sources"))
 BUILT_WITH = ("Typeface Inter by Rasmus Andersson (SIL Open Font License 1.1). "
               "Icons from Lucide (ISC License).")
 LICENCE_TAGS = (
@@ -190,32 +201,88 @@ class AboutDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(f"About {APP_NAME}")
         self.setFixedSize(*SIZE["dialog_about"])
-        self.tabs = QTabWidget()
-        self.tabs.addTab(self._front(atlas), "About")
-        self.tabs.addTab(self._sources(atlas), "Data sources")
+        self.pages = QStackedWidget()
+        self.pages.addWidget(self._front(atlas))
+        self.pages.addWidget(self._sources(atlas))
+        self.switch = SegmentedControl(list(PAGES))
+        self.switch.changed.connect(self.show_page)
         local = sum(i in atlas.sources for i in atlas.local_only)
         count = len(atlas.sources)
         summary = f"{count} {'source' if count == 1 else 'sources'}"
         self.summary = _label(f"{summary}, {local} local only" if local else summary,
                               "text3", "secondary")
         self.summary.hide()
-        self.tabs.currentChanged.connect(lambda index: self.summary.setVisible(index == 1))
+        top = QHBoxLayout()
+        top.setContentsMargins(0, 0, 0, 0)
+        top.addWidget(self.switch)
+        top.addStretch(1)
+        top.addWidget(self.summary)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.reject)
         foot = QHBoxLayout()
-        foot.addWidget(self.summary)
         foot.addStretch(1)
         foot.addWidget(buttons)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(GAP["large"], GAP["medium"], GAP["large"], GAP["medium"])
+        layout.setContentsMargins(GAP["large"], GAP["large"], GAP["large"], GAP["large"])
         layout.setSpacing(GAP["medium"])
-        layout.addWidget(self.tabs, 1)
+        layout.addLayout(top)
+        layout.addWidget(self.pages, 1)
         layout.addLayout(foot)
+
+    def page_names(self) -> list[str]:
+        return [label for _key, label in PAGES]
+
+    def show_page(self, key: str) -> None:
+        index = [k for k, _label in PAGES].index(key)
+        if self.switch.current() != key:
+            self.switch.set_current(key)
+        self.pages.setCurrentIndex(index)
+        self.summary.setVisible(key == "sources")
+
+    def open_link(self, url: str) -> None:
+        opener = getattr(self.parent(), "open_url", None)
+        if callable(opener):
+            opener(QUrl(url))
+        else:
+            QDesktopServices.openUrl(QUrl(url))
+
+    def _link(self, text: str, icon_name: str, url: str) -> QPushButton:
+        button = QPushButton(text)
+        button.setProperty("variant", "ghost")
+        button.setIcon(button_icon(icon_name))
+        button.setIconSize(QSize(SIZE["icon"], SIZE["icon"]))
+        button.setToolTip(url)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setProperty("url", url)
+        button.clicked.connect(self._link_clicked)
+        return button
+
+    def _link_clicked(self) -> None:
+        self.open_link(self.sender().property("url"))
+
+    def _facts(self, title: str, facts: dict[str, str]) -> QWidget:
+        box = QWidget()
+        grid = QGridLayout(box)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(GAP["medium"])
+        grid.setVerticalSpacing(GAP["tight"])
+        grid.setColumnMinimumWidth(0, SIZE["label_column"])
+        grid.setColumnStretch(1, 1)
+        heading = _label(title.upper(), "text3", "data")
+        grid.addWidget(heading, 0, 0, 1, 2)
+        grid.setRowMinimumHeight(0, SIZE["status"])
+        for row, (key, value) in enumerate(facts.items(), start=1):
+            grid.addWidget(_label(key, "text3"), row, 0)
+            grid.addWidget(_label(value, "text2"), row, 1)
+        grid.setRowStretch(len(facts) + 1, 1)
+        return box
 
     def _front(self, atlas: Atlas) -> QWidget:
         current = app_version()
         self.name = _label(APP_NAME, role="title")
-        self.version = _label(f"Version {current}", "text2")
+        self.tagline = _label(TAGLINE, "text2")
+        self.tagline.setWordWrap(True)
+        self.version = _label(f"Version {current}", "text3")
         self.test_tag = chip("Test version", "accent_text") if is_test_version(current) else None
         meta = QHBoxLayout()
         meta.setSpacing(GAP["small"])
@@ -224,13 +291,22 @@ class AboutDialog(QDialog):
             meta.addWidget(self.test_tag)
         meta.addStretch(1)
         title = QVBoxLayout()
-        title.setSpacing(0)
+        title.setSpacing(GAP["tight"])
         title.addWidget(self.name)
+        title.addWidget(self.tagline)
         title.addLayout(meta)
         brand = QHBoxLayout()
         brand.setSpacing(GAP["large"])
-        brand.addWidget(KeyMark(SIZE["mark"]))
+        brand.addWidget(KeyMark(SIZE["mark_about"]), 0, Qt.AlignmentFlag.AlignTop)
         brand.addLayout(title, 1)
+
+        self.links = [self._link(*link) for link in LINKS]
+        links = QHBoxLayout()
+        links.setContentsMargins(SIZE["mark_about"] + GAP["large"] - GAP["small"], 0, 0, 0)
+        links.setSpacing(GAP["tight"])
+        for button in self.links:
+            links.addWidget(button)
+        links.addStretch(1)
 
         self.notes: list[QLabel] = []
         cards = []
@@ -249,33 +325,32 @@ class AboutDialog(QDialog):
 
         name = str(atlas.metadata.get("name", ""))
         package = f"{name} {atlas.metadata.get('version', '')}".strip()
+        self.app_facts = {"Version": current, "Licence": APP_LICENCE}
         self.facts = {"Atlas package": package, "Sources": str(len(atlas.sources))}
         reviewed, texts = atlas.review_counts()
         if texts:
             self.facts["Texts reviewed"] = f"{reviewed} of {texts}"
         if atlas.metadata.get("licence"):
             self.facts["Licence"] = str(atlas.metadata["licence"])
-        facts = QGridLayout()
-        facts.setHorizontalSpacing(GAP["large"])
-        facts.setVerticalSpacing(GAP["tight"])
-        facts.setColumnMinimumWidth(0, 110)
-        facts.setColumnStretch(1, 1)
-        for row, (key, value) in enumerate(self.facts.items()):
-            facts.addWidget(_label(key, "text3"), row, 0)
-            facts.addWidget(_label(value, "text2"), row, 1)
+        facts = QHBoxLayout()
+        facts.setSpacing(GAP["widest"])
+        facts.addWidget(self._facts("App", self.app_facts), 1)
+        facts.addWidget(self._facts("Atlas", {("Package" if k == "Atlas package" else k): v
+                                              for k, v in self.facts.items()}), 1)
 
-        credits = _label(BUILT_WITH, "text3", "secondary")
-        credits.setWordWrap(True)
+        self.credits = _label(BUILT_WITH, "text3", "secondary")
+        self.credits.setWordWrap(True)
         front = QWidget()
         column = QVBoxLayout(front)
-        column.setContentsMargins(GAP["widest"], GAP["wide"], GAP["widest"], GAP["wide"])
+        column.setContentsMargins(GAP["large"], GAP["large"], GAP["large"], GAP["medium"])
         column.setSpacing(GAP["large"])
         column.addLayout(brand)
+        column.addLayout(links)
         for card in cards:
             column.addWidget(card)
         column.addLayout(facts)
         column.addStretch(1)
-        column.addWidget(credits)
+        column.addWidget(self.credits)
         return front
 
     def _sources(self, atlas: Atlas) -> QWidget:

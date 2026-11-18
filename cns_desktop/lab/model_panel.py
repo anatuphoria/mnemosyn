@@ -179,9 +179,9 @@ class ModelPanel(QWidget):
             self.column.addWidget(group)
         self.column.addStretch(1)
         self.scroll.setWidget(self.body)
-        self._field_width = max((row.field.sizeHint().width() for row in self._rows.values()),
-                                default=0)
-        for row in self._rows.values():
+        inline = [row for row in self._rows.values() if row.inline]
+        self._field_width = max((row.field.sizeHint().width() for row in inline), default=0)
+        for row in inline:
             row.field.setFixedWidth(self._field_width)
         self.refresh()
 
@@ -338,7 +338,8 @@ class ModelPanel(QWidget):
         edited = self.document.experiment.value_map
         for key in keys:
             row = self._make_row(model.parameter(key))
-            row.field.setFixedWidth(self._field_width)
+            if row.inline:
+                row.field.setFixedWidth(self._field_width)
             row.set_value(edited.get(key, model.parameter(key).value), key in edited)
             self.context_list.addWidget(row)
             self._context_rows.append(row)

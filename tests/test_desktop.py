@@ -143,7 +143,8 @@ def about_rows(atlas):
 
 
 def about_notes(atlas):
-    return [note.text() for note in AboutDialog(atlas).notes]
+    dialog = AboutDialog(atlas)
+    return [note.text() for note in dialog.notes]
 
 
 def test_about_text_has_disclaimer_and_sources(atlas):
@@ -154,8 +155,7 @@ def test_about_text_has_disclaimer_and_sources(atlas):
 def test_about_dialog_fits_and_lists_every_source(window, atlas):
     dialog = AboutDialog(atlas, window)
     assert dialog.width() <= 1366 and dialog.height() <= 768
-    assert [dialog.tabs.tabText(i) for i in range(dialog.tabs.count())] == ["About",
-                                                                          "Data sources"]
+    assert dialog.page_names() == ["About", "Data sources"]
     assert len(dialog.rows) == len(atlas.sources)
     dialog.rows[0].toggle()
     first = next(iter(atlas.sources.values()))
@@ -920,7 +920,8 @@ def test_a_failed_save_keeps_the_answer_on_screen(window, monkeypatch):
 
 def test_the_app_is_called_mnemosyn(window, atlas):
     assert window.windowTitle().startswith("Mnemosyn: ")
-    assert AboutDialog(atlas).name.text() == "Mnemosyn"
+    dialog = AboutDialog(atlas)
+    assert dialog.name.text() == "Mnemosyn"
 
 
 def test_progress_moves_from_the_old_folder(tmp_path):
@@ -1072,7 +1073,8 @@ def test_about_rows_keep_full_surnames_and_tag_local_sources():
 def test_the_about_tab_shows_the_app_version(atlas):
     from cns_desktop.views.about_dialog import app_version
 
-    assert AboutDialog(atlas).version.text() == f"Version {app_version()}"
+    dialog = AboutDialog(atlas)
+    assert dialog.version.text() == f"Version {app_version()}"
 
 
 def test_the_status_bar_shows_the_selection_and_the_right_hint_only(window):

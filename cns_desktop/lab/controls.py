@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import math
 
-from PySide6.QtCore import QPointF, QRect, QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QPointF, QRect, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen, QValidator
 from PySide6.QtWidgets import QDoubleSpinBox, QHBoxLayout, QSizePolicy, QWidget
 
 from cns_atlas.models import Curve, LabModel, Parameter
 from cns_desktop.design.fonts import font
-from cns_desktop.design.tokens import COLOURS, GAP, SIZE
+from cns_desktop.design.tokens import COLOURS, GAP, RADIUS, SIZE
 from cns_desktop.design.widgets import SegmentedControl
 
 from .scales import ClockScale, Scale, curve_points
@@ -19,6 +19,8 @@ PAGE_STEP = 0.1
 WHEEL_STEP = 0.01
 WHEEL_SETTLE_MS = 400
 CURVE_POINTS = 80
+DRAG_START = 3
+FILL_ALPHA = 60
 
 
 def colour(name: str, alpha: int = 255) -> QColor:
@@ -49,24 +51,33 @@ class ClockSpinBox(QDoubleSpinBox):
         return (QValidator.State.Intermediate, text, pos)
 
 
-class ScaleSlider(QWidget):
+class ValueBar(QWidget):
     previewed = Signal(float)
     committed = Signal(float)
 
-    def __init__(self, scale: Scale, value: float, normal: float, parent=None) -> None:
+    def __init__(self, scale: Scale, value: float, normal: float, editor: QDoubleSpinBox,
+                 unit: str = "", parent=None) -> None:
         super().__init__(parent)
         self.scale = scale
         self.normal = normal
+        self.editor = editor
+        self.unit = unit
         self._value = value
         self._edited = False
+        self._press: float | None = None
+        self._start = 0.0
         self._dragging = False
-        self._grab = 0.0
         self._pressed = value
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setFixedHeight(SIZE["slider"])
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover)
+        self.setFixedHeight(SIZE["control"])
         self.setMinimumWidth(SIZE["field_min"])
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setCursor(Qt.CursorShape.SizeHorCursor)
+        editor.setParent(self)
+        editor.hide()
+        editor.installEventFilter(self)
+        editor.editingFinished.connect(self.close_editor)
 
     @property
     def value(self) -> float:
@@ -76,29 +87,46 @@ class ScaleSlider(QWidget):
         self._value, self._edited = value, edited
         self.update()
 
-    def label_rects(self) -> list[tuple[QRectF, str]]:
-        metrics = QFontMetrics(font("data"))
-        track = self.track_rect()
-        top = track.bottom() + GAP["medium"]
-        marks = sorted(self.scale.marks(), key=lambda m: m[1] != "normal")
-        kept: list[tuple[QRectF, str]] = []
-        for fraction, label in marks:
-            width = metrics.horizontalAdvance(label)
-            x = track.left() + fraction * track.width() - width / 2
-            x = min(max(x, 0.0), self.width() - width)
-            rect = QRectF(x, top, width, metrics.height())
-            padded = rect.adjusted(-GAP["tight"], 0, GAP["tight"], 0)
-            if not any(padded.intersects(other) for other, _ in kept):
-                kept.append((rect, label))
-        return sorted(kept, key=lambda k: k[0].left())
-
     def track_rect(self) -> QRect:
-        pad = SIZE["handle"] // 2 + 1
-        return QRect(pad, pad, max(self.width() - 2 * pad, 1), GAP["tight"] // 2)
+        return self.rect().adjusted(1, 1, -1, -1)
 
-    def _value_at(self, x: float) -> float:
-        track = self.track_rect()
-        fraction = (x - track.left()) / track.width()
+    def editing(self) -> bool:
+        return self.editor.isVisible()
+
+    def open_editor(self) -> None:
+        self.editor.blockSignals(True)
+        self.editor.setValue(self._value)
+        self.editor.blockSignals(False)
+        self._place_editor()
+        self.editor.show()
+        self.editor.setFocus(Qt.FocusReason.MouseFocusReason)
+        self.editor.selectAll()
+
+    def close_editor(self) -> None:
+        if self.editor.isVisible():
+            self.editor.hide()
+            self.update()
+
+    def eventFilter(self, watched, event) -> bool:
+        if (watched is self.editor and event.type() == QEvent.Type.KeyPress
+                and event.key() == Qt.Key.Key_Escape):
+            self.editor.blockSignals(True)
+            self.editor.setValue(self._value)
+            self.editor.blockSignals(False)
+            self.editor.hide()
+            self.setFocus(Qt.FocusReason.OtherFocusReason)
+            return True
+        return super().eventFilter(watched, event)
+
+    def _place_editor(self) -> None:
+        height = min(self.editor.sizeHint().height(), self.editor.maximumHeight(), self.height())
+        self.editor.setGeometry(0, (self.height() - height) // 2, self.width(), height)
+
+    def resizeEvent(self, event) -> None:
+        self._place_editor()
+        super().resizeEvent(event)
+
+    def _at(self, fraction: float) -> float:
         if abs(fraction - self.scale.fraction(self.normal)) < SNAP:
             return self.normal
         return self.scale.value(fraction)
@@ -108,41 +136,45 @@ class ScaleSlider(QWidget):
         self.update()
         self.previewed.emit(value)
 
-    def _handle_x(self) -> float:
-        track = self.track_rect()
-        return track.left() + self.scale.fraction(self._value) * track.width()
-
     def mousePressEvent(self, event) -> None:
         if event.button() != Qt.MouseButton.LeftButton:
             return
-        self._dragging = True
+        self._press = event.position().x()
+        self._start = self.scale.fraction(self._value)
         self._pressed = self._value
-        x = event.position().x()
-        offset = x - self._handle_x()
-        if abs(offset) <= SIZE["handle"] / 2 + 1:
-            self._grab = offset
-        else:
-            self._grab = 0.0
-            self._preview(self._value_at(x))
+        self._dragging = False
 
     def mouseMoveEvent(self, event) -> None:
-        if self._dragging:
-            self._preview(self._value_at(event.position().x() - self._grab))
+        if self._press is None:
+            return
+        moved = event.position().x() - self._press
+        if not self._dragging and abs(moved) < DRAG_START:
+            return
+        self._dragging = True
+        self._preview(self._at(self._start + moved / max(self.track_rect().width(), 1)))
 
     def mouseReleaseEvent(self, event) -> None:
-        if self._dragging and event.button() == Qt.MouseButton.LeftButton:
+        if event.button() != Qt.MouseButton.LeftButton or self._press is None:
+            return
+        self._press = None
+        if self._dragging:
             self._dragging = False
             if self._value != self._pressed:
                 self.committed.emit(self._value)
+        else:
+            self.open_editor()
 
     def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_F2):
+            self.open_editor()
+            return
         steps = {Qt.Key.Key_Left: -KEY_STEP, Qt.Key.Key_Right: KEY_STEP,
                  Qt.Key.Key_PageDown: -PAGE_STEP, Qt.Key.Key_PageUp: PAGE_STEP}
         step = steps.get(event.key())
         if step is None:
             super().keyPressEvent(event)
             return
-        self._preview(self.scale.value(self.scale.fraction(self._value) + step))
+        self._preview(self._at(self.scale.fraction(self._value) + step))
 
     def keyReleaseEvent(self, event) -> None:
         keys = (Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_PageDown, Qt.Key.Key_PageUp)
@@ -151,34 +183,58 @@ class ScaleSlider(QWidget):
         else:
             super().keyReleaseEvent(event)
 
+    def wheelEvent(self, event) -> None:
+        event.ignore()
+
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        track = self.track_rect()
-        mid = track.center().y() + 0.5
-        tone = colour("edited" if self._edited else "accent")
+        frame = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        radius = RADIUS["control"]
+        tone = "edited" if self._edited else "accent"
+        border = "accent" if self.hasFocus() else ("edited" if self._edited else "line")
+        painter.setPen(QPen(colour(border), 1))
+        painter.setBrush(colour("s0"))
+        painter.drawRoundedRect(frame, radius, radius)
+        inner = QRectF(self.track_rect())
+        clip = QPainterPath()
+        clip.addRoundedRect(inner, radius - 1, radius - 1)
+        painter.setClipPath(clip)
+        here = inner.left() + self.scale.fraction(self._value) * inner.width()
+        normal = inner.left() + self.scale.fraction(self.normal) * inner.width()
+        moved = abs(here - normal) >= 1
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(colour("s3"))
-        painter.drawRoundedRect(QRectF(track), track.height() / 2, track.height() / 2)
-        here = track.left() + self.scale.fraction(self._value) * track.width()
-        normal = track.left() + self.scale.fraction(self.normal) * track.width()
-        painter.setBrush(tone)
-        painter.drawRect(QRectF(min(here, normal), track.top(), abs(here - normal), track.height()))
-        painter.setPen(QPen(colour("text2"), 1.5))
-        painter.drawLine(QPointF(normal, mid - GAP["small"] + 1), QPointF(normal, mid + GAP["small"] - 1))
-        painter.setFont(font("data"))
-        painter.setPen(colour("text3"))
-        ascent = painter.fontMetrics().ascent()
-        for rect, label in self.label_rects():
-            painter.drawText(QPointF(rect.left(), rect.top() + ascent), label)
-        radius = SIZE["handle"] / 2
-        painter.setPen(QPen(tone, 2))
-        painter.setBrush(colour("text"))
-        painter.drawEllipse(QPointF(here, mid), radius - 1, radius - 1)
-        if self.hasFocus():
-            painter.setPen(QPen(colour("accent_text"), 1))
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawEllipse(QPointF(here, mid), radius + 1, radius + 1)
+        painter.setBrush(colour("s3" if self.underMouse() else "s2"))
+        painter.drawRect(QRectF(inner.left(), inner.top(), here - inner.left(), inner.height()))
+        if moved:
+            painter.setBrush(colour(tone, FILL_ALPHA))
+            painter.drawRect(QRectF(min(here, normal), inner.top(), abs(here - normal),
+                                    inner.height()))
+            painter.setPen(QPen(colour("text3"), 1))
+            inset = GAP["tight"] + 1
+            painter.drawLine(QPointF(normal, inner.top() + inset),
+                             QPointF(normal, inner.bottom() - inset))
+        painter.setClipping(False)
+        painter.setFont(font("label"))
+        metrics = painter.fontMetrics()
+        text = self.editor.textFromValue(self._value)
+        unit_width = metrics.horizontalAdvance(self.unit) if self.unit else 0
+        right = inner.right() - GAP["small"]
+        width = metrics.horizontalAdvance(text) + (unit_width + GAP["tight"] if self.unit else 0)
+        words = QRectF(right - width - GAP["tight"], inner.top(), width + GAP["small"],
+                       inner.height())
+        if not words.left() <= here <= words.right():
+            painter.setClipPath(clip)
+            painter.setPen(QPen(colour(tone if moved else "control"), 2))
+            painter.drawLine(QPointF(here, inner.top()), QPointF(here, inner.bottom()))
+            painter.setClipping(False)
+        base = inner.center().y() + (metrics.ascent() - metrics.descent()) / 2
+        if self.unit:
+            painter.setPen(colour("text3"))
+            painter.drawText(QPointF(right - unit_width, base), self.unit)
+            right -= unit_width + GAP["tight"]
+        painter.setPen(colour("edited" if self._edited else "text"))
+        painter.drawText(QPointF(right - metrics.horizontalAdvance(text), base), text)
 
 
 class StopSwitch(QWidget):

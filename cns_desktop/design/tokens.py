@@ -106,6 +106,7 @@ SIZE = {
     "dialog_about": (720, 520),
     "dialog_progress": (720, 560),
     "mark": 44,
+    "mark_about": 56,
     "tag_column": 130,
     "label_column": 110,
     "count_column": 64,
