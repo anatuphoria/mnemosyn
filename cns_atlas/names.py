@@ -35,6 +35,7 @@ class NameIndex:
                  stop: frozenset[str] = frozenset()) -> None:
         self.phrases = {p: t for p, t in phrases.items()
                         if len(p) >= SHORTEST and p not in stop}
+        self.stop = stop
         self.home = home
         self._pattern: re.Pattern | None = None
 
@@ -64,7 +65,7 @@ class NameIndex:
 
     def _compiled(self) -> re.Pattern | None:
         if self._pattern is None and self.phrases:
-            ordered = sorted(self.phrases, key=len, reverse=True)
+            ordered = sorted(set(self.phrases) | self.stop, key=len, reverse=True)
             words = "|".join(re.escape(p).replace(r"\ ", r"\s+") for p in ordered)
             self._pattern = re.compile(rf"\b(?:{words})\b", re.IGNORECASE)
         return self._pattern

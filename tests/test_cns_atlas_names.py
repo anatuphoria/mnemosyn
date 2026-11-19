@@ -90,3 +90,13 @@ def test_an_alias_to_a_part_missing_from_this_atlas_is_left_out(toy_atlas, tmp_p
         '[aliases]\n"lost nucleus" = 999999\n"main gyrus" = 100\n')
     names = Atlas.open(root).names
     assert targets(names.find("The lost nucleus and the main gyrus.")) == [100]
+
+
+def test_a_stop_phrase_keeps_a_name_inside_it_plain():
+    index = NameIndex({"pallidum": 5, "forebrain": 6}, {},
+                      frozenset({"ventral pallidum", "medial forebrain bundle"}))
+    text = "The ventral pallidum, the medial forebrain bundle and the pallidum."
+    links = index.find(text)
+    assert targets(links) == [5]
+    assert text[links[0].start:links[0].end] == "pallidum"
+    assert links[0].start == text.rindex("pallidum")
