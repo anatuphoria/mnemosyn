@@ -67,7 +67,7 @@ class NameIndex:
         if self._pattern is None and self.phrases:
             ordered = sorted(set(self.phrases) | self.stop, key=len, reverse=True)
             words = "|".join(re.escape(p).replace(r"\ ", r"\s+") for p in ordered)
-            self._pattern = re.compile(rf"\b(?:{words})\b", re.IGNORECASE)
+            self._pattern = re.compile(rf"(?<!\w)(?:{words})(?!\w)", re.IGNORECASE)
         return self._pattern
 
     def find(self, text: str, shown: int | None = None) -> list[Link]:

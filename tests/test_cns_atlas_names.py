@@ -100,3 +100,11 @@ def test_a_stop_phrase_keeps_a_name_inside_it_plain():
     assert targets(links) == [5]
     assert text[links[0].start:links[0].end] == "pallidum"
     assert links[0].start == text.rindex("pallidum")
+
+
+def test_a_name_ending_in_a_bracket_links():
+    index = NameIndex({"spinothalamic tract (spinal lemniscus)": 7, "spinothalamic tract": 8}, {})
+    text = "Through the spinothalamic tract (spinal lemniscus) to the thalamus."
+    links = index.find(text)
+    assert targets(links) == [7]
+    assert text[links[0].start:links[0].end] == "spinothalamic tract (spinal lemniscus)"
