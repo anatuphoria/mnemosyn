@@ -1126,3 +1126,17 @@ def test_the_colour_swatch_sits_beside_the_name(window):
         heading, rest = window.info.html_for(structure_id).split("</h2>", 1)
         assert "&#9632;" in heading and "&#9632;" not in rest
     assert not window.info.html_for(120).split("</h2>", 1)[1].startswith("<p></p>")
+
+
+def test_the_next_button_keeps_its_place_whatever_the_feedback_says(window, qapp):
+    quiz = start_quiz(window, "name-choice")
+    places = set()
+    for wants_right in (False, True):
+        right = next(i for i, o in enumerate(quiz.options) if o.id == quiz.item.id)
+        quiz.choose(right if wants_right else (right + 1) % len(quiz.options))
+        qapp.processEvents()
+        assert quiz.correct == wants_right
+        places.add(quiz.next_button.mapTo(quiz, QPoint(0, 0)).y())
+        quiz.go_on()
+        qapp.processEvents()
+    assert len(places) == 1

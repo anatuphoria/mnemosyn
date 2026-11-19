@@ -1,5 +1,5 @@
 import pytest
-from PySide6.QtCore import QPointF, Qt
+from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtTest import QTest
 
 from cns_atlas import Atlas
@@ -139,3 +139,83 @@ def test_clicking_a_lane_name_selects_that_value(doc, qapp):
     QTest.mouseClick(timeline, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, at)
     assert doc.selection == ("value", "y")
     timeline.close()
+
+
+def on_screen(panel, widget, qapp):
+    qapp.processEvents()
+    return widget.mapTo(panel.scroll.viewport(), QPoint(0, 0)).y()
+
+
+def into_view(panel, row, qapp):
+    qapp.processEvents()
+    panel.scroll.ensureWidgetVisible(row, 0, 0)
+    qapp.processEvents()
+
+
+def raised(row):
+    p = row.parameter
+    return p.value + (p.high - p.value) / 2
+
+
+def test_a_row_stays_put_when_its_first_change_lists_it_at_the_top(doc, panel, qapp):
+    panel.resize(SIZE["panel_left"], 300)
+    row = panel.row("stress")
+    into_view(panel, row, qapp)
+    before = on_screen(panel, row, qapp)
+    row.committed.emit("stress", raised(row))
+    assert panel.context_keys() == ["stress"]
+    assert on_screen(panel, row, qapp) == before
+
+
+def test_resetting_a_row_leaves_it_where_it_was(doc, panel, qapp):
+    panel.resize(SIZE["panel_left"], 300)
+    row = panel.row("stress")
+    into_view(panel, row, qapp)
+    row.committed.emit("stress", raised(row))
+    before = on_screen(panel, row, qapp)
+    row.reset.click()
+    assert panel.context_keys() == []
+    assert on_screen(panel, row, qapp) == before
+
+
+def test_selecting_a_value_while_scrolled_keeps_the_rows_in_view_still(doc, panel, qapp):
+    panel.resize(SIZE["panel_left"], 260)
+    qapp.processEvents()
+    bar = panel.scroll.verticalScrollBar()
+    bar.setValue(bar.maximum())
+    row = panel.row("stress")
+    before = on_screen(panel, row, qapp)
+    doc.select(("value", "y"))
+    assert panel.context_heading() == "SHAPES Y"
+    assert on_screen(panel, row, qapp) == before
+    doc.select(None)
+    assert on_screen(panel, row, qapp) == before
+
+
+def test_a_selection_after_a_change_keeps_the_rows_in_view_still(doc, panel, qapp):
+    panel.resize(SIZE["panel_left"], 260)
+    doc.set_value("stress", raised(panel.row("stress")))
+    qapp.processEvents()
+    bar = panel.scroll.verticalScrollBar()
+    bar.setValue(bar.maximum())
+    row = panel.row("stress")
+    before = on_screen(panel, row, qapp)
+    doc.select(("value", "y"))
+    assert on_screen(panel, row, qapp) == before
+
+
+def test_with_nothing_scrolled_or_held_a_selection_shows_at_the_top(doc, panel, qapp):
+    panel.resize(SIZE["panel_left"], 300)
+    doc.select(("value", "y"))
+    assert on_screen(panel, panel.context, qapp) == 0
+
+
+def test_the_what_moved_note_keeps_one_height_whatever_it_lists(doc, panel, qapp):
+    doc.set_value("w", 0.3)
+    doc.set_playhead(240.0)
+    heights = set()
+    for lines in (1, 2, 4):
+        panel.moved.setText("\n".join(["At 4:00:", "Y 2x", "X 0.5x", "M 3x"][:lines]))
+        qapp.processEvents()
+        heights.add(panel.moved.height())
+    assert len(heights) == 1

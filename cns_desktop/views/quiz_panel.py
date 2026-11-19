@@ -150,15 +150,16 @@ class QuizPanel(QWidget):
         layout.setContentsMargins(pad, pad, pad, pad)
         layout.setSpacing(GAP["small"])
         for widget in (self.counter, self.prompt, self.answer_box, *self.choice_buttons,
-                       self.feedback, self.back, self.reveal_button):
+                       self.feedback, self.back):
             layout.addWidget(widget)
+        layout.addStretch(1)
+        layout.addWidget(self.reveal_button)
         ratings = QHBoxLayout()
         for button in self.rate_buttons:
             ratings.addWidget(button)
         layout.addLayout(ratings)
         layout.addWidget(self.next_button)
         layout.addWidget(self.lab_button)
-        layout.addStretch(1)
         layout.addWidget(self.hint)
         layout.addWidget(self.end_button)
         for index, button in enumerate(self.choice_buttons):

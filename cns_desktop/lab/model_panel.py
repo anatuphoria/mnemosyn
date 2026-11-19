@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import math
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import (QDoubleSpinBox, QFrame, QHBoxLayout, QLabel, QPushButton,
-                               QScrollArea, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt
+from PySide6.QtWidgets import (QApplication, QDoubleSpinBox, QFrame, QHBoxLayout, QLabel,
+                               QPushButton, QScrollArea, QToolButton, QVBoxLayout, QWidget)
+from shiboken6 import isValid
 
 from cns_desktop.design.theme import set_role, set_tone
 from cns_desktop.design.tokens import GAP, SIZE
@@ -34,8 +35,34 @@ def short_source(references) -> str:
     return "; ".join(parts)
 
 
-def _quiet(text: str = "") -> QLabel:
-    label = QLabel(text)
+class _Reserved(QLabel):
+    def __init__(self, lines: int, parent=None) -> None:
+        super().__init__(parent)
+        self.lines = lines
+
+    def _floor(self, width: int) -> int:
+        margins = self.contentsMargins()
+        inner = max(1, width - margins.left() - margins.right())
+        text = "\n".join("M" * self.lines)
+        box = self.fontMetrics().boundingRect(QRect(0, 0, inner, 1 << 16),
+                                              Qt.TextFlag.TextWordWrap, text)
+        return box.height() + margins.top() + margins.bottom()
+
+    def heightForWidth(self, width: int) -> int:
+        return max(super().heightForWidth(width), self._floor(width))
+
+    def minimumSizeHint(self) -> QSize:
+        hint = super().minimumSizeHint()
+        return QSize(hint.width(), max(hint.height(), self._floor(self.width())))
+
+    def sizeHint(self) -> QSize:
+        hint = super().sizeHint()
+        return QSize(hint.width(), max(hint.height(), self._floor(self.width())))
+
+
+def _quiet(text: str = "", label: QLabel | None = None) -> QLabel:
+    label = label if label is not None else QLabel()
+    label.setText(text)
     label.setWordWrap(True)
     set_role(label, "secondary")
     set_tone(label, "text3")
@@ -50,6 +77,7 @@ class ModelPanel(QWidget):
         self._open: dict[str, dict[str, bool]] = {}
         self._context_key = None
         self._field_width = 0
+        self._held: QWidget | None = None
         self.search = SearchField("Find a setting")
         self.search.textChanged.connect(lambda _text: self._filter())
         self.changed_only = QPushButton("Changed")
@@ -79,17 +107,55 @@ class ModelPanel(QWidget):
         buttons.addStretch(1)
         buttons.addWidget(self.reset_all)
         layout.addWidget(self.scroll, 1)
-        document.changed.connect(self.refresh)
+        document.changed.connect(lambda: self._steadily(self.refresh))
         document.model_changed.connect(self.populate)
         document.selection_changed.connect(self._on_selection)
         document.playhead_moved.connect(self._on_playhead)
         self.populate()
 
     def _on_selection(self, _selection) -> None:
-        self._update_context()
+        self._held = None
+        self._steadily(self._update_context)
+
+    def _hold(self, widget: QWidget) -> None:
+        self._held = widget
+
+    def _in_view(self, widget: QWidget) -> bool:
+        viewport = self.scroll.viewport()
+        if not widget.isVisibleTo(self.body):
+            return False
+        top = widget.mapTo(viewport, QPoint(0, 0)).y()
+        return top + widget.height() > 0 and top < viewport.height()
+
+    def _steadily(self, change) -> None:
+        held = self._anchor()
+        if held is None:
+            change()
+            return
+        viewport = self.scroll.viewport()
+        before = held.mapTo(viewport, QPoint(0, 0)).y()
+        change()
+        QApplication.sendPostedEvents(None, QEvent.Type.LayoutRequest)
+        if not isValid(held):
+            return
+        moved = held.mapTo(viewport, QPoint(0, 0)).y() - before
+        if moved:
+            bar = self.scroll.verticalScrollBar()
+            bar.setValue(bar.value() + moved)
+
+    def _anchor(self) -> QWidget | None:
+        held = self._held
+        if held is not None and isValid(held) and self._in_view(held):
+            return held
+        viewport = self.scroll.viewport()
+        if self.scroll.verticalScrollBar().value() == 0:
+            return None
+        below = [w for w in (*self._rows.values(), *self._groups)
+                 if self._in_view(w) and w.mapTo(viewport, QPoint(0, 0)).y() >= 0]
+        return min(below, key=lambda w: w.mapTo(viewport, QPoint(0, 0)).y(), default=None)
 
     def _on_playhead(self, _t: float) -> None:
-        self._update_moved()
+        self._steadily(self._update_moved)
 
     def minimumSizeHint(self) -> QSize:
         return QSize(SIZE["panel_min"], super().minimumSizeHint().height())
@@ -101,6 +167,8 @@ class ModelPanel(QWidget):
     def _make_row(self, p, with_control: bool = True) -> SettingRow:
         notes = (self._text(f"parameter.{p.key}.up"), self._text(f"parameter.{p.key}.down"))
         row = SettingRow(p, self._texts[p.key], notes, with_control)
+        for signal in (row.previewed, row.committed, row.reset_requested):
+            signal.connect(lambda *_args, r=row: self._hold(r))
         row.previewed.connect(self._preview)
         row.committed.connect(self._commit)
         row.reset_requested.connect(self.document.reset_value)
@@ -135,7 +203,7 @@ class ModelPanel(QWidget):
         self.context_title.setContentsMargins(SIZE["panel_pad"], GAP["medium"], SIZE["panel_pad"],
                                               GAP["tight"])
         self.context_note = _quiet()
-        self.moved = _quiet()
+        self.moved = _quiet(label=_Reserved(MOVED + 1))
         self.context_rows.addWidget(self.context_title)
         self.context_rows.addWidget(self.context_note)
         self.context_list = QVBoxLayout()
@@ -196,6 +264,8 @@ class ModelPanel(QWidget):
         title.setContentsMargins(SIZE["panel_pad"], 0, GAP["small"], GAP["tight"])
         stack.addWidget(title)
         graph = CurveGraph(model, curve, {})
+        for signal in (graph.previewed, graph.committed):
+            signal.connect(lambda *_args, g=graph: self._hold(g))
         graph.previewed.connect(self._preview)
         graph.committed.connect(self._commit)
         holder = QHBoxLayout()
@@ -325,6 +395,7 @@ class ModelPanel(QWidget):
     def _build_context(self, wanted) -> None:
         for row in self._context_rows:
             self.context_list.removeWidget(row)
+            row.hide()
             row.deleteLater()
         self._context_rows = []
         if wanted is None:
@@ -342,6 +413,7 @@ class ModelPanel(QWidget):
                 row.field.setFixedWidth(self._field_width)
             row.set_value(edited.get(key, model.parameter(key).value), key in edited)
             self.context_list.addWidget(row)
+            row.show()
             self._context_rows.append(row)
         self.context.show()
 
