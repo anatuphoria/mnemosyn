@@ -156,3 +156,15 @@ def test_a_tract_shown_by_a_link_hides_again_when_the_selection_moves_on(routes)
     assert not any(routes.state.is_hidden(i) for i in tract)
     routes.state.select(120)
     assert all(routes.state.is_hidden(i) for i in tract)
+
+
+def test_alt_left_is_left_to_the_back_shortcut_while_a_list_has_focus(window):
+    from PySide6.QtCore import QEvent, Qt
+    from PySide6.QtGui import QKeyEvent
+
+    def override(modifiers):
+        event = QKeyEvent(QEvent.Type.ShortcutOverride, Qt.Key.Key_Left, modifiers)
+        return window.eventFilter(window.tree.tree, event)
+
+    assert override(Qt.KeyboardModifier.NoModifier) is True
+    assert override(Qt.KeyboardModifier.AltModifier) is False

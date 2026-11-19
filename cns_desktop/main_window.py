@@ -440,7 +440,8 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
 
     def eventFilter(self, watched, event) -> bool:
         if (event.type() == QEvent.Type.ShortcutOverride
-                and event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right)):
+                and event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right)
+                and not event.modifiers() & Qt.KeyboardModifier.AltModifier):
             event.accept()
             return True
         return super().eventFilter(watched, event)
