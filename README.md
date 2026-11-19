@@ -216,6 +216,9 @@ Specialists can help: download the review booklet and ask for access to the answ
 
 ## Contributing and licence
 
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first: what to expect at this stage, how to report a
+problem or a mistake in a text, and how to send a change.
+
 ```bash
 .venv/bin/python -m pytest            # fast suite, including lint (ruff) at zero findings
 .venv/bin/python -m pytest -m slow    # with the real atlas built: speed limits and builds
