@@ -15,7 +15,7 @@ A slide shows one picture. A lesson step puts the student inside the same view, 
 </div>
 <div class="box see" markdown>
 <span class="k">What you will see</span>
-A small Lesson window with the steps, the note for the current step, and Back and Next.
+A small Lesson window with the steps, the note for the current step, and arrows to move between them.
 </div>
 </div>
 
@@ -25,6 +25,8 @@ A small Lesson window with the steps, the note for the current step, and Back an
 ## Making a lesson
 
 Choose **File, New lesson**. A Lesson window opens beside the app and stays there while you work.
+Its header says whether you are **Editing** or **Playing**; **Steps** lists the lesson, and the
+section under it shows the step you are on.
 
 1. **Add a step.** Put the app in the state you want the class to see, then press
    **Add this view**. What is saved depends on where you are:
@@ -36,8 +38,8 @@ Choose **File, New lesson**. A Lesson window opens beside the app and stays ther
    becomes a practice round on that level and scope, for example routes in one group or the Lab
    questions on one system.
 3. **Write the note.** Give the step a title and, if you like, a note of a few sentences.
-4. **Order the steps** with **Up** and **Down**, remove one with **Delete**, and click any step to
-   see it again.
+4. **Order the steps** with the up and down arrows beside **Steps**, remove one with the bin, and
+   click any step to see it again.
 5. **Save.** The lesson is a `.mnemolesson` file you can send to the class like any other file.
 
 A lesson cannot hold flashcards.
@@ -45,9 +47,9 @@ A lesson cannot hold flashcards.
 ## Using a lesson
 
 Double click the file, or choose **File, Open lesson**. The Lesson window lists the steps.
-**Next** and **Back** move through them, and each step arranges the app and shows its note. You
-stay free to turn the brain, move the playhead or try something else; **Back to the step** puts
-the step back as the teacher saved it. A question step runs as practice, so it never changes your
+The arrows at the bottom move to the next or previous step, and each step arranges the app and
+shows its note. You stay free to turn the brain, move the playhead or try something else; **Show
+again** puts the step back as the teacher saved it. A question step runs as practice, so it never changes your
 own quiz schedule. **Edit** turns the lesson into one you can change and save.
 
 ## What a lesson contains
