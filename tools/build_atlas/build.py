@@ -31,7 +31,7 @@ from .templates import covers, on_grid, to_uint8
 from .models import load_models
 from .timelines import load_timelines
 from .tracts import place
-from .validate import (check_hierarchy, check_ids, check_knowledge, check_sources,
+from .validate import (check_aliases, check_hierarchy, check_ids, check_knowledge, check_sources,
                        check_templates, check_voxels)
 from .writer import write_package
 
@@ -178,6 +178,7 @@ def _inputs(src: Path) -> Inputs:
     problems += check_templates(recipe, src)
     problems += check_knowledge(src / "knowledge", references, {r.id: r.concept for r in raws},
                                 {f"pathway-{p.key}" for p in pathways}, reviewers)
+    problems += check_aliases(src / "knowledge", {r.id: r.concept for r in raws})
     problems += check_pathway_texts(src / "knowledge", pathways,
                                     [n for r in raws for n in (r.name, *r.synonyms)])
     _stop_on(problems)

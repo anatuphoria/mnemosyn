@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from cns_atlas import Atlas
@@ -58,3 +60,23 @@ def test_the_atlas_index_maps_names_and_synonyms_to_the_whole_part(toy_atlas):
     links = atlas.names.find("Projects to the alpha gyrus and the first gyrus.")
     assert targets(links) == [100]
     assert atlas.names.home_of(101) == 100
+
+
+REAL_ATLAS = Path(__file__).resolve().parent.parent / "atlases" / "cns"
+
+
+@pytest.mark.slow
+def test_every_link_in_the_real_texts_points_to_a_whole_part():
+    atlas = Atlas.open(REAL_ATLAS)
+    linked = 0
+    for structure in atlas.structures:
+        entry = atlas.knowledge(structure.id)
+        if entry is None:
+            continue
+        for text in entry.sections.values():
+            for link in atlas.names.find(text, shown=structure.id):
+                assert link.target in atlas
+                assert atlas.get(link.target).side not in ("left", "right")
+                assert link.target != atlas.names.home_of(structure.id)
+                linked += 1
+    assert linked > 0

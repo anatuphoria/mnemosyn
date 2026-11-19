@@ -7,6 +7,7 @@ import numpy as np
 from cns_atlas.knowledge import (KnowledgeError, Reference, Reviewer, parse_entry,
                                  review_problems)
 from cns_atlas.model import KINDS, SIDES
+from cns_atlas.names import ALIASES_FILE, read_aliases
 
 from .hierarchy import PALETTES, PlannedStructure, RawStructure
 from .idlock import IdLock
@@ -258,6 +259,19 @@ def check_knowledge(knowledge_dir: Path, references: dict[str, Reference],
         problems += [f"{path}: cites missing reference [{key}]"
                      for key in entry.citations if key not in references]
         problems += review_problems(entry, reviewers or {}, str(path))
+    return problems
+
+
+def check_aliases(knowledge_dir: Path, concepts: dict[int, int | None]) -> list[str]:
+    problems: list[str] = []
+    for path in sorted(knowledge_dir.glob(f"*/{ALIASES_FILE}")):
+        aliases, _stop = read_aliases(path)
+        for phrase, target in aliases.items():
+            if target not in concepts:
+                problems.append(f"{path}: alias {phrase!r} names unknown id {target}")
+            elif concepts[target] is not None:
+                problems.append(f"{path}: alias {phrase!r} should name {concepts[target]} "
+                                f"instead of {target}")
     return problems
 
 

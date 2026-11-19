@@ -7,8 +7,9 @@ from tools.build_atlas.hierarchy import (LabelRef, PlannedStructure, RawStructur
                                          load_structures, shade, sibling_factors, with_xrefs)
 from tools.build_atlas.idlock import IdLock, load_lock, write_lock
 from tools.build_atlas.recipe import BuildError, load_recipe
-from tools.build_atlas.validate import (check_hierarchy, check_ids, check_knowledge,
-                                        check_sources, check_templates, check_voxels)
+from tools.build_atlas.validate import (check_aliases, check_hierarchy, check_ids,
+                                        check_knowledge, check_sources, check_templates,
+                                        check_voxels)
 
 
 def raw(id, parent, kind="region", side="none", sources=(), labels=(), concept=None):
@@ -224,3 +225,21 @@ def test_groups_pass_their_colour_on_without_shading():
     colors = {p.structure.id: p.structure.rgb_triplet for p in build_tree(raws)}
     assert colors[2] == color and colors[3] == color
     assert {colors[4], colors[5]} == {shade(color, -0.15), shade(color, 0.15)}
+
+
+def write_aliases(root, body):
+    folder = root / "en"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "aliases.toml").write_text(body)
+    return root
+
+
+def test_an_alias_must_name_a_known_whole_part(tmp_path):
+    concepts = {100: None, 101: 100}
+    unknown = write_aliases(tmp_path / "a", '[aliases]\n"made up" = 999999\n')
+    assert any("999999" in p for p in check_aliases(unknown, concepts))
+    sided = write_aliases(tmp_path / "b", '[aliases]\n"left part" = 101\n')
+    assert any("should name 100 instead of 101" in p for p in check_aliases(sided, concepts))
+    good = write_aliases(tmp_path / "c", 'stop = ["brain"]\n[aliases]\n"first part" = 100\n')
+    assert check_aliases(good, concepts) == []
+    assert check_aliases(tmp_path / "none", concepts) == []

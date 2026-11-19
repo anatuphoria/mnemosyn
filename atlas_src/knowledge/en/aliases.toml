@@ -1,0 +1,14 @@
+stop = ["brain", "tracts"]
+
+[aliases]
+"primary motor cortex" = 1000
+"primary somatosensory cortex" = 1700
+"primary visual cortex" = 1500
+"primary auditory cortex" = 1610
+"transverse temporal gyrus" = 1610
+"basal ganglia" = 18
+"insular cortex" = 1200
+"medial preoptic area" = 2500
+"solitary nucleus" = 2830
+"nucleus of the solitary tract" = 2830
+"dorsal motor nucleus of the vagus" = 2830

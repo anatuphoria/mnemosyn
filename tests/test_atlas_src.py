@@ -15,8 +15,8 @@ from tools.build_atlas.hierarchy import build_tree, load_structures
 from tools.build_atlas.pathways import check_pathway_texts, check_pathways, load_pathways
 from tools.build_atlas.timelines import load_timelines
 from tools.build_atlas.recipe import load_recipe
-from tools.build_atlas.validate import (check_hierarchy, check_knowledge, check_sources,
-                                        check_templates)
+from tools.build_atlas.validate import (check_aliases, check_hierarchy, check_knowledge,
+                                        check_sources, check_templates)
 
 SRC = Path(__file__).resolve().parent.parent / "atlas_src"
 AAL3_EMPTY_LABELS = {35, 36, 81, 82}
@@ -39,6 +39,7 @@ def test_hierarchy_sources_and_knowledge_are_valid():
     concepts = {r.id: r.concept for r in raws}
     keys = {f"pathway-{p.key}" for p in load_pathways(SRC / "pathways.toml")}
     assert check_knowledge(SRC / "knowledge", references, concepts, keys) == []
+    assert check_aliases(SRC / "knowledge", concepts) == []
 
 
 def test_every_aal3_label_maps_to_exactly_one_structure():
