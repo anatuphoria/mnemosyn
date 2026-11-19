@@ -3,10 +3,11 @@ from __future__ import annotations
 from PySide6.QtCore import QRect, QRectF, QSize, Qt
 from PySide6.QtGui import QFont, QFontMetrics, QPainter
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QPushButton, QStyle,
-                               QStyledItemDelegate, QTextBrowser, QTreeWidget, QTreeWidgetItem,
+                               QStyledItemDelegate, QTreeWidget, QTreeWidgetItem,
                                QVBoxLayout, QWidget)
 
 from ..design import icons, rich
+from ..design.linked import LinkedText
 from ..design.fonts import font
 from ..design.theme import set_role
 from ..design.tokens import GAP, SIZE, color
@@ -161,8 +162,7 @@ class StepsPage(QWidget):
         self.steps.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.steps.setItemDelegate(BadgeDelegate(self.steps))
         self.steps.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.narrow_details = QTextBrowser()
-        self.narrow_details.setOpenExternalLinks(True)
+        self.narrow_details = LinkedText()
         self.narrow_details.document().setDefaultStyleSheet(rich.document_css())
         self.narrow_details.hide()
         self.extra = QVBoxLayout()

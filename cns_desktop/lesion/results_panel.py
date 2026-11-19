@@ -6,8 +6,11 @@ from html import escape
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QTextBrowser
 
+from cns_atlas.names import linked_html
+
 from cns_atlas import DISCLAIMER
 from cns_desktop.design import rich
+from cns_desktop.design.linked import LinkedText
 from cns_desktop.views.info_panel import references_html
 
 EMPTY_LESION = "Place a lesion to see what it hits and which routes it breaks."
@@ -29,11 +32,10 @@ def percent(share: float) -> str:
     return f"{whole}%" if whole else "under 1%"
 
 
-class DeficitsPanel(QTextBrowser):
+class DeficitsPanel(LinkedText):
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
         self.document = document
-        self.setOpenExternalLinks(True)
         QTextBrowser.document(self).setDefaultStyleSheet(rich.document_css())
         QTextBrowser.document(self).setDocumentMargin(12)
         self.case = None
@@ -91,7 +93,8 @@ class DeficitsPanel(QTextBrowser):
                 note = rich.secondary_line(ONE_SIDE_ONLY.format(side=side)) if alone else ""
                 hit = ", ".join(f"{escape(atlas.get(i).name)} {percent(s)}"
                                 for i, s in deficit.structures)
-                text = escape(renumber(deficit.lesion, numbers))
+                plain = renumber(deficit.lesion, numbers)
+                text = linked_html(plain, atlas.names.find(plain))
                 items.append(f"<li>{partly}{text}{note}"
                              f"{rich.secondary_line(f'Step {deficit.step + 1}: {hit}')}</li>")
             parts.append("<ol>" + "".join(items) + "</ol>")

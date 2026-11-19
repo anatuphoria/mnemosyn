@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QComboBox, QLabel, QListWidgetItem, QPushButton,
                                QToolButton, QTreeWidgetItem, QWidget)
 
 from cns_atlas import Crossing, Pathway, Relay, Station, Timeline
+from cns_atlas.names import linked_html
 from cns_atlas.pathways import PathwayText, lights, side_of
 
 from ..design import rich
@@ -304,14 +305,19 @@ class PathwayPanel(QWidget):
         if self.text is None:
             return rich.secondary("No description yet.")
         step = self.text.steps[self.index]
-        parts = [f"<p><b>Role</b>: {escape(step.role)}</p>"]
+        names = self.state.atlas.names
+
+        def linked(text: str) -> str:
+            return linked_html(text, names.find(text))
+
+        parts = [f"<p><b>Role</b>: {linked(step.role)}</p>"]
         if self.pathway.texts == "lesion":
-            parts.append(f"<p><b>Lesion</b>: {escape(step.lesion)}</p>")
+            parts.append(f"<p><b>Lesion</b>: {linked(step.lesion)}</p>")
         else:
-            parts.append(f"<p><b>Disorders</b>: {escape(step.disorders)}</p>")
+            parts.append(f"<p><b>Disorders</b>: {linked(step.disorders)}</p>")
             if step.drugs:
-                parts.append(f"<p><b>Drugs</b>: {escape(step.drugs)}</p>")
-        parts.append(f"{rich.heading('Overview')}<p>{escape(self.text.overview)}</p>")
+                parts.append(f"<p><b>Drugs</b>: {linked(step.drugs)}</p>")
+        parts.append(f"{rich.heading('Overview')}<p>{linked(self.text.overview)}</p>")
         parts += references_html(self.text.references)
         where = f"{self.pathway.name}, step {self.index + 1} (route {self.pathway.key})"
         parts.append(mistake_link(where, self.state.atlas, self.text.status))

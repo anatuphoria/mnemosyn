@@ -136,6 +136,8 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
         self.slices_group = self._group("Slices", self.slices, right)
         self.info_group = self._group("Info", self.info, right)
         self.step_panel = self.pathways.step_panel
+        self.step_panel.details.structure_linked.connect(self.follow_link)
+        self.pathways.steps_page.narrow_details.structure_linked.connect(self.follow_link)
         self.step_group = self._group("Step", self.step_panel, right)
         self.step_group.hide()
         self.step_group.visibilityChanged.connect(
@@ -175,6 +177,8 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
             preferences.load_timeline(settings, self.lab.timeline)
         lesions = any(p.texts == "lesion" for p in atlas.pathways)
         self.lesion = LesionWorkspace(self) if lesions else None
+        if self.lesion is not None:
+            self.lesion.deficits.structure_linked.connect(self.follow_link)
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
                 widget.installEventFilter(self)

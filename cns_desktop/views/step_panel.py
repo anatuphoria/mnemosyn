@@ -3,11 +3,12 @@ from __future__ import annotations
 from html import escape
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QLabel, QTextBrowser, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from cns_atlas import DISCLAIMER
 
 from ..design import rich
+from ..design.linked import LinkedText
 from ..design.theme import set_role
 from ..design.tokens import GAP, SIZE
 
@@ -25,8 +26,7 @@ class StepPanel(QWidget):
         self.name = QLabel()
         self.name.setWordWrap(True)
         set_role(self.name, "heading")
-        self.details = QTextBrowser()
-        self.details.setOpenExternalLinks(True)
+        self.details = LinkedText()
         self.details.document().setDefaultStyleSheet(rich.document_css())
         self._body = ""
         self._note = ""

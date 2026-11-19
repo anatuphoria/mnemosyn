@@ -67,3 +67,39 @@ def test_web_links_still_open_outside(window, monkeypatch):
     monkeypatch.setattr("cns_desktop.design.linked.QDesktopServices.openUrl", opened.append)
     follow(window.info, "https://example.org")
     assert [url.toString() for url in opened] == ["https://example.org"]
+
+
+@pytest.fixture
+def routes(qapp, toy_pathway_atlas, tmp_path):
+    w = MainWindow(Atlas.open(toy_pathway_atlas), progress_path=tmp_path / "progress.sqlite")
+    w.resize(1400, 900)
+    w.show()
+    qapp.processEvents()
+    yield w
+    qapp.processEvents()
+    w.close()
+
+
+def test_a_step_text_links_the_parts_it_names(routes, qapp):
+    routes.workspaces.switch("Pathways")
+    routes.pathways.open("loop", "left")
+    routes.pathways.go(2)
+    qapp.processEvents()
+    html = routes.step_panel.details.toHtml()
+    assert "structure:150" in html
+    follow(routes.step_panel.details, "structure:150")
+    assert routes.state.selected == 150
+
+
+def test_a_link_in_deficits_does_not_change_the_lesion(routes, qapp):
+    from cns_atlas.lesions import structure_lesion
+
+    routes.workspaces.switch("Lesion")
+    qapp.processEvents()
+    lesion = routes.lesion
+    lesion.place.set_tool("structure")
+    lesion.document.set_lesion(structure_lesion(routes.state.atlas, 101), "Alpha")
+    before = lesion.document.lesion
+    follow(lesion.deficits, "structure:120")
+    assert routes.state.selected == 120
+    assert lesion.document.lesion is before
