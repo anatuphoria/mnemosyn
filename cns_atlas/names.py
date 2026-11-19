@@ -56,7 +56,7 @@ class NameIndex:
                     del found[phrase]
                     clashing.add(phrase)
         aliases, stop = read_aliases(atlas.root / "knowledge" / lang / ALIASES_FILE)
-        found.update(aliases)
+        found.update((phrase, target) for phrase, target in aliases.items() if target in home)
         return cls(found, home, stop)
 
     def home_of(self, structure_id: int) -> int:

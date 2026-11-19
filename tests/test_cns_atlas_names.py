@@ -80,3 +80,13 @@ def test_every_link_in_the_real_texts_points_to_a_whole_part():
                 assert link.target != atlas.names.home_of(structure.id)
                 linked += 1
     assert linked > 0
+
+
+def test_an_alias_to_a_part_missing_from_this_atlas_is_left_out(toy_atlas, tmp_path):
+    import shutil
+
+    root = shutil.copytree(toy_atlas, tmp_path / "atlas")
+    (root / "knowledge" / "en" / "aliases.toml").write_text(
+        '[aliases]\n"lost nucleus" = 999999\n"main gyrus" = 100\n')
+    names = Atlas.open(root).names
+    assert targets(names.find("The lost nucleus and the main gyrus.")) == [100]
