@@ -108,3 +108,10 @@ def test_a_name_ending_in_a_bracket_links():
     links = index.find(text)
     assert targets(links) == [7]
     assert text[links[0].start:links[0].end] == "spinothalamic tract (spinal lemniscus)"
+
+
+@pytest.mark.slow
+def test_thalamic_radiations_stays_plain_in_the_real_texts():
+    atlas = Atlas.open(REAL_ATLAS)
+    text = "Fibres leave in the thalamic radiations."
+    assert atlas.names.find(text) == []

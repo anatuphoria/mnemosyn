@@ -1,4 +1,4 @@
-stop = ["brain", "tracts", "ventral pallidum", "medial forebrain bundle"]
+stop = ["brain", "tracts", "ventral pallidum", "medial forebrain bundle", "thalamic radiations"]
 
 [aliases]
 "primary motor cortex" = 1000
