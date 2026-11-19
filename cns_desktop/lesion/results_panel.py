@@ -100,8 +100,8 @@ class DeficitsPanel(LinkedText):
         items = []
         for sign, partly, first in signs:
             chip = f"{rich.chip('partly', 'edited')}&nbsp;&nbsp;" if partly else ""
-            link = (f"&nbsp;&nbsp;<a href='{ROUTE}:{escape(first.route)}/{first.side}/"
-                    f"{first.step}'>{SHOW_ROUTE}</a>")
+            link = (f"&nbsp;&nbsp;<span style='white-space: nowrap'><a href='{ROUTE}:"
+                    f"{escape(first.route)}/{first.side}/{first.step}'>{SHOW_ROUTE}</a></span>")
             items.append(f"<li>{chip}{linked_html(sign, atlas.names.find(sign))}{link}</li>")
         return [f"{rich.heading(SIGNS_HEADING)}<ul>{''.join(items)}</ul>"]
 
