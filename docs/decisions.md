@@ -1071,7 +1071,9 @@ changes, and chose this over one row per kind of change.
 2026-11-19, changes decision 51. A tree item whose name starts with its parent's name shows only
 the rest: "Precentral gyrus (left)" under "Precentral gyrus" reads "Left", and "Inferior frontal
 gyrus, orbital part" under "Inferior frontal gyrus" reads "Orbital part". Other items keep their
-full name. The full name stays on hover and in the status bar, and while a search filter is active
+full name, and a name too long for the panel wraps onto more lines instead of being cut. The full
+name stays on hover and in the status bar, and while a search filter is active
 every item shows its full name, since a match may appear without its parent nearby.
 Why: 395 of the 660 items repeated their parent's name, so at the panel's width they were cut in
-the middle ("Precentra... (left)") and the part that told them apart was lost.
+the middle ("Precentra... (left)") and the part that told them apart was lost; the owner chose
+wrapping over a smaller indent for the long names that remain.

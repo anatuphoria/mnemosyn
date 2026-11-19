@@ -31,7 +31,8 @@ and scroll to zoom. `F` frames the selection, `R` resets the view.
 `Ctrl+F` to find a structure by name, abbreviation, synonym or atlas label. Selecting a group, such
 as the frontal lobe, highlights everything inside it. Inside a group the list shows only what tells
 its parts apart, so the two halves of the precentral gyrus read **Left** and **Right**; hover over
-an item for its full name. While you search, every item shows its full name.
+an item for its full name. A long name wraps onto a second line instead of being cut. While you
+search, every item shows its full name.
 
 **Take it apart.** `H` hides the selection, `I` isolates it so it is all you see, and `U` shows
 everything again. The tick boxes in the list do the same for any part: unticking a group hides all

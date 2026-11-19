@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtCore import QSignalBlocker, Qt
+from PySide6.QtCore import QEvent, QRect, QSignalBlocker, QSize, Qt
 from PySide6.QtWidgets import (QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTreeWidget,
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
@@ -13,6 +13,7 @@ from ..state import AppState
 ID_ROLE = Qt.ItemDataRole.UserRole
 SHORT_ROLE = Qt.ItemDataRole.UserRole + 1
 SIDE = re.compile(r" \((?:left|right)\)$")
+MEASURE_LIMIT = 1 << 16
 
 
 def relative_name(name: str, parent: str | None) -> str:
@@ -27,48 +28,39 @@ def relative_name(name: str, parent: str | None) -> str:
     return rest[:1].upper() + rest[1:] if rest else name
 
 
-def shorten(name: str, metrics, width: int) -> str:
-    if metrics.horizontalAdvance(name) <= width:
-        return name
-    found = SIDE.search(name)
-    side = found.group() if found else ""
-    base = name[:found.start()] if found else name
-    head, comma, rest = base.rpartition(", ")
-    part = f"{comma}{rest}" if comma else ""
-    if comma:
-        base = head
-    tail = part + side
-    if tail:
-        room = width - metrics.horizontalAdvance(tail)
-        if room >= metrics.horizontalAdvance(base[:3] + "…"):
-            return metrics.elidedText(base, Qt.TextElideMode.ElideRight, room) + tail
-        if room >= metrics.horizontalAdvance("…"):
-            return "…" + tail
-    if part:
-        lead = "… "
-        budget = width - metrics.horizontalAdvance(lead) - metrics.horizontalAdvance(side)
-        if budget >= metrics.horizontalAdvance(rest[:3] + "…"):
-            return lead + metrics.elidedText(rest, Qt.TextElideMode.ElideRight, budget) + side
-    if side:
-        room = width - metrics.horizontalAdvance(side)
-        if room >= metrics.horizontalAdvance("……"):
-            unsided = name[:found.start()]
-            return metrics.elidedText(unsided, Qt.TextElideMode.ElideMiddle, room) + side
-    return metrics.elidedText(name, Qt.TextElideMode.ElideMiddle, width)
-
-
 class NameDelegate(QStyledItemDelegate):
+    def _text_width(self, option, index) -> int:
+        view = self.parent()
+        depth, parent = 0, index.parent()
+        while parent.isValid():
+            depth, parent = depth + 1, parent.parent()
+        left = view.indentation() * (depth + (1 if view.rootIsDecorated() else 0))
+        item = QStyleOptionViewItem(option)
+        self.initStyleOption(item, index)
+        item.rect = QRect(0, 0, max(view.viewport().width() - left, 1),
+                          max(item.rect.height(), item.fontMetrics.height()))
+        style = view.style()
+        text = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, item, view)
+        margin = style.pixelMetric(QStyle.PixelMetric.PM_FocusFrameHMargin, item, view)
+        return max(text.width() - 2 * margin - 2, 1)
+
+    def sizeHint(self, option, index) -> QSize:
+        hint = super().sizeHint(option, index)
+        text = index.data(Qt.ItemDataRole.DisplayRole) or ""
+        metrics = option.fontMetrics
+        box = QRect(0, 0, self._text_width(option, index), MEASURE_LIMIT)
+        lines = metrics.boundingRect(box, Qt.TextFlag.TextWordWrap, text).height()
+        return QSize(hint.width(), hint.height() + max(0, lines - metrics.height()))
+
     def paint(self, painter, option, index) -> None:
         view = QStyleOptionViewItem(option)
         self.initStyleOption(view, index)
+        view.features |= QStyleOptionViewItem.ViewItemFeature.WrapText
         widget = option.widget
         style = widget.style() if widget is not None else None
         if style is None:
             super().paint(painter, option, index)
             return
-        text = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, view, widget)
-        view.text = shorten(view.text, view.fontMetrics, text.width() - 2 * style.pixelMetric(
-            QStyle.PixelMetric.PM_FocusFrameHMargin, view, widget) - 2)
         style.drawControl(QStyle.ControlElement.CE_ItemViewItem, view, painter, widget)
 
 
@@ -80,8 +72,10 @@ class StructureTree(QWidget):
         self.tree = QTreeWidget()
         self.tree.setHeaderHidden(True)
         self.tree.setIndentation(SIZE["indent"])
-        self.tree.setTextElideMode(Qt.TextElideMode.ElideMiddle)
         self.tree.setItemDelegate(NameDelegate(self.tree))
+        self.tree.setWordWrap(True)
+        self._width = 0
+        self.tree.viewport().installEventFilter(self)
         self.tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, GAP["small"], 0, 0)
@@ -162,6 +156,14 @@ class StructureTree(QWidget):
                 else:
                     mark = Qt.CheckState.PartiallyChecked
                 item.setCheckState(0, mark)
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self.tree.viewport() and event.type() == QEvent.Type.Resize:
+            width = event.size().width()
+            if width != self._width:
+                self._width = width
+                self.tree.doItemsLayout()
+        return super().eventFilter(watched, event)
 
     def apply_filter(self, text: str) -> None:
         atlas = self.state.atlas
