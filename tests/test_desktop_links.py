@@ -168,3 +168,11 @@ def test_alt_left_is_left_to_the_back_shortcut_while_a_list_has_focus(window):
 
     assert override(Qt.KeyboardModifier.NoModifier) is True
     assert override(Qt.KeyboardModifier.AltModifier) is False
+
+
+def test_a_link_that_selects_nothing_leaves_no_back_behind(window):
+    window.state.select(101)
+    follow(window.info, "structure:999999")
+    window.state.select(120)
+    assert window.info.trail == []
+    assert "Back to" not in window.info.toPlainText()

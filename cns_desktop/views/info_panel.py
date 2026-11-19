@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from html import escape
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeySequence, QShortcut, QTextDocument
 
 from cns_atlas import DISCLAIMER, Entry, Structure
@@ -10,7 +10,7 @@ from cns_atlas.knowledge import SECTIONS
 from cns_atlas.names import linked_html
 
 from ..design import rich
-from ..design.linked import LinkedText
+from ..design.linked import STRUCTURE, LinkedText
 from ..report import mistake_link, status_html
 from ..state import AppState
 
@@ -44,38 +44,35 @@ class InfoPanel(LinkedText):
         super().__init__(parent)
         self.state = state
         self.trail: list[int] = []
-        self._following = False
-        self._returning = False
+        self._arriving: tuple[int | None, int] | None = None
         self.document().setDefaultStyleSheet(rich.document_css())
         self.document().setDocumentMargin(12)
-        self.structure_linked.connect(self._before_follow)
         self.back_requested.connect(self.go_back)
         QShortcut(QKeySequence("Alt+Left"), self, self.go_back,
                   context=Qt.ShortcutContext.WindowShortcut)
         state.selection_changed.connect(self.show_structure)
         self.show_structure(state.selected)
 
-    def _before_follow(self, structure_id: int) -> None:
+    def _on_anchor(self, url: QUrl) -> None:
         current = self.state.selected
-        if self._returning or current is None or structure_id == current:
-            return
-        self.trail.append(current)
-        self._following = True
+        if url.scheme() == STRUCTURE and current is not None:
+            self._arriving = (current, int(url.path())) if url.path().isdigit() else None
+        super()._on_anchor(url)
 
     def go_back(self) -> None:
         if not self.trail:
             return
         previous = self.trail.pop()
-        self._returning = self._following = True
-        try:
-            self.structure_linked.emit(previous)
-        finally:
-            self._returning = False
+        self._arriving = (None, previous)
+        self.structure_linked.emit(previous)
 
     def show_structure(self, structure_id: int | None) -> None:
-        if not self._following:
+        arriving, self._arriving = self._arriving, None
+        if arriving is not None and arriving[1] == structure_id:
+            if arriving[0] is not None and arriving[0] != structure_id:
+                self.trail.append(arriving[0])
+        else:
             self.trail.clear()
-        self._following = False
         self.setHtml(self.html_for(structure_id))
 
     def warm(self, structure_id: int) -> None:
