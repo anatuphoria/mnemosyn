@@ -255,3 +255,36 @@ def test_closing_asks_about_unsaved_changes(window):
     assert lesson.close() and window.lesson_window is None
     assert [a.text() for a in window.topbar.menu("File").actions() if "esson" in a.text()] == [
         "New lesson", "Open lesson…"]
+
+
+def three_steps():
+    view = {"workspace": "Slices", "selected": None, "hidden": [], "camera": None,
+            "axis": "sagittal", "mm": 1.0, "volume": ""}
+    return Lesson("Movement", "", "toy", tuple(Step("view", f"Step {n}", "", dict(view))
+                                              for n in (1, 2, 3)))
+
+
+def test_the_lesson_window_names_its_mode_its_step_and_where_you_are(window, tmp_path):
+    from PySide6.QtWidgets import QToolButton
+
+    assert open_file(window, write(tmp_path / "three", three_steps()))
+    lesson = window.lesson_window
+    assert lesson.tag.text() == "Playing"
+    assert lesson.shown_title.text() == "Movement" and lesson.shown_title.isVisible()
+    assert not lesson.title.isVisible()
+    lesson.forward.click()
+    assert lesson.step_heading.text() == "STEP 2 OF 3" and lesson.position.text() == "2 / 3"
+    assert lesson.shown_step.text() == "Step 2"
+    assert all(isinstance(b, QToolButton) for b in (lesson.up, lesson.down, lesson.delete,
+                                                     lesson.back, lesson.forward))
+    assert lesson.again.text() == "Show again"
+    lesson.set_editing(True)
+    assert lesson.tag.text() == "Editing" and lesson.title.isVisible()
+    assert not lesson.shown_title.isVisible() and lesson.up.isVisible()
+
+
+def test_an_empty_lesson_says_step_and_none_of_none(window):
+    lesson = window.new_lesson()
+    assert lesson.tag.text() == "Editing"
+    assert lesson.step_heading.text() == "STEP" and lesson.position.text() == "0 / 0"
+    assert not lesson.back.isEnabled() and not lesson.forward.isEnabled()

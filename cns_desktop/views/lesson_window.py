@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSignalBlocker, Qt
-from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                               QMessageBox, QPlainTextEdit, QPushButton, QVBoxLayout)
+from PySide6.QtCore import QSignalBlocker, QSize, Qt
+from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+                               QMessageBox, QPlainTextEdit, QPushButton, QSizePolicy,
+                               QToolButton, QVBoxLayout)
 
 from cns_study.lessons import MAX_NOTE, MAX_STEPS, MAX_TITLE, MODES, Lesson, LessonError, Step, write
 
-from ..design.theme import set_role
-from ..design.tokens import GAP
+from ..design.theme import set_role, set_tone
+from ..design.tokens import GAP, SIZE as TOKENS
+from ..design.widgets import PanelHeader, button_icon, chip
 
 KIND_NAMES = {"view": "View", "route": "Route", "lab": "Lab", "quiz": "Questions",
               "lesion": "Lesion"}
@@ -20,6 +22,33 @@ EMPTY = "No steps yet. Arrange the app as you want it, then press Add this view.
 NO_NOTE = "No note for this step."
 FULL = f"A lesson holds at most {MAX_STEPS} steps."
 NO_FLASHCARDS = "Flashcards cannot be part of a lesson. Choose Name it or Find it."
+EDITING = "Editing"
+PLAYING = "Playing"
+
+
+def _tool(icon: str, tip: str) -> QToolButton:
+    button = QToolButton()
+    button.setIcon(button_icon(icon, TOKENS["icon_header"]))
+    button.setIconSize(QSize(TOKENS["icon_header"], TOKENS["icon_header"]))
+    button.setFixedSize(TOKENS["control"], TOKENS["control"])
+    button.setAutoRaise(True)
+    button.setToolTip(tip)
+    button.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+    return button
+
+
+def _section(text: str = "") -> QLabel:
+    label = QLabel(text)
+    set_role(label, "data")
+    return label
+
+
+def _heading() -> QLabel:
+    label = QLabel()
+    label.setWordWrap(True)
+    label.setTextFormat(Qt.TextFormat.PlainText)
+    set_role(label, "heading")
+    return label
 
 
 class LessonWindow(QDialog):
@@ -47,29 +76,60 @@ class LessonWindow(QDialog):
         self.report.setWordWrap(True)
         set_role(self.report, "secondary")
         self.add_view = QPushButton("Add this view")
+        self.add_view.setIcon(button_icon("plus"))
         self.add_view.setProperty("variant", "primary")
         self.add_quiz = QPushButton("Add questions…")
-        self.up = QPushButton("Up")
-        self.down = QPushButton("Down")
-        self.delete = QPushButton("Delete")
-        self.back = QPushButton("Back")
-        self.forward = QPushButton("Next")
-        self.again = QPushButton("Back to the step")
+        self.up = _tool("chevron-up", "Move the step up")
+        self.down = _tool("chevron-down", "Move the step down")
+        self.delete = _tool("trash-2", "Remove the step")
+        self.back = _tool("skip-back", "Previous step")
+        self.forward = _tool("skip-forward", "Next step")
+        self.again = QPushButton("Show again")
+        self.again.setToolTip("Put the step back as it was saved")
         self.edit_button = QPushButton("Edit")
         self.save_button = QPushButton("Save")
+        self.save_button.setProperty("variant", "primary")
         for button in (self.again, self.edit_button):
             button.setProperty("variant", "ghost")
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(GAP["large"], GAP["large"], GAP["large"], GAP["large"])
+        self.header = PanelHeader("Lesson")
+        self.tag = chip(EDITING, "edited")
+        self.tag.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.header.add_widget(self.tag)
+        self.shown_title = _heading()
+        self.shown_author = QLabel()
+        set_role(self.shown_author, "secondary")
+        self.step_heading = _section()
+        self.shown_step = _heading()
+        self.position = _section()
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        outer.addWidget(self.header)
+        layout = QVBoxLayout()
+        pad = TOKENS["panel_pad"]
+        layout.setContentsMargins(pad, GAP["small"], pad, GAP["small"])
         layout.setSpacing(GAP["small"])
-        for widget in (self.title, self.author, self.steps):
+        outer.addLayout(layout, 1)
+        for widget in (self.title, self.shown_title, self.author, self.shown_author):
             layout.addWidget(widget)
+        self._row(layout, _section("STEPS"), None, self.up, self.down, self.delete)
+        layout.addWidget(self.steps)
         self._row(layout, self.add_view, self.add_quiz)
-        self._row(layout, self.up, self.down, self.delete)
-        for widget in (self.step_title, self.note, self.shown_note, self.report):
+        layout.addWidget(self.step_heading)
+        for widget in (self.step_title, self.shown_step, self.note, self.shown_note, self.report):
             layout.addWidget(widget)
-        self._row(layout, self.back, self.forward, self.again)
-        self._row(layout, self.edit_button, None, self.save_button)
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.HLine)
+        outer.addWidget(divider)
+        footer = QHBoxLayout()
+        footer.setContentsMargins(pad, GAP["small"], pad, GAP["small"])
+        footer.setSpacing(GAP["tight"])
+        for widget in (self.back, self.position, self.forward, self.again):
+            footer.addWidget(widget)
+        footer.addStretch(1)
+        footer.addWidget(self.edit_button)
+        footer.addWidget(self.save_button)
+        outer.addLayout(footer)
         layout.setStretchFactor(self.steps, 3)
         layout.setStretchFactor(self.note, 2)
         layout.setStretchFactor(self.shown_note, 2)
@@ -124,11 +184,22 @@ class LessonWindow(QDialog):
         self.setWindowTitle(f"{name}{' (changed)' if self.modified() else ''}")
         for widget in (self.title, self.author):
             widget.setReadOnly(not editing)
-        self.author.setVisible(editing or bool(self.lesson.author))
+        self.title.setVisible(editing)
+        self.author.setVisible(editing)
+        self.shown_title.setText(self.lesson.title or "Lesson")
+        self.shown_title.setVisible(not editing)
+        self.shown_author.setText(f"Made by {self.lesson.author}" if self.lesson.author else "")
+        self.shown_author.setVisible(not editing and bool(self.lesson.author))
+        self.tag.setText(EDITING if editing else PLAYING)
+        set_tone(self.tag, "edited" if editing else "")
+        number = self.index + 1 if step is not None else 0
+        self.step_heading.setText(f"STEP {number} OF {count}" if step is not None else "STEP")
+        self.position.setText(f"{number} / {count}")
         for widget in (self.add_view, self.add_quiz, self.up, self.down, self.delete,
                        self.save_button):
             widget.setVisible(editing)
         self.step_title.setVisible(editing and step is not None)
+        self.shown_step.setVisible(not editing and step is not None)
         self.note.setVisible(editing and step is not None)
         self.shown_note.setVisible(not editing or step is None)
         self.edit_button.setVisible(not editing)
@@ -147,6 +218,7 @@ class LessonWindow(QDialog):
                 self.step_title.setText(step.title)
             if self.note.toPlainText() != step.note:
                 self.note.setPlainText(step.note)
+        self.shown_step.setText(step.title or KIND_NAMES[step.kind])
         self.shown_note.setText(step.note or NO_NOTE)
 
     def set_editing(self, editing: bool) -> None:
