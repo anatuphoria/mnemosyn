@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import argparse
 import re
 import shutil
@@ -77,7 +78,7 @@ def _review_page(settings: dict) -> str:
     latest = editions[0]
     form = settings.get("request_form", "")
     contact = settings["contact"]
-    lines = ["# Review the atlas\n",
+    lines = ["# Review the atlas\n", _byline(settings),
              "Mnemosyn asks specialists in neuroanatomy, neurology, neurosurgery, psychiatry and "
              "related fields to check its anatomy and clinical texts before students learn from "
              "them. The booklet explains what we are unsure of, chapter by chapter, and asks 50 "
@@ -276,15 +277,52 @@ release page.
 {quickstart}"""
 
 
+TITLES = {"dr", "dr.", "prof", "prof.", "professor", "mr", "mrs", "ms", "mx"}
+TONES = 4
+
+
+def _byline(settings: dict) -> str:
+    author = settings.get("author", "")
+    if not author:
+        return ""
+    return (f'<p class="byline">By <strong>{html.escape(author)}</strong>, who makes Mnemosyn '
+            "and runs its review.</p>\n")
+
+
+def _initials(name: str) -> str:
+    words = [w for w in name.split() if w.lower() not in TITLES]
+    return "".join(w[0] for w in words[:2]).upper() or "?"
+
+
+def _reviewer_card(person: dict) -> str:
+    name = html.escape(person["name"])
+    shown = (f'<a href="{html.escape(person["link"])}">{name}</a>' if person.get("link")
+             else name)
+    role = ", ".join(html.escape(person[k]) for k in ("speciality", "institution") if person.get(k))
+    tone = sum(map(ord, person["name"])) % TONES
+    lines = ['<div class="reviewer">',
+             f'<span class="reviewer-mark tone-{tone}">{_initials(person["name"])}</span>',
+             '<div class="reviewer-text">',
+             f'<span class="reviewer-name">{shown}</span>']
+    if role:
+        lines.append(f'<span class="reviewer-role">{role}</span>')
+    if person.get("edition"):
+        lines.append(f'<span class="reviewer-edition">Reviewed edition {person["edition"]}</span>')
+    lines += ["</div>", "</div>"]
+    return "\n".join(lines)
+
+
 def _reviewers_page(settings: dict) -> str:
     people = settings.get("reviewers", [])
+    head = "# Reviewers\n\n" + _byline(settings)
     if not people:
-        return ("# Reviewers\n\nThe list of reviewers starts when the first reviews are in. "
-                "Only reviewers who choose to be credited are listed.\n")
-    rows = [f"- {p['name']}, {p['institution']}" if p.get("institution") else f"- {p['name']}"
-            for p in people]
-    return ("# Reviewers\n\nSpecialists who reviewed the atlas and chose to be credited.\n\n"
-            + "\n".join(rows) + "\n")
+        return (head + '\n<div class="reviewers-empty" markdown>\n\n'
+                "The list of reviewers starts when the first reviews are in. Only reviewers who "
+                "choose to be credited are listed.\n\n"
+                "[Take part in the review](review.md){ .md-button }\n\n</div>\n")
+    cards = "\n".join(_reviewer_card(p) for p in people)
+    return (head + "\nSpecialists who reviewed the atlas and chose to be credited.\n\n"
+            f'<div class="reviewers">\n{cards}\n</div>\n')
 
 
 def build_site(repo: Path, out: Path) -> None:

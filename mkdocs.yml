@@ -20,7 +20,7 @@ theme:
   logo: assets/mark.svg
   favicon: assets/favicon.png
   features: [navigation.tabs, navigation.sections, navigation.top, navigation.instant, search.highlight, content.code.copy, toc.follow]
-copyright: Free software under the GNU General Public License 3.0. A study project, not for diagnosis or treatment.
+copyright: © 2026 Anatuphoria. Mnemosyn is made under the direction of Saeed.
 extra:
   generator: false
   social:

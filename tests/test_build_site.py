@@ -89,11 +89,31 @@ def test_without_a_form_link_requests_open_soon_by_email(tmp_path):
 
 def test_reviewers_are_listed_only_from_the_credit_list(tmp_path):
     build_site(review_settings(tmp_path, reviewers=[]), tmp_path / "out")
-    assert "first reviews" in (tmp_path / "out/reviewers.md").read_text()
-    people = [{"name": "Dr A. Name", "institution": "Some University"}, {"name": "B. Other"}]
+    empty = (tmp_path / "out/reviewers.md").read_text()
+    assert "first reviews" in empty and "](review.md)" in empty
+    assert 'class="reviewer"' not in empty
+    people = [{"name": "Dr Amal Name", "speciality": "Neurology",
+               "institution": "Some University", "edition": 2, "link": "https://example.org/a"},
+              {"name": "Bo Other"}]
     build_site(review_settings(tmp_path / "b", reviewers=people), tmp_path / "out2")
     page = (tmp_path / "out2/reviewers.md").read_text()
-    assert "Dr A. Name, Some University" in page and "- B. Other\n" in page
+    assert page.count('class="reviewer"') == 2
+    assert '<a href="https://example.org/a">Dr Amal Name</a>' in page
+    assert "Neurology, Some University" in page and "Reviewed edition 2" in page
+    assert ">AN<" in page and ">BO<" in page
+
+
+def test_both_review_pages_name_their_author(tmp_path):
+    build_site(review_settings(tmp_path, author="Saeed"), tmp_path / "out")
+    for name in ("review.md", "reviewers.md"):
+        page = (tmp_path / "out" / name).read_text()
+        assert '<p class="byline">By <strong>Saeed</strong>' in page
+
+
+def test_the_footer_carries_the_organisations_copyright():
+    config = (REPO / "mkdocs.yml").read_text()
+    line = next(row for row in config.splitlines() if row.startswith("copyright:"))
+    assert "Anatuphoria" in line and "Saeed" in line and "©" in line
 
 
 def test_the_home_page_invites_specialists_without_changing_its_layout(tmp_path):

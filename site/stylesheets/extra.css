@@ -239,6 +239,23 @@ html { scrollbar-color: var(--mn-line-strong) transparent; }
 .md-typeset .start a:hover { border-color: var(--mn-blue); background: var(--mn-tint); text-decoration: none; }
 .md-typeset .disclaimer { margin: 2rem 0 0; padding: .7rem 1rem; border: 1px solid var(--mn-line); border-left: 3px solid var(--mn-gold); border-radius: var(--mn-radius); background: var(--mn-surface); font-size: .68rem; color: var(--mn-text2); }
 
+.md-typeset .byline { margin: -1rem 0 1.6rem; font-size: .72rem; color: var(--mn-text2); }
+.md-typeset .byline strong { color: var(--mn-text); font-weight: 600; }
+.reviewers { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .8rem; margin: 1.2rem 0 1.6rem; }
+.reviewer { display: grid; grid-template-columns: 2.6rem 1fr; column-gap: .85rem; align-items: center; padding: .9rem 1rem; border: 1px solid var(--mn-line); border-radius: var(--mn-radius-large); background: var(--mn-surface); }
+.reviewer-mark { display: flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; font-family: var(--mn-serif); font-size: 1rem; letter-spacing: .02em; border: 1px solid currentColor; }
+.reviewer-mark.tone-0 { color: var(--mn-link); background: var(--mn-tint); }
+.reviewer-mark.tone-1 { color: var(--mn-gold-text); background: var(--mn-gold-tint); }
+.reviewer-mark.tone-2 { color: var(--mn-green-text); background: rgba(79, 174, 128, .1); }
+.reviewer-mark.tone-3 { color: var(--mn-text2); background: var(--mn-raised); }
+.reviewer-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.45; }
+.md-typeset .reviewer-name { font-family: var(--mn-serif); font-size: 1.05rem; color: var(--mn-text); }
+.md-typeset .reviewer-name a { color: inherit; }
+.md-typeset .reviewer-name a:hover { color: var(--mn-link); }
+.reviewer-role { font-size: .68rem; color: var(--mn-text2); }
+.reviewer-edition { margin-top: .25rem; font-size: .6rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--mn-text3); }
+.reviewers-empty { margin: 1.2rem 0; padding: 1.2rem 1.4rem; border: 1px dashed var(--mn-line-strong); border-radius: var(--mn-radius-large); background: var(--mn-surface); color: var(--mn-text2); }
+.reviewers-empty p { margin: 0 0 .9rem; }
 .request-form { width: 100%; height: 60rem; border: 0; border-radius: var(--mn-radius-large); background: #fff; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
