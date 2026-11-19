@@ -78,7 +78,9 @@ say in plain words what the change does. **Find a setting** searches the names a
 the settings that act on it directly move to the top under **Shapes**, read from the model's own
 formulas. With nothing selected, the top lists your changes and the values that moved most at the
 playhead. **What this model includes** says what the model
-covers and what it leaves out. **Take snapshot** keeps a copy of the current run to compare against.
+covers and what it leaves out. **Take snapshot** (the camera) keeps a copy of the current run to compare against: the button stays
+lit while a snapshot is kept, and after your next change the kept run shows as dashed lines. Click
+the camera again, or **Clear snapshot**, to let it go.
 
 **Save and share.** **File, Save** writes the experiment as a small `.mnemolab` file that you can
 open again or send to someone. It holds only the experiment, not the model. The experiments in this

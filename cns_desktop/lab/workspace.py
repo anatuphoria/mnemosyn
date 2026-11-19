@@ -31,6 +31,7 @@ SPEEDS = (0.5, 1.0, 2.0, 4.0)
 LENGTHS = HOURS.lengths
 ALL_LENGTHS = (*HOURS.lengths, *MINUTES.lengths)
 STATUS_HINT = "drag a change to move it"
+SNAPSHOT_HINT = "snapshot kept: change something and dashed lines show the kept run"
 TIMELINE_SHARE = 0.45
 
 
@@ -175,7 +176,8 @@ class LabWorkspace:
         self._add("Delete selected", self._delete_selected, "Delete")
         compare = self._add("Compare with normal", self._compare, checkable=True)
         compare.setChecked(True)
-        snapshot = self._add("Take snapshot", doc.take_snapshot)
+        snapshot = self._add("Take snapshot", self._toggle_snapshot, checkable=True)
+        doc.changed.connect(self._sync_snapshot)
         self._add("Clear snapshot", doc.clear_snapshot)
         self.system_box = QComboBox()
         for model in self.window.state.atlas.models.values():
@@ -409,11 +411,22 @@ class LabWorkspace:
             self.window.view.frame_selection()
         self.document.select(("part", key))
 
+    def _toggle_snapshot(self, on: bool) -> None:
+        if on:
+            self.document.ensure_run()
+            self.document.take_snapshot()
+        else:
+            self.document.clear_snapshot()
+
+    def _sync_snapshot(self) -> None:
+        self._actions["Take snapshot"].setChecked(self.document.snapshot is not None)
+
     def status_text(self) -> str:
         doc = self.document
         changes = _count(len(doc.experiment.blocks), "change", "changes")
         values = _count(len(doc.experiment.values), "value edited", "values edited")
-        hint = self.timeline.hint or STATUS_HINT
+        held = SNAPSHOT_HINT if doc.snapshot is not None else STATUS_HINT
+        hint = self.timeline.hint or held
         return f"{doc.model.name} · healthy adult   │   {changes} · {values}   │   {hint}"
 
     def _build_file_menu(self) -> None:

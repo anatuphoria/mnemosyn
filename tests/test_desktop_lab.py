@@ -318,3 +318,31 @@ def test_opening_a_file_switches_to_its_system(qapp, toy_lab_atlas, tmp_path):
         assert lab.document.model.key == "toy2" and lab.system_box.currentData() == "toy2"
     finally:
         w.close()
+
+
+def test_the_snapshot_button_shows_it_is_held_and_a_second_click_clears_it(qapp, window):
+    from cns_desktop.lab.workspace import SNAPSHOT_HINT
+
+    window.workspaces.switch("Lab")
+    qapp.processEvents()
+    lab = window.lab
+    camera = lab.action("Take snapshot")
+    camera.trigger()
+    assert lab.document.snapshot is not None and camera.isChecked()
+    assert SNAPSHOT_HINT in lab.status_text()
+    camera.trigger()
+    assert lab.document.snapshot is None and not camera.isChecked()
+    assert SNAPSHOT_HINT not in lab.status_text()
+
+
+def test_clearing_the_snapshot_another_way_unlights_the_button(qapp, window):
+    window.workspaces.switch("Lab")
+    qapp.processEvents()
+    lab = window.lab
+    camera = lab.action("Take snapshot")
+    camera.trigger()
+    lab.action("Clear snapshot").trigger()
+    assert not camera.isChecked()
+    camera.trigger()
+    lab.document.new()
+    assert not camera.isChecked()
