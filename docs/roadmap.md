@@ -2,7 +2,7 @@
 
 Where Mnemosyn stands, what is unfinished, and what may come next. Unlike `decisions.md`, nothing
 here is decided: an idea becomes a decision only when the owner approves its design. Last reviewed
-2026-11-18, at version 0.6.2.
+2026-11-19, at version 0.6.3.
 
 ## Vision
 
@@ -45,6 +45,13 @@ timeline whose changes show their kind and can be sized from either end, and thr
 picker's half drawn frame after a click, and faded parts streaking across a part in focus.
 Version 0.6.2 (2026-11-18) fixes one fault in 0.6.1: the layer that kept faded parts off a part in
 focus also covered the lesion in lesion mode, so lesions were not visible.
+Version 0.6.3 (2026-11-19) makes the existing content easier to follow and steadier (decision 98):
+the names of parts in the Info, Step and Deficits texts are links, with Back along the links
+followed; Deficits opens with the likely signs, each able to open its route; tree items show only
+what differs from their parent and wrap long names; the Lab's Model tab and the quiz buttons no
+longer jump while their content changes; a Lab snapshot shows that it is kept; and the Lesson
+window is rebuilt on the design system. The website gained a contributing guide, the Anatuphoria
+copyright in its footer and cards for credited reviewers.
 Since 2026-11-03 the
 website has a handbook in place of the single guide page (see below). The first public forum post went out on 2026-10-30; there are no outside users or
 feedback yet.
