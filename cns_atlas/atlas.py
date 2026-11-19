@@ -11,6 +11,7 @@ from .knowledge import (Entry, KnowledgeError, Reference, Reviewer, load_referen
                         load_reviewers, parse_entry, resolve)
 from .meshes import LODS, MeshData, MeshLod
 from .models import LabModel
+from .names import NameIndex
 from .model import FORMAT_VERSION, Collection, Pathway, Source, Structure
 from .pathways import PathwayText, text_for
 from .timelines import Timeline, note_parts
@@ -118,6 +119,7 @@ class Atlas:
                 raise AtlasError(f"{root / record['file']}: {exc}") from exc
             break
         self._references: dict[str, Reference] | None = None
+        self._names: NameIndex | None = None
         self._reviewers: dict[str, Reviewer] | None = None
         self._entries: dict[tuple[str, int | str], Entry | None] = {}
         self._search_rows = []
@@ -218,6 +220,12 @@ class Atlas:
         ranked.sort()
         ids = [structure_id for _, _, structure_id in ranked]
         return ids if limit is None else ids[:limit]
+
+    @property
+    def names(self) -> NameIndex:
+        if self._names is None:
+            self._names = NameIndex.from_atlas(self)
+        return self._names
 
     @property
     def references(self) -> dict[str, Reference]:
