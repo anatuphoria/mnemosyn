@@ -131,12 +131,8 @@ class LessonMode:
         return [_missing(lost)] if lost else []
 
     def _show_route(self, data: dict) -> list[str]:
-        pathway = next((p for p in self.state.atlas.pathways if p.key == data["key"]), None)
-        if pathway is None:
+        if not self.open_route_step(data["key"], data["side"], data["index"]):
             return [NO_ROUTE]
-        self.workspaces.switch("Pathways")
-        self.pathways.open(pathway.key, data["side"])
-        self.pathways.go(min(data["index"], len(pathway.steps) - 1))
         return []
 
     def _show_lab(self, data: dict) -> list[str]:

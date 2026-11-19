@@ -3,9 +3,10 @@ from __future__ import annotations
 import re
 from html import escape
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QUrl, Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QTextBrowser
 
+from cns_atlas.lesions import Deficit, Report, clean_sign
 from cns_atlas.names import linked_html
 
 from cns_atlas import DISCLAIMER
@@ -18,6 +19,9 @@ NOTHING_BROKEN = "This lesion breaks no route the atlas can follow."
 CASE_HEADING = "The case's lesion"
 ONE_SIDE_ONLY = "This needs damage on both sides; only the {side} side is hit here."
 CITED = re.compile(r"\[(\d+(?:,\s*\d+)*)\]")
+SIGNS_HEADING = "Likely signs"
+SHOW_ROUTE = "Show route"
+ROUTE = "route"
 
 
 def renumber(text: str, numbers: dict[int, int]) -> str:
@@ -27,12 +31,26 @@ def renumber(text: str, numbers: dict[int, int]) -> str:
     return CITED.sub(swap, text)
 
 
+def likely_signs(report: Report) -> list[tuple[str, bool, Deficit]]:
+    found: dict[str, list] = {}
+    for deficit in report.deficits:
+        sign = clean_sign(deficit.sign)
+        if not sign:
+            continue
+        if sign not in found:
+            found[sign] = [True, deficit]
+        found[sign][0] = found[sign][0] and deficit.partly
+    return [(sign, partly, first) for sign, (partly, first) in found.items()]
+
+
 def percent(share: float) -> str:
     whole = round(share * 100)
     return f"{whole}%" if whole else "under 1%"
 
 
 class DeficitsPanel(LinkedText):
+    route_requested = Signal(str, str, int)
+
     def __init__(self, document, parent=None) -> None:
         super().__init__(parent)
         self.document = document
@@ -66,8 +84,29 @@ class DeficitsPanel(LinkedText):
             return f"<p>{escape(EMPTY_LESION)}</p>" + self._notice()
         return self._deficits(atlas, doc.report) + self._notice()
 
+    def claim(self, url: QUrl) -> bool:
+        if url.scheme() != ROUTE:
+            return False
+        key, _slash, rest = url.path().partition("/")
+        side, _slash, step = rest.partition("/")
+        if key and side and step.isdigit():
+            self.route_requested.emit(key, side, int(step))
+        return True
+
+    def _signs(self, atlas, report) -> list[str]:
+        signs = likely_signs(report)
+        if not signs:
+            return []
+        items = []
+        for sign, partly, first in signs:
+            chip = f"{rich.chip('partly', 'edited')}&nbsp;&nbsp;" if partly else ""
+            link = (f"&nbsp;&nbsp;<a href='{ROUTE}:{escape(first.route)}/{first.side}/"
+                    f"{first.step}'>{SHOW_ROUTE}</a>")
+            items.append(f"<li>{chip}{linked_html(sign, atlas.names.find(sign))}{link}</li>")
+        return [f"{rich.heading(SIGNS_HEADING)}<ul>{''.join(items)}</ul>"]
+
     def _deficits(self, atlas, report) -> str:
-        parts = []
+        parts = self._signs(atlas, report)
         groups: dict[tuple[str, str], list] = {}
         for deficit in report.deficits:
             groups.setdefault((deficit.route, deficit.side), []).append(deficit)

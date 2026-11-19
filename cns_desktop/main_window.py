@@ -179,6 +179,7 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
         self.lesion = LesionWorkspace(self) if lesions else None
         if self.lesion is not None:
             self.lesion.deficits.structure_linked.connect(self.follow_link)
+            self.lesion.deficits.route_requested.connect(self.open_route_step)
         for kind in ARROW_WIDGETS:
             for widget in self.findChildren(kind):
                 widget.installEventFilter(self)
@@ -361,6 +362,15 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
     def _prefer_in_slices(self, ids) -> None:
         self.slices.preferred = frozenset(ids)
         self.view.set_preferred(ids)
+
+    def open_route_step(self, key: str, side: str, index: int) -> bool:
+        pathway = next((p for p in self.state.atlas.pathways if p.key == key), None)
+        if pathway is None:
+            return False
+        self.workspaces.switch("Pathways")
+        self.pathways.open(pathway.key, side)
+        self.pathways.go(min(index, len(pathway.steps) - 1))
+        return True
 
     def follow_link(self, structure_id: int) -> None:
         if structure_id not in self.state.atlas:

@@ -103,3 +103,47 @@ def test_a_link_in_deficits_does_not_change_the_lesion(routes, qapp):
     follow(lesion.deficits, "structure:120")
     assert routes.state.selected == 120
     assert lesion.document.lesion is before
+
+
+def deficit(step, sign, partly, side="left"):
+    from cns_atlas.lesions import Deficit
+
+    return Deficit("loop", "Toy loop", side, step, "Loss.", sign, partly, ((101, 0.9),))
+
+
+def two_signs():
+    from cns_atlas.lesions import Report
+
+    return Report({}, (deficit(0, "Weakness [1]", False), deficit(2, "Weakness", True),
+                       deficit(3, "Numbness", True)), ())
+
+
+def test_signs_are_listed_once_and_partly_only_when_always_partly():
+    from cns_desktop.lesion.results_panel import likely_signs
+
+    found = [(sign, partly) for sign, partly, _d in likely_signs(two_signs())]
+    assert found == [("Weakness", False), ("Numbness", True)]
+
+
+def test_the_signs_block_opens_deficits(routes):
+    routes.lesion.deficits.show_case(two_signs(), "Toy case")
+    text = routes.lesion.deficits.toPlainText()
+    assert "Likely signs" in text and "Show route" in text
+    assert text.index("Likely signs") < text.index("Toy loop")
+
+
+def test_no_signs_means_no_signs_block(routes):
+    from cns_atlas.lesions import Report
+
+    routes.lesion.deficits.show_case(Report({}, (deficit(0, "", False),), ()), "Toy case")
+    assert "Likely signs" not in routes.lesion.deficits.toPlainText()
+
+
+def test_show_route_opens_the_route_at_the_broken_step(routes, qapp):
+    routes.workspaces.switch("Lesion")
+    qapp.processEvents()
+    follow(routes.lesion.deficits, "route:loop/right/2")
+    qapp.processEvents()
+    assert routes.workspaces.current == "Pathways"
+    assert routes.pathways.pathway.key == "loop" and routes.pathways.index == 2
+    assert routes.pathways.side == "right"
