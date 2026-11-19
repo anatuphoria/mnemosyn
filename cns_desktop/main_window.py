@@ -121,6 +121,7 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
         self.tree = StructureTree(self.state)
         self.slices = SlicePanel(self.state)
         self.info = InfoPanel(self.state)
+        self.info.structure_linked.connect(self.follow_link)
         self.chart = ActivityChart(self.state)
         self.quiz = QuizPanel(self.state)
         self.pathways = PathwayPanel(self.state, hold=self._held)
@@ -356,6 +357,16 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
     def _prefer_in_slices(self, ids) -> None:
         self.slices.preferred = frozenset(ids)
         self.view.set_preferred(ids)
+
+    def follow_link(self, structure_id: int) -> None:
+        if structure_id not in self.state.atlas:
+            return
+        self.state.set_hidden(self.state.geometry_in(structure_id), False)
+        if self.lesion is not None and self.lesion.place.active:
+            self.lesion.place.select_quietly(structure_id)
+        else:
+            self.state.select(structure_id)
+        self.view.frame_selection()
 
     def frame(self) -> None:
         if self.slices.layer is not None and self.slices.view.underMouse():

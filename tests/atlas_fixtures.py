@@ -82,6 +82,9 @@ status = "draft"
 +++
 ## Function
 Does alpha things [ref2020].
+
+## Connections
+Sends fibres to the beta nucleus [ref2020].
 """
 
 
