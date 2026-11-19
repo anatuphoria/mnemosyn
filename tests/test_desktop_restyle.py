@@ -23,9 +23,9 @@ def window(qapp, toy_behaviour_atlas, tmp_path):
     w.close()
 
 
-def test_long_names_end_in_an_ellipsis_with_a_tooltip(window, qapp):
+def test_long_names_wrap_with_the_full_name_as_a_tooltip(window, qapp):
     tree = window.tree.tree
-    assert tree.textElideMode() == Qt.TextElideMode.ElideMiddle
+    assert tree.wordWrap()
     assert tree.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
     for structure_id, item in window.tree.items.items():
         assert item.toolTip(0) == window.state.atlas.get(structure_id).name
