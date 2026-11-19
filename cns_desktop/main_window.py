@@ -375,7 +375,8 @@ class MainWindow(WindowMenus, QuizMode, RouteMode, LessonMode, QMainWindow):
     def follow_link(self, structure_id: int) -> None:
         if structure_id not in self.state.atlas:
             return
-        self.state.set_hidden(self.state.geometry_in(structure_id), False)
+        self.state.set_hidden([i for i in self.state.geometry_in(structure_id)
+                               if not self.state.is_tract(i)], False)
         if self.lesion is not None and self.lesion.place.active:
             self.lesion.place.select_quietly(structure_id)
         else:

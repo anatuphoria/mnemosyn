@@ -147,3 +147,12 @@ def test_show_route_opens_the_route_at_the_broken_step(routes, qapp):
     assert routes.workspaces.current == "Pathways"
     assert routes.pathways.pathway.key == "loop" and routes.pathways.index == 2
     assert routes.pathways.side == "right"
+
+
+def test_a_tract_shown_by_a_link_hides_again_when_the_selection_moves_on(routes):
+    tract = routes.state.geometry_in(150)
+    assert all(routes.state.is_hidden(i) for i in tract)
+    routes.follow_link(150)
+    assert not any(routes.state.is_hidden(i) for i in tract)
+    routes.state.select(120)
+    assert all(routes.state.is_hidden(i) for i in tract)
