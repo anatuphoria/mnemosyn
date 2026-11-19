@@ -78,8 +78,9 @@ def test_state_isolate_keeps_the_whole_subtree(atlas):
 def test_tree_mirrors_the_hierarchy(window):
     assert window.tree.tree.topLevelItem(0).text(0) == "Central nervous system"
     alpha = window.tree.items[100]
-    assert [alpha.child(i).text(0) for i in range(alpha.childCount())] == [
+    assert [alpha.child(i).toolTip(0) for i in range(alpha.childCount())] == [
         "Alpha gyrus (left)", "Alpha gyrus (right)"]
+    assert [alpha.child(i).text(0) for i in range(alpha.childCount())] == ["Left", "Right"]
 
 
 def test_tree_selection_updates_every_view(window):

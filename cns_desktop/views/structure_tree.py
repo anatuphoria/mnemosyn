@@ -11,7 +11,20 @@ from ..design.widgets import SearchField
 from ..state import AppState
 
 ID_ROLE = Qt.ItemDataRole.UserRole
+SHORT_ROLE = Qt.ItemDataRole.UserRole + 1
 SIDE = re.compile(r" \((?:left|right)\)$")
+
+
+def relative_name(name: str, parent: str | None) -> str:
+    if not parent:
+        return name
+    base = SIDE.sub("", parent)
+    if not name.startswith(base) or name[len(base):len(base) + 1] not in (" ", ","):
+        return name
+    rest = name[len(base):].lstrip(", ")
+    if rest.startswith("(") and rest.endswith(")") and rest.count("(") == 1:
+        rest = rest[1:-1]
+    return rest[:1].upper() + rest[1:] if rest else name
 
 
 def shorten(name: str, metrics, width: int) -> str:
@@ -92,8 +105,12 @@ class StructureTree(QWidget):
         state.visibility_changed.connect(lambda ids: self._sync_checks(ids))
 
     def _add(self, parent: QTreeWidgetItem, structure_id: int) -> None:
-        item = QTreeWidgetItem(parent, [self.state.atlas.get(structure_id).name])
-        item.setToolTip(0, item.text(0))
+        name = self.state.atlas.get(structure_id).name
+        above = parent.data(0, Qt.ItemDataRole.ToolTipRole) if parent is not None else None
+        short = relative_name(name, above)
+        item = QTreeWidgetItem(parent, [short])
+        item.setToolTip(0, name)
+        item.setData(0, SHORT_ROLE, short)
         item.setData(0, ID_ROLE, structure_id)
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
         item.setCheckState(0, Qt.CheckState.Checked)
@@ -148,7 +165,10 @@ class StructureTree(QWidget):
 
     def apply_filter(self, text: str) -> None:
         atlas = self.state.atlas
-        if not text.strip():
+        searching = bool(text.strip())
+        for item in self.items.values():
+            item.setText(0, item.toolTip(0) if searching else item.data(0, SHORT_ROLE))
+        if not searching:
             for item in self.items.values():
                 item.setHidden(False)
             return

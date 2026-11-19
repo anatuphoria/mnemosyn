@@ -56,7 +56,7 @@ entry replaces it and the old one says so.
 | 48 | 2026-10-19 | Route play controls are media symbols in the Pathways panel | in force |
 | 49 | 2026-10-19 | Name it and Flashcards fade everything but the asked structure | in force |
 | 50 | 2026-10-19 | The status bar shows the selection and the mouse hint only | in force |
-| 51 | 2026-10-19 | Full names in the tree, the side only in the info panel, wrapped route lists | in force |
+| 51 | 2026-10-19 | Full names in the tree, the side only in the info panel, wrapped route lists | changed by 98 |
 | 52 | 2026-10-19 | The atlas build never ignores a setting | in force |
 | 53 | 2026-10-19 | Lint stays at zero, with settings that match the code | in force |
 | 54 | 2026-10-19 | The review booklet PDF is published on the website | in force |
@@ -97,6 +97,7 @@ entry replaces it and the old one says so.
 | 89 | 2026-11-16 | A welcome tour on the first start, which switches the workspaces as it describes them | in force |
 | 90 | 2026-11-16 | The blood pressure reflex is the third Lab system, and Lab systems may run in minutes | in force |
 | 91 | 2026-11-16 | A lesson is one file of steps that point into the app, made and played in a Lesson window | in force |
+| 98 | 2026-11-19 | Tree items show only what differs from their parent | in force |
 
 ## 1. Desktop app in Python with PySide6, VTK and PyVista
 
@@ -1064,3 +1065,13 @@ and the wheel scrolls, with Ctrl to zoom and Shift to pan. The status bar explai
 pointer, and a label gives the start and length while dragging.
 Why: the owner could not find how to set how long a change lasts and lost the lanes under many
 changes, and chose this over one row per kind of change.
+
+## 98. Tree items show only what differs from their parent
+
+2026-11-19, changes decision 51. A tree item whose name starts with its parent's name shows only
+the rest: "Precentral gyrus (left)" under "Precentral gyrus" reads "Left", and "Inferior frontal
+gyrus, orbital part" under "Inferior frontal gyrus" reads "Orbital part". Other items keep their
+full name. The full name stays on hover and in the status bar, and while a search filter is active
+every item shows its full name, since a match may appear without its parent nearby.
+Why: 395 of the 660 items repeated their parent's name, so at the panel's width they were cut in
+the middle ("Precentra... (left)") and the part that told them apart was lost.

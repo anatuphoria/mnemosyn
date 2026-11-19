@@ -2,7 +2,7 @@ import pytest
 from PySide6.QtGui import QFont, QFontMetrics
 from PySide6.QtWidgets import QApplication
 
-from cns_desktop.views.structure_tree import NameDelegate, shorten
+from cns_desktop.views.structure_tree import NameDelegate, relative_name, shorten
 
 
 @pytest.fixture(scope="module")
@@ -85,3 +85,36 @@ def test_a_long_tail_still_keeps_its_side(metrics):
     right = shorten("Superior frontal gyrus, medial orbital part (right)", metrics, width)
     assert left.endswith("(left)") and right.endswith("(right)")
     assert metrics.horizontalAdvance(left) <= width
+
+
+def test_a_child_shows_only_what_differs_from_its_parent():
+    assert relative_name("Precentral gyrus (left)", "Precentral gyrus") == "Left"
+    assert relative_name("Inferior frontal gyrus, orbital part",
+                         "Inferior frontal gyrus") == "Orbital part"
+    assert relative_name("Inferior frontal gyrus, orbital part (right)",
+                         "Inferior frontal gyrus, orbital part") == "Right"
+    assert relative_name("Alpha gyrus, deep part (left)", "Alpha gyrus (left)") == (
+        "Deep part (left)")
+
+
+def test_a_name_that_does_not_repeat_its_parent_is_kept():
+    assert relative_name("Thalamus", "Diencephalon") == "Thalamus"
+    assert relative_name("Ponsette", "Pons") == "Ponsette"
+    assert relative_name("Pons", None) == "Pons"
+    assert relative_name("Pons", "Pons") == "Pons"
+
+
+def test_the_tree_shows_relative_names_and_full_names_while_searching(qapp, toy_atlas, tmp_path):
+    from cns_atlas import Atlas
+    from cns_desktop.main_window import MainWindow
+
+    window = MainWindow(Atlas.open(toy_atlas), progress_path=tmp_path / "progress.sqlite")
+    try:
+        item = window.tree.items[101]
+        assert item.text(0) == "Left" and item.toolTip(0) == "Alpha gyrus (left)"
+        window.tree.apply_filter("alpha")
+        assert item.text(0) == "Alpha gyrus (left)"
+        window.tree.apply_filter("")
+        assert item.text(0) == "Left"
+    finally:
+        window.close()
