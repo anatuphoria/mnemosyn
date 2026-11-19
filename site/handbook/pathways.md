@@ -37,7 +37,8 @@ station; `Left` and `Right` move back and forward, and `Space` plays the route o
 speed you choose. Crossings and relays that have no shape in the atlas are steps of their own.
 
 **Read each step.** The **Step** tab on the right says what happens at the current station and
-what a lesion there would do, with references. For sensory and motor routes, **Left** and
+what a lesion there would do, with references. The parts it names are links that select and frame
+that part. For sensory and motor routes, **Left** and
 **Right** choose the side the route starts on. Behaviour routes light both sides and list the
 disorders and drugs linked to each step.
 

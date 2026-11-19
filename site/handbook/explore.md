@@ -29,7 +29,9 @@ and scroll to zoom. `F` frames the selection, `R` resets the view.
 
 **Select.** Click any part in the 3D view, or pick it in the **Structures** list on the left. Press
 `Ctrl+F` to find a structure by name, abbreviation, synonym or atlas label. Selecting a group, such
-as the frontal lobe, highlights everything inside it.
+as the frontal lobe, highlights everything inside it. Inside a group the list shows only what tells
+its parts apart, so the two halves of the precentral gyrus read **Left** and **Right**; hover over
+an item for its full name. While you search, every item shows its full name.
 
 **Take it apart.** `H` hides the selection, `I` isolates it so it is all you see, and `U` shows
 everything again. The tick boxes in the list do the same for any part: unticking a group hides all
@@ -37,7 +39,9 @@ of it, and a half ticked group hides all of it on the first click.
 
 **Read about it.** The **Info** panel describes the selection: its function, its connections and
 what damage there causes, with numbered references, and the atlas its shape comes from. Texts
-marked **Draft** have not been reviewed yet.
+marked **Draft** have not been reviewed yet. The parts a text names are links: click one to select
+and frame that part, then **Back to** at the top of the panel, or `Alt+Left`, returns along the
+links you followed.
 
 **Tracts.** The white matter tracts, such as the corticospinal tract, the lemnisci and the
 cerebellar peduncles, are hidden when the app opens so they do not cover the grey matter. `T` shows
@@ -74,5 +78,6 @@ routes and the Lab.
 | `U` | Show all |
 | `T` | Show or hide all tracts |
 | `Ctrl+F` | Find a structure |
+| `Alt+Left` | Back to the part you came from by a link in Info |
 | `F1` | About Mnemosyn: data sources and licences |
 | `Ctrl+1` to `Ctrl+5` | Switch workspace: Explore, Slices, Pathways, Lab, Lesion |

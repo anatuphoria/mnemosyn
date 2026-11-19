@@ -40,9 +40,13 @@ expect.
 ![The Place tab before a lesion](shots/lesion.png){ .shot }
 <p class="caption">The Place tab before a lesion: the arterial territories grouped by artery, with the slice beside the 3D view.</p>
 
-**Read the result.** **Deficits** lists the routes the lesion breaks, from the side each route
-begins on, with the deficit at every broken step, the structures behind it, a **partly** mark when
-only a small share of a station is hit, and the sources; then the routes it spares. **Hit** ranks
+**Read the result.** **Deficits** opens with the **Likely signs**: each sign the lesion would cause,
+once, marked **partly** when it comes only from stations that are barely hit, with **Show route**
+to open the route in Pathways at the broken step. Below them it lists the routes the lesion breaks,
+from the side each route begins on, with the deficit at every broken step, the structures behind
+it, a **partly** mark when only a small share of a station is hit, and the sources; then the routes
+it spares. The parts named in the texts are links that select and frame the part without changing
+the lesion. **Hit** ranks
 every structure the lesion touches by how much of it is inside.
 
 **Solve cases.** **Cases** turns it around. **New case** describes a patient's signs; you place the
